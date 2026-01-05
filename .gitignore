@@ -231,3 +231,9 @@ demo_benchmark.txt
 test_polygon_benchmark.txt
 test_complex_polygons.txt
 test_complex_polygons.txt
+env.py
+fixtures/
+DatabaseSchema.py
+DatabaseSchema.dbml
+.claude/settings.local.json
+env.py
