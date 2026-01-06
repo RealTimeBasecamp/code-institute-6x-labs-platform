@@ -3,6 +3,7 @@ from decimal import Decimal
 
 from django.db import models
 from django.db.models import Avg, Sum, Count, Q
+from django.utils.text import slugify
 
 from core.models import Status, PlantStatus, Species, Address, Contact, Coordinate
 from users.models import User
@@ -142,6 +143,15 @@ class Project(models.Model):
             )
 
         return (None, None, None, None)
+
+    def save(self, *args, **kwargs):
+        if not self.slug:
+            self.slug = slugify(self.name)
+
+        # On save, recalculate midpoint and bounding box
+        super().save(*args, **kwargs)
+        self.calculate_midpoint_from_sites()
+        self.calculate_bounding_box_from_sites()
 
     def __str__(self):
         return self.name

@@ -1,0 +1,422 @@
+/* NAVBAR styles moved from `assets/css/styles.css` */
+#navbarLeft {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.navbar-branding {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.navbar-logo {
+  height: 28px;
+}
+
+.navbar-search {
+  flex: 1 1 auto;
+  max-width: 600px;
+}
+
+.navbar-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+/* Offcanvas toggle when small screens */
+.offcanvas-toggle-btn {
+  border: none;
+  background: transparent;
+  color: var(--bs-body-color);
+}
+
+/* Keep navbar visually distinct */
+#navbarLeft,
+#navbarRight {
+  height: var(--navbar-height);
+}
+
+/* Ensure navbar left items vertically align with sidebar header */
+#navbarLeft,
+.navbar-left {
+  display: flex;
+  align-items: center;
+  height: var(--navbar-height);
+}
+
+/* Match interactive element padding to the sidebar header for consistent baseline */
+.navbar-left button,
+.navbar-left a,
+.navbar-right button {
+  padding: 0.5rem !important;
+}
+
+/* Additional navbar and interactive element rules moved from `assets/css/styles.css` */
+.notion-navbar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 1000;
+  min-height: var(--navbar-height);
+  background-color: var(--bs-tertiary-bg);
+  border-bottom: 1px solid var(--bs-border-color);
+  padding: 0.35rem 1.25rem;
+  display: flex;
+  align-items: center;
+  margin-left: 0;
+}
+
+/* Removed global navbar shift. Page content handles shifting when sidebar opens. */
+
+.navbar-left,
+.navbar-right {
+  display: flex;
+  align-items: center;
+}
+
+.navbar-right {
+  margin-left: auto;
+}
+
+/* Ensure left/right containers occupy the full navbar height so children can center */
+.navbar-left,
+.navbar-right {
+  height: var(--navbar-height);
+  align-items: center;
+}
+
+/* Make buttons vertically centered inside the navbar */
+.navbar-left button,
+.navbar-right button,
+.navbar-left a {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: auto;
+  padding: 0.5rem !important;
+}
+
+/* Strong alignment rules to ensure everything is exactly centered vertically
+   across browsers and overrides any earlier conflicting rules. */
+/* Strong alignment rules to ensure everything is exactly centered vertically
+   across browsers and overrides any earlier conflicting rules. */
+.notion-navbar {
+  height: var(--navbar-height) !important;
+  display: flex;
+  align-items: center;
+  padding-top: 0 !important;
+  padding-bottom: 0 !important;
+}
+
+.notion-navbar > .navbar-left,
+.notion-navbar > .navbar-right {
+  height: 100% !important;
+  display: flex;
+  align-items: center;
+}
+
+.notion-navbar .navbar-left > *,
+.notion-navbar .navbar-right > * {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: auto;
+  line-height: 1;
+  margin: 0;
+}
+
+/* Ensure SVG/logo aligns correctly */
+.notion-navbar .navbar-brand svg,
+.notion-navbar .navbar-branding svg {
+  display: block !important;
+  vertical-align: middle !important;
+}
+
+/* Hide navbar-left when offcanvas is open.
+   Use visibility + reserved width instead of display:none so the navbar
+   layout (position of other elements) doesn't shift when this element
+   is hidden. Keeping the width reserved prevents the toggle/button from jumping. */
+body.offcanvas-open .navbar-left {
+  display: none !important;
+}
+
+/* Hide sidebar toggle buttons and mobile menu button when sidebar is open — presentation controlled by CSS */
+body.offcanvas-open .mobile-menu-btn,
+body.offcanvas-open [data-bs-toggle="offcanvas"][data-bs-target="#sidebar"] {
+  display: none;
+}
+
+/* ===== INTERACTIVE ELEMENTS (BUTTONS & LINKS) ===== */
+.navbar-left button,
+.navbar-right button,
+.navbar-left a,
+.offcanvas-header a,
+.offcanvas-header button {
+  color: inherit !important;
+  transition: background-color 0.15s ease-in-out;
+  padding: 0.5rem !important;
+  border-radius: 6px;
+  line-height: 1;
+  text-decoration: none;
+}
+
+.navbar-left button:hover,
+.navbar-right button:hover,
+.navbar-left a:hover,
+.offcanvas-header a:hover,
+.offcanvas-header button:hover {
+  background-color: var(--bs-hover-bg);
+}
+
+.navbar-left button:visited,
+.navbar-right button:visited,
+.navbar-left a:visited,
+.offcanvas-header a:visited,
+.offcanvas-header button:visited,
+.navbar-left button:active,
+.navbar-right button:active,
+.navbar-left a:active,
+.offcanvas-header a:active,
+.offcanvas-header button:active,
+.navbar-left button:focus,
+.navbar-right button:focus,
+.navbar-left a:focus,
+.offcanvas-header a:focus,
+.offcanvas-header button:focus {
+  color: inherit !important;
+}
+.navbar-left a:hover,
+.offcanvas-header a:hover,
+.offcanvas-header button:hover {
+  background-color: var(--bs-hover-bg);
+}
+
+.navbar-left button i,
+.navbar-left button span,
+.navbar-right button i,
+.navbar-right button span,
+.navbar-left a svg,
+.offcanvas-header a svg,
+.offcanvas-header button i,
+.offcanvas-header button span {
+  color: inherit !important;
+}
+
+/* Override Bootstrap btn-link defaults */
+.btn-link,
+.btn-link:hover,
+.btn-link:focus {
+  color: inherit !important;
+  text-decoration: none !important;
+}
+
+/* Navbar Component Styles */
+.navbar {
+  background-color: var(--bs-tertiary-bg);
+  color: var(--bs-body-color);
+  height: var(--navbar-height);
+  border-bottom: 1px solid var(--bs-border-color);
+}
+.navbar-left a {
+  color: var(--bs-body-color);
+  text-decoration: none;
+}
+.navbar-right button {
+  color: var(--bs-body-color);
+}
+
+/* ===== NAVBAR ===== */
+.notion-navbar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 1000;
+  min-height: var(--navbar-height);
+  background-color: var(--bs-tertiary-bg);
+  border-bottom: 1px solid var(--bs-border-color);
+  padding: 0.35rem 1.25rem;
+  display: flex;
+  align-items: center;
+  margin-left: 0;
+}
+
+
+/* Align the navbar-left toggle so it visually matches the sidebar area when sidebar is closed.
+   Only apply on desktop widths (matches JS breakpoint >768px). */
+@media (min-width: 769px) {
+  /* Use a consistent left inset for the navbar-left group so the logo and
+     sidebar toggle align with the offcanvas header. Avoid calculating
+     offsets with --sidebar-min-width here to prevent mismatches after
+     user-resize. */
+  body:not(.offcanvas-open) .notion-navbar {
+    padding-left: 1.25rem;
+  }
+
+  /* When the sidebar is open, keep the same navbar padding. */
+  body.offcanvas-open .notion-navbar {
+    padding-left: 1.25rem;
+  }
+
+  /* Fix the left group to the viewport so the logo/toggle sit exactly where
+     the sidebar header's content sits (1.25rem from the left edge). Making
+     it `position: fixed` prevents jumps when the navbar container changes
+     layout. Reserve space in the navbar padding so other navbar content
+     doesn't overlap the fixed area. */
+  .notion-navbar .navbar-left {
+    /* Position absolute so this group is positioned relative to the
+       fixed .notion-navbar container (stays inside the navbar). Center
+       vertically within the navbar using top:0 and height:100%.
+       Use the shared header inset so X matches the offcanvas header. */
+    position: absolute;
+    left: var(--header-inset);
+    top: 0;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    z-index: 1101;
+    background: transparent;
+    overflow: visible;
+  }
+
+  /* Reserve horizontal space inside the navbar so centered/right content
+     isn't overlapped by the fixed left group. The 4.5rem reserve should
+     accommodate the logo + toggle button comfortably. */
+  .notion-navbar {
+    padding-left: calc(var(--header-inset) + 4.5rem);
+  }
+}
+
+.navbar-left,
+.navbar-right {
+  display: flex;
+  align-items: center;
+}
+
+.navbar-right {
+  margin-left: auto;
+}
+
+/* Hide navbar-left when offcanvas is open.
+   Use visibility + reserved width instead of display:none so the navbar
+   layout (position of other elements) doesn't shift when this element
+   is hidden. Keeping the width reserved prevents the toggle/button from jumping. */
+body.offcanvas-open .navbar-left {
+  display: none !important;
+}
+
+/* Navbar interactive elements */
+.navbar-left button,
+.navbar-right button,
+.navbar-left a {
+  color: inherit !important;
+  transition: background-color 0.15s ease-in-out;
+  padding: 0.5rem !important;
+  border-radius: 6px;
+  line-height: 1;
+  text-decoration: none;
+}
+
+.navbar-left button:hover,
+.navbar-right button:hover,
+.navbar-left a:hover {
+  background-color: var(--bs-hover-bg);
+}
+
+.navbar-left button:visited,
+.navbar-right button:visited,
+.navbar-left a:visited,
+.navbar-left button:active,
+.navbar-right button:active,
+.navbar-left a:active,
+.navbar-left button:focus,
+.navbar-right button:focus,
+.navbar-left a:focus {
+  color: inherit !important;
+}
+
+.navbar-left a:hover {
+  background-color: var(--bs-hover-bg);
+}
+
+.navbar-left button i,
+.navbar-left button span,
+.navbar-right button i,
+.navbar-right button span,
+.navbar-left a svg {
+  color: inherit !important;
+}
+
+/* ===== THEME TOGGLE SWITCH ===== */
+.theme-toggle-wrapper {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  height: 100%;
+  padding: 0 0.5rem;
+}
+
+.theme-toggle-wrapper i {
+  font-size: 14px;
+  color: var(--bs-body-color);
+}
+
+.theme-switch {
+  position: relative;
+  display: inline-block;
+  width: 36px;
+  height: 20px;
+}
+
+.theme-switch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.theme-switch .slider {
+  position: absolute;
+  cursor: pointer;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: var(--bs-border-color);
+  transition: 0.3s;
+  border-radius: 20px;
+}
+
+.theme-switch .slider:before {
+  position: absolute;
+  content: "";
+  height: 14px;
+  width: 14px;
+  left: 3px;
+  bottom: 3px;
+  background-color: var(--bs-body-bg);
+  transition: 0.3s;
+  border-radius: 50%;
+}
+
+.theme-switch input:checked + .slider {
+  background-color: var(--bs-body-color);
+}
+
+.theme-switch input:checked + .slider:before {
+  transform: translateX(16px);
+}
+
+.theme-switch input:focus + .slider {
+  box-shadow: none;
+}
+
+.theme-switch input:focus-visible + .slider {
+  box-shadow: none;
+  outline: none;
+}

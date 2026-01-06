@@ -1,13 +1,19 @@
-{% load static %}  {% block content %}
+{% extends 'base.html' %}
+{% load static %}
 
-<p>Hello world</p>
+{% block meta_title %}Project Planner{% endblock %}
+{% block page_title %}Project Planner{% endblock %}
 
-<ul>
-{% for project in projects %}
-    <li>{{ project.name }}</li>
-    <li>{{ project.description }}</li>
-    <li>{{ project.created_at }}</li>
-{% endfor %}
-</ul>
+{% block header_contents %}
+    <div class="btn btn-primary">Save Project</button>
+{% endblock %}
 
+{% block content %}
+    <ul>
+    {% for project in projects %}
+        <li>{{ project.name }}</li>
+        <li>{{ project.description }}</li>
+        <li>{{ project.created_at }}</li>
+    {% endfor %}
+    </ul>
 {% endblock %}
