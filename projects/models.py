@@ -22,6 +22,7 @@ class Project(models.Model):
         related_name='projects'
     )
     name = models.CharField(max_length=255, db_index=True)
+    slug = models.SlugField(max_length=255, unique=True, db_index=True)
     description = models.TextField(null=True, blank=True)
     archived_at = models.DateTimeField(null=True, blank=True)
     address = models.ForeignKey(Address, on_delete=models.PROTECT)
