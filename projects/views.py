@@ -6,5 +6,5 @@ from django.views.generic import ListView
 
 class ProjectListView(ListView):
     model = Project
-    template_name = 'project_planner/project_list.html'
+    template_name = 'projects/projects_list.html'
     context_object_name = 'projects'

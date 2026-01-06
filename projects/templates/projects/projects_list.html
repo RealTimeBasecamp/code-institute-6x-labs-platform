@@ -1,8 +1,12 @@
 {% load static %}  {% block content %}
 
+<p>Hello world</p>
+
 <ul>
 {% for project in projects %}
     <li>{{ project.name }}</li>
+    <li>{{ project.description }}</li>
+    <li>{{ project.created_at }}</li>
 {% endfor %}
 </ul>
 
