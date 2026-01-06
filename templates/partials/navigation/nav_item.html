@@ -1,0 +1,88 @@
+{% load static %}
+
+<li class="sidebar-item{% if nav_item.type == 'parent' and nav_item.children %} has-children{% endif %}">
+  {% if nav_item.type == 'profile' %}
+    {# Profile item #}
+    <a class="sidebar-link text-decoration-none d-flex align-items-center"
+       data-page-id="{{ nav_item.id }}"
+       data-active="{{ nav_item.is_active|yesno:'true,false' }}">
+      {% if nav_item.icon|slice:':3' == 'bi-' %}
+        <i class="bi {{ nav_item.icon }}"></i>
+      {% else %}
+        <img src="{% static nav_item.icon %}" alt="" width="16" height="16" style="margin-right: 0.5rem" />
+      {% endif %}
+      <span class="profile-name">{{ nav_item.label }}</span>
+    </a>
+
+  {% elif nav_item.type == 'modal' %}
+    {# Modal trigger item #}
+    <a href="#"
+       class="sidebar-link text-decoration-none d-flex align-items-center{% if nav_item.is_locked %} locked{% endif %}"
+       data-locked="{{ nav_item.is_locked|yesno:'true,false' }}"
+       data-page-id="{{ nav_item.id }}"
+       data-modal-trigger="{{ nav_item.id }}"
+       data-active="{{ nav_item.is_active|yesno:'true,false' }}">
+      {% if nav_item.icon|slice:':3' == 'bi-' %}
+        <i class="bi {{ nav_item.icon }}"></i>
+      {% else %}
+        <img src="{% static nav_item.icon %}" alt="" width="16" height="16" style="margin-right: 0.5rem" />
+      {% endif %}
+      <span>{{ nav_item.label }}</span>
+      {% if nav_item.is_locked %}
+        <i class="bi bi-lock-fill ms-auto" style="opacity: 0.5;"></i>
+      {% endif %}
+    </a>
+
+  {% elif nav_item.type == 'parent' and nav_item.children %}
+    {# Parent item with children #}
+    <a href="{% if not nav_item.is_locked and nav_item.url %}{{ nav_item.url }}{% else %}#{% endif %}"
+       class="sidebar-link text-decoration-none d-flex align-items-center{% if nav_item.is_locked %} locked{% endif %}"
+       data-locked="{{ nav_item.is_locked|yesno:'true,false' }}"
+       data-page-id="{{ nav_item.id }}"
+       data-active="{{ nav_item.is_active|yesno:'true,false' }}">
+      <button class="sidebar-icon-toggle" aria-label="Toggle submenu">
+        <i class="bi {{ nav_item.icon }} icon-default"></i>
+        <i class="bi bi-chevron-right icon-chevron"></i>
+      </button>
+      <span>{{ nav_item.label }}</span>
+      {% if nav_item.is_locked %}
+        <i class="bi bi-lock-fill ms-auto" style="opacity: 0.5;"></i>
+      {% endif %}
+    </a>
+    <ul class="sidebar-submenu">
+      {% for child in nav_item.children %}
+        <li class="sidebar-item">
+          <a href="{% if not child.is_locked and child.url %}{{ child.url }}{% else %}#{% endif %}"
+             class="sidebar-link text-decoration-none d-flex align-items-center{% if child.is_locked %} locked{% endif %}"
+             data-locked="{{ child.is_locked|yesno:'true,false' }}"
+             data-page-id="{{ child.id }}"
+             data-active="{{ child.is_active|yesno:'true,false' }}">
+            <i class="bi {{ child.icon }}"></i>
+            <span>{{ child.label }}</span>
+            {% if child.is_locked %}
+              <i class="bi bi-lock-fill ms-auto" style="opacity: 0.5;"></i>
+            {% endif %}
+          </a>
+        </li>
+      {% endfor %}
+    </ul>
+
+  {% else %}
+    {# Regular link item #}
+    <a href="{% if not nav_item.is_locked and nav_item.url %}{{ nav_item.url }}{% else %}#{% endif %}"
+       class="sidebar-link text-decoration-none d-flex align-items-center{% if nav_item.is_locked %} locked{% endif %}"
+       data-locked="{{ nav_item.is_locked|yesno:'true,false' }}"
+       data-page-id="{{ nav_item.id }}"
+       data-active="{{ nav_item.is_active|yesno:'true,false' }}">
+      {% if nav_item.icon|slice:':3' == 'bi-' %}
+        <i class="bi {{ nav_item.icon }}"></i>
+      {% else %}
+        <img src="{% static nav_item.icon %}" alt="" width="16" height="16" style="margin-right: 0.5rem" />
+      {% endif %}
+      <span>{{ nav_item.label }}</span>
+      {% if nav_item.is_locked %}
+        <i class="bi bi-lock-fill ms-auto" style="opacity: 0.5;"></i>
+      {% endif %}
+    </a>
+  {% endif %}
+</li>
