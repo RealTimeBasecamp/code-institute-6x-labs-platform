@@ -1,3 +1,5 @@
 from django.contrib import admin
+from .models import Project
 
-# Models will be registered after app restructure is complete
+
+admin.site.register(Project)
