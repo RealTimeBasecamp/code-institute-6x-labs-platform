@@ -11,7 +11,7 @@
   data-bs-backdrop="false"
 >
   <div class="offcanvas-header">
-    <a class="navbar-brand m-0 p-0 d-flex align-items-center" href="index.html">
+    <a class="navbar-brand m-0 p-0 d-flex align-items-center" href="{% url 'projects:projects_list' %}">
       <!-- SVG Logo -->
       <svg
         xmlns="http://www.w3.org/2000/svg"
@@ -37,8 +37,16 @@
     <div class="sidebar-resizer" data-sidebar-resizer aria-hidden="true"></div>
   </div>
   <div class="offcanvas-body">
-    <!-- Navigation will be dynamically rendered by sidebar.js -->
-    <ul class="list-unstyled sidebar-nav"></ul>
+    <!-- Navigation rendered server-side by Django -->
+    <ul class="list-unstyled sidebar-nav">
+      {% for nav_item in navigation_items %}
+        {% include 'partials/navigation/nav_item.html' with nav_item=nav_item %}
+      {% empty %}
+        <li class="sidebar-item">
+          <span class="sidebar-link text-muted">No navigation available</span>
+        </li>
+      {% endfor %}
+    </ul>
   </div>
 </div>
 <script src="{% static 'js/navigation/sidebar.js' %}"></script>

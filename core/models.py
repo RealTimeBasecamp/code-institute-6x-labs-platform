@@ -1,6 +1,94 @@
 from django.db import models
 from django_countries.fields import CountryField
 from django.core.exceptions import ValidationError
+from django.conf import settings
+
+
+# =============================================================================
+# SUBSCRIPTION TIER (Controls feature access for paying customers)
+# =============================================================================
+class SubscriptionTier(models.Model):
+    """
+    Subscription tier that controls feature access.
+    Staff/superusers bypass tier checks via Django's is_staff/is_superuser flags.
+    """
+    slug = models.SlugField(unique=True, max_length=50)
+    name = models.CharField(max_length=100)
+    level = models.PositiveIntegerField(default=0, help_text="Lower number = more access")
+    description = models.TextField(blank=True)
+    is_active = models.BooleanField(default=True)
+
+    class Meta:
+        ordering = ['level']
+
+    def __str__(self):
+        return self.name
+
+
+# =============================================================================
+# NAVIGATION ITEM (Self-referential for nested menus)
+# =============================================================================
+class NavigationItem(models.Model):
+    """Navigation menu item with tier-based access control."""
+
+    TYPE_CHOICES = [
+        ('profile', 'Profile'),
+        ('modal', 'Modal Trigger'),
+        ('link', 'Link'),
+        ('parent', 'Parent (has children)'),
+    ]
+
+    # Core fields
+    item_id = models.SlugField(unique=True, max_length=100)
+    item_type = models.CharField(max_length=20, choices=TYPE_CHOICES, default='link')
+    label = models.CharField(max_length=100)
+    icon = models.CharField(max_length=100, help_text="Bootstrap icon class or image path")
+    url_name = models.CharField(
+        max_length=255,
+        blank=True,
+        help_text="Django URL name (e.g., 'projects:project_planner') or path"
+    )
+    is_active = models.BooleanField(default=True, help_text="False = 'Coming Soon'")
+
+    # Hierarchy
+    parent = models.ForeignKey(
+        'self',
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        related_name='children'
+    )
+    display_order = models.PositiveIntegerField(default=0)
+
+    # Access control
+    allowed_tiers = models.ManyToManyField(
+        SubscriptionTier,
+        related_name='accessible_nav_items',
+        blank=True,
+        help_text="Tiers that can access this item. Staff/superusers always have access."
+    )
+    staff_only = models.BooleanField(
+        default=False,
+        help_text="If True, only staff/superusers can see this item. Regular users won't see it at all."
+    )
+
+    class Meta:
+        ordering = ['display_order', 'label']
+
+    def __str__(self):
+        return f"{self.label} ({self.item_id})"
+
+    def is_allowed_for_user(self, user):
+        """Check if this item is accessible for a given user."""
+        if not user.is_authenticated:
+            return False
+        # Staff and superusers bypass tier checks
+        if user.is_staff or user.is_superuser:
+            return True
+        # Check user's subscription tier
+        if hasattr(user, 'subscription_tier') and user.subscription_tier:
+            return self.allowed_tiers.filter(pk=user.subscription_tier.pk).exists()
+        return False
 
 
 # =============================================================================

@@ -1,0 +1,177 @@
+{
+  "tiers": [
+    {
+      "slug": "sapling",
+      "name": "Sapling",
+      "level": 1,
+      "description": "Basic plan for getting started"
+    },
+    {
+      "slug": "growth",
+      "name": "Growth",
+      "level": 2,
+      "description": "Growing businesses with more features"
+    },
+    {
+      "slug": "thrive",
+      "name": "Thrive",
+      "level": 3,
+      "description": "Full-featured plan for thriving teams"
+    },
+    {
+      "slug": "enterprise",
+      "name": "Enterprise",
+      "level": 4,
+      "description": "Enterprise-grade with all features"
+    }
+  ],
+
+  "navigation": [
+    {
+      "item_id": "profile",
+      "item_type": "profile",
+      "label": "6X Labs",
+      "icon": "images/favicon.png",
+      "url_name": "",
+      "is_active": true,
+      "staff_only": false,
+      "allowed_tiers": ["sapling", "growth", "thrive", "enterprise"]
+    },
+    {
+      "item_id": "search",
+      "item_type": "modal",
+      "label": "Search",
+      "icon": "bi-search",
+      "url_name": "",
+      "is_active": true,
+      "staff_only": false,
+      "allowed_tiers": ["sapling", "growth", "thrive", "enterprise"]
+    },
+    {
+      "item_id": "dashboard",
+      "item_type": "link",
+      "label": "Dashboard",
+      "icon": "bi-house",
+      "url_name": "dashboard",
+      "is_active": true,
+      "staff_only": false,
+      "allowed_tiers": ["sapling", "growth", "thrive", "enterprise"]
+    },
+    {
+      "item_id": "projects",
+      "item_type": "link",
+      "label": "Projects",
+      "icon": "bi-geo-alt",
+      "url_name": "projects:projects_list",
+      "is_active": true,
+      "staff_only": false,
+      "allowed_tiers": ["sapling", "growth", "thrive", "enterprise"],
+      "children": [
+        {
+          "item_id": "project-planner",
+          "item_type": "link",
+          "label": "Project Planner",
+          "icon": "bi-pencil-square",
+          "url_name": "projects:project_planner",
+          "is_active": false,
+          "staff_only": true,
+          "allowed_tiers": ["growth", "thrive", "enterprise"]
+        }
+      ]
+    },
+    {
+      "item_id": "reports",
+      "item_type": "parent",
+      "label": "Reports",
+      "icon": "bi-download",
+      "url_name": "",
+      "is_active": false,
+      "staff_only": false,
+      "allowed_tiers": ["growth", "thrive", "enterprise"],
+      "children": [
+        {
+          "item_id": "reports-overview",
+          "item_type": "link",
+          "label": "Overview",
+          "icon": "bi-bar-chart",
+          "url_name": "",
+          "is_active": false,
+          "staff_only": false,
+          "allowed_tiers": ["growth", "thrive", "enterprise"]
+        },
+        {
+          "item_id": "reports-analytics",
+          "item_type": "link",
+          "label": "Analytics",
+          "icon": "bi-graph-up",
+          "url_name": "",
+          "is_active": false,
+          "staff_only": false,
+          "allowed_tiers": ["thrive", "enterprise"]
+        },
+        {
+          "item_id": "reports-compliance",
+          "item_type": "link",
+          "label": "Request Compliance",
+          "icon": "bi-envelope-check",
+          "url_name": "",
+          "is_active": false,
+          "staff_only": false,
+          "allowed_tiers": ["enterprise"]
+        }
+      ]
+    },
+    {
+      "item_id": "widget-store",
+      "item_type": "link",
+      "label": "Widget Store",
+      "icon": "bi-shop-window",
+      "url_name": "",
+      "is_active": false,
+      "staff_only": false,
+      "allowed_tiers": ["growth", "thrive", "enterprise"]
+    },
+    {
+      "item_id": "social-media",
+      "item_type": "parent",
+      "label": "Social Media Studio",
+      "icon": "bi-camera-reels",
+      "url_name": "",
+      "is_active": false,
+      "staff_only": false,
+      "allowed_tiers": ["thrive", "enterprise"],
+      "children": [
+        {
+          "item_id": "social-video-editor",
+          "item_type": "link",
+          "label": "Video Editor",
+          "icon": "bi-bar-chart",
+          "url_name": "",
+          "is_active": false,
+          "staff_only": false,
+          "allowed_tiers": ["thrive", "enterprise"]
+        },
+        {
+          "item_id": "social-email-marketing",
+          "item_type": "link",
+          "label": "Email Marketing",
+          "icon": "bi-graph-up",
+          "url_name": "",
+          "is_active": false,
+          "staff_only": false,
+          "allowed_tiers": ["thrive", "enterprise"]
+        }
+      ]
+    },
+    {
+      "item_id": "upgrade",
+      "item_type": "modal",
+      "label": "Upgrade Plan",
+      "icon": "bi-arrow-up-circle",
+      "url_name": "",
+      "is_active": true,
+      "staff_only": false,
+      "allowed_tiers": ["sapling", "growth", "thrive", "enterprise"]
+    }
+  ]
+}
