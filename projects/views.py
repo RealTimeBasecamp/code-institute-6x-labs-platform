@@ -1,7 +1,5 @@
 from django.shortcuts import get_object_or_404, render
 from django.http import HttpResponse
-
-import projects
 from .models import Project
 from django.views.generic import ListView
 
