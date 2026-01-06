@@ -1,9 +1,12 @@
 {% load static %}  {% block content %}
 
+{{ project.name }}
+
+<!-- This will be the dropdown to select different projects
 <ul>
 {% for project in projects %}
-    <li>{{ project.name }}</li>
+    <li>{{ project.slug }}</li>
 {% endfor %}
-</ul>
+</ul> -->
 
 {% endblock %}
