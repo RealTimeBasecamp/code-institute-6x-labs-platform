@@ -1,0 +1,46 @@
+{% load static %}
+
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="view-transition" content="same-origin" />
+    <link rel="icon" type="image/x-icon" href="{% static 'images/Favicon.ico' %}" />
+    <title>{% block meta_title %}Title{% endblock %}</title>
+    <!-- Bootstrap CSS -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" />
+    <!-- Bootstrap Icons -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" />
+    <link rel="stylesheet" href="{% static 'css/styles.css' %}">
+</head>
+
+<body class="minimal-layout">
+    <div class="logo-container">
+        {% block logo %}
+            <!-- Logo goes here -->
+        {% endblock logo %}
+    </div>
+
+    <div class="content-centered">
+        {% block content %}
+            <!-- Your page content goes here -->
+        {% endblock content %}
+    </div>
+
+    <div class="footer-centered">
+        {% block footer %}
+            <!-- Footer content goes here -->
+        {% endblock footer %}
+    </div>
+
+    <script
+      src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js"
+      integrity="sha384-FKyoEForCGlyvwx9Hj09JcYn3nv7wiPVlz7YYwJrWVcXK/BmnVDxM+D2scQbITxI"
+      crossorigin="anonymous"
+      defer
+    ></script>
+
+  </body>
+</html>

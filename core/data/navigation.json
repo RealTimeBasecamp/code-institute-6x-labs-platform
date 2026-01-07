@@ -52,7 +52,7 @@
       "item_type": "link",
       "label": "Dashboard",
       "icon": "bi-house",
-      "url_name": "dashboard",
+      "url_name": "",
       "is_active": true,
       "staff_only": false,
       "allowed_tiers": ["sapling", "growth", "thrive", "enterprise"]
