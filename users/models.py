@@ -36,12 +36,26 @@ class User(AbstractUser):
     # UI preferences
     theme = models.CharField(
         max_length=20,
+        default='default',
+        choices=[
+            ('default', 'Default'),
+            ('moon', 'Moon'),
+            ('gaia', 'Gaia'),
+            ('sunset', 'Sunset'),
+            ('honeycomb', 'Honeycomb'),
+            ('ocean', 'Ocean'),
+        ],
+        help_text="Color theme selection"
+    )
+    theme_mode = models.CharField(
+        max_length=10,
         default='dark',
         choices=[
             ('light', 'Light'),
             ('dark', 'Dark'),
             ('system', 'System'),
-        ]
+        ],
+        help_text="Light/Dark mode preference"
     )
     sidebar_width = models.CharField(max_length=20, default='280px')
 

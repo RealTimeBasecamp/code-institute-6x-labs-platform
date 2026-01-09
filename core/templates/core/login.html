@@ -1,0 +1,51 @@
+{% extends 'base_minimal.html' %}
+{% load static %}
+
+{% block meta_title %}Login{% endblock %}
+
+<!-- =======================================
+TODO Add in proper logo and expose it as a path to get colours from CSS
+============================================ -->
+
+{% block logo %}
+    <div class="pt-3 m-3" style="width: 200px;">
+        {% include 'components/6x_Labs_Logo.svg' %}
+    </div>
+{% endblock logo %}
+
+{% block content %}
+    <h1 class="display-4 fw-bold pb-3">Log in</h1>
+    <button class="btn-auth" type="button">
+        <i class="bi bi-google"></i> Continue with Google
+    </button>
+    <button class="btn-auth" type="button">
+        <i class="bi bi-apple"></i> Continue with Apple
+    </button>
+    <hr>
+    <form action="">
+        <label for="email">Email</label>
+        <div class="input-auth-wrapper">
+            <input type="email" id="email" name="email" class="input-auth" placeholder=" " required>
+            <button type="button" class="input-clear" onclick="this.previousElementSibling.value=''; this.previousElementSibling.focus();">
+                <i class="bi bi-x"></i>
+            </button>
+        </div>
+        <label for="password">Password</label>
+        <div class="input-auth-wrapper">
+            <input type="password" id="password" name="password" class="input-auth" placeholder=" " required>
+            <button type="button" class="input-clear" onclick="this.previousElementSibling.value=''; this.previousElementSibling.focus();">
+                <i class="bi bi-x"></i>
+            </button>
+        </div>
+        
+        <button type="submit" class="btn-auth">Continue with password</button>
+    </form>
+    
+    <a href="" class="text-muted">Forgot password?</a>
+    <div class="pb-3 text-muted">Don't have an account? Sign up <a href="/sign-up">Here</a>.</div>
+
+{% endblock content %}
+
+{% block footer %}
+    <p class="pt-3 text-muted small">By clicking "Continue with Apple/Google/Email/SAML" above, you acknowledge that you have read and understood, and agree to 6X's Terms & Conditions and Privacy Policy</p>
+{% endblock footer %}

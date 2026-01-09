@@ -2,6 +2,7 @@
 
 
 <link rel="stylesheet" href="{% static 'css/navigation/navbar.css' %}" />
+<link rel="stylesheet" href="{% static 'css/components/toggle-switch.css' %}" />
 
 <nav class="navbar notion-navbar bg-body-tertiary">
   <div class="navbar-left" id="navbarLeft">
@@ -31,23 +32,7 @@
     </button>
   </div>
   <div class="navbar-right">
-    <div class="theme-toggle-wrapper" id="dark">
-      <i
-        class="bi bi-moon-fill"
-        id="dark-mode-icon-moon"
-        aria-hidden="true"
-      ></i>
-      <i
-        class="bi bi-sun-fill"
-        id="dark-mode-icon-sun"
-        aria-hidden="true"
-        style="display: none"
-      ></i>
-      <label class="theme-switch">
-        <input type="checkbox" id="themeSwitch" aria-label="Toggle dark mode" />
-        <span class="slider"></span>
-      </label>
-    </div>
+    {% include 'components/toggle_switch.html' with switch_id='themeSwitch' icon_unchecked='bi-moon-fill' icon_checked='bi-sun-fill' aria_label='Toggle dark mode' %}
   </div>
 </nav>
 

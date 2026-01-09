@@ -1,0 +1,22 @@
+/* ===== DEFAULT THEME ===== */
+/* Notion-inspired color scheme (original theme) */
+
+/* ===== LIGHT MODE ===== */
+[data-theme="default"][data-bs-theme="light"] {
+  --bs-body-bg: #f9fafb;
+  --bs-body-color: #55534e;
+  --bs-secondary-color: #91918e;
+  --bs-tertiary-bg: #f9fafb;
+  --bs-border-color: #e9e9e7;
+  --bs-hover-bg: #f1f0ef;
+}
+
+/* ===== DARK MODE ===== */
+[data-theme="default"][data-bs-theme="dark"] {
+  --bs-body-bg: #191919;
+  --bs-body-color: #d3d3d3;
+  --bs-secondary-color: #9a9a9a;
+  --bs-tertiary-bg: #202020;
+  --bs-border-color: #373737;
+  --bs-hover-bg: #2c2c2c;
+}

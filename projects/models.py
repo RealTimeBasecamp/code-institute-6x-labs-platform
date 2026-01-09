@@ -40,6 +40,12 @@ class Project(models.Model):
     climate = models.CharField(max_length=50)
     area_hectares = models.DecimalField(max_digits=10, decimal_places=2)
 
+    # Aggregated carbon metrics (summed from all sites in this project)
+    total_co2_sequestered_kg = models.BigIntegerField(null=True, blank=True)
+    soil_co2_sequestered_kg = models.BigIntegerField(null=True, blank=True)
+    plant_co2_sequestered_kg = models.BigIntegerField(null=True, blank=True)
+    total_plants = models.IntegerField(null=True, blank=True)
+
     # Midpoint coordinate (calculated from all site polygon coordinates)
     midpoint_latitude = models.DecimalField(
         max_digits=10,
@@ -603,4 +609,31 @@ def update_site_totals_from_visits(site):
         'avg_health_index', 'average_plant_height_m',
         'total_co2_sequestered_kg', 'soil_co2_sequestered_kg',
         'plant_co2_sequestered_kg', 'total_plants'
+    ])
+
+
+def update_project_totals_from_sites(project):
+    """
+    Update Project totals by aggregating from all Site records.
+    Call this after updating site totals.
+    """
+    # Aggregate carbon data from all sites in this project
+    site_aggregates = project.sites.aggregate(
+        total_co2=Sum('total_co2_sequestered_kg'),
+        soil_co2=Sum('soil_co2_sequestered_kg'),
+        plant_co2=Sum('plant_co2_sequestered_kg'),
+        total_plants=Sum('total_plants'),
+    )
+
+    # Update project totals
+    project.total_co2_sequestered_kg = site_aggregates['total_co2'] or 0
+    project.soil_co2_sequestered_kg = site_aggregates['soil_co2'] or 0
+    project.plant_co2_sequestered_kg = site_aggregates['plant_co2'] or 0
+    project.total_plants = site_aggregates['total_plants'] or 0
+
+    project.save(update_fields=[
+        'total_co2_sequestered_kg',
+        'soil_co2_sequestered_kg',
+        'plant_co2_sequestered_kg',
+        'total_plants'
     ])

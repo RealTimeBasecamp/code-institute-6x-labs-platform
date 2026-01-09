@@ -1,0 +1,36 @@
+/* ===== MOON THEME ===== */
+/* Cool blue-tinted theme inspired by moonlight */
+
+/* ===== LIGHT MODE ===== */
+[data-theme="moon"][data-bs-theme="light"] {
+  /* Bootstrap 5.3 light mode defaults with moonlight blue accents */
+  --bs-body-bg: #ffffff;
+  --bs-body-color: #212529;
+  --bs-secondary-color: #6c757d;
+  --bs-tertiary-bg: #f8f9fa;
+  --bs-border-color: #dee2e6;
+  --bs-hover-bg: #e7f3f8;
+
+  /* moon-inspired accent colors */
+  --bs-primary: #0d6efd;
+  --bs-primary-rgb: 13, 110, 253;
+  --bs-link-color: #0a7ea4;
+  --bs-link-hover-color: #085f7d;
+}
+
+/* ===== DARK MODE ===== */
+[data-theme="moon"][data-bs-theme="dark"] {
+  /* Bootstrap 5.3 dark mode defaults with moonlight blue accents */
+  --bs-body-bg: #212529;
+  --bs-body-color: #dee2e6;
+  --bs-secondary-color: #adb5bd;
+  --bs-tertiary-bg: #2b3035;
+  --bs-border-color: #495057;
+  --bs-hover-bg: #1a3a4a;
+
+  /* moon-inspired accent colors for dark mode */
+  --bs-primary: #0dcaf0;
+  --bs-primary-rgb: 13, 202, 240;
+  --bs-link-color: #0dcaf0;
+  --bs-link-hover-color: #3dd5f3;
+}

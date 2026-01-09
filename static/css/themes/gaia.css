@@ -1,0 +1,22 @@
+/* ===== GAIA THEME ===== */
+/* Earth-toned green theme inspired by nature */
+
+/* ===== LIGHT MODE ===== */
+[data-theme="gaia"][data-bs-theme="light"] {
+  --bs-body-bg: #f5f9f7;
+  --bs-body-color: #1e4d3d;
+  --bs-secondary-color: #4a7c5d;
+  --bs-tertiary-bg: #e8f3ed;
+  --bs-border-color: #c7dfd1;
+  --bs-hover-bg: #e0ebe5;
+}
+
+/* ===== DARK MODE ===== */
+[data-theme="gaia"][data-bs-theme="dark"] {
+  --bs-body-bg: #0d1f1a;
+  --bs-body-color: #c7dfd1;
+  --bs-secondary-color: #7ba88a;
+  --bs-tertiary-bg: #1a2f26;
+  --bs-border-color: #2d4a3d;
+  --bs-hover-bg: #243a31;
+}

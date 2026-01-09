@@ -4,7 +4,7 @@ Management command to load navigation items and subscription tiers from JSON int
 Usage: python manage.py load_navigation_data
 """
 import json
-from pathlib import Path
+from django.conf import settings
 from django.core.management.base import BaseCommand
 from core.models import SubscriptionTier, NavigationItem
 
@@ -14,7 +14,7 @@ class Command(BaseCommand):
 
     def handle(self, *args, **options):
         # Load JSON file
-        json_path = Path(__file__).resolve().parent.parent.parent / 'data' / 'navigation.json'
+        json_path = settings.BASE_DIR / 'core' / 'data' / 'navigation.json'
 
         if not json_path.exists():
             self.stderr.write(self.style.ERROR(f'Navigation JSON not found: {json_path}'))

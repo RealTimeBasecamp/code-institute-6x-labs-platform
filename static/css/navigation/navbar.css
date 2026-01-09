@@ -352,71 +352,8 @@ body.offcanvas-open .navbar-left {
   color: inherit !important;
 }
 
-/* ===== THEME TOGGLE SWITCH ===== */
-.theme-toggle-wrapper {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.5rem;
+/* Theme toggle wrapper styling specific to navbar */
+.navbar-right .toggle-switch-wrapper {
   height: 100%;
   padding: 0 0.5rem;
-}
-
-.theme-toggle-wrapper i {
-  font-size: 14px;
-  color: var(--bs-body-color);
-}
-
-.theme-switch {
-  position: relative;
-  display: inline-block;
-  width: 36px;
-  height: 20px;
-}
-
-.theme-switch input {
-  opacity: 0;
-  width: 0;
-  height: 0;
-}
-
-.theme-switch .slider {
-  position: absolute;
-  cursor: pointer;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background-color: var(--bs-border-color);
-  transition: 0.3s;
-  border-radius: 20px;
-}
-
-.theme-switch .slider:before {
-  position: absolute;
-  content: "";
-  height: 14px;
-  width: 14px;
-  left: 3px;
-  bottom: 3px;
-  background-color: var(--bs-body-bg);
-  transition: 0.3s;
-  border-radius: 50%;
-}
-
-.theme-switch input:checked + .slider {
-  background-color: var(--bs-body-color);
-}
-
-.theme-switch input:checked + .slider:before {
-  transform: translateX(16px);
-}
-
-.theme-switch input:focus + .slider {
-  box-shadow: none;
-}
-
-.theme-switch input:focus-visible + .slider {
-  box-shadow: none;
-  outline: none;
 }
