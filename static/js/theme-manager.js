@@ -67,7 +67,7 @@
 
   // Default values
   const DEFAULT_THEME = 'default';
-  const DEFAULT_MODE = 'light';
+  const DEFAULT_MODE = 'dark';
 
   /**
    * Get current theme from localStorage or default
@@ -161,10 +161,8 @@
     applyTheme(savedTheme);
     applyMode(savedMode);
 
-    // Set up theme switch event listener
-    if (themeSwitch) {
-      themeSwitch.addEventListener('change', toggleMode);
-    }
+    // Note: Event listener is handled by navbar.js to avoid duplicate listeners
+    // navbar.js calls ThemeManager.toggleMode() when the switch changes
   }
 
   // Initialize on page load

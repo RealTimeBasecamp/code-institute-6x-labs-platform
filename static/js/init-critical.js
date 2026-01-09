@@ -6,8 +6,17 @@
   'use strict';
 
   // Theme system: separate theme and mode
-  const theme = localStorage.getItem("theme") || "default";
-  const mode = localStorage.getItem("theme-mode") || "light";
+  // Migration: Handle old theme system that stored "light"/"dark" in "theme" key
+  let theme = localStorage.getItem("theme") || "default";
+  let mode = localStorage.getItem("theme-mode") || "dark";
+
+  // If theme is "light" or "dark" (old system), migrate to new system
+  if (theme === "light" || theme === "dark") {
+    mode = theme;  // The old "theme" value is actually the mode
+    theme = "default";  // Set to default theme
+    localStorage.setItem("theme", theme);
+    localStorage.setItem("theme-mode", mode);
+  }
   const w = localStorage.getItem("sidebar-width");
   const offcanvasState = localStorage.getItem("offcanvas-state") || "open";
 
