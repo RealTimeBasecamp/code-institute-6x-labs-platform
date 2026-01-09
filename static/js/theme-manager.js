@@ -14,6 +14,7 @@
  * - gaia:      Earth-toned green theme inspired by nature
  * - sunset:    Warm orange-red theme inspired by sunsets
  * - honeycomb: Warm golden-yellow theme inspired by honey
+ * - ocean:     Ocean-inspired theme with Bootstrap 5.3 defaults
  *
  * THEME STRUCTURE:
  * Theme CSS files located in static/css/themes/ define colors for both modes:
@@ -137,10 +138,10 @@
 
   /**
    * Change the color theme
-   * @param {string} theme - One of: default, moon, gaia, sunset, honeycomb
+   * @param {string} theme - One of: default, moon, gaia, sunset, honeycomb, ocean
    */
   function changeTheme(theme) {
-    const validThemes = ['default', 'moon', 'gaia', 'sunset', 'honeycomb'];
+    const validThemes = ['default', 'moon', 'gaia', 'sunset', 'honeycomb', 'ocean'];
     if (validThemes.includes(theme)) {
       applyTheme(theme);
     } else {

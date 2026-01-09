@@ -1,0 +1,22 @@
+/* ===== OCEAN THEME ===== */
+/* Ocean-inspired theme with Bootstrap 5.3 defaults */
+
+/* ===== LIGHT MODE ===== */
+[data-theme="ocean"][data-bs-theme="light"] {
+  --bs-body-bg: #f0f4f8;
+  --bs-body-color: #334155;
+  --bs-secondary-color: #64748b;
+  --bs-tertiary-bg: #e2e8f0;
+  --bs-border-color: #cbd5e1;
+  --bs-hover-bg: #e2e8f0;
+}
+
+/* ===== DARK MODE ===== */
+[data-theme="ocean"][data-bs-theme="dark"] {
+  --bs-body-bg: #0f172a;
+  --bs-body-color: #cbd5e1;
+  --bs-secondary-color: #94a3b8;
+  --bs-tertiary-bg: #1e293b;
+  --bs-border-color: #334155;
+  --bs-hover-bg: #1e293b;
+}

@@ -43,6 +43,7 @@ class User(AbstractUser):
             ('gaia', 'Gaia'),
             ('sunset', 'Sunset'),
             ('honeycomb', 'Honeycomb'),
+            ('ocean', 'Ocean'),
         ],
         help_text="Color theme selection"
     )
