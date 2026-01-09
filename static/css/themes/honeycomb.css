@@ -1,0 +1,22 @@
+/* ===== HONEYCOMB THEME ===== */
+/* Warm golden-yellow theme inspired by honey and bees */
+
+/* ===== LIGHT MODE ===== */
+[data-theme="honeycomb"][data-bs-theme="light"] {
+  --bs-body-bg: #fffcf5;
+  --bs-body-color: #4a3d1f;
+  --bs-secondary-color: #8b7534;
+  --bs-tertiary-bg: #fef8e8;
+  --bs-border-color: #f4e8c1;
+  --bs-hover-bg: #fdf3d7;
+}
+
+/* ===== DARK MODE ===== */
+[data-theme="honeycomb"][data-bs-theme="dark"] {
+  --bs-body-bg: #1a1508;
+  --bs-body-color: #f4e8c1;
+  --bs-secondary-color: #d4b872;
+  --bs-tertiary-bg: #2a2110;
+  --bs-border-color: #4a3d1f;
+  --bs-hover-bg: #3a2f18;
+}

@@ -1,0 +1,22 @@
+/* ===== SUNSET THEME ===== */
+/* Warm orange-red theme inspired by sunsets */
+
+/* ===== LIGHT MODE ===== */
+[data-theme="sunset"][data-bs-theme="light"] {
+  --bs-body-bg: #fff8f3;
+  --bs-body-color: #5c3018;
+  --bs-secondary-color: #8b5a3c;
+  --bs-tertiary-bg: #fef0e6;
+  --bs-border-color: #f4d4c1;
+  --bs-hover-bg: #fce8d9;
+}
+
+/* ===== DARK MODE ===== */
+[data-theme="sunset"][data-bs-theme="dark"] {
+  --bs-body-bg: #1a0f0a;
+  --bs-body-color: #f4d4c1;
+  --bs-secondary-color: #c89872;
+  --bs-tertiary-bg: #2a1a10;
+  --bs-border-color: #4a3020;
+  --bs-hover-bg: #3a2518;
+}

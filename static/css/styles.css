@@ -10,7 +10,8 @@
   --font-sans: "Segoe UI", -apple-system, BlinkMacSystemFont, "Roboto", "Helvetica Neue", Arial, sans-serif;
 }
 
-/* ===== DEFAULT THEME (Light) - applies when no data-bs-theme is set ===== */
+/* ===== DEFAULT THEME FALLBACK ===== */
+/* Fallback colors if no theme is loaded - uses default theme light colors */
 :root {
   --bs-body-bg: #f9fafb;
   --bs-body-color: #55534e;
@@ -20,25 +21,14 @@
   --bs-hover-bg: #f1f0ef;
 }
 
-/* ===== LIGHT THEME - NOTION COLORS ===== */
-[data-bs-theme="light"] {
-  --bs-body-bg: #f9fafb;
-  --bs-body-color: #55534e;
-  --bs-secondary-color: #91918e;
-  --bs-tertiary-bg: #f9fafb;
-  --bs-border-color: #e9e9e7;
-  --bs-hover-bg: #f1f0ef;
-}
+/* ===== THEME SYSTEM ===== */
+/* Theme-specific colors are loaded from separate CSS files in static/css/themes/ */
+/* Each theme file defines colors for both light and dark modes using:
+   - [data-theme="theme-name"][data-bs-theme="light"] { ... }
+   - [data-theme="theme-name"][data-bs-theme="dark"] { ... }
 
-/* ===== DARK THEME - NOTION COLORS ===== */
-[data-bs-theme="dark"] {
-  --bs-body-bg: #191919;
-  --bs-body-color: #d3d3d3;
-  --bs-secondary-color: #9a9a9a;
-  --bs-tertiary-bg: #202020;
-  --bs-border-color: #373737;
-  --bs-hover-bg: #2c2c2c;
-}
+   Available themes: default, moon, gaia, sunset, honeycomb
+*/
 
 /* ===== LAYOUT ===== */
 html,
