@@ -5,15 +5,31 @@
 {% block page_title %}Projects{% endblock %}
 
 {% block header_contents %}
-    <div class="btn btn-primary">Create Project</button>
+    <div class="btn btn-primary">Add new project</button>
 {% endblock %}
 
 {% block content %}
-    <ul>
+<!-- Cols: name, status, total carbon, area_hectares -->
+<table class="table">
+  <thead>
+    <tr>
+      <th scope="col">#</th>
+      <th scope="col">Name</th>
+      <th scope="col">Status</th>
+      <th scope="col">Total CO₂ (kg)</th>
+      <th scope="col">Area (ha)</th>
+    </tr>
+  </thead>
+  <tbody>
     {% for project in projects %}
-        <li>{{ project.name }}</li>
-        <li>{{ project.description }}</li>
-        <li>{{ project.created_at }}</li>
+    <tr>
+      <th scope="row">{{ forloop.counter }}</th>
+      <td><a href="{% url 'projects:project_planner_detail' project.slug %}">{{ project.name }}</a></td>
+      <td>{{ project.status }}</td>
+      <td>{{ project.total_co2_sequestered_kg|default:"—" }}</td>
+      <td>{{ project.area_hectares }}</td>
+    </tr>
     {% endfor %}
-    </ul>
+  </tbody>
+</table>
 {% endblock %}
