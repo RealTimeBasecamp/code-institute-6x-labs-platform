@@ -4,6 +4,7 @@ from django.db import models
 from django.db.models import Avg, Sum, Count, Q  # noqa: F401 - used in helper functions
 
 from core.models import Species
+from projects.models import Project, Site, Plant
 
 
 # =============================================================================
@@ -71,6 +72,83 @@ class GlobalMetrics(models.Model):
 
 
 # =============================================================================
+# HELPER FUNCTIONS FOR METRICS CALCULATION
+# =============================================================================
+def update_global_metrics():
+    """
+    Calculate and update global metrics from all projects.
+    Carbon data is aggregated from projects (which sum their sites).
+    Only includes projects where status.includes_in_carbon=True.
+
+    Call this periodically or after significant data changes.
+    """
+
+    metrics = GlobalMetrics.get_instance()
+
+    # Count all projects
+    total_projects = Project.objects.count()
+    active_projects = Project.objects.filter(status__is_archived=False).count()
+    archived_projects = Project.objects.filter(status__is_archived=True).count()
+
+    # Count all sites
+    total_sites = Site.objects.count()
+    active_sites = Site.objects.filter(status__is_archived=False).count()
+    archived_sites = Site.objects.filter(status__is_archived=True).count()
+
+    # Get projects that should be included in carbon calculations
+    included_projects = Project.objects.filter(
+        status__includes_in_carbon=True
+    )
+
+    # Aggregate carbon data from included projects
+    carbon_aggregates = included_projects.aggregate(
+        total_co2=Sum('total_co2_sequestered_kg'),
+        soil_co2=Sum('soil_co2_sequestered_kg'),
+        plant_co2=Sum('plant_co2_sequestered_kg'),
+        total_land=Sum('area_hectares'),
+        total_plants_count=Sum('total_plants'),
+    )
+
+    # Calculate average health from sites (still at site level)
+    included_sites = Site.objects.filter(
+        status__includes_in_carbon=True,
+        project__status__includes_in_carbon=True
+    )
+    avg_health = included_sites.aggregate(avg_health=Avg('avg_health_index'))['avg_health']
+
+    # Count all plants (for alive/dead breakdown, which isn't stored on projects)
+    plant_counts = Plant.objects.aggregate(
+        total=Count('id'),
+        alive=Count('id', filter=Q(current_status__is_dead=False)),
+        dead=Count('id', filter=Q(current_status__is_dead=True)),
+    )
+
+    # Update metrics
+    metrics.total_projects = total_projects
+    metrics.active_projects = active_projects
+    metrics.archived_projects = archived_projects
+
+    metrics.total_sites = total_sites
+    metrics.active_sites = active_sites
+    metrics.archived_sites = archived_sites
+
+    metrics.total_plants = plant_counts['total'] or 0
+    metrics.total_plants_alive = plant_counts['alive'] or 0
+    metrics.total_plants_dead = plant_counts['dead'] or 0
+
+    metrics.total_co2_sequestered_kg = int(carbon_aggregates['total_co2'] or 0)
+    metrics.soil_co2_sequestered_kg = int(carbon_aggregates['soil_co2'] or 0)
+    metrics.plant_co2_sequestered_kg = int(carbon_aggregates['plant_co2'] or 0)
+
+    metrics.total_land_hectares = carbon_aggregates['total_land'] or 0
+    metrics.avg_global_health_index = avg_health
+
+    metrics.save()
+
+    return metrics
+
+
+# =============================================================================
 # SITE SPECIES METRICS (Analytics table for species performance per site)
 # =============================================================================
 class SiteSpeciesMetrics(models.Model):
@@ -119,78 +197,6 @@ class SiteSpeciesMetrics(models.Model):
     def __str__(self):
         rate = f"{self.survival_rate_percentage}%" if self.survival_rate_percentage else "N/A"
         return f"{self.species.cultivar} at {self.site.name} - {rate} survival"
-
-
-# =============================================================================
-# HELPER FUNCTIONS FOR METRICS CALCULATION
-# =============================================================================
-def update_global_metrics():
-    """
-    Calculate and update global metrics from all projects and sites.
-    Only includes sites where both site.status.includes_in_carbon=True
-    and project.status.includes_in_carbon=True.
-
-    Call this periodically or after significant data changes.
-    """
-    from projects.models import Project, Site, Plant
-
-    metrics = GlobalMetrics.get_instance()
-
-    # Count all projects
-    total_projects = Project.objects.count()
-    active_projects = Project.objects.filter(status__is_archived=False).count()
-    archived_projects = Project.objects.filter(status__is_archived=True).count()
-
-    # Count all sites
-    total_sites = Site.objects.count()
-    active_sites = Site.objects.filter(status__is_archived=False).count()
-    archived_sites = Site.objects.filter(status__is_archived=True).count()
-
-    # Get sites that should be included in carbon calculations
-    included_sites = Site.objects.filter(
-        status__includes_in_carbon=True,
-        project__status__includes_in_carbon=True
-    )
-
-    # Aggregate carbon data from included sites
-    carbon_aggregates = included_sites.aggregate(
-        total_co2=Sum('total_co2_sequestered_kg'),
-        soil_co2=Sum('soil_co2_sequestered_kg'),
-        plant_co2=Sum('plant_co2_sequestered_kg'),
-        total_land=Sum('total_available_land_hectares'),
-        avg_health=Avg('avg_health_index'),
-    )
-
-    # Count all plants
-    plant_counts = Plant.objects.aggregate(
-        total=Count('id'),
-        alive=Count('id', filter=Q(current_status__is_dead=False)),
-        dead=Count('id', filter=Q(current_status__is_dead=True)),
-    )
-
-    # Update metrics
-    metrics.total_projects = total_projects
-    metrics.active_projects = active_projects
-    metrics.archived_projects = archived_projects
-
-    metrics.total_sites = total_sites
-    metrics.active_sites = active_sites
-    metrics.archived_sites = archived_sites
-
-    metrics.total_plants = plant_counts['total'] or 0
-    metrics.total_plants_alive = plant_counts['alive'] or 0
-    metrics.total_plants_dead = plant_counts['dead'] or 0
-
-    metrics.total_co2_sequestered_kg = int(carbon_aggregates['total_co2'] or 0)
-    metrics.soil_co2_sequestered_kg = int(carbon_aggregates['soil_co2'] or 0)
-    metrics.plant_co2_sequestered_kg = int(carbon_aggregates['plant_co2'] or 0)
-
-    metrics.total_land_hectares = carbon_aggregates['total_land'] or 0
-    metrics.avg_global_health_index = carbon_aggregates['avg_health']
-
-    metrics.save()
-
-    return metrics
 
 
 def update_site_species_metrics(site):
