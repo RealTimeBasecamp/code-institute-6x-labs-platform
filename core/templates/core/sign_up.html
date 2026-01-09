@@ -1,7 +1,7 @@
 {% extends 'base_minimal.html' %}
 {% load static %}
 
-{% block meta_title %}Login{% endblock %}
+{% block meta_title %}Sign up{% endblock %}
 
 <!-- =======================================
 TODO Add in proper logo and expose it as a path to get colours from CSS
@@ -14,12 +14,12 @@ TODO Add in proper logo and expose it as a path to get colours from CSS
 {% endblock logo %}
 
 {% block content %}
-    <h1 class="display-4 fw-bold pb-3">Log in</h1>
+    <h1 class="display-4 fw-bold pb-3">Sign up</h1>
     <button class="btn-auth" type="button">
-        <i class="bi bi-google"></i> Continue with Google
+        <i class="bi bi-google"></i> Sign up with Google
     </button>
     <button class="btn-auth" type="button">
-        <i class="bi bi-apple"></i> Continue with Apple
+        <i class="bi bi-apple"></i> Sign up with Apple
     </button>
     <hr>
     <form action="">
@@ -38,14 +38,11 @@ TODO Add in proper logo and expose it as a path to get colours from CSS
             </button>
         </div>
         
-        <button type="submit" class="btn-auth">Continue with password</button>
+        <button type="submit" class="btn-auth">Sign up</button>
     </form>
     
-    <a href="" class="text-muted">Forgot password?</a>
-    <div class="pb-3 text-muted">Don't have an account? Sign up <a href="/sign-up">Here</a>.</div>
-
 {% endblock content %}
 
 {% block footer %}
-    <p class="pt-3 text-muted small">By clicking "Continue with Apple/Google/Email/SAML" above, you acknowledge that you have read and understood, and agree to 6X's Terms & Conditions and Privacy Policy</p>
+    <p class="pt-3 text-muted small">By clicking "Sign up with Apple/Google/Email/SAML" above, you acknowledge that you have read and understood, and agree to 6X's Terms & Conditions and Privacy Policy</p>
 {% endblock footer %}
