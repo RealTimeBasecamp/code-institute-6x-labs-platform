@@ -5,7 +5,20 @@
 {% block page_title %}Projects{% endblock %}
 
 {% block header_contents %}
-    <div class="btn btn-primary">Add new project</button>
+    <a
+        role="button"
+        class="btn btn-primary"
+        data-bs-toggle="modal"
+        data-bs-target="#addNewProject">Add new project
+    </a>
+
+{% include "components/modal.html"
+    with modal_id="addNewProject"
+    modal_size="modal-xl"
+    modal_title="Add New Project"
+    modal_body_content="<p>Are you sure you want to add a new project?</p><br>"
+    modal_footer_content="<button class='btn btn-primary'>Add Project</button>"
+%}
 {% endblock %}
 
 {% block content %}
@@ -20,7 +33,7 @@
   {% endfor %}
 {% endif %}
 
-<table class="table" style="width: 100%;">
+<table class="table">
   <thead>
     <tr>
       <th scope="col">#</th>
@@ -40,8 +53,7 @@
       <td>{{ project.total_co2_sequestered_kg|default:"—" }}</td>
       <td>{{ project.area_hectares }}</td>
       <td>
-        <a href="#"
-           role="button"
+        <a role="button"
            class="bi bi-trash text-danger"
            data-bs-toggle="modal"
            data-bs-target="#deleteModal{{ project.slug }}">
