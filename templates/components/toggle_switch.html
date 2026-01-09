@@ -1,0 +1,32 @@
+{% comment %}
+Generic Toggle Switch Component
+
+Usage:
+  {% include 'components/toggle_switch.html' with
+    switch_id='mySwitch'
+    icon_unchecked='bi-moon-fill'
+    icon_checked='bi-sun-fill'
+    aria_label='Toggle setting'
+    wrapper_class='custom-wrapper-class'
+  %}
+
+Parameters:
+  - switch_id: Unique ID for the switch input (required)
+  - icon_unchecked: Bootstrap icon class for unchecked state (optional)
+  - icon_checked: Bootstrap icon class for checked state (optional)
+  - aria_label: Accessibility label (required)
+  - wrapper_class: Additional CSS classes for the wrapper (optional)
+{% endcomment %}
+
+<div class="toggle-switch-wrapper {{ wrapper_class|default:'' }}">
+  {% if icon_unchecked %}
+    <i class="bi {{ icon_unchecked }} icon-unchecked" aria-hidden="true"></i>
+  {% endif %}
+  {% if icon_checked %}
+    <i class="bi {{ icon_checked }} icon-checked" aria-hidden="true"></i>
+  {% endif %}
+  <label class="toggle-switch">
+    <input type="checkbox" id="{{ switch_id }}" aria-label="{{ aria_label }}" />
+    <span class="slider"></span>
+  </label>
+</div>
