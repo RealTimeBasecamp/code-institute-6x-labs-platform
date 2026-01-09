@@ -148,6 +148,9 @@ STORAGES = {
     },
 }
 
+# Legacy setting for cloudinary_storage compatibility
+STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
+
 # Cloudinary settings for media files (user uploads)
 CLOUDINARY_STORAGE = {
     'CLOUD_NAME': os.environ.get('CLOUDINARY_CLOUD_NAME'),
