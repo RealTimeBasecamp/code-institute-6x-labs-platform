@@ -53,6 +53,18 @@
             <hr class="header-line" />
 
             <div class="container main-content">
+                <!-- Django Messages -->
+                {% if messages %}
+                    <div class="messages-container mb-3">
+                        {% for message in messages %}
+                            <div class="alert alert-{{ message.tags|default:'info' }} alert-dismissible fade show" role="alert">
+                                {{ message }}
+                                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                            </div>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+
                 <div class="d-flex flex-column gap-3 align-items-start">
                     <div class="col-12 d-flex align-items-center gap-2">
                         {% block content %}
