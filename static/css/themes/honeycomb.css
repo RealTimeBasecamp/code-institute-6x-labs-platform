@@ -3,6 +3,7 @@
 
 /* ===== LIGHT MODE ===== */
 [data-theme="honeycomb"][data-bs-theme="light"] {
+  --primary-color: #d97706;
   --bs-body-bg: #fffcf5;
   --bs-body-color: #4a3d1f;
   --bs-secondary-color: #8b7534;
@@ -13,6 +14,7 @@
 
 /* ===== DARK MODE ===== */
 [data-theme="honeycomb"][data-bs-theme="dark"] {
+  --primary-color: #f59e0b;
   --bs-body-bg: #1a1508;
   --bs-body-color: #f4e8c1;
   --bs-secondary-color: #d4b872;

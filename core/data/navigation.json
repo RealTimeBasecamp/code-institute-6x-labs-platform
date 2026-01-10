@@ -30,8 +30,8 @@
     {
       "item_id": "profile",
       "item_type": "profile",
-      "label": "6X Labs",
-      "icon": "images/favicon.png",
+      "label": "User name",
+      "icon": "",
       "url_name": "",
       "is_active": true,
       "staff_only": false,
@@ -52,7 +52,7 @@
       "item_type": "link",
       "label": "Dashboard",
       "icon": "bi-house",
-      "url_name": "",
+      "url_name": "core:dashboard",
       "is_active": true,
       "staff_only": false,
       "allowed_tiers": ["sapling", "growth", "thrive", "enterprise"]

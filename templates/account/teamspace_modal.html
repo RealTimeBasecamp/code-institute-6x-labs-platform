@@ -1,28 +1,42 @@
-{% url 'account_login' as login_url %}
-{% url 'account_signup' as signup_url %}
-{% url 'account_logout' as logout_url %}
+{% extends 'components/modals/modal_minimal.html' %}
 
 
+{% block modal_content %}
+  {% url 'account_login' as login_url %}
+  {% url 'account_signup' as signup_url %}
+  {% url 'account_logout' as logout_url %}
 
-<!--
-Teamspace modal contains
-user dynamic_icon username
-current plan name . dot spacer number of members in plan
-settings button Add team member button
-<hr>
-user email
-Current teamspace you are in
-+ New teamspace button
-<hr>
-Log out button -->
-
- <!-- If user is not logged in
-  Hide all modal options and show a login/signup prompt
-  
-  Else show the modal-->
-
-{% if user.is_authenticated %}
-<!-- Code to render if user is logged in -->
-{% else %}
-<!-- Code to render if user is logged out -->
-{% endif %}
+  <div>
+    <div class="d-flex justify-content-between align-items-start mb-3">
+      {% if user.is_authenticated %}
+      <div class="d-flex" id="accountdisplaybox">
+        <div class="me-3">
+          {# {% include 'components/dynamic_icons/user_avatar.svg' %} #}
+          {# TODO Need to get cloudinary images set up for user model #}
+          <div class="bi bi-person-circle"></div>
+        </div>
+        <div id="accountinfo">
+          <div class="fw-bold">{{ user.username }}</div>
+          <!-- <span>
+            <div>{{ user.subscription_tier }}</div>
+            <div class="text-muted">{{ user.team_members.count }} members</div>
+          </span> -->
+        </div>
+      </div>
+      <a class="btn btn-outline-secondary" role="button" href="{{ settings_url }}">Settings</a>
+      <!-- <a href="{{ add_team_members_url }}">Add Team members</a> -->
+      <div>
+        <div class="teamspaceinfo">
+          <div class="text-muted">{{ user.email }}</div>
+          <!-- <div>{{ user.teamspace }}</div> -->
+        </div>
+        <hr>
+        <a href="{{ logout_url }}">Log out</a>
+      </div>
+      {% else %}
+      <!-- Code to render if user is logged out -->
+      <a href="{{ login_url }}">Log in</a> | <a href="{{ signup_url }}">Sign up</a>
+      {% endif %}
+    </div>
+  </div>
+{% endblock %}

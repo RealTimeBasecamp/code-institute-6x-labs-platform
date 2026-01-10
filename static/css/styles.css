@@ -1,6 +1,6 @@
 /* ===== GLOBAL CUSTOM PROPERTIES ===== */
 :root {
-  --primary-color: #059acc;
+  --primary-color: #059acc; /* Fallback during theme transitions - overridden by themes */
   --sidebar-width: 260px;
   --sidebar-min-width: 260px;
   --sidebar-max-width: 540px;
@@ -10,25 +10,10 @@
   --font-sans: "Segoe UI", -apple-system, BlinkMacSystemFont, "Roboto", "Helvetica Neue", Arial, sans-serif;
 }
 
-/* ===== DEFAULT THEME FALLBACK ===== */
-/* Fallback colors if no theme is loaded - uses default theme light colors */
-:root {
-  --bs-body-bg: #f9fafb;
-  --bs-body-color: #55534e;
-  --bs-secondary-color: #91918e;
-  --bs-tertiary-bg: #f9fafb;
-  --bs-border-color: #e9e9e7;
-  --bs-hover-bg: #f1f0ef;
-}
-
 /* ===== THEME SYSTEM ===== */
-/* Theme-specific colors are loaded from separate CSS files in static/css/themes/ */
-/* Each theme file defines colors for both light and dark modes using:
-   - [data-theme="theme-name"][data-bs-theme="light"] { ... }
-   - [data-theme="theme-name"][data-bs-theme="dark"] { ... }
-
-   Available themes: default, moon, gaia, sunset, honeycomb
-*/
+/* Theme colours are loaded from static/css/themes/{theme}.css by init-critical.js */
+/* Each theme defines both light and dark modes via data attributes */
+/* Available themes: default, moon, gaia, sunset, honeycomb, ocean */
 
 /* ===== LAYOUT ===== */
 html,

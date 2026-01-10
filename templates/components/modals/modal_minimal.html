@@ -1,0 +1,66 @@
+{% comment %}
+Minimal Modal Component
+
+A bare-bones modal component inspired by Notion's popup modals.
+No close button, no header - just clean content with click-off functionality.
+Ideal for sidebar popups, user menus, quick action panels, etc.
+
+Usage (via extends - recommended for complex content):
+  {% extends 'components/modals/modal_minimal.html' %}
+  {% block modal_content %}
+    <div>Your complex content with template logic here</div>
+  {% endblock %}
+
+  Then include with params:
+  {% include 'your_modal.html' with modal_id='myModal' modal_width='300px' %}
+
+Usage (via include - for simple content only):
+  {% include 'components/modals/modal_minimal.html' with
+    modal_id='teamspacePopup'
+    modal_content='<div>Simple content here</div>'
+  %}
+
+Parameters (passed via include with):
+  - modal_id: Unique ID for this modal instance (required)
+  - modal_content: HTML content for modal body (only for simple include usage)
+  - modal_position: Position class - 'start', 'end', 'center' (optional, default: 'start')
+  - modal_width: Custom width style value (optional)
+  - modal_extra_classes: Additional CSS classes for the modal content (optional)
+  - modal_greyout: Boolean to enable greyout backdrop (optional, default: false)
+
+Trigger Example:
+  <button data-bs-toggle="modal" data-bs-target="#teamspacePopup">
+    Open Popup
+  </button>
+
+Notes:
+  - Click outside the modal to close (default Bootstrap behavior)
+  - Press Escape to close (default Bootstrap behavior)
+  - No visible close button - relies on click-off or programmatic close
+{% endcomment %}
+
+
+{% load static %}
+<link rel="stylesheet" href="{% static 'css/components/modals.css' %}" />
+
+<div
+  class="modal fade{% if not modal_greyout %} modal-no-backdrop{% endif %}"
+  id="{% block modal_id %}{{ modal_id }}{% endblock %}"
+  tabindex="-1"
+  aria-labelledby="{{ modal_id }}Label"
+  aria-hidden="true"
+>
+  {# Modal dialog - positioned based on modal_position parameter #}
+  <div class="modal-dialog modal-dialog-scrollable {% if modal_position == 'end' %}ms-auto me-3{% elif modal_position == 'center' %}modal-dialog-centered{% else %}ms-3{% endif %} mt-3">
+
+    {# Modal content - minimal styling, no header/footer structure #}
+    <div class="modal-content shadow-sm border-0 rounded-3 p-3 {% block modal_extra_classes %}{{ modal_extra_classes|default:'' }}{% endblock %}" {% if modal_width %}style="width: {% block modal_width %}{{ modal_width }}{% endblock %};"{% endif %}>
+
+      {# Content area - no padding by default, let the content control its own spacing #}
+      <div class="modal-body p-0">
+        {% block modal_content %}{{ modal_content|safe }}{% endblock %}
+      </div>
+
+    </div>
+  </div>
+</div>

@@ -1,25 +1,35 @@
-{% extends "account/base_manage.html" %}
-{% load allauth i18n %}
-{% block head_title %}
-    {% trans "Sign Out" %}
-{% endblock head_title %}
+{% extends 'base_minimal.html' %}
+{% load i18n %}
+{% load static %}
+
+{% block meta_title %}{% trans "Sign Out" %}{% endblock %}
+
+{% block logo %}
+    <div class="pt-3 m-3" style="width: 200px;">
+        {% include 'components/dynamic_icons/6x_labs_logo.svg' %}
+    </div>
+{% endblock logo %}
+
 {% block content %}
-    {% element h1 %}
-        {% trans "Sign Out" %}
-    {% endelement %}
-    {% element p %}
-        {% trans 'Are you sure you want to sign out?' %}
-    {% endelement %}
-    {% url 'account_logout' as action_url %}
-    {% element form method="post" action=action_url no_visible_fields=True %}
-        {% slot body %}
-            {% csrf_token %}
-            {{ redirect_field }}
-        {% endslot %}
-        {% slot actions %}
-            {% element button type="submit" %}
-                {% trans 'Sign Out' %}
-            {% endelement %}
-        {% endslot %}
-    {% endelement %}
+    <h1 class="display-4 fw-bold pb-3">{% trans "Sign out" %}</h1>
+
+    <p class="text-muted pb-3">
+        {% trans "Are you sure you want to sign out?" %}
+    </p>
+
+    {% url 'account_logout' as logout_url %}
+    <form method="post" action="{{ logout_url }}">
+        {% csrf_token %}
+        {{ redirect_field }}
+
+        <button type="submit" class="btn-auth">{% trans "Sign out" %}</button>
+    </form>
+
+    <div class="pb-3 text-muted">
+        <a href="{% url 'core:dashboard' %}">{% trans "Cancel" %}</a>
+    </div>
 {% endblock content %}
+
+{% block footer %}
+    <p class="pt-3 text-muted small">{% trans "You will be logged out of your account." %}</p>
+{% endblock footer %}

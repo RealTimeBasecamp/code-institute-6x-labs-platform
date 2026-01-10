@@ -1,45 +1,125 @@
-{% extends "account/base_entrance.html" %}
-{% load allauth i18n %}
-{% block head_title %}
-    {% trans "Signup" %}
-{% endblock head_title %}
+{% extends 'base_minimal.html' %}
+{% load i18n %}
+{% load static %}
+{% load allauth account socialaccount %}
+
+{% block meta_title %}{% trans "Sign Up" %}{% endblock %}
+
+{% block logo %}
+    <div class="pt-3 m-3" style="width: 200px;">
+        {% include 'components/dynamic_icons/6x_labs_logo.svg' %}
+    </div>
+{% endblock logo %}
+
 {% block content %}
-    {% element h1 %}
-        {% trans "Sign Up" %}
-    {% endelement %}
-    {% setvar link %}
-        <a href="{{ login_url }}">
-        {% endsetvar %}
-        {% setvar end_link %}
-        </a>
-    {% endsetvar %}
-    {% element p %}
-        {% blocktranslate %}Already have an account? Then please {{ link }}sign in{{ end_link }}.{% endblocktranslate %}
-    {% endelement %}
-    {% if not SOCIALACCOUNT_ONLY %}
-        {% url 'account_signup' as action_url %}
-        {% element form form=form method="post" action=action_url tags="entrance,signup" %}
-            {% slot body %}
-                {% csrf_token %}
-                {% element fields form=form unlabeled=True %}
-                {% endelement %}
-                {{ redirect_field }}
-            {% endslot %}
-            {% slot actions %}
-                {% element button tags="prominent,signup" type="submit" %}
-                    {% trans "Sign Up" %}
-                {% endelement %}
-            {% endslot %}
-        {% endelement %}
-    {% endif %}
-    {% if PASSKEY_SIGNUP_ENABLED %}
-        {% element hr %}
-        {% endelement %}
-        {% element button href=signup_by_passkey_url tags="prominent,signup,outline,primary" %}
-            {% trans "Sign up using a passkey" %}
-        {% endelement %}
-    {% endif %}
+    <h1 class="display-4 fw-bold pb-3">{% trans "Sign up" %}</h1>
+
     {% if SOCIALACCOUNT_ENABLED %}
-        {% include "socialaccount/snippets/login.html" with page_layout="entrance" %}
+        {% get_providers as socialaccount_providers %}
+        {% if socialaccount_providers %}
+            <hr>
+            {% for provider in socialaccount_providers %}
+                {% provider_login_url provider process="login" as provider_url %}
+                <a href="{{ provider_url }}" class="btn-auth" style="text-decoration: none;">
+                    {% if provider.id == "google" %}
+                        <i class="bi bi-google"></i> {% trans "Sign up with Google" %}
+                    {% elif provider.id == "apple" %}
+                        <i class="bi bi-apple"></i> {% trans "Sign up with Apple" %}
+                    {% else %}
+                        {% trans "Sign up with" %} {{ provider.name }}
+                    {% endif %}
+                </a>
+            {% endfor %}
+        {% endif %}
+    {% endif %}
+
+    {% if not SOCIALACCOUNT_ONLY %}
+        {% url 'account_signup' as signup_url %}
+        <form method="post" action="{{ signup_url }}">
+            {% csrf_token %}
+
+            <!-- Form-level errors (e.g., email already exists) -->
+            {% if form.non_field_errors %}
+                <div class="alert alert-danger" role="alert">
+                    {% for error in form.non_field_errors %}
+                        {{ error }}
+                    {% endfor %}
+                </div>
+            {% endif %}
+
+            <!-- Email field -->
+            <label for="id_email">{% trans "Email" %}</label>
+            <div class="input-auth-wrapper">
+                <input type="email"
+                       id="id_email"
+                       name="email"
+                       class="input-auth {% if form.email.errors %}is-invalid{% endif %}"
+                       placeholder=" "
+                       value="{{ form.email.value|default:'' }}"
+                       required>
+                <button type="button" class="input-clear" onclick="this.previousElementSibling.value=''; this.previousElementSibling.focus();">
+                    <i class="bi bi-x"></i>
+                </button>
+            </div>
+            {% if form.email.errors %}
+                <div class="text-danger small">{{ form.email.errors.0 }}</div>
+            {% endif %}
+
+            <!-- Password field -->
+            <label for="id_password1">{% trans "Password" %}</label>
+            <div class="input-auth-wrapper">
+                <input type="password"
+                       id="id_password1"
+                       name="password1"
+                       class="input-auth {% if form.password1.errors %}is-invalid{% endif %}"
+                       placeholder=" "
+                       required>
+                <button type="button" class="input-clear" onclick="this.previousElementSibling.value=''; this.previousElementSibling.focus();">
+                    <i class="bi bi-x"></i>
+                </button>
+            </div>
+            {% if form.password1.errors %}
+                <div class="text-danger small">{{ form.password1.errors.0 }}</div>
+            {% endif %}
+
+            <!-- Password confirmation field (if required by allauth settings) -->
+            {% if form.password2 %}
+                <label for="id_password2">{% trans "Confirm Password" %}</label>
+                <div class="input-auth-wrapper">
+                    <input type="password"
+                           id="id_password2"
+                           name="password2"
+                           class="input-auth {% if form.password2.errors %}is-invalid{% endif %}"
+                           placeholder=" "
+                           required>
+                    <button type="button" class="input-clear" onclick="this.previousElementSibling.value=''; this.previousElementSibling.focus();">
+                        <i class="bi bi-x"></i>
+                    </button>
+                </div>
+                {% if form.password2.errors %}
+                    <div class="text-danger small">{{ form.password2.errors.0 }}</div>
+                {% endif %}
+            {% endif %}
+
+            {{ redirect_field }}
+
+            <button type="submit" class="btn-auth">{% trans "Sign up" %}</button>
+        </form>
+
+        <div class="pb-3 text-muted">
+            {% trans "Already have an account?" %}
+            <a href="{% url 'account_login' %}">{% trans "Sign in" %}</a>
+        </div>
+    {% endif %}
+
+    {% if PASSKEY_SIGNUP_ENABLED %}
+        <hr>
+        <a href="{{ signup_by_passkey_url }}" class="btn-auth" style="text-decoration: none;">
+            {% trans "Sign up using a passkey" %}
+        </a>
     {% endif %}
 {% endblock content %}
+
+{% block footer %}
+    <p class="pt-3 text-muted small">{% trans "By clicking \"Sign up with Apple/Google/Email/SAML\" above, you acknowledge that you have read and understood, and agree to 6X's Terms & Conditions and Privacy Policy" %}</p>
+{% endblock footer %}
