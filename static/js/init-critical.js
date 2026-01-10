@@ -8,7 +8,11 @@
   // Theme system: separate theme and mode
   // Migration: Handle old theme system that stored "light"/"dark" in "theme" key
   let theme = localStorage.getItem("theme") || "default";
-  let mode = localStorage.getItem("theme-mode") || "dark";
+  
+  // Check if user is authenticated to determine default mode
+  const isAuthenticated = document.documentElement.dataset.isAuthenticated === "true";
+  const defaultMode = isAuthenticated ? "dark" : "light";
+  let mode = localStorage.getItem("theme-mode") || defaultMode;
 
   // If theme is "light" or "dark" (old system), migrate to new system
   if (theme === "light" || theme === "dark") {

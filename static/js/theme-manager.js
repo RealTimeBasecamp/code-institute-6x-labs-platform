@@ -68,7 +68,9 @@
 
   // Default values
   const DEFAULT_THEME = 'default';
-  const DEFAULT_MODE = 'dark';
+  // Default mode depends on authentication: light for unauthenticated, dark for authenticated
+  const isAuthenticated = html.dataset.isAuthenticated === "true";
+  const DEFAULT_MODE = isAuthenticated ? 'dark' : 'light';
 
   /**
    * Get current theme from localStorage or default
