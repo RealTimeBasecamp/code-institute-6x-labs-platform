@@ -1,7 +1,7 @@
 {% load static %}
 
 
-<link rel="stylesheet" href="{% static 'css/navigation/sidebar.css' %}" />
+<link rel="stylesheet" href="{% static 'css/components/navigation/sidebar.css' %}" />
 
 <div
   class="offcanvas offcanvas-start"
@@ -40,7 +40,7 @@
     <!-- Navigation rendered server-side by Django -->
     <ul class="list-unstyled sidebar-nav">
       {% for nav_item in navigation_items %}
-        {% include 'partials/navigation/nav_item.html' with nav_item=nav_item %}
+        {% include 'components/navigation/nav_item.html' with nav_item=nav_item %}
       {% empty %}
         <li class="sidebar-item">
           <span class="sidebar-link text-muted">No navigation available</span>
@@ -49,4 +49,4 @@
     </ul>
   </div>
 </div>
-<script src="{% static 'js/navigation/sidebar.js' %}"></script>
+<script src="{% static 'js/components/navigation/sidebar.js' %}"></script>
