@@ -1,0 +1,28 @@
+{% url 'account_login' as login_url %}
+{% url 'account_signup' as signup_url %}
+{% url 'account_logout' as logout_url %}
+
+
+
+<!--
+Teamspace modal contains
+user dynamic_icon username
+current plan name . dot spacer number of members in plan
+settings button Add team member button
+<hr>
+user email
+Current teamspace you are in
++ New teamspace button
+<hr>
+Log out button -->
+
+ <!-- If user is not logged in
+  Hide all modal options and show a login/signup prompt
+  
+  Else show the modal-->
+
+{% if user.is_authenticated %}
+<!-- Code to render if user is logged in -->
+{% else %}
+<!-- Code to render if user is logged out -->
+{% endif %}
