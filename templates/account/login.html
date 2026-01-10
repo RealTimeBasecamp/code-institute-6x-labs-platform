@@ -1,58 +1,127 @@
-{% extends "account/base_entrance.html" %}
+{% extends 'base_minimal.html' %}
 {% load i18n %}
-{% load allauth account %}
-{% block head_title %}
-    {% trans "Sign In" %}
-{% endblock head_title %}
+{% load static %}
+{% load allauth account socialaccount %}
+
+{% block meta_title %}{% trans "Sign In" %}{% endblock %}
+
+
+{% block logo %}
+    <div class="pt-3 m-3" style="width: 200px;">
+        {% include 'components/dynamic_icons/6x_labs_logo.svg' %}
+    </div>
+{% endblock logo %}
+
 {% block content %}
-    {% element h1 %}
-        {% trans "Sign In" %}
-    {% endelement %}
-    {% if not SOCIALACCOUNT_ONLY %}
-        {% setvar link %}
-            <a href="{{ signup_url }}">
-            {% endsetvar %}
-            {% setvar end_link %}
-            </a>
-        {% endsetvar %}
-        {% element p %}
-            {% blocktranslate %}If you have not created an account yet, then please {{ link }}sign up{{ end_link }} first.{% endblocktranslate %}
-        {% endelement %}
-        {% url 'account_login' as login_url %}
-        {% element form form=form method="post" action=login_url tags="entrance,login" %}
-            {% slot body %}
-                {% csrf_token %}
-                {% element fields form=form unlabeled=True %}
-                {% endelement %}
-                {{ redirect_field }}
-            {% endslot %}
-            {% slot actions %}
-                {% element button type="submit" tags="prominent,login" %}
-                    {% trans "Sign In" %}
-                {% endelement %}
-            {% endslot %}
-        {% endelement %}
-    {% endif %}
-    {% if LOGIN_BY_CODE_ENABLED or PASSKEY_LOGIN_ENABLED %}
-        {% element hr %}
-        {% endelement %}
-        {% element button_group vertical=True %}
-            {% if PASSKEY_LOGIN_ENABLED %}
-                {% element button type="submit" form="mfa_login" id="passkey_login" tags="prominent,login,outline,primary" %}
-                    {% trans "Sign in with a passkey" %}
-                {% endelement %}
-            {% endif %}
-            {% if LOGIN_BY_CODE_ENABLED %}
-                {% element button href=request_login_code_url tags="prominent,login,outline,primary" %}
-                    {% trans "Send me a sign-in code" %}
-                {% endelement %}
-            {% endif %}
-        {% endelement %}
-    {% endif %}
+    <h1 class="display-4 fw-bold pb-3">{% trans "Log in" %}</h1>
+
     {% if SOCIALACCOUNT_ENABLED %}
-        {% include "socialaccount/snippets/login.html" with page_layout="entrance" %}
+        {% get_providers as socialaccount_providers %}
+        {% if socialaccount_providers %}
+            <hr>
+            {% for provider in socialaccount_providers %}
+                {% provider_login_url provider process="login" as provider_url %}
+                <a href="{{ provider_url }}" class="btn-auth" style="text-decoration: none;">
+                    {% if provider.id == "google" %}
+                        <i class="bi bi-google"></i> {% trans "Continue with Google" %}
+                    {% elif provider.id == "apple" %}
+                        <i class="bi bi-apple"></i> {% trans "Continue with Apple" %}
+                    {% else %}
+                        {% trans "Continue with" %} {{ provider.name }}
+                    {% endif %}
+                </a>
+            {% endfor %}
+        {% endif %}
+    {% endif %}
+
+    {% if not SOCIALACCOUNT_ONLY %}
+        {% url 'account_login' as login_url %}
+        <form method="post" action="{{ login_url }}">
+            {% csrf_token %}
+
+            <!-- Form-level errors (e.g., invalid credentials) -->
+            {% if form.non_field_errors %}
+                <div class="alert alert-danger" role="alert">
+                    {% for error in form.non_field_errors %}
+                        {{ error }}
+                    {% endfor %}
+                </div>
+            {% endif %}
+
+            <!-- Email/Username field -->
+            <label for="id_login">{% trans "Email" %}</label>
+            <div class="input-auth-wrapper">
+                <input type="email"
+                       id="id_login"
+                       name="login"
+                       class="input-auth {% if form.login.errors %}is-invalid{% endif %}"
+                       placeholder=" "
+                       value="{{ form.login.value|default:'' }}"
+                       required>
+                <button type="button" class="input-clear" onclick="this.previousElementSibling.value=''; this.previousElementSibling.focus();">
+                    <i class="bi bi-x"></i>
+                </button>
+            </div>
+            {% if form.login.errors %}
+                <div class="text-danger small">{{ form.login.errors.0 }}</div>
+            {% endif %}
+
+            <!-- Password field -->
+            <label for="id_password">{% trans "Password" %}</label>
+            <div class="input-auth-wrapper">
+                <input type="password"
+                       id="id_password"
+                       name="password"
+                       class="input-auth {% if form.password.errors %}is-invalid{% endif %}"
+                       placeholder=" "
+                       required>
+                <button type="button" class="input-clear" onclick="this.previousElementSibling.value=''; this.previousElementSibling.focus();">
+                    <i class="bi bi-x"></i>
+                </button>
+            </div>
+            {% if form.password.errors %}
+                <div class="text-danger small">{{ form.password.errors.0 }}</div>
+            {% endif %}
+
+            <!-- Remember me (hidden or optional) -->
+            {% if form.remember %}
+                <div class="form-check mb-3">
+                    <input type="checkbox" class="form-check-input" id="id_remember" name="remember">
+                    <label class="form-check-label text-muted" for="id_remember">{% trans "Remember me" %}</label>
+                </div>
+            {% endif %}
+
+            {{ redirect_field }}
+
+            <button type="submit" class="btn-auth">{% trans "Continue with password" %}</button>
+        </form>
+
+        <a href="{% url 'account_reset_password' %}" class="text-muted">{% trans "Forgot password?" %}</a>
+        <div class="pb-3 text-muted">
+            {% trans "Don't have an account?" %}
+            <a href="{% url 'account_signup' %}">{% trans "Sign up here" %}</a>
+        </div>
+    {% endif %}
+
+    {% if LOGIN_BY_CODE_ENABLED or PASSKEY_LOGIN_ENABLED %}
+        <hr>
+        {% if PASSKEY_LOGIN_ENABLED %}
+            <button type="submit" form="mfa_login" id="passkey_login" class="btn-auth">
+                {% trans "Sign in with a passkey" %}
+            </button>
+        {% endif %}
+        {% if LOGIN_BY_CODE_ENABLED %}
+            <a href="{{ request_login_code_url }}" class="btn-auth" style="text-decoration: none;">
+                {% trans "Send me a sign-in code" %}
+            </a>
+        {% endif %}
     {% endif %}
 {% endblock content %}
+
+{% block footer %}
+    <p class="pt-3 text-muted small">{% trans "By clicking \"Continue with Apple/Google/Email/SAML\" above, you acknowledge that you have read and understood, and agree to 6X's Terms & Conditions and Privacy Policy" %}</p>
+{% endblock footer %}
+
 {% block extra_body %}
     {{ block.super }}
     {% if PASSKEY_LOGIN_ENABLED %}
