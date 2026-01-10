@@ -11,8 +11,7 @@
   data-bs-backdrop="false"
 >
   <div class="offcanvas-header">
-    <a class="navbar-brand m-0 p-0 d-flex align-items-center" href="{% url 'projects:projects_list' %}">
-      <!-- SVG Logo -->
+    <a class="navbar-brand m-0 p-0 d-flex align-items-center" href="{% url 'core:dashboard' %}">
       <svg
         xmlns="http://www.w3.org/2000/svg"
         viewBox="0 0 2048 2048"
@@ -50,3 +49,6 @@
   </div>
 </div>
 <script src="{% static 'js/components/navigation/sidebar.js' %}"></script>
+
+
+{% include 'account/teamspace_modal.html' with modal_id='teamspaceModal' %}

@@ -1,0 +1,15 @@
+/* ===== MODAL COMPONENTS ===== */
+
+/* Transparent backdrop for modals without greyout */
+/* Uses :has() selector to detect when a no-backdrop modal is open */
+/* The backdrop is added at the body level by Bootstrap, so we target it via body */
+body:has(.modal-no-backdrop.show) > .modal-backdrop {
+  opacity: 0 !important;
+  transition: none !important;
+}
+
+/* Also hide backdrop during fade-in/out to prevent flash */
+body:has(.modal-no-backdrop) > .modal-backdrop {
+  opacity: 0 !important;
+  transition: none !important;
+}
