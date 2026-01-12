@@ -17,24 +17,24 @@
         </div>
         <div id="accountinfo">
           <div class="fw-bold">{{ user.username }}</div>
-          <!-- <span>
+          {# <span>
             <div>{{ user.subscription_tier }}</div>
             <div class="text-muted">{{ user.team_members.count }} members</div>
-          </span> -->
+          </span> #}
         </div>
       </div>
       <a class="btn btn-outline-secondary" role="button" href="{{ settings_url }}">Settings</a>
-      <!-- <a href="{{ add_team_members_url }}">Add Team members</a> -->
+      {# <a href="{{ add_team_members_url }}">Add Team members</a> #}
       <div>
         <div class="teamspaceinfo">
           <div class="text-muted">{{ user.email }}</div>
-          <!-- <div>{{ user.teamspace }}</div> -->
+          {# <div>{{ user.teamspace }}</div> #}
         </div>
         <hr>
         <a href="{{ logout_url }}">Log out</a>
       </div>
       {% else %}
-      <!-- Code to render if user is logged out -->
+      {# Code to render if user is logged out #}
       <a href="{{ login_url }}">Log in</a> | <a href="{{ signup_url }}">Sign up</a>
       {% endif %}
     </div>
