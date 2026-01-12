@@ -1,0 +1,52 @@
+{% load static %}
+
+{% comment %}
+Generic card component template.
+
+Usage (simple):
+  {% include 'components/card.html' with
+    card_title='Card Title'
+    card_icon='bi bi-star'
+    card_body='Simple text content'
+  %}
+
+Usage (complex nested content):
+  {% with card_content %}
+    <div class="row">
+      <div class="col-md-4">...</div>
+    </div>
+  {% endwith %}
+  {% include 'components/card.html' with
+    card_title='Card Title'
+    card_icon='bi bi-people'
+    card_body=card_content
+  %}
+
+Parameters:
+  - card_title: Title text for the card header (optional)
+  - card_icon: Bootstrap icon class for the card header (optional)
+  - card_body: Body content - can be text or HTML (use |safe in calling template if HTML)
+{% endcomment %}
+
+<link rel="stylesheet" href="{% static 'css/components/card.css' %}" />
+
+<div class="card px-4 py-3 bordered rounded-4 bg-body-tertiary">
+  {% if card_icon or card_title %}
+  <div class="card-header-custom d-flex align-items-center mb-3">
+    {% if card_icon or card_title %}
+      <div class="pb-3 d-flex align-items-center">
+        {% if card_icon %}
+        {# Icon size defined by fs-5 class #}
+          <i class="{{ card_icon }} fs-4 me-2" aria-hidden="true"></i>
+        {% endif %}
+        {% if card_title %}
+          <h5 class="mb-0">{{ card_title }}</h5>
+        {% endif %}
+      </div>
+    {% endif %}
+</div>
+  {% endif %}
+  <div class="card-content">
+    {{ card_body }}
+  </div>
+</div>
