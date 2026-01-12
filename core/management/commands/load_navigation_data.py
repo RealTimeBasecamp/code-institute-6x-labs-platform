@@ -6,7 +6,8 @@ Usage: python manage.py load_navigation_data
 import json
 from django.conf import settings
 from django.core.management.base import BaseCommand
-from core.models import SubscriptionTier, NavigationItem
+from core.models import NavigationItem
+from users.models import SubscriptionTier
 
 
 class Command(BaseCommand):

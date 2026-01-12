@@ -1,6 +1,22 @@
+"""
+Admin configuration for the users app.
+
+Registers User and SubscriptionTier models with the Django admin.
+"""
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
-from .models import User
+from .models import User, SubscriptionTier
+
+
+@admin.register(SubscriptionTier)
+class SubscriptionTierAdmin(admin.ModelAdmin):
+    """Admin configuration for SubscriptionTier model."""
+
+    list_display = ['name', 'slug', 'level', 'is_active']
+    list_filter = ['is_active']
+    search_fields = ['name', 'slug']
+    ordering = ['level']
+    prepopulated_fields = {'slug': ('name',)}
 
 
 @admin.register(User)

@@ -1,7 +1,7 @@
 from django.db import models
 
 from users.models import User
-from core.models import Species
+from planting.models import Species
 from seed_catalogue.models import SeedBatch, FungiBatch
 
 
