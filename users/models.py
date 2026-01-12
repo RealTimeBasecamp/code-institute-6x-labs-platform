@@ -3,6 +3,31 @@ from django.contrib.auth.models import AbstractUser
 
 
 # =============================================================================
+# SUBSCRIPTION TIER (Controls feature access for paying customers)
+# =============================================================================
+class SubscriptionTier(models.Model):
+    """
+    Subscription tier that controls feature access.
+
+    Data comes from: Admin panel or management commands (seed data).
+    Related to User model through ForeignKey relationship.
+
+    Staff/superusers bypass tier checks via Django's is_staff/is_superuser flags.
+    """
+    slug = models.SlugField(unique=True, max_length=50)
+    name = models.CharField(max_length=100)
+    level = models.PositiveIntegerField(default=0, help_text="Lower number = more access")
+    description = models.TextField(blank=True)
+    is_active = models.BooleanField(default=True)
+
+    class Meta:
+        ordering = ['level']
+
+    def __str__(self):
+        return self.name
+
+
+# =============================================================================
 # USER (Custom user model extending Django's AbstractUser)
 # =============================================================================
 class User(AbstractUser):
@@ -23,7 +48,7 @@ class User(AbstractUser):
 
     # Subscription & preferences
     subscription_tier = models.ForeignKey(
-        'core.SubscriptionTier',
+        SubscriptionTier,
         on_delete=models.PROTECT,
         null=True,
         blank=True,

@@ -53,6 +53,7 @@ INSTALLED_APPS = [
     # Local apps (order matters for dependencies)
     'core',
     'users',
+    'planting',
     'seed_catalogue',
     'drones',
     'projects',

@@ -235,9 +235,8 @@ env.py
 fixtures/
 DatabaseSchema.py
 DatabaseSchema.dbml
-.claude/settings.local.json
+.claude/
 env.py
-CLAUDE.md
 CLAUDE.md
 MarkSchemeGuideForClaude.txt
 nul

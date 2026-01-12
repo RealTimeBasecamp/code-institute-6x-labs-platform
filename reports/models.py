@@ -3,7 +3,7 @@ from decimal import Decimal
 from django.db import models
 from django.db.models import Avg, Sum, Count, Q  # noqa: F401 - used in helper functions
 
-from core.models import Species
+from planting.models import Species
 from projects.models import Project, Site, Plant
 
 

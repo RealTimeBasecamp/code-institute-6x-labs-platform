@@ -5,10 +5,58 @@ from django.db import models
 from django.db.models import Avg, Sum, Count, Q
 from django.utils.text import slugify
 
-from core.models import Status, PlantStatus, Species, Address, Contact, Coordinate
+from core.models import Address, Contact, Coordinate
+from planting.models import PlantStatus, Species
 from users.models import User
 from seed_catalogue.models import SeedBatch, FungiBatch
 from drones.models import Drone
+
+
+# =============================================================================
+# STATUS (Lookup Table - shared by Site and Project)
+# =============================================================================
+class Status(models.Model):
+    """
+    Status lookup table for Projects and Sites.
+
+    Data comes from: Admin panel or seed data.
+    Used by: Project and Site models to track workflow state.
+    """
+    # Active statuses
+    STATUS_PROSPECTING = 'prospecting'
+    STATUS_PENDING = 'pending_approval'
+    STATUS_DELAYED = 'delayed'
+    STATUS_STOPPED = 'stopped'
+    STATUS_IN_PROGRESS = 'in_progress'
+    STATUS_COMPLETED = 'completed'
+
+    # Archived statuses
+    STATUS_ARCHIVED_INCLUDED = 'archived_included'
+    STATUS_ARCHIVED_EXCLUDED = 'archived_excluded'
+
+    STATUS_CHOICES = [
+        (STATUS_PROSPECTING, 'Prospecting'),
+        (STATUS_PENDING, 'Pending Approval'),
+        (STATUS_DELAYED, 'Delayed/Issue'),
+        (STATUS_STOPPED, 'Stopped'),
+        (STATUS_IN_PROGRESS, 'In Progress'),
+        (STATUS_COMPLETED, 'Completed'),
+        (STATUS_ARCHIVED_INCLUDED, 'Archived (Stats Included)'),
+        (STATUS_ARCHIVED_EXCLUDED, 'Archived (Stats Excluded)'),
+    ]
+
+    code = models.CharField(max_length=30, unique=True, choices=STATUS_CHOICES)
+    name = models.CharField(max_length=100)
+    emoji = models.CharField(max_length=10)
+    is_archived = models.BooleanField(default=False)
+    includes_in_carbon = models.BooleanField(default=True)
+    display_order = models.IntegerField(default=0)
+
+    class Meta:
+        verbose_name_plural = "Statuses"
+
+    def __str__(self):
+        return f"{self.emoji} {self.name}"
 
 
 # =============================================================================
@@ -28,7 +76,12 @@ class Project(models.Model):
     archived_at = models.DateTimeField(null=True, blank=True)
     address = models.ForeignKey(Address, on_delete=models.PROTECT)
     contact = models.ForeignKey(Contact, on_delete=models.PROTECT)
-    coordinates = models.ForeignKey(Coordinate, on_delete=models.PROTECT)
+    coordinates = models.ForeignKey(
+        Coordinate,
+        on_delete=models.PROTECT,
+        null=True,
+        blank=True
+    )
 
     # e.g. Private Land, Public Land, Reforestation Project
     project_type = models.CharField(max_length=100)
@@ -38,7 +91,12 @@ class Project(models.Model):
 
     # e.g. Tropical, Dry, Temperate, Continental, Polar
     climate = models.CharField(max_length=50)
-    area_hectares = models.DecimalField(max_digits=10, decimal_places=2)
+    area_hectares = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        null=True,
+        blank=True
+    )  # Calculated/updated later from site data
 
     # Aggregated carbon metrics (summed from all sites in this project)
     total_co2_sequestered_kg = models.BigIntegerField(null=True, blank=True)
