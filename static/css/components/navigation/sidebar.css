@@ -38,17 +38,17 @@
 }
 
 .sidebar-item {
-  margin-bottom: 1px;
+  margin-bottom: 0.0625rem;
   position: relative;
 }
 
 .sidebar-link {
   color: var(--bs-body-color) !important;
   padding: 0.25rem 0.5rem;
-  border-radius: 4px;
+  border-radius: 0.25rem;
   transition: background-color 0.15s ease-in-out;
   text-decoration: none !important;
-  font-size: 16px;
+  font-size: 1rem;
   line-height: 1.5;
   display: flex;
   align-items: center;
@@ -71,10 +71,10 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  border-radius: 3px;
+  border-radius: 0.1875rem;
   transition: background-color 0.15s ease-in-out;
-  width: 16px;
-  height: 16px;
+  width: 1rem;
+  height: 1rem;
   position: relative;
 }
 
@@ -87,18 +87,19 @@
 }
 
 .sidebar-icon-toggle i {
-  font-size: 16px;
+  font-size: 1rem;
   position: absolute;
   transition: opacity 0.15s ease;
 }
 
+/* Default icon visible, chevron hidden */
 .sidebar-icon-toggle .icon-default {
   opacity: 1;
 }
 
 .sidebar-icon-toggle .icon-chevron {
   opacity: 0;
-  font-size: 11px;
+  font-size: 0.6875rem;
 }
 
 .sidebar-icon-toggle:hover .icon-default,
@@ -111,12 +112,14 @@
   opacity: 1;
 }
 
+/* When menu is open AND hovering: show chevron rotated */
 .sidebar-item.open .sidebar-link:hover .sidebar-icon-toggle .icon-chevron {
   opacity: 1;
   transform: rotate(90deg);
   transition: transform 0.2s ease, opacity 0.15s ease;
 }
 
+/* When menu is open but NOT hovering: show default icon */
 .sidebar-item.open .sidebar-icon-toggle .icon-default {
   opacity: 1;
 }
@@ -125,10 +128,12 @@
   opacity: 0;
 }
 
+/* Override: when open AND hovering, hide default and show rotated chevron */
 .sidebar-item.open .sidebar-link:hover .sidebar-icon-toggle .icon-default {
   opacity: 0;
 }
 
+/* Override Bootstrap link colors */
 .sidebar-link,
 .sidebar-link:link,
 .sidebar-link:visited,
@@ -140,9 +145,9 @@
 }
 
 .sidebar-link i {
-  font-size: 16px;
-  width: 16px;
-  height: 16px;
+  font-size: 1rem;
+  width: 1rem;
+  height: 1rem;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -170,15 +175,15 @@
 }
 
 .sidebar-submenu .sidebar-link {
-  font-size: 16px;
+  font-size: 1rem;
   padding: 0.2rem 0.5rem;
 }
 
 .sidebar-resizer {
   position: absolute;
   top: 0;
-  right: -3px;
-  width: 6px;
+  right: -0.1875rem;
+  width: 0.375rem;
   height: 100vh;
   cursor: col-resize;
   opacity: 0;
@@ -295,17 +300,17 @@ body.offcanvas-open .page-content {
 }
 
 .sidebar-item {
-  margin-bottom: 1px;
+  margin-bottom: 0.0625rem;
   position: relative;
 }
 
 .sidebar-link {
   color: var(--bs-body-color) !important;
   padding: 0.25rem 0.5rem;
-  border-radius: 4px;
+  border-radius: 0.25rem;
   transition: background-color 0.15s ease-in-out;
   text-decoration: none !important;
-  font-size: 16px;
+  font-size: 1rem;
   line-height: 1.5;
   display: flex;
   align-items: center;
@@ -330,10 +335,10 @@ body.offcanvas-open .page-content {
   display: flex;
   align-items: center;
   justify-content: center;
-  border-radius: 3px;
+  border-radius: 0.1875rem;
   transition: background-color 0.15s ease-in-out;
-  width: 16px;
-  height: 16px;
+  width: 1rem;
+  height: 1rem;
   position: relative;
 }
 
@@ -346,7 +351,7 @@ body.offcanvas-open .page-content {
 }
 
 .sidebar-icon-toggle i {
-  font-size: 16px;
+  font-size: 1rem;
   position: absolute;
   transition: opacity 0.15s ease;
 }
@@ -358,7 +363,7 @@ body.offcanvas-open .page-content {
 
 .sidebar-icon-toggle .icon-chevron {
   opacity: 0;
-  font-size: 11px;
+  font-size: 0.6875rem;
 }
 
 /* On hover of toggle button OR parent link: hide default icon, show chevron */
@@ -405,9 +410,9 @@ body.offcanvas-open .page-content {
 }
 
 .sidebar-link i {
-  font-size: 16px;
-  width: 16px;
-  height: 16px;
+  font-size: 1rem;
+  width: 1rem;
+  height: 1rem;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -436,7 +441,7 @@ body.offcanvas-open .page-content {
 }
 
 .sidebar-submenu .sidebar-link {
-  font-size: 16px;
+  font-size: 1rem;
   padding: 0.2rem 0.5rem;
 }
 
@@ -444,8 +449,8 @@ body.offcanvas-open .page-content {
 .sidebar-resizer {
   position: absolute;
   top: 0;
-  right: -3px;
-  width: 6px;
+  right: -0.1875rem;
+  width: 0.375rem;
   height: 100vh;
   cursor: col-resize;
   opacity: 0;
