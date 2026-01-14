@@ -1,0 +1,35 @@
+{% comment %}
+Custom Dropdown Component
+
+Usage:
+  {% include 'components/dropdown.html' with
+      dropdown_id="myDropdown"
+      dropdown_label="Select Option"
+      list=my_list
+  %}
+
+Parameters:
+  - dropdown_id: Unique identifier for the dropdown
+  - dropdown_label: Default text shown in the dropdown toggle
+  - dropdown_width: Optional minimum width (default: auto)
+  - list: List of items (strings or objects with .name attribute)
+{% endcomment %}
+
+<div class="custom-dropdown" {% if dropdown_id %}id="{{ dropdown_id }}"{% endif %} {% if dropdown_width %}style="min-width: {{ dropdown_width }};"{% endif %}>
+  <button class="dropdown-toggle" type="button">
+    <span class="select-label">{{ dropdown_label}}</span>
+    <span class="select-icon">
+      <i class="bi bi-chevron-up"></i>
+      <i class="bi bi-chevron-down"></i>
+    </span>
+  </button>
+  <ul class="dropdown-menu">
+    {% if list %}
+      {% for item in list %}
+        <li><button class="dropdown-item" type="button">{{ item }}</button></li>
+      {% endfor %}
+    {% else %}
+      <li><button class="dropdown-item" type="button">No options</button></li>
+    {% endif %}
+  </ul>
+</div>
