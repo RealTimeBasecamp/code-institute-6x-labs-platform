@@ -21,6 +21,13 @@
     <script src="{% static 'js/init-critical.js' %}"></script>
     <!-- Custom CSS -->
     <link rel="stylesheet" href="{% static 'css/styles.css' %}">
+    <!-- Component CSS -->
+    <link rel="stylesheet" href="{% static 'css/components/card.css' %}">
+    <link rel="stylesheet" href="{% static 'css/components/dropdown.css' %}">
+    <link rel="stylesheet" href="{% static 'css/components/modal.css' %}">
+    <link rel="stylesheet" href="{% static 'css/components/toggle-switch.css' %}">
+    <!-- Page-specific CSS -->
+    {% block extra_css %}{% endblock %}
     <title>{% block meta_title %}Title{% endblock %}</title>
 </head>
 
@@ -65,13 +72,9 @@
                     </div>
                 {% endif %}
 
-                <div class="d-flex flex-column gap-3 align-items-start">
-                    <div class="col-12 d-flex align-items-center gap-2">
-                        {% block content %}
-                            <!-- Your page content goes here -->
-                        {% endblock %}
-                    </div>
-                </div>
+                {% block content %}
+                    <!-- Your page content goes here -->
+                {% endblock %}
             </div>
         </div>
     </main>
@@ -91,6 +94,7 @@
 
     <script src="{% static 'js/theme-manager.js' %}" defer></script>
     <script src="{% static 'js/tooltip-init.js' %}" defer></script>
+    <script src="{% static 'js/components/dropdown.js' %}" defer></script>
 
     {% block extra_js %}{% endblock %}
   </body>

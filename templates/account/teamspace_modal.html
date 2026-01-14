@@ -1,19 +1,22 @@
 {% extends 'components/modals/modal_minimal.html' %}
 
+{# Override modal styling to work with card component #}
+{% block modal_content_classes %}shadow-sm rounded-3 p-0 overflow-hidden{% endblock %}
 
 {% block modal_content %}
   {% url 'account_login' as login_url %}
   {% url 'account_signup' as signup_url %}
   {% url 'account_logout' as logout_url %}
 
-  <div>
-    <div class="d-flex justify-content-between align-items-start mb-3">
-      {% if user.is_authenticated %}
-      <div class="d-flex" id="accountdisplaybox">
+  <div class="card border-0">
+    {% if user.is_authenticated %}
+    {# Card header - Bootstrap handles light/dark theme colors automatically #}
+    <div class="card-header d-flex justify-content-between align-items-center">
+      <div class="d-flex align-items-center" id="accountdisplaybox">
         <div class="me-3">
           {# {% include 'components/dynamic_icons/user_avatar.svg' %} #}
           {# TODO Need to get cloudinary images set up for user model #}
-          <div class="bi bi-person-circle"></div>
+          <i class="bi bi-person-circle fs-3"></i>
         </div>
         <div id="accountinfo">
           <div class="fw-bold">{{ user.username }}</div>
@@ -23,20 +26,25 @@
           </span> #}
         </div>
       </div>
-      <a class="btn btn-outline-secondary" role="button" href="{{ settings_url }}">Settings</a>
-      {# <a href="{{ add_team_members_url }}">Add Team members</a> #}
-      <div>
-        <div class="teamspaceinfo">
-          <div class="text-muted">{{ user.email }}</div>
-          {# <div>{{ user.teamspace }}</div> #}
-        </div>
-        <hr>
-        <a href="{{ logout_url }}">Log out</a>
-      </div>
-      {% else %}
-      {# Code to render if user is logged out #}
-      <a href="{{ login_url }}">Log in</a> | <a href="{{ signup_url }}">Sign up</a>
-      {% endif %}
+      <a class="btn btn-outline-secondary btn-sm" role="button" href="{{ settings_url }}">Settings</a>
     </div>
+
+    {# Card body #}
+    <div class="card-body">
+      {# <a href="{{ add_team_members_url }}">Add Team members</a> #}
+      <div class="teamspaceinfo">
+        <div class="text-muted">{{ user.email }}</div>
+        {# <div>{{ user.teamspace }}</div> #}
+      </div>
+      <hr>
+      <a href="{{ logout_url }}">Log out</a>
+    </div>
+
+    {% else %}
+      {# Code to render if user is logged out #}
+      <div class="card-body">
+        <a href="{{ login_url }}">Log in</a> | <a href="{{ signup_url }}">Sign up</a>
+      </div>
+    {% endif %}
   </div>
 {% endblock %}

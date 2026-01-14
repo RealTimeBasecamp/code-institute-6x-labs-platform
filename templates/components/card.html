@@ -1,0 +1,49 @@
+{% comment %}
+Card component template - wrapper for displaying card content.
+Renders a consistent card with optional header (title + icon) and body content.
+
+This template receives context from {% card %} or {% card_snippet %} template tags.
+
+TWO WAYS TO USE THIS CARD:
+
+Option 1: {% card %} - Pass pre-rendered HTML or inline content
+FLOW: Template → {% card %} tag → card_tags.py → card.html
+EXAMPLE:
+  {% card card_title='Site Details' card_icon='bi bi-info-circle' card_body=site_details_html %}
+  {% card card_title='Title' card_icon='bi bi-star' card_body='<p>html content</p>' %}
+
+Option 2: {% card_snippet %} - Render snippet and wrap in card (replaces Django 4.x {% include ... as %})
+FLOW: Template → {% card_snippet %} tag → render_to_string(snippet) → card_tags.py → card.html
+EXAMPLE:
+  {% card_snippet card_title='Site Details' card_icon='bi bi-info-circle' 
+                  snippet_path='projects/cards/site_details.html' project=project %}
+
+Parameters (from card tags):
+  - card_title: Header title text (optional)
+  - card_icon: Bootstrap icon class (optional, e.g., 'bi bi-info-circle', 'bi bi-tree')
+  - card_body: HTML content for the card body (automatically marked safe by the tag)
+
+Template characteristics:
+  - Header appears only if card_icon or card_title provided
+  - Body content is not escaped (mark_safe() is applied in the tag)
+  - Uses Bootstrap 5 card classes
+  - Responsive padding and rounded corners
+{% endcomment %}
+
+<div class="card px-4 py-3 bordered rounded-4 bg-body-tertiary">
+  {% if card_icon or card_title %}
+  <div class="card-header-custom d-flex align-items-center mb-3">
+    <div class="pb-3 d-flex align-items-center">
+      {% if card_icon %}
+        <i class="{{ card_icon }} fs-5 me-3" aria-hidden="true"></i>
+      {% endif %}
+      {% if card_title %}
+        <h5 class="mb-0">{{ card_title }}</h5>
+      {% endif %}
+    </div>
+  </div>
+  {% endif %}
+  <div class="card-content">
+    {{ card_body|safe }}
+  </div>
+</div>

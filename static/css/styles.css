@@ -1,13 +1,14 @@
 /* ===== GLOBAL CUSTOM PROPERTIES ===== */
 :root {
   --primary-color: #059acc; /* Fallback during theme transitions - overridden by themes */
-  --sidebar-width: 260px;
-  --sidebar-min-width: 260px;
-  --sidebar-max-width: 540px;
-  --navbar-height: 52px;
+  --sidebar-width: 16.25rem;
+  --sidebar-min-width: 16.25rem;
+  --sidebar-max-width: 33.75rem;
+  --navbar-height: 3.25rem;
   /* Shared horizontal inset used by both the offcanvas header and navbar-left */
   --header-inset: 1.25rem;
   --font-sans: "Segoe UI", -apple-system, BlinkMacSystemFont, "Roboto", "Helvetica Neue", Arial, sans-serif;
+  --font-size: var(--font-size);
 }
 
 /* ===== THEME SYSTEM ===== */
@@ -33,7 +34,7 @@ body {
 /* Apply font to all headings and body text - override Bootstrap */
 h1, h2, h3, h4, h5, h6, p, span, div, a, button, input, textarea, select{
   font-family: var(--font-sans) !important;
-  font-size: 16px;
+  font-size: 1rem;
 }
 
 
@@ -70,7 +71,7 @@ h1, h2, h3, h4, h5, h6, p, span, div, a, button, input, textarea, select{
   flex: 1;
   padding: 2rem;
   width: 100%;
-  max-width: 430px;
+  max-width: 26.875rem;
   margin: 0 auto;
   text-align: center;
   gap: 0.5rem;
@@ -135,7 +136,7 @@ h1, h2, h3, h4, h5, h6, p, span, div, a, button, input, textarea, select{
   border-radius: 0.28125rem;
   background-color: var(--bs-hover-bg);
   color: var(--bs-body-color);
-  font-size: 1rem;
+  font-size: var(--font-size);
 }
 
 .input-auth:focus {
@@ -175,7 +176,7 @@ h1, h2, h3, h4, h5, h6, p, span, div, a, button, input, textarea, select{
   align-items: center;
   justify-content: center;
   padding: 1rem 2rem;
-  max-width: 800px;
+  max-width: 50rem;
   margin: 0 auto;
   text-align: center;
 }
@@ -183,7 +184,10 @@ h1, h2, h3, h4, h5, h6, p, span, div, a, button, input, textarea, select{
 
 /* ==== Main content ==== */
 .main-content {
-  padding-top: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  padding-top: 1.5rem;
 }
 
 /* ===== HEADER LINE ===== */
@@ -201,6 +205,20 @@ h1, h2, h3, h4, h5, h6, p, span, div, a, button, input, textarea, select{
   background-color: var(--bs-tertiary-bg) !important;
 }
 
+/* ===== SQUARE BUTTON ===== */
+/* Use with Bootstrap .btn class for a 1:1 aspect ratio button */
+.btn-square {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0; /* Prevent shrinking in flex containers */
+  height: 2.375rem; /* Match standard Bootstrap button height */
+  width: 2.375rem;
+  font-size: 1.25rem !important;
+  padding: 0;
+}
+
+
 /* ===== PRIMARY BUTTON OVERRIDE ===== */
 .btn-primary {
   --bs-btn-bg: var(--primary-color);
@@ -215,7 +233,12 @@ h1, h2, h3, h4, h5, h6, p, span, div, a, button, input, textarea, select{
 
 .bi,
 svg {
-  color: var(--bs-body-color);
+  color: inherit;
+}
+
+/* Ensure buttons use Bootstrap's button color variable, not inherited body color */
+.btn {
+  color: var(--bs-btn-color) !important;
 }
 
 /* ===== MOBILE MENU BUTTON ===== */
@@ -239,7 +262,7 @@ svg {
 }
 
 .mobile-menu-btn i {
-  font-size: 24px;
+  font-size: 1.5rem;
   color: var(--bs-body-color);
   transition: transform 0.3s ease;
 }

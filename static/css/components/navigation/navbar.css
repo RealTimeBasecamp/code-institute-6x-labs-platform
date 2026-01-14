@@ -12,12 +12,12 @@
 }
 
 .navbar-logo {
-  height: 28px;
+  height: 1.75rem;
 }
 
 .navbar-search {
   flex: 1 1 auto;
-  max-width: 600px;
+  max-width: 37.5rem;
 }
 
 .navbar-actions {
@@ -159,7 +159,7 @@ body.offcanvas-open [data-bs-toggle="offcanvas"][data-bs-target="#sidebar"] {
   color: inherit !important;
   transition: background-color 0.15s ease-in-out;
   padding: 0.5rem !important;
-  border-radius: 6px;
+  border-radius: 0.375rem;
   line-height: 1;
   text-decoration: none;
 }
@@ -317,7 +317,7 @@ body.offcanvas-open .navbar-left {
   color: inherit !important;
   transition: background-color 0.15s ease-in-out;
   padding: 0.5rem !important;
-  border-radius: 6px;
+  border-radius: 0.375rem;
   line-height: 1;
   text-decoration: none;
 }

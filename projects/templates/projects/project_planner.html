@@ -1,12 +1,104 @@
-{% load static %}  {% block content %}
+{% extends 'base.html' %}
+{% load static %}
+{% load card_tags %}
 
-{{ project.name }}
+{% block meta_title %}Project Planner{% endblock %}
+{% block page_title %}Project Planner{% endblock %}
 
-<!-- This will be the dropdown to select different projects
-<ul>
-{% for project in projects %}
-    <li>{{ project.slug }}</li>
-{% endfor %}
-</ul> -->
+{% block header_contents %}
+    <a
+        role="button"
+        class="btn btn-primary"
+        data-bs-toggle="modal"
+        data-bs-target="#addNewProject">Add new project
+    </a>
+
+{% include "components/modals/modal.html" with
+  modal_id="addNewProject"
+  modal_size="lg"
+  modal_title="Add New Project"
+  modal_body_content="<p>TODO: Add new project form here.</p>"
+  modal_footer_content="<button class='btn btn-primary'>Add new project</button>"
+%}
+
+{% endblock %}
+
+
+{% block content %}
+
+<section>
+    <!-- Select Project label with info icon -->
+    <div class="d-flex align-items-center gap-2 mb-2">
+        <span>Select Project</span>
+        <i class="bi bi-info-circle"
+           data-bs-toggle="tooltip"
+           data-bs-placement="top"
+           data-bs-title="Select a project and site to view or edit."></i>
+    </div>
+
+    <!-- Main toolbar row -->
+    <div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-3">
+        <!-- Left side: Dropdowns and nav buttons -->
+        <div class="d-flex flex-wrap align-items-center gap-2">
+            {% include 'components/dropdown.html' with
+                dropdown_id="projectDropdown"
+                dropdown_label=project.name
+                dropdown_width="25rem"
+                list=projects
+            %}
+            {% include 'components/dropdown.html' with
+                dropdown_id="siteDropdown"
+                dropdown_label=project.sites.all.first.name
+                dropdown_width="8rem"
+                list=project.sites.all
+            %}
+            <button class="btn btn-secondary btn-square" title="Previous">
+                <i class="bi bi-chevron-left"></i>
+            </button>
+            <button class="btn btn-secondary btn-square" title="Next">
+                <i class="bi bi-chevron-right"></i>
+            </button>
+            <button class="btn btn-secondary btn-square" title="Add new">
+                <i class="bi bi-plus"></i>
+            </button>
+        </div>
+
+        <!-- Right side: Action buttons -->
+        {% include 'components/state_manager.html' %}
+    </div>
+
+    <!-- Last updated timestamp -->
+    <div class="d-flex justify-content-end mt-2">
+        <small class="text-muted">{{ project.updated_at }}</small>
+    </div>
+</section>
+
+{% include 'planting/point_plotter.html' %}
+
+<ul class="nav nav-pills" role="tablist">
+  <li class="nav-item" role="presentation">
+    <a class="nav-link active" id="project-info-tab" data-bs-toggle="tab" href="#project-info" role="tab" aria-controls="project-info" aria-selected="true">Project Info</a>
+  </li>
+  <li class="nav-item" role="presentation">
+    <a class="nav-link" id="project-breakdown-tab" data-bs-toggle="tab" href="#project-breakdown" role="tab" aria-controls="project-breakdown" aria-selected="false">Project Breakdown</a>
+  </li>
+</ul>
+
+<div class="tab-content mt-4">
+  <div class="tab-pane fade show active d-flex flex-column gap-4" id="project-info" role="tabpanel" aria-labelledby="project-info-tab">
+    {% card card_title='Project description' card_icon='bi bi-card-text' card_body=project.description %}
+
+    {% if project %}
+        {% for group in card_groups %}
+            {% card card_title=group.title card_icon=group.icon card_body=group.body_html %}
+        {% endfor %}
+        {% card card_title='Contributor Information' card_icon='bi bi-person-plus' card_body='<p class="text-muted mb-0">No contributors added yet.</p>' %}
+    {% endif %}
+  </div>
+
+  <div class="tab-pane fade" id="project-breakdown" role="tabpanel" aria-labelledby="project-breakdown-tab">
+    <p>Project breakdown here</p>
+  </div>
+</div>
 
 {% endblock %}

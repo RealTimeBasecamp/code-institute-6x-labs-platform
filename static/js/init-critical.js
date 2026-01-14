@@ -27,7 +27,17 @@
   // Apply both theme and mode attributes
   document.documentElement.setAttribute("data-theme", theme);
   document.documentElement.setAttribute("data-bs-theme", mode);
-  if (w) document.documentElement.style.setProperty("--sidebar-width", w);
+
+  // Validate and apply saved sidebar width (min: 260px, max: 540px)
+  if (w) {
+    const widthValue = parseFloat(w);
+    if (!Number.isNaN(widthValue) && widthValue >= 260 && widthValue <= 540) {
+      document.documentElement.style.setProperty("--sidebar-width", w);
+    } else {
+      // Invalid width stored, clear it so CSS default is used
+      localStorage.removeItem("sidebar-width");
+    }
+  }
 
   // Dynamically load theme CSS file
   // Check if theme CSS is already loaded to avoid duplicates
