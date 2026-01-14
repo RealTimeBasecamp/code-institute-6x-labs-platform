@@ -1,0 +1,59 @@
+{% comment %}
+Generic template for rendering field pairs in configurable layouts.
+Reusable across the entire site for displaying structured data.
+
+Expected context (choose one):
+
+Option 1 - Simple fields (3-column grid):
+  fields: List of tuples [(label, value), (label, value), ...]
+  Example: [('City', 'London'), ('Country', 'UK'), ('Postcode', 'SW1A1AA')]
+  
+Option 2 - Sectioned fields (with HR dividers):
+  sections: List of dicts [
+    {'title': 'Section Title', 'fields': [(label, value), ...]},
+    {'title': 'Section Title', 'fields': [(label, value), ...]},
+  ]
+  Example: [
+    {'title': 'Company', 'fields': [('Name', 'Acme'), ('Email', 'contact@acme.com')]},
+    {'title': 'Contact', 'fields': [('Phone', '123-456'), ('Address', '123 Main')]}
+  ]
+
+Usage in views:
+  from django.template.loader import render_to_string
+  html = render_to_string('components/field_list.html', {'fields': data})
+
+Usage as inclusion tag (optional):
+  You could also create a template tag wrapper if needed for template-only rendering.
+{% endcomment %}
+
+{% if sections %}
+  {# Sectioned layout with dividers #}
+  {% for section in sections %}
+    <div class="mb-4">
+      {% if section.title %}
+        <h6 class="fw-semibold mb-3">{{ section.title }}</h6>
+      {% endif %}
+      <div class="row">
+        {% for label, value in section.fields %}
+          <div class="col-md-4 mb-3">
+            <label class="form-label fw-semibold text-muted">{{ label }}</label>
+            <p class="mb-0">{{ value }}</p>
+          </div>
+        {% endfor %}
+      </div>
+    </div>
+    {% if not forloop.last %}
+      <hr class="my-3">
+    {% endif %}
+  {% endfor %}
+{% else %}
+  {# Simple 3-column grid layout #}
+  <div class="row">
+    {% for label, value in fields %}
+      <div class="col-md-4 mb-3">
+        <label class="form-label fw-semibold text-muted">{{ label }}</label>
+        <p class="mb-0">{{ value }}</p>
+      </div>
+    {% endfor %}
+  </div>
+{% endif %}

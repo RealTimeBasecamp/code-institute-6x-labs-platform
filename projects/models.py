@@ -220,6 +220,100 @@ class Project(models.Model):
     def __str__(self):
         return self.name
 
+    def get_card_groups(self):
+        """
+        Returns card group data for project planner display.
+        Each group is rendered as a card with title, icon, and fields.
+        
+        Returns:
+            List of dicts with keys: title, icon, fields (or sections for Contact)
+        """
+        return [
+            {
+                'title': 'Site Details',
+                'icon': 'bi bi-info-circle',
+                'fields': [
+                    ('Project Name', self.name),
+                    ('Project Type', self.project_type or 'N/A'),
+                    ('Soil Type', self.soil_type or 'N/A'),
+                    ('Climate', self.climate or 'N/A'),
+                    ('Area (hectares)', f"{self.area_hectares}" if self.area_hectares else 'N/A'),
+                ]
+            },
+            {
+                'title': 'Address Information',
+                'icon': 'bi bi-geo-alt',
+                'fields': [
+                    ('Address Line 1', self.address.address_line_1 or 'N/A'),
+                    ('Address Line 2', self.address.address_line_2 or 'N/A'),
+                    ('City', self.address.city or 'N/A'),
+                    ('Region', self.address.region or 'N/A'),
+                    ('Postcode', self.address.postcode or 'N/A'),
+                    ('Country', self.address.country_code or 'N/A'),
+                ]
+            },
+            {
+                'title': 'Coordinate Information',
+                'icon': 'bi bi-map',
+                'fields': [
+                    ('Latitude', self.coordinates.latitude or 'N/A'),
+                    ('Longitude', self.coordinates.longitude or 'N/A'),
+                    ('Altitude (m)', self.coordinates.altitude or 'N/A'),
+                    ('Elevation (m)', self.coordinates.elevation or 'N/A'),
+                    ('Coordinate System', self.coordinates.coordinate_system or 'N/A'),
+                    ('What3Words', self.coordinates.what3w or 'N/A'),
+                ]
+            },
+            {
+                'title': 'Carbon Metrics',
+                'icon': 'bi bi-graph-up',
+                'fields': [
+                    ('Total CO2 Sequestered (kg)', f"{self.total_co2_sequestered_kg:,}" if self.total_co2_sequestered_kg else 'N/A'),
+                    ('Soil CO2 Sequestered (kg)', f"{self.soil_co2_sequestered_kg:,}" if self.soil_co2_sequestered_kg else 'N/A'),
+                    ('Plant CO2 Sequestered (kg)', f"{self.plant_co2_sequestered_kg:,}" if self.plant_co2_sequestered_kg else 'N/A'),
+                    ('Total Plants', f"{self.total_plants:,}" if self.total_plants else 'N/A'),
+                ]
+            },
+            {
+                'title': 'Contact Information',
+                'icon': 'bi bi-people',
+                'sections': [
+                    {
+                        'title': 'Company Contact',
+                        'fields': [
+                            ('Company Name', self.contact.company_name or 'N/A'),
+                            ('Company Email', self.contact.company_email or 'N/A'),
+                            ('Company Phone', self.contact.company_phone or 'N/A'),
+                        ]
+                    },
+                    {
+                        'title': 'Primary Contact',
+                        'fields': [
+                            ('Contact Name', self.contact.primary_contact_name or 'N/A'),
+                            ('Contact Email', self.contact.primary_contact_email or 'N/A'),
+                            ('Contact Phone', self.contact.primary_contact_phone or 'N/A'),
+                        ]
+                    },
+                    {
+                        'title': 'Land Owner Contact',
+                        'fields': [
+                            ('Land Owner Name', self.contact.land_owner_name or 'N/A'),
+                            ('Land Owner Email', self.contact.land_owner_email or 'N/A'),
+                            ('Land Owner Phone', self.contact.land_owner_phone or 'N/A'),
+                        ]
+                    },
+                    {
+                        'title': 'Secondary Contact',
+                        'fields': [
+                            ('Contact Name', self.contact.secondary_contact_name or 'N/A'),
+                            ('Contact Email', self.contact.secondary_contact_email or 'N/A'),
+                            ('Contact Phone', self.contact.secondary_contact_phone or 'N/A'),
+                        ]
+                    },
+                ]
+            },
+        ]
+
 
 # =============================================================================
 # SITE
@@ -278,7 +372,7 @@ class Site(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
 
     def __str__(self):
-        return f"{self.name} ({self.project.name if self.project else 'No Project'})"
+        return f"{self.name}"
 
 
 # =============================================================================
