@@ -441,9 +441,24 @@
    * Setup drag-to-resize functionality
    */
   function setupResizeHandle() {
-    const getVarNumber = (name, fallback) => {
-      const value = parseFloat(getComputedStyle(root).getPropertyValue(name));
-      return Number.isNaN(value) ? fallback : value;
+    /**
+     * Get CSS variable value in pixels.
+     * Handles px, rem, and em units by converting to pixels.
+     */
+    const getVarInPixels = (name, fallback) => {
+      const raw = getComputedStyle(root).getPropertyValue(name).trim();
+      if (!raw) return fallback;
+
+      const value = parseFloat(raw);
+      if (Number.isNaN(value)) return fallback;
+
+      // Convert rem/em to pixels using root font size
+      if (raw.endsWith('rem') || raw.endsWith('em')) {
+        const rootFontSize = parseFloat(getComputedStyle(root).fontSize) || 16;
+        return value * rootFontSize;
+      }
+
+      return value; // Already in pixels or unitless
     };
 
     const clamp = (value, min, max) => Math.min(max, Math.max(min, value));
@@ -454,9 +469,9 @@
 
       const pointerId = event.pointerId;
       const startX = event.clientX;
-      const startWidth = getVarNumber("--sidebar-width", 260);
-      const minWidth = getVarNumber("--sidebar-min-width", 260);
-      const maxWidth = Math.max(minWidth, getVarNumber("--sidebar-max-width", 540));
+      const startWidth = getVarInPixels("--sidebar-width", 260);
+      const minWidth = getVarInPixels("--sidebar-min-width", 260);
+      const maxWidth = Math.max(minWidth, getVarInPixels("--sidebar-max-width", 540));
       const closeThreshold = 30;
 
       let wasClosed = false;
