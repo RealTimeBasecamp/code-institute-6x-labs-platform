@@ -25,8 +25,13 @@ Parameters (passed via include with):
   - modal_content: HTML content for modal body (only for simple include usage)
   - modal_position: Position class - 'start', 'end', 'center' (optional, default: 'start')
   - modal_width: Custom width style value (optional)
-  - modal_extra_classes: Additional CSS classes for the modal content (optional)
   - modal_greyout: Boolean to enable greyout backdrop (optional, default: false)
+
+Blocks (for extends usage):
+  - modal_content_classes: Override base modal-content styling (default: 'shadow-sm rounded-3 p-3')
+  - modal_content: The content inside the modal
+  - modal_id: Override the modal ID
+  - modal_width: Override the width style
 
 Trigger Example:
   <button data-bs-toggle="modal" data-bs-target="#teamspacePopup">
@@ -41,7 +46,7 @@ Notes:
 
 
 {% load static %}
-<link rel="stylesheet" href="{% static 'css/components/modals.css' %}" />
+<link rel="stylesheet" href="{% static 'css/components/modal.css' %}" />
 
 <div
   class="modal fade{% if not modal_greyout %} modal-no-backdrop{% endif %}"
@@ -53,8 +58,8 @@ Notes:
   {# Modal dialog - positioned based on modal_position parameter #}
   <div class="modal-dialog modal-dialog-scrollable {% if modal_position == 'end' %}ms-auto me-3{% elif modal_position == 'center' %}modal-dialog-centered{% else %}ms-3{% endif %} mt-3">
 
-    {# Modal content - minimal styling, no header/footer structure #}
-    <div class="modal-content shadow-sm border-0 rounded-3 p-3 {% block modal_extra_classes %}{{ modal_extra_classes|default:'' }}{% endblock %}" {% if modal_width %}style="width: {% block modal_width %}{{ modal_width }}{% endblock %};"{% endif %}>
+    {# Modal content - styling can be fully overridden via modal_content_classes block #}
+    <div class="modal-content {% block modal_content_classes %}shadow-sm rounded-3 p-3{% endblock %}" {% if modal_width %}style="width: {% block modal_width %}{{ modal_width }}{% endblock %};"{% endif %}>
 
       {# Content area - no padding by default, let the content control its own spacing #}
       <div class="modal-body p-0">
