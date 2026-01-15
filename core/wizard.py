@@ -296,6 +296,23 @@ class BaseWizardView(View, ABC):
         """
         return {}
 
+    def get_context_data(self, request, step, form):
+        """
+        Get context data for a step template.
+
+        Delegates to get_step_context for backwards compatibility.
+        Subclasses can override either method.
+
+        Args:
+            request: HTTP request object
+            step: Current step index (0-based)
+            form: Form instance for the current step
+
+        Returns:
+            dict: Additional context variables
+        """
+        return self.get_step_context(request, step, form)
+
     def dispatch(self, request, *args, **kwargs):
         """Route requests to appropriate handler based on action parameter."""
         if request.method != 'POST':

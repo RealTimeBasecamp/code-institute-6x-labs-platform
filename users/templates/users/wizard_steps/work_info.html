@@ -1,0 +1,32 @@
+{% comment %}
+User Profile Wizard - Step 3: Work Info
+
+Collects professional/organizational details including job title and department.
+
+Context provided by wizard:
+  - form: UserWorkInfoForm instance
+  - step: Current step index (2)
+  - user: Current authenticated user
+{% endcomment %}
+
+<div class="wizard-step" data-step="2">
+  <p class="text-muted mb-4">
+    Tell us about your role. This helps us personalize your experience.
+  </p>
+
+  <div class="mb-3">
+    <label for="id_title" class="form-label">Job Title</label>
+    {{ form.title }}
+    <div class="form-text">
+      Your role or position within your organization.
+    </div>
+  </div>
+
+  <div class="mb-3">
+    <label for="id_department" class="form-label">Department</label>
+    {{ form.department }}
+    <div class="form-text">
+      The team or department you work with.
+    </div>
+  </div>
+</div>

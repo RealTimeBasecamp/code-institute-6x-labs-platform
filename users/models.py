@@ -99,6 +99,12 @@ class User(AbstractUser):
     )
     sidebar_width = models.CharField(max_length=20, default='280px')
 
+    # Onboarding status
+    profile_setup_complete = models.BooleanField(
+        default=False,
+        help_text="Whether user has completed the profile setup wizard"
+    )
+
     def __str__(self):
         if self.display_name:
             return self.display_name

@@ -1,0 +1,229 @@
+{% comment %}
+User Profile Wizard - Step 4: Preferences
+
+Theme and mode selection with real-time preview.
+JS handler: static/js/components/theme-preferences.js
+{% endcomment %}
+
+<div class="wizard-step" data-step="3">
+  <p class="text-muted mb-4">
+    Customize how the platform looks for you. Changes preview in real-time.
+  </p>
+
+  <!-- Hidden form fields (actual form values) -->
+  <div class="d-none">
+    {{ form.theme }}
+    {{ form.theme_mode }}
+  </div>
+
+  <!-- Theme Selection -->
+  <div class="mb-4">
+    <label class="form-label fw-semibold">Color Theme</label>
+    <div class="theme-selector d-flex flex-wrap gap-3">
+
+      <!-- Default Theme -->
+      <div class="theme-card" data-theme="default" tabindex="0" role="button" aria-label="Default theme">
+        <div class="theme-preview">
+          <div class="preview-navbar" style="background: #202020;"></div>
+          <div class="preview-body">
+            <div class="preview-sidebar" style="background: #191919;"></div>
+            <div class="preview-content" style="background: #191919;">
+              <div class="preview-accent" style="background: #059acc;"></div>
+            </div>
+          </div>
+        </div>
+        <div class="theme-label">Default</div>
+      </div>
+
+      <!-- Moon Theme -->
+      <div class="theme-card" data-theme="moon" tabindex="0" role="button" aria-label="Moon theme">
+        <div class="theme-preview">
+          <div class="preview-navbar" style="background: #2b3035;"></div>
+          <div class="preview-body">
+            <div class="preview-sidebar" style="background: #212529;"></div>
+            <div class="preview-content" style="background: #212529;">
+              <div class="preview-accent" style="background: #818cf8;"></div>
+            </div>
+          </div>
+        </div>
+        <div class="theme-label">Moon</div>
+      </div>
+
+      <!-- Gaia Theme -->
+      <div class="theme-card" data-theme="gaia" tabindex="0" role="button" aria-label="Gaia theme">
+        <div class="theme-preview">
+          <div class="preview-navbar" style="background: #1a2f26;"></div>
+          <div class="preview-body">
+            <div class="preview-sidebar" style="background: #0d1f1a;"></div>
+            <div class="preview-content" style="background: #0d1f1a;">
+              <div class="preview-accent" style="background: #22c55e;"></div>
+            </div>
+          </div>
+        </div>
+        <div class="theme-label">Gaia</div>
+      </div>
+
+      <!-- Sunset Theme -->
+      <div class="theme-card" data-theme="sunset" tabindex="0" role="button" aria-label="Sunset theme">
+        <div class="theme-preview">
+          <div class="preview-navbar" style="background: #2a1a10;"></div>
+          <div class="preview-body">
+            <div class="preview-sidebar" style="background: #1a0f0a;"></div>
+            <div class="preview-content" style="background: #1a0f0a;">
+              <div class="preview-accent" style="background: #f97316;"></div>
+            </div>
+          </div>
+        </div>
+        <div class="theme-label">Sunset</div>
+      </div>
+
+      <!-- Honeycomb Theme -->
+      <div class="theme-card" data-theme="honeycomb" tabindex="0" role="button" aria-label="Honeycomb theme">
+        <div class="theme-preview">
+          <div class="preview-navbar" style="background: #2a2110;"></div>
+          <div class="preview-body">
+            <div class="preview-sidebar" style="background: #1a1508;"></div>
+            <div class="preview-content" style="background: #1a1508;">
+              <div class="preview-accent" style="background: #f59e0b;"></div>
+            </div>
+          </div>
+        </div>
+        <div class="theme-label">Honeycomb</div>
+      </div>
+
+      <!-- Ocean Theme -->
+      <div class="theme-card" data-theme="ocean" tabindex="0" role="button" aria-label="Ocean theme">
+        <div class="theme-preview">
+          <div class="preview-navbar" style="background: #1e293b;"></div>
+          <div class="preview-body">
+            <div class="preview-sidebar" style="background: #0f172a;"></div>
+            <div class="preview-content" style="background: #0f172a;">
+              <div class="preview-accent" style="background: #0ea5e9;"></div>
+            </div>
+          </div>
+        </div>
+        <div class="theme-label">Ocean</div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Mode Selection -->
+  <div class="mb-3">
+    <label class="form-label fw-semibold">Display Mode</label>
+    <div class="mode-selector btn-group w-100" role="group" aria-label="Display mode selection">
+      <button type="button" class="btn btn-outline-secondary mode-btn" data-mode="light">
+        <i class="bi bi-sun me-2"></i>Light
+      </button>
+      <button type="button" class="btn btn-outline-secondary mode-btn" data-mode="dark">
+        <i class="bi bi-moon-stars me-2"></i>Dark
+      </button>
+      <button type="button" class="btn btn-outline-secondary mode-btn" data-mode="system">
+        <i class="bi bi-display me-2"></i>System
+      </button>
+    </div>
+    <div class="form-text mt-2">
+      System mode automatically matches your device's light/dark setting.
+    </div>
+  </div>
+</div>
+
+<style>
+  /* Theme Card Styles */
+  .theme-card {
+    cursor: pointer;
+    border: 2px solid var(--bs-border-color);
+    border-radius: 8px;
+    padding: 8px;
+    transition: all 0.2s ease;
+    width: calc(33.333% - 12px);
+    min-width: 90px;
+  }
+
+  .theme-card:hover {
+    border-color: var(--bs-secondary-color);
+    transform: translateY(-2px);
+  }
+
+  .theme-card:focus {
+    outline: none;
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 3px rgba(var(--bs-primary-rgb), 0.25);
+  }
+
+  .theme-card.selected {
+    border-color: var(--primary-color);
+    background: var(--bs-tertiary-bg);
+  }
+
+  .theme-card.selected::after {
+    content: '\f26b'; /* Bootstrap Icons check-circle-fill */
+    font-family: 'bootstrap-icons';
+    position: absolute;
+    top: 4px;
+    right: 4px;
+    color: var(--primary-color);
+    font-size: 14px;
+  }
+
+  .theme-card {
+    position: relative;
+  }
+
+  /* Theme Preview Mini Layout */
+  .theme-preview {
+    border-radius: 4px;
+    overflow: hidden;
+    height: 50px;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .preview-navbar {
+    height: 8px;
+    width: 100%;
+  }
+
+  .preview-body {
+    flex: 1;
+    display: flex;
+  }
+
+  .preview-sidebar {
+    width: 25%;
+  }
+
+  .preview-content {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 4px;
+  }
+
+  .preview-accent {
+    width: 60%;
+    height: 8px;
+    border-radius: 2px;
+  }
+
+  .theme-label {
+    text-align: center;
+    font-size: 0.8rem;
+    margin-top: 6px;
+    color: var(--bs-body-color);
+  }
+
+  /* Mode Button Styles */
+  .mode-btn.active {
+    background-color: var(--primary-color);
+    border-color: var(--primary-color);
+    color: white;
+  }
+
+  @media (max-width: 400px) {
+    .theme-card {
+      width: calc(50% - 8px);
+    }
+  }
+</style>
