@@ -40,9 +40,24 @@ class User(AbstractUser):
 
     Staff/superusers bypass subscription tier checks automatically.
     """
+    # Pronouns choices
+    PRONOUNS_PREFER_NOT_TO_SAY = ''
+    PRONOUNS_HE_HIM = 'he/him'
+    PRONOUNS_SHE_HER = 'she/her'
+    PRONOUNS_THEY_THEM = 'they/them'
+    PRONOUNS_OTHER = 'other'
+
+    PRONOUNS_CHOICES = [
+        (PRONOUNS_PREFER_NOT_TO_SAY, 'Prefer not to say'),
+        (PRONOUNS_HE_HIM, 'He/Him'),
+        (PRONOUNS_SHE_HER, 'She/Her'),
+        (PRONOUNS_THEY_THEM, 'They/Them'),
+        (PRONOUNS_OTHER, 'Other'),
+    ]
+
     # Profile fields
     phone = models.CharField(max_length=30, blank=True)
-    pronouns = models.CharField(max_length=20, blank=True)
+    pronouns = models.CharField(max_length=20, blank=True, choices=PRONOUNS_CHOICES)
     title = models.CharField(max_length=100, blank=True)
     department = models.CharField(max_length=100, blank=True)
 
