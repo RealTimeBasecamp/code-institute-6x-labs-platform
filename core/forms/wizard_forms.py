@@ -1,0 +1,165 @@
+"""
+Base form classes for multi-step wizards.
+
+Provides WizardStepForm and WizardModelForm with enhanced features for
+AJAX validation and Bootstrap 5 styling integration.
+
+Data comes from: Subclass form definitions, model field definitions, user input
+Data validated by: Django form validation, model field constraints, custom clean methods
+
+Usage:
+    # For forms not tied to a model:
+    class MyStepForm(WizardStepForm):
+        name = forms.CharField(max_length=100)
+
+    # For forms tied to a model (inherits required/optional from model):
+    class MyModelStepForm(WizardModelForm):
+        class Meta:
+            model = MyModel
+            fields = ['name', 'email', 'phone']
+"""
+from django import forms
+
+
+class WizardFormMixin:
+    """
+    Mixin providing common functionality for wizard forms.
+
+    Features:
+    - Automatic Bootstrap 5 form-control class on all fields
+    - JSON-serializable error messages for AJAX responses
+    - Field ordering with required fields first
+    """
+
+    def _apply_bootstrap_classes(self):
+        """
+        Apply Bootstrap 5 form-control classes to all field widgets.
+
+        Handles different widget types appropriately:
+        - Standard inputs get 'form-control'
+        - Select widgets get 'form-select'
+        - Checkboxes get 'form-check-input'
+        """
+        for field_name, field in self.fields.items():
+            widget = field.widget
+            existing_classes = widget.attrs.get('class', '')
+
+            # Determine appropriate Bootstrap class based on widget type
+            if isinstance(widget, forms.Select):
+                bootstrap_class = 'form-select'
+            elif isinstance(widget, (forms.CheckboxInput, forms.RadioSelect)):
+                bootstrap_class = 'form-check-input'
+            elif isinstance(widget, forms.FileInput):
+                bootstrap_class = 'form-control'
+            else:
+                bootstrap_class = 'form-control'
+
+            # Add Bootstrap class if not already present
+            if bootstrap_class not in existing_classes:
+                widget.attrs['class'] = f'{existing_classes} {bootstrap_class}'.strip()
+
+    def _order_fields_required_first(self):
+        """
+        Reorder fields so required fields appear before optional fields.
+
+        Maintains relative order within each group (required/optional).
+        """
+        required_fields = []
+        optional_fields = []
+
+        for field_name, field in self.fields.items():
+            if field.required:
+                required_fields.append(field_name)
+            else:
+                optional_fields.append(field_name)
+
+        # Rebuild fields dict with required first
+        ordered_fields = {}
+        for field_name in required_fields + optional_fields:
+            ordered_fields[field_name] = self.fields[field_name]
+
+        self.fields = ordered_fields
+
+    def get_errors_json(self):
+        """
+        Return form errors in JSON-serializable format.
+
+        Converts Django's ErrorDict to a simple dict structure suitable
+        for AJAX responses and frontend error display.
+
+        Returns:
+            dict: Field names mapped to lists of error message strings.
+                  Example: {'email': ['Enter a valid email address.']}
+        """
+        return {
+            field: [str(error) for error in errors]
+            for field, errors in self.errors.items()
+        }
+
+    def get_field_data(self):
+        """
+        Return cleaned data with field metadata for frontend use.
+
+        Useful for pre-populating forms when navigating back to a step.
+
+        Returns:
+            dict: Field names mapped to their cleaned values
+        """
+        if self.is_valid():
+            return self.cleaned_data
+        return {}
+
+
+class WizardStepForm(WizardFormMixin, forms.Form):
+    """
+    Base form class for wizard steps with AJAX validation support.
+
+    Use this for forms that don't map directly to a model.
+    For model-backed forms, use WizardModelForm instead.
+
+    Features:
+    - Automatic Bootstrap 5 form-control class on all fields
+    - JSON-serializable error messages for AJAX responses
+    - Automatic field ordering (required fields first)
+
+    Usage:
+        class MyStepForm(WizardStepForm):
+            name = forms.CharField(max_length=100, required=True)
+            email = forms.EmailField(required=False)
+    """
+
+    def __init__(self, *args, **kwargs):
+        """Initialize with Bootstrap styling and field ordering."""
+        super().__init__(*args, **kwargs)
+        self._apply_bootstrap_classes()
+        self._order_fields_required_first()
+
+
+class WizardModelForm(WizardFormMixin, forms.ModelForm):
+    """
+    Base ModelForm class for wizard steps that map to model fields.
+
+    Inherits field constraints (required, max_length, etc.) directly
+    from the model, keeping forms DRY and consistent with the database.
+
+    Features:
+    - Automatic Bootstrap 5 styling
+    - Required/optional inherited from model field's blank attribute
+    - Field ordering (required fields first)
+    - JSON-serializable errors for AJAX
+
+    Usage:
+        class ProjectBasicInfoForm(WizardModelForm):
+            class Meta:
+                model = Project
+                fields = ['name', 'project_type', 'description']
+                widgets = {
+                    'name': forms.TextInput(attrs={'placeholder': 'Project name'}),
+                }
+    """
+
+    def __init__(self, *args, **kwargs):
+        """Initialize with Bootstrap styling and field ordering."""
+        super().__init__(*args, **kwargs)
+        self._apply_bootstrap_classes()
+        self._order_fields_required_first()

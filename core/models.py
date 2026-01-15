@@ -138,23 +138,6 @@ class Contact(models.Model):
     # Notes
     notes = models.TextField(null=True, blank=True)
 
-    def clean(self):
-        """Validate that at least one contact method is provided"""
-        has_company_info = any([
-            self.company_name, self.company_email, self.company_phone
-        ])
-        has_primary_contact = any([
-            self.primary_contact_name, self.primary_contact_email, self.primary_contact_phone
-        ])
-        has_landowner = any([
-            self.land_owner_name, self.land_owner_email, self.land_owner_phone
-        ])
-
-        if not (has_company_info or has_primary_contact or has_landowner):
-            raise ValidationError(
-                'At least one contact method must be provided (company, primary contact, or land owner).'
-            )
-
     def __str__(self):
         if self.company_name:
             return self.company_name
