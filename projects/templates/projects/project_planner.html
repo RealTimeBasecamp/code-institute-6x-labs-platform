@@ -48,7 +48,7 @@
             %}
             {% include 'components/dropdown.html' with
                 dropdown_id="siteDropdown"
-                dropdown_label=project.sites.all.first.name
+                dropdown_label=project.sites.all.first.name|default:""
                 dropdown_width="8rem"
                 list=project.sites.all
             %}
