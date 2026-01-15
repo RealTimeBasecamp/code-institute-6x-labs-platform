@@ -256,12 +256,12 @@ class Project(models.Model):
                 'title': 'Coordinate Information',
                 'icon': 'bi bi-map',
                 'fields': [
-                    ('Latitude', self.coordinates.latitude or 'N/A'),
-                    ('Longitude', self.coordinates.longitude or 'N/A'),
-                    ('Altitude (m)', self.coordinates.altitude or 'N/A'),
-                    ('Elevation (m)', self.coordinates.elevation or 'N/A'),
-                    ('Coordinate System', self.coordinates.coordinate_system or 'N/A'),
-                    ('What3Words', self.coordinates.what3w or 'N/A'),
+                    ('Latitude', self.coordinates.latitude if self.coordinates else 'N/A'),
+                    ('Longitude', self.coordinates.longitude if self.coordinates else 'N/A'),
+                    ('Altitude (m)', self.coordinates.altitude if self.coordinates else 'N/A'),
+                    ('Elevation (m)', self.coordinates.elevation if self.coordinates else 'N/A'),
+                    ('Coordinate System', self.coordinates.coordinate_system if self.coordinates else 'N/A'),
+                    ('What3Words', self.coordinates.what3w if self.coordinates else 'N/A'),
                 ]
             },
             {
