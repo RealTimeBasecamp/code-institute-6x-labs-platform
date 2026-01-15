@@ -11,7 +11,7 @@
        data-page-id="{{ nav_item.id }}"
        data-active="{{ nav_item.is_active|yesno:'true,false' }}">
       <i class="bi bi-person-circle"></i>
-      <span>{{ user.username|default:nav_item.label }}</span>
+      <span>{{ user.display_name|default:user.username }}</span>
     </a>
 
   {% elif nav_item.type == 'modal' %}

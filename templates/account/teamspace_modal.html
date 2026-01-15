@@ -19,7 +19,7 @@
           <i class="bi bi-person-circle fs-3"></i>
         </div>
         <div id="accountinfo">
-          <div class="fw-bold">{{ user.username }}</div>
+          <div class="fw-bold">{{ user.display_name|default:user.username }}</div>
           {# <span>
             <div>{{ user.subscription_tier }}</div>
             <div class="text-muted">{{ user.team_members.count }} members</div>
