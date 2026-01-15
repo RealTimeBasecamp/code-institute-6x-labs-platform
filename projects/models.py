@@ -63,6 +63,57 @@ class Status(models.Model):
 # PROJECT
 # =============================================================================
 class Project(models.Model):
+    # Project type choices
+    PROJECT_TYPE_PRIVATE_LAND = 'private_land'
+    PROJECT_TYPE_PUBLIC_LAND = 'public_land'
+    PROJECT_TYPE_REFORESTATION = 'reforestation'
+    PROJECT_TYPE_URBAN_GREENING = 'urban_greening'
+    PROJECT_TYPE_AGROFORESTRY = 'agroforestry'
+
+    PROJECT_TYPE_CHOICES = [
+        (PROJECT_TYPE_PRIVATE_LAND, 'Private Land'),
+        (PROJECT_TYPE_PUBLIC_LAND, 'Public Land'),
+        (PROJECT_TYPE_REFORESTATION, 'Reforestation Project'),
+        (PROJECT_TYPE_URBAN_GREENING, 'Urban Greening'),
+        (PROJECT_TYPE_AGROFORESTRY, 'Agroforestry'),
+    ]
+
+    # Soil type choices
+    SOIL_TYPE_CLAY = 'clay'
+    SOIL_TYPE_SANDY = 'sandy'
+    SOIL_TYPE_SILTY = 'silty'
+    SOIL_TYPE_PEATY = 'peaty'
+    SOIL_TYPE_CHALKY = 'chalky'
+    SOIL_TYPE_LOAMY = 'loamy'
+    SOIL_TYPE_MIXED = 'mixed'
+
+    SOIL_TYPE_CHOICES = [
+        (SOIL_TYPE_CLAY, 'Clay'),
+        (SOIL_TYPE_SANDY, 'Sandy'),
+        (SOIL_TYPE_SILTY, 'Silty'),
+        (SOIL_TYPE_PEATY, 'Peaty'),
+        (SOIL_TYPE_CHALKY, 'Chalky'),
+        (SOIL_TYPE_LOAMY, 'Loamy'),
+        (SOIL_TYPE_MIXED, 'Mixed'),
+    ]
+
+    # Climate choices
+    CLIMATE_TROPICAL = 'tropical'
+    CLIMATE_DRY = 'dry'
+    CLIMATE_TEMPERATE = 'temperate'
+    CLIMATE_CONTINENTAL = 'continental'
+    CLIMATE_POLAR = 'polar'
+    CLIMATE_MEDITERRANEAN = 'mediterranean'
+
+    CLIMATE_CHOICES = [
+        (CLIMATE_TROPICAL, 'Tropical'),
+        (CLIMATE_DRY, 'Dry/Arid'),
+        (CLIMATE_TEMPERATE, 'Temperate'),
+        (CLIMATE_CONTINENTAL, 'Continental'),
+        (CLIMATE_POLAR, 'Polar'),
+        (CLIMATE_MEDITERRANEAN, 'Mediterranean'),
+    ]
+
     status = models.ForeignKey(
         Status,
         on_delete=models.PROTECT,
@@ -84,13 +135,13 @@ class Project(models.Model):
     )
 
     # e.g. Private Land, Public Land, Reforestation Project
-    project_type = models.CharField(max_length=100)
+    project_type = models.CharField(max_length=100, choices=PROJECT_TYPE_CHOICES)
 
     # e.g. Clay, Sandy, Silty, Peaty, Chalky, Loamy
-    soil_type = models.CharField(max_length=50)
+    soil_type = models.CharField(max_length=50, choices=SOIL_TYPE_CHOICES)
 
     # e.g. Tropical, Dry, Temperate, Continental, Polar
-    climate = models.CharField(max_length=50)
+    climate = models.CharField(max_length=50, choices=CLIMATE_CHOICES)
     area_hectares = models.DecimalField(
         max_digits=10,
         decimal_places=2,
