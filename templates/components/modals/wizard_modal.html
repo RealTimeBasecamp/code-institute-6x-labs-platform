@@ -1,0 +1,121 @@
+{% load static %}
+
+{% comment %}
+Multi-Step Wizard Modal Component
+
+Usage:
+  {% include 'components/modals/wizard_modal.html' with
+    modal_id='userProfileWizard'
+    wizard_name='user_profile'
+    modal_title='Complete Your Profile'
+    total_steps=5
+    step_titles='Basic Info,Contact,Work,Preferences,Avatar'
+  %}
+
+Parameters:
+  - modal_id: Unique ID for the modal instance (required)
+  - wizard_name: Backend wizard identifier for API calls (required)
+  - modal_title: Title shown in header (optional, default: 'Setup Wizard')
+  - total_steps: Number of steps in the wizard (required)
+  - step_titles: Comma-separated step titles for progress indicator (required)
+  - modal_size: Modal width - 'sm', 'lg', 'xl' (optional, default: 'lg')
+  - modal_icon: Bootstrap icon class for header (optional)
+
+Modal Sizes:
+  Size        | Class            | Max-width
+  Small       | modal_size='sm'  | 300px
+  Default     | (omit param)     | 500px
+  Large       | modal_size='lg'  | 800px
+  Extra large | modal_size='xl'  | 1140px
+
+Data Attributes on Modal Element:
+  - data-wizard-name: Wizard identifier (auto-set from wizard_name param)
+  - data-wizard-steps: Total steps count (auto-set from total_steps param)
+  - data-wizard-auto-init: Add this to auto-initialize on page load
+{% endcomment %}
+
+<link rel="stylesheet" href="{% static 'css/components/wizard-modal.css' %}">
+
+<div class="modal fade"
+     id="{{ modal_id }}"
+     tabindex="-1"
+     data-wizard-name="{{ wizard_name }}"
+     data-wizard-steps="{{ total_steps }}"
+     data-wizard-auto-init
+     data-bs-backdrop="static"
+     data-bs-keyboard="false"
+     aria-labelledby="{{ modal_id }}Label"
+     aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered{% if modal_size %} modal-{{ modal_size }}{% else %} modal-lg{% endif %}">
+    <div class="modal-content p-4 bordered rounded-3 bg-body-tertiary">
+
+      <!-- Header with close warning -->
+      <div class="wizard-header d-flex justify-content-between align-items-center mb-3">
+        <div class="d-flex align-items-center">
+          {% if modal_icon %}
+          <i class="{{ modal_icon }} fs-4 me-2" aria-hidden="true"></i>
+          {% else %}
+          <i class="bi bi-list-check fs-4 me-2" aria-hidden="true"></i>
+          {% endif %}
+          <h5 class="mb-0" id="{{ modal_id }}Label">{{ modal_title|default:"Setup Wizard" }}</h5>
+        </div>
+        <button type="button" class="btn-close wizard-close-btn" aria-label="Close"></button>
+      </div>
+
+      <!-- Progress Indicator -->
+      <div class="wizard-progress mb-4">
+        <div class="progress" style="height: 4px;">
+          <div class="progress-bar"
+               role="progressbar"
+               style="width: 0%;"
+               aria-valuenow="0"
+               aria-valuemin="0"
+               aria-valuemax="100"></div>
+        </div>
+        <div class="wizard-steps d-flex justify-content-between mt-2">
+          {% with step_list=step_titles|default:""|make_list %}
+          {% for title in step_titles.split %}
+          <div class="wizard-step-indicator{% if forloop.first %} active{% endif %}" data-step="{{ forloop.counter0 }}">
+            <div class="step-circle">{{ forloop.counter }}</div>
+            <small class="step-title">{{ title }}</small>
+          </div>
+          {% endfor %}
+          {% endwith %}
+        </div>
+      </div>
+
+      <!-- Step Content Area (loaded via AJAX) -->
+      <div class="wizard-content">
+        <div class="wizard-step-content" id="{{ modal_id }}-step-content">
+          <!-- Step form will be loaded here dynamically -->
+          <div class="d-flex justify-content-center align-items-center py-5">
+            <div class="spinner-border text-primary" role="status">
+              <span class="visually-hidden">Loading...</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Navigation Footer -->
+      <div class="wizard-footer d-flex justify-content-between mt-4">
+        <button type="button" class="btn btn-outline-secondary wizard-prev-btn" disabled>
+          <i class="bi bi-chevron-left me-1"></i> Previous
+        </button>
+        <div class="wizard-action-buttons">
+          <button type="button" class="btn btn-outline-secondary wizard-skip-btn d-none">
+            Skip <i class="bi bi-chevron-double-right ms-1"></i>
+          </button>
+          <button type="button" class="btn btn-primary wizard-next-btn">
+            Next <i class="bi bi-chevron-right ms-1"></i>
+          </button>
+          <button type="button" class="btn btn-primary wizard-submit-btn d-none">
+            Submit <i class="bi bi-check-lg ms-1"></i>
+          </button>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<script src="{% static 'js/components/modals/wizard.js' %}"></script>
