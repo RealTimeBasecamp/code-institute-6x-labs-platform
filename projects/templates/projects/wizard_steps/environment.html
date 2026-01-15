@@ -1,0 +1,55 @@
+{% comment %}
+Project Creation Wizard - Step 2: Environment
+
+Collects environmental characteristics of the project site.
+
+Context provided by wizard:
+  - form: ProjectEnvironmentForm instance
+  - step: Current step index (1)
+  - soil_descriptions: Dict of soil type descriptions
+{% endcomment %}
+
+<div class="wizard-step" data-step="1">
+  <p class="text-muted mb-4">
+    Tell us about the environmental conditions at your site.
+  </p>
+
+  <div class="row">
+    <div class="col-md-6 mb-3">
+      <label for="id_soil_type" class="form-label required">Soil Type</label>
+      {{ form.soil_type }}
+      <div class="form-text">
+        The primary soil type affects plant selection.
+      </div>
+    </div>
+
+    <div class="col-md-6 mb-3">
+      <label for="id_climate" class="form-label required">Climate</label>
+      {{ form.climate }}
+      <div class="form-text">
+        Climate zone helps determine suitable species.
+      </div>
+    </div>
+  </div>
+
+  <div class="mb-3">
+    <label for="id_area_hectares" class="form-label">Total Area (hectares)</label>
+    {{ form.area_hectares }}
+    <div class="form-text">
+      Approximate total area of the project site. Can be updated later.
+    </div>
+  </div>
+
+  {% if soil_descriptions %}
+  <div class="alert alert-light mt-3">
+    <h6 class="alert-heading mb-2">
+      <i class="bi bi-info-circle me-1"></i> Soil Types Guide
+    </h6>
+    <small>
+      {% for soil, description in soil_descriptions.items %}
+      <strong>{{ soil|title }}:</strong> {{ description }}<br>
+      {% endfor %}
+    </small>
+  </div>
+  {% endif %}
+</div>

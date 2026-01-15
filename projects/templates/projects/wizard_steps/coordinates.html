@@ -1,0 +1,60 @@
+{% comment %}
+Project Creation Wizard - Step 4: Coordinates
+
+Collects optional GPS coordinates for precise location mapping.
+
+Context provided by wizard:
+  - form: ProjectCoordinatesForm instance
+  - step: Current step index (3)
+  - coordinate_help: Help text for coordinates
+{% endcomment %}
+
+<div class="wizard-step" data-step="3">
+  <p class="text-muted mb-4">
+    Add GPS coordinates for precise mapping. This step is optional.
+  </p>
+
+  {% if coordinate_help %}
+  <div class="alert alert-info mb-4">
+    <i class="bi bi-geo-alt me-2"></i>
+    {{ coordinate_help }}
+  </div>
+  {% endif %}
+
+  <div class="row">
+    <div class="col-md-6 mb-3">
+      <label for="id_latitude" class="form-label">Latitude</label>
+      {{ form.latitude }}
+      <div class="form-text">
+        Decimal degrees (-90 to 90). e.g., 51.5074 for London
+      </div>
+    </div>
+
+    <div class="col-md-6 mb-3">
+      <label for="id_longitude" class="form-label">Longitude</label>
+      {{ form.longitude }}
+      <div class="form-text">
+        Decimal degrees (-180 to 180). e.g., -0.1278 for London
+      </div>
+    </div>
+  </div>
+
+  <div class="mb-3">
+    <label for="id_altitude" class="form-label">Altitude (meters)</label>
+    {{ form.altitude }}
+    <div class="form-text">
+      Height above sea level in meters.
+    </div>
+  </div>
+
+  <div class="alert alert-light mt-3">
+    <h6 class="alert-heading mb-2">
+      <i class="bi bi-lightbulb me-1"></i> How to find coordinates
+    </h6>
+    <small>
+      <strong>Google Maps:</strong> Right-click on the location and select "What's here?" to see coordinates.<br>
+      <strong>GPS Device:</strong> Use the coordinate readout from your device.<br>
+      <strong>Skip for now:</strong> You can add coordinates later via the project settings.
+    </small>
+  </div>
+</div>

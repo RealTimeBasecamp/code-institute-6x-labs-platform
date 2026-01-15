@@ -6,19 +6,21 @@
 {% block page_title %}Project Planner{% endblock %}
 
 {% block header_contents %}
-    <a
-        role="button"
+    <button
+        type="button"
         class="btn btn-primary"
         data-bs-toggle="modal"
-        data-bs-target="#addNewProject">Add new project
-    </a>
+        data-bs-target="#projectCreationWizard">
+        <i class="bi bi-plus-lg me-1"></i>Add new project
+    </button>
 
-{% include "components/modals/modal.html" with
-  modal_id="addNewProject"
-  modal_size="lg"
-  modal_title="Add New Project"
-  modal_body_content="<p>TODO: Add new project form here.</p>"
-  modal_footer_content="<button class='btn btn-primary'>Add new project</button>"
+{% include "components/modals/wizard_modal.html" with
+  modal_id="projectCreationWizard"
+  wizard_name="project_creation"
+  modal_title="Create New Project"
+  modal_icon="bi bi-folder-plus"
+  total_steps=5
+  step_titles="Basic Info,Environment,Address,Coordinates,Contact"
 %}
 
 {% endblock %}

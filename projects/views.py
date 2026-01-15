@@ -59,11 +59,6 @@ def project(request, slug):
     return render(request, 'projects/project_planner.html', context)
 
 
-def create_project(request):
-    # Logic for creating a new project goes here
-    return render(request, 'projects/create_project.html')
-
-
 def delete_project(request, slug):
     """
     Delete project and provide user feedback via Django messages.
