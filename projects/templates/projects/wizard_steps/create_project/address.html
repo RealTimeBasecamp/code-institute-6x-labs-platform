@@ -1,0 +1,49 @@
+{% comment %}
+Project Creation Wizard - Step 3: Address
+
+Collects the physical address of the project site.
+
+Context provided by wizard:
+  - form: ProjectAddressForm instance
+  - step: Current step index (2)
+{% endcomment %}
+
+<div class="wizard-step">
+  <p class="text-muted mb-4">
+    Where is the project located?
+  </p>
+
+  <div class="mb-3">
+    <label for="id_address_line_1" class="form-label required">Address Line 1</label>
+    {{ form.address_line_1 }}
+  </div>
+
+  <div class="mb-3">
+    <label for="id_address_line_2" class="form-label">Address Line 2</label>
+    {{ form.address_line_2 }}
+  </div>
+
+  <div class="row">
+    <div class="col-md-6 mb-3">
+      <label for="id_city" class="form-label required">City</label>
+      {{ form.city }}
+    </div>
+
+    <div class="col-md-6 mb-3">
+      <label for="id_region" class="form-label">Region/State</label>
+      {{ form.region }}
+    </div>
+  </div>
+
+  <div class="row">
+    <div class="col-md-6 mb-3">
+      <label for="id_postcode" class="form-label">Postcode</label>
+      {{ form.postcode }}
+    </div>
+
+    <div class="col-md-6 mb-3">
+      <label for="id_country_code" class="form-label required">Country</label>
+      {{ form.country_code }}
+    </div>
+  </div>
+</div>

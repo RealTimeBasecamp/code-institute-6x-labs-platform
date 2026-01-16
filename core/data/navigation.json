@@ -59,7 +59,7 @@
     },
     {
       "item_id": "projects",
-      "item_type": "link",
+      "item_type": "parent",
       "label": "Projects",
       "icon": "bi-geo-alt",
       "url_name": "projects:projects_list",
@@ -73,9 +73,9 @@
           "label": "Project Planner",
           "icon": "bi-pencil-square",
           "url_name": "projects:project_planner",
-          "is_active": false,
-          "staff_only": true,
-          "allowed_tiers": ["growth", "thrive", "enterprise"]
+          "is_active": true,
+          "staff_only": false,
+          "allowed_tiers": ["sapling","growth", "thrive", "enterprise"]
         }
       ]
     },
@@ -97,7 +97,7 @@
           "url_name": "",
           "is_active": false,
           "staff_only": false,
-          "allowed_tiers": ["growth", "thrive", "enterprise"]
+          "allowed_tiers": ["sapling","growth", "thrive", "enterprise"]
         },
         {
           "item_id": "reports-analytics",

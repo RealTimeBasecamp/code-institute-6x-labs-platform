@@ -1,0 +1,32 @@
+{% comment %}
+User Profile Wizard - Step 2: Contact Info
+
+Collects additional contact details including phone number and pronouns.
+
+Context provided by wizard:
+  - form: UserContactForm instance
+  - step: Current step index (1)
+  - user: Current authenticated user
+{% endcomment %}
+
+<div class="wizard-step">
+  <p class="text-muted mb-4">
+    How can we reach you? All fields are optional.
+  </p>
+
+  <div class="mb-3">
+    <label for="id_phone" class="form-label">Phone Number</label>
+    {{ form.phone }}
+    <div class="form-text">
+      Used for important notifications. We'll never share this with others.
+    </div>
+  </div>
+
+  <div class="mb-3">
+    <label for="id_pronouns" class="form-label">Pronouns</label>
+    {{ form.pronouns }}
+    <div class="form-text">
+      Let others know how you'd like to be addressed.
+    </div>
+  </div>
+</div>

@@ -4,21 +4,26 @@
 {% block meta_title %}Projects{% endblock %}
 {% block page_title %}Projects{% endblock %}
 
-{% block header_contents %}
-    <a
-        role="button"
-        class="btn btn-primary"
-        data-bs-toggle="modal"
-        data-bs-target="#addNewProject">Add new project
-    </a>
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/components/sortable-table.css' %}">
+{% endblock %}
 
-{% include "components/modals/modal.html" with
-  modal_id="addNewProject"
-  modal_size="lg"
-  modal_title="Add New Project"
-  modal_body_content="<p>TODO: Add new project form here.</p>"
-  modal_footer_content="<button class='btn btn-primary'>Add new project</button>"
-%}
+{% block header_contents %}
+  <button
+      type="button"
+      class="btn btn-primary"
+      data-bs-toggle="modal"
+      data-bs-target="#projectCreationWizard">
+      <i class="bi bi-plus-lg me-1"></i>Add new project
+  </button>
+
+  {% include "components/modals/wizard_modal.html" with
+    modal_id="projectCreationWizard"
+    wizard_name="project_creation"
+    modal_title="Create New Project"
+    modal_icon="bi bi-folder-plus"
+  %}
+
 {% endblock %}
 
 {% block content %}
@@ -33,46 +38,57 @@
     {% endfor %}
   {% endif %}
 
-  <table class="table">
+  <table class="table sortable-table">
     <thead>
       <tr>
         <th scope="col">#</th>
-        <th scope="col">Name</th>
-        <th scope="col">Status</th>
-        <th scope="col">Total CO₂ (kg)</th>
-        <th scope="col">Area (ha)</th>
-        <th scope="col">Actions</th>
+        <th scope="col" data-sortable>Name</th>
+        <th scope="col" data-sortable>Status</th>
+        <th scope="col" data-sortable>Total CO₂ (kg)</th>
+        <th scope="col" data-sortable>Area (ha)</th>
+        <th scope="col" data-sortable>Actions</th>
       </tr>
     </thead>
     <tbody>
       {% for project in projects %}
       <tr>
-        <th scope="row">{{ forloop.counter }}</th>
+        <th scope="row" data-row-number>{{ forloop.counter }}</th>
         <td><a href="{% url 'projects:project_planner_detail' project.slug %}">{{ project.name }}</a></td>
         <td>{{ project.status }}</td>
         <td>{{ project.total_co2_sequestered_kg|default:"—" }}</td>
         <td>{{ project.area_hectares }}</td>
-        <td>
-          <a role="button"
-            class="bi bi-trash text-danger"
-            data-bs-toggle="modal"
-            data-bs-target="#deleteModal{{ project.slug }}">
-          </a>
-        </td>
+        {% if project.created_by == user %}
+          <td>
+            <a role="button"
+              class="bi bi-trash text-danger"
+              data-bs-toggle="modal"
+              data-bs-target="#deleteModal{{ project.slug }}">
+            </a>
+          </td>
+        {% else %}
+          <td></td>
+        {% endif %}
       </tr>
       {% endfor %}
     </tbody>
   </table>
 
-  {# Delete modals for each project #}
+  {# Delete modals for each project - pass project context for wizard #}
   {% for project in projects %}
-    {% include "components/modals/modal.html" with
+    {% include "components/modals/wizard_modal.html" with
       modal_id="deleteModal"|add:project.slug
-      modal_size="xl"
+      wizard_name="project_delete"
       modal_title="Delete Project"
-      modal_body_content="<p>Are you sure you want to delete this project?</p><br><p>TODO: ADD logged in user image and username.</p>"
-      modal_footer_content="<button class='btn btn-danger m-0'>Delete</button>"
+      modal_icon="bi bi-trash"
+      wizard_mode="delete"
+      wizard_context='{"project_slug":"'|add:project.slug|add:'"}'
     %}
   {% endfor %}
 
 {% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'js/components/sortable-table.js' %}" defer></script>
+{% endblock %}
+
+

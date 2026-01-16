@@ -211,8 +211,9 @@ body.sidebar-resizing * {
 }
 
 /* ===== MOVED FROM assets/css/styles.css ===== */
-/* Shift content when offcanvas is open */
-body.offcanvas-open .page-content {
+/* Shift content and footer when offcanvas is open */
+body.offcanvas-open .page-content,
+body.offcanvas-open footer {
   margin-left: var(--sidebar-width);
 }
 
@@ -257,7 +258,8 @@ body.offcanvas-open .page-content {
   }
 
   /* On mobile, don't shift content when sidebar is open */
-  body.offcanvas-open .page-content {
+  body.offcanvas-open .page-content,
+  body.offcanvas-open footer {
     margin-left: 0;
   }
 }

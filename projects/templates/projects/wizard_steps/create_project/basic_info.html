@@ -1,0 +1,39 @@
+{% comment %}
+Project Creation Wizard - Step 1: Basic Info
+
+Collects core project details including name, description, and type.
+
+Context provided by wizard:
+  - form: ProjectBasicInfoForm instance
+  - step: Current step index (0)
+{% endcomment %}
+
+<div class="wizard-step">
+  <p class="text-muted mb-4">
+    Let's start with the basic details of your project.
+  </p>
+
+  <div class="mb-3">
+    <label for="id_name" class="form-label required">Project Name</label>
+    {{ form.name }}
+    <div class="form-text">
+      Choose a unique, descriptive name for your project.
+    </div>
+  </div>
+
+  <div class="mb-3">
+    <label for="id_project_type" class="form-label required">Project Type</label>
+    {{ form.project_type }}
+    <div class="form-text">
+      This helps categorize your project for reporting and analysis.
+    </div>
+  </div>
+
+  <div class="mb-3">
+    <label for="id_description" class="form-label">Description</label>
+    {{ form.description }}
+    <div class="form-text">
+      Provide details about the project goals, scope, and any special considerations.
+    </div>
+  </div>
+</div>

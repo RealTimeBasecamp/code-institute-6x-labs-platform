@@ -1,0 +1,37 @@
+{% comment %}
+User Profile Wizard - Step 1: Basic Info
+
+Collects core identity information including first name, last name,
+and optional display name.
+
+Context provided by wizard:
+  - form: UserBasicInfoForm instance
+  - step: Current step index (0)
+  - user: Current authenticated user
+{% endcomment %}
+
+<div class="wizard-step">
+  <p class="text-muted mb-4">
+    Let's start with some basic information about you.
+  </p>
+
+  <div class="row">
+    <div class="col-md-6 mb-3">
+      <label for="id_first_name" class="form-label required">First Name</label>
+      {{ form.first_name }}
+    </div>
+
+    <div class="col-md-6 mb-3">
+      <label for="id_last_name" class="form-label required">Last Name</label>
+      {{ form.last_name }}
+    </div>
+  </div>
+
+  <div class="mb-3">
+    <label for="id_display_name" class="form-label">Display Name</label>
+    {{ form.display_name }}
+    <div class="form-text">
+      This is how your name will appear to others. Leave blank to use your full name.
+    </div>
+  </div>
+</div>

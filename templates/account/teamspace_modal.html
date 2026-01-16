@@ -14,12 +14,16 @@
     <div class="card-header d-flex justify-content-between align-items-center">
       <div class="d-flex align-items-center" id="accountdisplaybox">
         <div class="me-3">
-          {# {% include 'components/dynamic_icons/user_avatar.svg' %} #}
-          {# TODO Need to get cloudinary images set up for user model #}
-          <i class="bi bi-person-circle fs-3"></i>
+          {% if user.avatar %}
+            <img src="{{ user.avatar.url }}" alt="{{ user.username }}" class="rounded-circle" width="40" height="40">
+          {% else %}
+            <div class="rounded-circle bg-primary d-flex align-items-center justify-content-center" style="width: 40px; height: 40px;">
+              <span class="text-white fw-bold">{{ user.username|slice:":1"|upper }}</span>
+            </div>
+          {% endif %}
         </div>
         <div id="accountinfo">
-          <div class="fw-bold">{{ user.username }}</div>
+          <div class="fw-bold">{{ user.display_name|default:user.username }}</div>
           {# <span>
             <div>{{ user.subscription_tier }}</div>
             <div class="text-muted">{{ user.team_members.count }} members</div>

@@ -16,9 +16,9 @@
 [data-theme="ocean"][data-bs-theme="dark"] {
   --primary-color: #0ea5e9;
   --bs-body-bg: #0f172a;
-  --bs-body-color: #cbd5e1;
+  --bs-body-color: #e2e8f0;
   --bs-secondary-color: #94a3b8;
   --bs-tertiary-bg: #1e293b;
   --bs-border-color: #334155;
-  --bs-hover-bg: #1e293b;
+  --bs-hover-bg: #334155;
 }

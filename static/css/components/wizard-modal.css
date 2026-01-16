@@ -1,0 +1,303 @@
+/**
+ * Wizard Modal Component Styles
+ *
+ * Provides styling for multi-step wizard modals including:
+ * - Progress indicator with step circles
+ * - Step content area
+ * - Navigation buttons
+ * - Validation error states
+ */
+
+/* ============================================
+   WIZARD HEADER
+   ============================================ */
+.wizard-header {
+  padding-bottom: 0.5rem;
+}
+
+.wizard-close-btn {
+  opacity: 0.7;
+  transition: opacity 0.2s ease;
+}
+
+.wizard-close-btn:hover {
+  opacity: 1;
+}
+
+/* ============================================
+   PROGRESS INDICATOR
+   ============================================ */
+.wizard-progress {
+  padding: 0 0.5rem;
+}
+
+.wizard-progress .progress {
+  background-color: var(--bs-secondary-bg);
+  border-radius: 0.5rem;
+  overflow: hidden;
+}
+
+.wizard-progress .progress-bar {
+  background-color: var(--bs-primary);
+  transition: width 0.2s ease-out;
+  will-change: width;
+}
+
+/* Step indicators container */
+.wizard-steps {
+  padding: 0 0.25rem;
+}
+
+/* Individual step indicator */
+.wizard-step-indicator {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  flex: 1;
+  position: relative;
+}
+
+/* Step circle */
+.wizard-step-indicator .step-circle {
+  width: 2rem;
+  height: 2rem;
+  border-radius: 50%;
+  background-color: var(--bs-secondary-bg);
+  color: var(--bs-secondary-color);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.875rem;
+  font-weight: 500;
+  transition: background-color 0.15s ease, color 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease, transform 0.15s ease;
+  border: 2px solid transparent;
+  will-change: background-color, border-color, box-shadow;
+}
+
+/* Active step */
+.wizard-step-indicator.active .step-circle {
+  background-color: var(--bs-primary);
+  color: var(--bs-white);
+  border-color: var(--bs-primary);
+  box-shadow: 0 0 0 3px rgba(var(--bs-primary-rgb), 0.2);
+}
+
+/* Completed step */
+.wizard-step-indicator.completed .step-circle {
+  background-color: var(--bs-success);
+  color: var(--bs-white);
+  border-color: var(--bs-success);
+}
+
+.wizard-step-indicator.completed .step-circle::before {
+  content: "\F272"; /* Bootstrap Icons check mark */
+  font-family: "bootstrap-icons";
+  font-size: 0.75rem;
+}
+
+.wizard-step-indicator.completed .step-circle span {
+  display: none;
+}
+
+/* Step title */
+.wizard-step-indicator .step-title {
+  margin-top: 0.25rem;
+  font-size: 0.75rem;
+  color: var(--bs-secondary-color);
+  text-align: center;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  transition: color 0.15s ease, font-weight 0.15s ease;
+}
+
+.wizard-step-indicator.active .step-title {
+  color: var(--bs-primary);
+  font-weight: 500;
+}
+
+.wizard-step-indicator.completed .step-title {
+  color: var(--bs-success);
+}
+
+/* Clickable step indicators (visited/completed steps) */
+.wizard-step-indicator.clickable {
+  cursor: pointer;
+}
+
+.wizard-step-indicator.clickable:hover .step-circle {
+  transform: scale(1.1);
+  box-shadow: 0 0 0 3px rgba(var(--bs-primary-rgb), 0.15);
+}
+
+.wizard-step-indicator.clickable.completed:hover .step-circle {
+  box-shadow: 0 0 0 3px rgba(var(--bs-success-rgb), 0.2);
+}
+
+/* Non-clickable future steps */
+.wizard-step-indicator:not(.clickable):not(.active) {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+/* ============================================
+   STEP CONTENT AREA
+   ============================================ */
+.wizard-content {
+  min-height: 300px;
+  max-height: 50vh;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding-right: 1rem;
+  position: relative;
+}
+
+.wizard-step-content {
+  padding: 0.5rem 0;
+}
+
+/* Scrollbar styling */
+.wizard-content::-webkit-scrollbar {
+  width: 0.5rem;
+}
+
+.wizard-content::-webkit-scrollbar-track {
+  background: transparent;
+  margin: 0.5rem 0;
+}
+
+.wizard-content::-webkit-scrollbar-thumb {
+  background: var(--bs-secondary);
+  border-radius: 0.25rem;
+}
+
+.wizard-content::-webkit-scrollbar-thumb:hover {
+  background: var(--bs-secondary-text-emphasis);
+}
+
+/* ============================================
+   NAVIGATION FOOTER
+   ============================================ */
+.wizard-footer {
+  padding-top: 1rem;
+  border-top: 1px solid var(--bs-border-color);
+}
+
+.wizard-action-buttons {
+  display: flex;
+  gap: 0.5rem;
+}
+
+/* Button transitions */
+.wizard-prev-btn,
+.wizard-next-btn,
+.wizard-submit-btn,
+.wizard-cancel-btn {
+  transition: all 0.2s ease;
+}
+
+.wizard-prev-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* ============================================
+   FORM VALIDATION STYLES
+   ============================================ */
+
+/* Invalid field state */
+.wizard-content .form-control.is-invalid,
+.wizard-content .form-select.is-invalid {
+  border-color: var(--bs-danger);
+  background-image: none; /* Remove default Bootstrap icon */
+}
+
+.wizard-content .form-control.is-invalid:focus,
+.wizard-content .form-select.is-invalid:focus {
+  border-color: var(--bs-danger);
+  box-shadow: 0 0 0 0.25rem rgba(var(--bs-danger-rgb), 0.25);
+}
+
+/* Field error message */
+.wizard-field-error {
+  color: var(--bs-danger);
+  font-size: 0.875rem;
+  margin-top: 0.25rem;
+  display: block;
+}
+
+/* Form-level error alert */
+.wizard-form-error {
+  margin-bottom: 1rem;
+}
+
+/* ============================================
+   LOADING STATE
+   ============================================ */
+.wizard-loading {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 200px;
+}
+
+/* ============================================
+   STEP FORM STYLES
+   ============================================ */
+.wizard-step .form-label {
+  font-weight: 500;
+  margin-bottom: 0.375rem;
+}
+
+.wizard-step .form-text {
+  font-size: 0.8125rem;
+  color: var(--bs-secondary-color);
+}
+
+/* Required field indicator */
+.wizard-step .form-label.required::after {
+  content: " *";
+  color: var(--bs-danger);
+}
+
+/* Field groups */
+.wizard-step .mb-3:last-child {
+  margin-bottom: 0 !important;
+}
+
+/* ============================================
+   RESPONSIVE ADJUSTMENTS
+   ============================================ */
+@media (max-width: 576px) {
+  .wizard-step-indicator .step-title {
+    display: none;
+  }
+
+  .wizard-step-indicator .step-circle {
+    width: 1.75rem;
+    height: 1.75rem;
+    font-size: 0.75rem;
+  }
+
+  .wizard-footer {
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+
+  .wizard-footer .wizard-prev-btn {
+    order: 2;
+    width: 100%;
+  }
+
+  .wizard-action-buttons {
+    order: 1;
+    width: 100%;
+    flex-direction: column;
+  }
+
+  .wizard-action-buttons button {
+    width: 100%;
+  }
+}
+
