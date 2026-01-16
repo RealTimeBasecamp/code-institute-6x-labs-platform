@@ -5,6 +5,14 @@ from django.template.loader import render_to_string
 register = template.Library()
 
 
+@register.filter
+def split(value, delimiter=','):
+    """Split a string by delimiter (default: comma)."""
+    if not value:
+        return []
+    return [item.strip() for item in value.split(delimiter)]
+
+
 @register.inclusion_tag('components/card.html', takes_context=False)
 def card(card_title, card_icon, card_body=None, snippet_path=None, **context):
     """

@@ -218,6 +218,11 @@ class BaseWizardView(View, ABC):
         """Return the total number of steps in the wizard."""
         return len(self.forms)
 
+    @property
+    def step_titles(self):
+        """Return list of all step titles for the wizard."""
+        return [self.get_step_title(i) for i in range(self.total_steps)]
+
     def get_step_title(self, step):
         """Get title for a step - from form attribute or auto-generated from class name."""
         return _get_form_title(self.forms[step])
@@ -491,6 +496,7 @@ class BaseWizardView(View, ABC):
             'step': step,
             'html': html,
             'is_skippable': is_skippable,
+            'step_titles': self.step_titles,  # Full list for JS to render indicators
             'progress': {
                 'current': step,
                 'total': self.total_steps,

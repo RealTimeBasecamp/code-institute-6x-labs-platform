@@ -68,7 +68,7 @@
   justify-content: center;
   font-size: 0.875rem;
   font-weight: 500;
-  transition: all 0.2s ease;
+  transition: all 0.2s ease, transform 0.15s ease;
   border: 2px solid transparent;
 }
 
@@ -116,6 +116,26 @@
 
 .wizard-step-indicator.completed .step-title {
   color: var(--bs-success);
+}
+
+/* Clickable step indicators (visited/completed steps) */
+.wizard-step-indicator.clickable {
+  cursor: pointer;
+}
+
+.wizard-step-indicator.clickable:hover .step-circle {
+  transform: scale(1.1);
+  box-shadow: 0 0 0 3px rgba(var(--bs-primary-rgb), 0.15);
+}
+
+.wizard-step-indicator.clickable.completed:hover .step-circle {
+  box-shadow: 0 0 0 3px rgba(var(--bs-success-rgb), 0.2);
+}
+
+/* Non-clickable future steps */
+.wizard-step-indicator:not(.clickable):not(.active) {
+  cursor: not-allowed;
+  opacity: 0.6;
 }
 
 /* ============================================

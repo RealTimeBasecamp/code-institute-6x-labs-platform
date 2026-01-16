@@ -29,8 +29,9 @@
 
       this.modalId = modalId;
       this.wizardName = this.modal.dataset.wizardName;
+
       this.options = {
-        totalSteps: parseInt(this.modal.dataset.wizardSteps) || options.totalSteps || 5,
+        totalSteps: options.totalSteps || 1, // Will be updated from backend step_titles
         apiBase: options.apiBase || "/api/wizard/",
         onComplete: options.onComplete || null,
         onCancel: options.onCancel || null,
@@ -40,6 +41,7 @@
       this.currentStep = 0;
       this.hasUnsavedChanges = false;
       this.stepData = {};
+      this.visitedSteps = new Set([0]); // Track visited steps for click navigation
       this.bsModal = null;
       this.isLoading = false;
 
@@ -53,6 +55,7 @@
     _initElements() {
       this.contentArea = this.modal.querySelector(".wizard-step-content");
       this.progressBar = this.modal.querySelector(".progress-bar");
+      this.stepsContainer = this.modal.querySelector(".wizard-steps");
       this.stepIndicators = this.modal.querySelectorAll(".wizard-step-indicator");
       this.prevBtn = this.modal.querySelector(".wizard-prev-btn");
       this.nextBtn = this.modal.querySelector(".wizard-next-btn");
@@ -72,6 +75,11 @@
       this.submitBtn?.addEventListener("click", () => this.submit());
       this.skipBtn?.addEventListener("click", () => this.skipStep());
       this.closeBtn?.addEventListener("click", () => this._handleClose());
+
+      // Step indicator click navigation
+      this.stepIndicators.forEach((indicator, index) => {
+        indicator.addEventListener("click", () => this.goToStep(index));
+      });
 
       // Modal events
       this.modal.addEventListener("show.bs.modal", () => this.start());
@@ -93,6 +101,7 @@
       this.currentStep = 0;
       this.hasUnsavedChanges = false;
       this.stepData = {};
+      this.visitedSteps = new Set([0]); // Reset visited steps, mark first step as visited
 
       this._showLoading();
 
@@ -112,6 +121,10 @@
         const result = await response.json();
 
         if (result.success) {
+          // Render step indicators from backend step_titles (single source of truth)
+          if (result.step_titles) {
+            this._renderStepIndicators(result.step_titles);
+          }
           this.contentArea.innerHTML = result.html;
           this._updateProgress(result.progress);
           this._updateNavigation(0, result.is_skippable || false);
@@ -133,8 +146,13 @@
       const isValid = await this._validateCurrentStep();
       if (!isValid) return;
 
+      // Mark current step as completed before advancing
+      this.visitedSteps.add(this.currentStep);
+
       if (this.currentStep < this.options.totalSteps - 1) {
         this.currentStep++;
+        // Mark new step as visited
+        this.visitedSteps.add(this.currentStep);
         await this._loadStep(this.currentStep);
       }
     }
@@ -152,6 +170,38 @@
         this.currentStep--;
         await this._loadStep(this.currentStep);
       }
+    }
+
+    /**
+     * Navigate directly to a specific step (via step indicator click)
+     * @param {number} targetStep - Step index to navigate to
+     */
+    async goToStep(targetStep) {
+      if (this.isLoading) return;
+
+      // Can't go to current step
+      if (targetStep === this.currentStep) return;
+
+      // Can only go to visited steps
+      if (!this.visitedSteps.has(targetStep)) return;
+
+      const goingBackward = targetStep < this.currentStep;
+
+      if (goingBackward) {
+        // Going backward: save data without validation (like Previous button)
+        this._saveCurrentFormData();
+      } else {
+        // Going forward: validate current step first
+        const isValid = await this._validateCurrentStep();
+        if (!isValid) return;
+
+        // Mark current step as visited/completed since validation passed
+        this.visitedSteps.add(this.currentStep);
+      }
+
+      // Navigate to target step
+      this.currentStep = targetStep;
+      await this._loadStep(targetStep);
     }
 
     /**
@@ -439,6 +489,40 @@
     }
 
     /**
+     * Render step indicators dynamically from backend step_titles
+     * @param {Array<string>} stepTitles - Array of step titles from wizard class
+     */
+    _renderStepIndicators(stepTitles) {
+      if (!this.stepsContainer || !stepTitles?.length) return;
+
+      // Update total steps from backend
+      this.options.totalSteps = stepTitles.length;
+
+      // Clear existing indicators
+      this.stepsContainer.innerHTML = "";
+
+      // Create step indicators
+      stepTitles.forEach((title, index) => {
+        const indicator = document.createElement("div");
+        indicator.className = `wizard-step-indicator${index === 0 ? " active" : ""}`;
+        indicator.dataset.step = index;
+
+        indicator.innerHTML = `
+          <div class="step-circle">${index + 1}</div>
+          <small class="step-title">${title}</small>
+        `;
+
+        // Add click handler for navigation
+        indicator.addEventListener("click", () => this.goToStep(index));
+
+        this.stepsContainer.appendChild(indicator);
+      });
+
+      // Update cached reference
+      this.stepIndicators = this.stepsContainer.querySelectorAll(".wizard-step-indicator");
+    }
+
+    /**
      * Update progress bar and step indicators
      * @param {Object} progress - Progress info from server
      */
@@ -454,11 +538,15 @@
 
       // Update step indicators
       this.stepIndicators.forEach((indicator, index) => {
-        indicator.classList.remove("active", "completed");
+        indicator.classList.remove("active", "completed", "clickable");
         if (index < progress.current) {
-          indicator.classList.add("completed");
+          indicator.classList.add("completed", "clickable");
         } else if (index === progress.current) {
           indicator.classList.add("active");
+        }
+        // Mark visited steps as clickable (except current)
+        if (this.visitedSteps.has(index) && index !== progress.current) {
+          indicator.classList.add("clickable");
         }
       });
     }
@@ -631,6 +719,7 @@
       if (!this.hasUnsavedChanges) {
         this.currentStep = 0;
         this.stepData = {};
+        this.visitedSteps = new Set([0]);
       }
     }
   }

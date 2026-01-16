@@ -89,7 +89,7 @@ class User(AbstractUser):
     )
     theme_mode = models.CharField(
         max_length=10,
-        default='dark',
+        default='system',
         choices=[
             ('light', 'Light'),
             ('dark', 'Dark'),

@@ -8,16 +8,12 @@ Usage:
     modal_id='userProfileWizard'
     wizard_name='user_profile'
     modal_title='Complete Your Profile'
-    total_steps=5
-    step_titles='Basic Info,Contact,Work,Preferences,Avatar'
   %}
 
 Parameters:
   - modal_id: Unique ID for the modal instance (required)
   - wizard_name: Backend wizard identifier for API calls (required)
   - modal_title: Title shown in header (optional, default: 'Setup Wizard')
-  - total_steps: Number of steps in the wizard (required)
-  - step_titles: Comma-separated step titles for progress indicator (required)
   - modal_size: Modal width - 'sm', 'lg', 'xl' (optional, default: 'lg')
   - modal_icon: Bootstrap icon class for header (optional)
 
@@ -30,8 +26,9 @@ Modal Sizes:
 
 Data Attributes on Modal Element:
   - data-wizard-name: Wizard identifier (auto-set from wizard_name param)
-  - data-wizard-steps: Total steps count (auto-set from total_steps param)
   - data-wizard-auto-init: Add this to auto-initialize on page load
+
+Note: Step titles and count are loaded from the backend wizard class (single source of truth).
 {% endcomment %}
 
 <link rel="stylesheet" href="{% static 'css/components/wizard-modal.css' %}">
@@ -40,7 +37,6 @@ Data Attributes on Modal Element:
      id="{{ modal_id }}"
      tabindex="-1"
      data-wizard-name="{{ wizard_name }}"
-     data-wizard-steps="{{ total_steps }}"
      data-wizard-auto-init
      data-bs-backdrop="static"
      data-bs-keyboard="false"
@@ -72,16 +68,8 @@ Data Attributes on Modal Element:
                aria-valuemin="0"
                aria-valuemax="100"></div>
         </div>
-        <div class="wizard-steps d-flex justify-content-between mt-2">
-          {% with step_list=step_titles|default:""|make_list %}
-          {% for title in step_titles.split %}
-          <div class="wizard-step-indicator{% if forloop.first %} active{% endif %}" data-step="{{ forloop.counter0 }}">
-            <div class="step-circle">{{ forloop.counter }}</div>
-            <small class="step-title">{{ title }}</small>
-          </div>
-          {% endfor %}
-          {% endwith %}
-        </div>
+        <!-- Step indicators rendered dynamically by JS from backend step_titles -->
+        <div class="wizard-steps d-flex justify-content-between mt-2"></div>
       </div>
 
       <!-- Step Content Area (loaded via AJAX) -->

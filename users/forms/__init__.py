@@ -59,7 +59,7 @@ class UserWizard(BaseWizardView):
             },
             '3': {
                 'theme': user.theme or 'default',
-                'theme_mode': user.theme_mode or 'dark',
+                'theme_mode': user.theme_mode or 'system',
             },
             '4': {
                 'avatar': user.avatar or '',
