@@ -14,8 +14,8 @@ from users.models import User
 
 class UserBasicInfoForm(WizardModelForm):
     """Basic user info - name and display name."""
-
-    title = 'Basic Info'
+    
+    title = 'Your Details'  # This overrides "Basic Info"
 
     class Meta:
         model = User
