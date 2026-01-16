@@ -1,5 +1,6 @@
 from django.shortcuts import get_object_or_404, render, redirect
 from django.contrib import messages
+from django.urls import reverse
 from .models import Project
 from django.views.generic import ListView
 from core.card_utils import render_card_groups
@@ -9,6 +10,26 @@ class ProjectListView(ListView):
     model = Project
     template_name = 'projects/projects_list.html'
     context_object_name = 'projects'
+
+
+def project_planner(request):
+    """
+    Redirect to project planner page without a specific project selected.
+    """
+    projects = Project.objects.all()
+    context = {
+        'project': None,
+        'projects': projects,
+        'breadcrumbs': [
+            {
+                'label': 'Projects',
+                'url': reverse('projects:projects_list'),
+                'is_current': False,
+                'is_ellipsis': False,
+            },
+        ],
+    }
+    return render(request, 'projects/project_planner.html', context)
 
 
 def project(request, slug):
@@ -45,9 +66,27 @@ def project(request, slug):
         project = None
     projects = Project.objects.all()
 
+    # Build breadcrumbs for this page
+    breadcrumbs = [
+        {
+            'label': 'Projects',
+            'url': reverse('projects:projects_list'),
+            'is_current': False,
+            'is_ellipsis': False,
+        },
+    ]
+    if project:
+        breadcrumbs.append({
+            'label': project.name,
+            'url': None,
+            'is_current': True,
+            'is_ellipsis': False,
+        })
+
     context = {
         'project': project,
         'projects': projects,
+        'breadcrumbs': breadcrumbs,
     }
 
     # Define card groups with data
