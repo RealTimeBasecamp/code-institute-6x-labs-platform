@@ -535,6 +535,21 @@ class BaseWizardView(View, ABC):
             return self._update_existing(request, all_data)
         return self._create_objects(request, all_data)
 
+    def get_extra_create_data(self, request):
+        """
+        Return extra data to include when creating the main model.
+        
+        Override in subclasses to add fields not captured by forms,
+        such as created_by=request.user.
+        
+        Args:
+            request: HTTP request object
+            
+        Returns:
+            dict: Extra field values to include in main model creation
+        """
+        return {}
+
     def _create_objects(self, request, all_data):
         """Create new objects from form data."""
         # Group fields by their source model, track which fields came from forms
@@ -603,6 +618,10 @@ class BaseWizardView(View, ABC):
                     related_model = field.related_model
                     if related_model in created_objects:
                         data[field.name] = created_objects[related_model]
+
+            # Add extra data from subclass (e.g., created_by=request.user)
+            extra_data = self.get_extra_create_data(request)
+            data.update(extra_data)
 
             # Create main model with all data + FK references
             main_instance = main_model.objects.create(**data)
