@@ -25,6 +25,28 @@ Usage (with customization):
             if step == 1:
                 return {'soil_types': SOIL_DESCRIPTIONS}
             return {}
+
+Multiple Wizards Per App:
+    Organize wizards in subfolders under forms/ for automatic template routing:
+    
+    projects/
+    ├── forms/
+    │   ├── create_project/          # Each wizard in its own folder
+    │   │   ├── __init__.py          # Wizard class + register_wizard()
+    │   │   ├── basic_info.py
+    │   │   └── summary.py
+    │   └── delete_project/
+    │       ├── __init__.py
+    │       └── confirm.py
+    └── templates/projects/
+        └── wizard_steps/
+            ├── create_project/      # Templates mirror form folder structure
+            │   ├── basic_info.html
+            │   └── summary.html
+            └── delete_project/
+                └── confirm.html
+    
+    Template paths are auto-detected from module path - no configuration needed.
 """
 import json
 import re
@@ -134,18 +156,92 @@ def _title_from_class_name(form_class):
     return step_name.replace('_', ' ').title()
 
 
+def _get_wizard_folder(form_class):
+    """
+    Extract wizard subfolder from form class module path.
+    
+    Supports nested wizard organization by detecting subfolders under 'forms'.
+    If no subfolder exists, returns None.
+    
+    Module path patterns:
+        'projects.forms.basic_info'              -> None (flat: file in forms/)
+        'projects.forms.create_project'          -> 'create_project' (forms in __init__.py)
+        'projects.forms.create_project.basic'    -> 'create_project' (forms in subfiles)
+        'projects.forms.delete_project.confirm'  -> 'delete_project'
+        'users.forms.wizards.profile.step1'      -> 'wizards/profile'
+    
+    This allows organizing multiple wizards per app without configuration:
+        projects/
+        └── forms/
+            ├── create_project/    # wizard subfolder
+            │   ├── __init__.py    # can define forms here
+            │   └── basic_info.py  # or in separate files
+            └── delete_project/    # another wizard subfolder
+                ├── __init__.py
+                └── confirm.py
+    
+    The heuristic: if there's more than one part after 'forms', assume the first
+    part is a wizard folder (regardless of whether forms are in __init__ or subfiles).
+    """
+    module = form_class.__module__
+    parts = module.split('.')
+    
+    # Find 'forms' in the module path
+    try:
+        forms_index = parts.index('forms')
+    except ValueError:
+        return None
+    
+    # Get all parts after 'forms'
+    # e.g., 'projects.forms.create_project.basic_info' -> ['create_project', 'basic_info']
+    # e.g., 'projects.forms.create_project' -> ['create_project']
+    # e.g., 'projects.forms.basic_info' -> ['basic_info']
+    after_forms = parts[forms_index + 1:]
+    
+    # If there's more than one part, the first is the wizard folder
+    # If there's exactly one part, it could be a wizard folder with forms in __init__
+    # OR a flat file. We distinguish by checking if it looks like a step name.
+    if len(after_forms) > 1:
+        # Multiple parts: first N-1 are wizard folders, last is the file
+        return '/'.join(after_forms[:-1])
+    elif len(after_forms) == 1:
+        # Single part after forms - check if it's a folder (wizard) or file
+        # Heuristic: wizard folder names typically don't end with common step names
+        # and are action-oriented like 'create_project', 'edit_profile', 'delete_item'
+        part = after_forms[0]
+        # Check if it looks like a wizard folder (contains underscore with action verb)
+        action_verbs = ('create', 'edit', 'update', 'delete', 'manage', 'add', 'remove')
+        if any(part.startswith(verb + '_') for verb in action_verbs):
+            return part
+    
+    return None
+
+
 def _template_from_class_name(form_class):
     """
     Auto-generate template path from form class.
     
-    Convention: {app_label}/wizard_steps/{step_name}.html
+    Convention: {app_label}/wizard_steps/[{wizard_folder}/]{step_name}.html
     
-    Examples:
-        ProjectBasicInfoForm -> 'projects/wizard_steps/basic_info.html'
-        UserContactForm -> 'users/wizard_steps/contact.html'
+    The wizard_folder is automatically detected from the module path,
+    allowing multiple wizards per app with clean separation.
+    
+    Examples (flat structure - backward compatible):
+        projects.forms.basic_info.ProjectBasicInfoForm 
+            -> 'projects/wizard_steps/basic_info.html'
+    
+    Examples (nested wizard folders):
+        projects.forms.create_project.basic_info.ProjectBasicInfoForm 
+            -> 'projects/wizard_steps/create_project/basic_info.html'
+        projects.forms.delete_project.confirm.ProjectConfirmForm 
+            -> 'projects/wizard_steps/delete_project/confirm.html'
     """
     app_label = _get_app_label(form_class)
     step_name = _extract_step_name(form_class)
+    wizard_folder = _get_wizard_folder(form_class)
+    
+    if wizard_folder:
+        return f'{app_label}/wizard_steps/{wizard_folder}/{step_name}.html'
     return f'{app_label}/wizard_steps/{step_name}.html'
 
 
@@ -301,23 +397,6 @@ class BaseWizardView(View, ABC):
         """
         return {}
 
-    def get_context_data(self, request, step, form):
-        """
-        Get context data for a step template.
-
-        Delegates to get_step_context for backwards compatibility.
-        Subclasses can override either method.
-
-        Args:
-            request: HTTP request object
-            step: Current step index (0-based)
-            form: Form instance for the current step
-
-        Returns:
-            dict: Additional context variables
-        """
-        return self.get_step_context(request, step, form)
-
     def dispatch(self, request, *args, **kwargs):
         """Route requests to appropriate handler based on action parameter."""
         if request.method != 'POST':
@@ -354,6 +433,15 @@ class BaseWizardView(View, ABC):
         """Initialize or resume a wizard session."""
         self.clear_wizard_data(request)
         wizard_data = self.get_wizard_data(request)
+
+        # Store any context passed from the frontend (e.g., project_slug for delete)
+        try:
+            body = json.loads(request.body) if request.body else {}
+            context = body.get('context', {})
+            if context:
+                wizard_data['context'] = context
+        except json.JSONDecodeError:
+            pass
 
         initial_data = self.get_initial_data(request)
         if initial_data:
@@ -485,8 +573,8 @@ class BaseWizardView(View, ABC):
             'wizard_name': self.wizard_name,
         }
 
-        # Add custom context (supports both method names)
-        context.update(self.get_context_data(request, step, form))
+        # Add custom context from subclass
+        context.update(self.get_step_context(request, step, form))
 
         html = render_to_string(template_path, context, request=request)
         is_skippable = self._is_step_skippable(form)
@@ -676,14 +764,6 @@ class BaseWizardView(View, ABC):
 
         # Default to last model
         return model_order[-1] if model_order else None
-
-    def _link_foreign_keys(self, main_instance, created_objects):
-        """Link ForeignKey fields on main instance to created objects."""
-        for field in main_instance._meta.get_fields():
-            if isinstance(field, models.ForeignKey):
-                related_model = field.related_model
-                if related_model in created_objects:
-                    setattr(main_instance, field.name, created_objects[related_model])
 
     def _get_success_url(self, request, created_objects, main_model):
         """Get redirect URL after successful creation."""
