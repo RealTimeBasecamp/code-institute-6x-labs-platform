@@ -1,6 +1,9 @@
 from django.shortcuts import get_object_or_404, render, redirect
 from django.contrib import messages
 from django.urls import reverse
+from django.contrib.auth.decorators import login_required
+from django.db.models.functions import Lower
+
 from .models import Project
 from django.views.generic import ListView
 from core.card_utils import render_card_groups
@@ -10,13 +13,18 @@ class ProjectListView(ListView):
     model = Project
     template_name = 'projects/projects_list.html'
     context_object_name = 'projects'
+    paginate_by = 20
+
+    def get_queryset(self):
+        return Project.objects.order_by(Lower('name'))
 
 
+@login_required
 def project_planner(request):
     """
     Redirect to project planner page without a specific project selected.
     """
-    projects = Project.objects.all()
+    projects = Project.objects.order_by('alphabetic_name')
     context = {
         'project': None,
         'projects': projects,
@@ -32,6 +40,7 @@ def project_planner(request):
     return render(request, 'projects/project_planner.html', context)
 
 
+@login_required
 def project(request, slug):
     """
     Display project planner page with project details and sites.
@@ -98,10 +107,11 @@ def project(request, slug):
     return render(request, 'projects/project_planner.html', context)
 
 
+@login_required
 def delete_project(request, slug):
     """
     Delete project and provide user feedback via Django messages.
-    Simple Django conventional approach - no AJAX needed.
+    Only the user who created the project can delete it.
     """
     if request.method != 'POST':
         messages.error(request, 'Invalid request method.')
@@ -109,6 +119,11 @@ def delete_project(request, slug):
 
     project = get_object_or_404(Project, slug=slug)
     project_name = project.name
+
+    # Check if current user is the creator
+    if project.created_by != request.user:
+        messages.error(request, 'You do not have permission to delete this project.')
+        return redirect('projects:projects_list')
 
     try:
         project.delete()
