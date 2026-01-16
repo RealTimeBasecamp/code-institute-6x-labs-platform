@@ -10,12 +10,23 @@ Usage:
     modal_title='Complete Your Profile'
   %}
 
+  For delete wizards with context:
+  {% include 'components/modals/wizard_modal.html' with
+    modal_id='deleteModal'|add:project.slug
+    wizard_name='project_delete'
+    modal_title='Delete Project'
+    wizard_context='{"project_slug": "'|add:project.slug|add:'", "project_name": "'|add:project.name|add:'"}'
+    wizard_mode='delete'
+  %}
+
 Parameters:
   - modal_id: Unique ID for the modal instance (required)
   - wizard_name: Backend wizard identifier for API calls (required)
   - modal_title: Title shown in header (optional, default: 'Setup Wizard')
   - modal_size: Modal width - 'sm', 'lg', 'xl' (optional, default: 'lg')
   - modal_icon: Bootstrap icon class for header (optional)
+  - wizard_context: JSON string with extra context to pass to backend (optional)
+  - wizard_mode: 'create' (default) or 'delete' - affects button styling
 
 Modal Sizes:
   Size        | Class            | Max-width
@@ -27,6 +38,8 @@ Modal Sizes:
 Data Attributes on Modal Element:
   - data-wizard-name: Wizard identifier (auto-set from wizard_name param)
   - data-wizard-auto-init: Add this to auto-initialize on page load
+  - data-wizard-context: JSON context passed to backend (optional)
+  - data-wizard-mode: 'create' or 'delete' (affects submit button style)
 
 Note: Step titles and count are loaded from the backend wizard class (single source of truth).
 {% endcomment %}
@@ -38,6 +51,8 @@ Note: Step titles and count are loaded from the backend wizard class (single sou
      tabindex="-1"
      data-wizard-name="{{ wizard_name }}"
      data-wizard-auto-init
+     {% if wizard_context %}data-wizard-context="{{ wizard_context }}"{% endif %}
+     {% if wizard_mode %}data-wizard-mode="{{ wizard_mode }}"{% endif %}
      data-bs-backdrop="static"
      data-bs-keyboard="false"
      aria-labelledby="{{ modal_id }}Label"
@@ -96,9 +111,15 @@ Note: Step titles and count are loaded from the backend wizard class (single sou
           <button type="button" class="btn btn-primary wizard-next-btn">
             Next <i class="bi bi-chevron-right ms-1"></i>
           </button>
+          {% if wizard_mode == 'delete' %}
+          <button type="button" class="btn btn-danger wizard-submit-btn d-none">
+            <i class="bi bi-trash me-1"></i> Delete forever
+          </button>
+          {% else %}
           <button type="button" class="btn btn-primary wizard-submit-btn d-none">
             Submit <i class="bi bi-check-lg ms-1"></i>
           </button>
+          {% endif %}
         </div>
       </div>
 

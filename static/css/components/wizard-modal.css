@@ -39,7 +39,8 @@
 
 .wizard-progress .progress-bar {
   background-color: var(--bs-primary);
-  transition: width 0.3s ease;
+  transition: width 0.2s ease-out;
+  will-change: width;
 }
 
 /* Step indicators container */
@@ -68,8 +69,9 @@
   justify-content: center;
   font-size: 0.875rem;
   font-weight: 500;
-  transition: all 0.2s ease, transform 0.15s ease;
+  transition: background-color 0.15s ease, color 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease, transform 0.15s ease;
   border: 2px solid transparent;
+  will-change: background-color, border-color, box-shadow;
 }
 
 /* Active step */
@@ -107,6 +109,7 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  transition: color 0.15s ease, font-weight 0.15s ease;
 }
 
 .wizard-step-indicator.active .step-title {
@@ -239,28 +242,6 @@
   min-height: 200px;
 }
 
-.wizard-loading-overlay {
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  background: var(--bs-tertiary-bg);
-  z-index: 10;
-}
-
-.wizard-step {
-  opacity: 1;
-  transition: opacity 0.15s ease;
-}
-
-.wizard-step.loading {
-  opacity: 0.3;
-}
-
 /* ============================================
    STEP FORM STYLES
    ============================================ */
@@ -320,20 +301,3 @@
   }
 }
 
-/* ============================================
-   ANIMATION
-   ============================================ */
-@keyframes wizard-fade-in {
-  from {
-    opacity: 0;
-    transform: translateY(10px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-.wizard-step-content > * {
-  animation: wizard-fade-in 0.2s ease;
-}

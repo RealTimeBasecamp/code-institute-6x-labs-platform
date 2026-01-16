@@ -29,6 +29,17 @@
 
       this.modalId = modalId;
       this.wizardName = this.modal.dataset.wizardName;
+      this.wizardMode = this.modal.dataset.wizardMode || "create";
+
+      // Parse context data from data attribute (used for delete wizards, etc.)
+      this.wizardContext = {};
+      if (this.modal.dataset.wizardContext) {
+        try {
+          this.wizardContext = JSON.parse(this.modal.dataset.wizardContext);
+        } catch (e) {
+          console.warn("Failed to parse wizard context:", e);
+        }
+      }
 
       this.options = {
         totalSteps: options.totalSteps || 1, // Will be updated from backend step_titles
@@ -101,11 +112,15 @@
       this.currentStep = 0;
       this.hasUnsavedChanges = false;
       this.stepData = {};
-      this.visitedSteps = new Set([0]); // Reset visited steps, mark first step as visited
-
-      this._showLoading();
+      this.visitedSteps = new Set([0]);
 
       try {
+        // Build request body with optional context
+        const requestBody = {};
+        if (Object.keys(this.wizardContext).length > 0) {
+          requestBody.context = this.wizardContext;
+        }
+
         const response = await fetch(
           `${this.options.apiBase}${this.wizardName}/start/`,
           {
@@ -115,18 +130,17 @@
               "X-CSRFToken": this._getCsrfToken(),
               "X-Requested-With": "XMLHttpRequest",
             },
+            body: JSON.stringify(requestBody),
           }
         );
 
         const result = await response.json();
 
         if (result.success) {
-          // Render step indicators from backend step_titles (single source of truth)
           if (result.step_titles) {
             this._renderStepIndicators(result.step_titles);
           }
-          this.contentArea.innerHTML = result.html;
-          this._hideLoading();
+          this._setContent(result.html);
           this._updateProgress(result.progress);
           this._updateNavigation(0, result.is_skippable || false);
         } else {
@@ -277,7 +291,7 @@
      * @param {number} step - Step index (0-based)
      */
     async _loadStep(step) {
-      this._showLoading();
+      this._updateStepIndicatorsOptimistic(step);
 
       try {
         const response = await fetch(
@@ -298,11 +312,11 @@
         const result = await response.json();
 
         if (result.success) {
-          this.contentArea.innerHTML = result.html;
-          this._hideLoading();
+          this._setContent(result.html);
           this._updateProgress(result.progress);
           this._updateNavigation(step, result.is_skippable || false);
           this._populateStepData(step);
+          this._exposeSessionData();
         } else {
           this._showError(result.error || "Failed to load step");
         }
@@ -321,7 +335,6 @@
       const isValid = await this._validateCurrentStep();
       if (!isValid) return;
 
-      this._showLoading();
       this.isLoading = true;
 
       try {
@@ -378,17 +391,9 @@
     }
 
     /**
-     * Cancel the wizard
-     * @param {boolean} skipConfirm - If true, skip unsaved changes confirmation (used when already confirmed)
+     * Cancel the wizard - clears server session data
      */
-    async cancel(skipConfirm = false) {
-      if (this.hasUnsavedChanges && !skipConfirm) {
-        const confirmed = confirm(
-          "You have unsaved changes. Are you sure you want to cancel?"
-        );
-        if (!confirmed) return;
-      }
-
+    async cancel() {
       // Clear session data on server
       try {
         await fetch(`${this.options.apiBase}${this.wizardName}/cancel/`, {
@@ -401,9 +406,6 @@
       } catch (error) {
         console.error("Cancel error:", error);
       }
-
-      this.hasUnsavedChanges = false;
-      this._hideModal();
 
       if (this.options.onCancel) {
         this.options.onCancel();
@@ -475,6 +477,23 @@
     }
 
     /**
+     * Expose merged session data to window for summary templates
+     * 
+     * This allows step templates (especially summary steps) to access
+     * all collected wizard data without needing custom JS in each template.
+     * 
+     * Also dispatches a custom event so templates can react when data updates.
+     */
+    _exposeSessionData() {
+      window.wizardSessionData = this._mergeAllStepData();
+      
+      // Dispatch event for templates that need to react to data changes
+      document.dispatchEvent(new CustomEvent('wizardDataReady', {
+        detail: { data: window.wizardSessionData }
+      }));
+    }
+
+    /**
      * Get CSRF token from cookie
      * @returns {string} CSRF token
      */
@@ -522,6 +541,34 @@
 
       // Update cached reference
       this.stepIndicators = this.stepsContainer.querySelectorAll(".wizard-step-indicator");
+    }
+
+    /**
+     * Update step indicators immediately for instant visual feedback (optimistic UI)
+     * Called before network request to eliminate perceived lag
+     * @param {number} targetStep - The step being navigated to
+     */
+    _updateStepIndicatorsOptimistic(targetStep) {
+      // Update progress bar immediately
+      if (this.progressBar) {
+        const percentage = ((targetStep + 1) / this.options.totalSteps) * 100;
+        this.progressBar.style.width = `${percentage}%`;
+        this.progressBar.setAttribute("aria-valuenow", percentage);
+      }
+
+      // Update step indicators immediately
+      this.stepIndicators.forEach((indicator, index) => {
+        indicator.classList.remove("active", "completed", "clickable");
+        if (index < targetStep) {
+          indicator.classList.add("completed", "clickable");
+        } else if (index === targetStep) {
+          indicator.classList.add("active");
+        }
+        // Mark visited steps as clickable
+        if (this.visitedSteps.has(index) && index !== targetStep) {
+          indicator.classList.add("clickable");
+        }
+      });
     }
 
     /**
@@ -655,44 +702,11 @@
     }
 
     /**
-     * Show loading spinner overlay without resizing content
+     * Set the step content directly
+     * @param {string} html - HTML content to display
      */
-    _showLoading() {
-      // Add loading class to fade out current content
-      const stepContent = this.contentArea.querySelector('.wizard-step');
-      if (stepContent) {
-        stepContent.classList.add('loading');
-      }
-      
-      // Add spinner overlay instead of replacing content
-      const existingSpinner = this.contentArea.querySelector('.wizard-loading-overlay');
-      if (!existingSpinner) {
-        const spinner = document.createElement('div');
-        spinner.className = 'wizard-loading-overlay';
-        spinner.innerHTML = `
-          <div class="spinner-border text-primary" role="status">
-            <span class="visually-hidden">Loading...</span>
-          </div>
-        `;
-        this.contentArea.appendChild(spinner);
-      }
-    }
-
-    /**
-     * Hide loading spinner and fade in new content
-     */
-    _hideLoading() {
-      const spinner = this.contentArea.querySelector('.wizard-loading-overlay');
-      if (spinner) {
-        spinner.remove();
-      }
-      // Small delay to trigger CSS transition
-      requestAnimationFrame(() => {
-        const stepContent = this.contentArea.querySelector('.wizard-step');
-        if (stepContent) {
-          stepContent.classList.remove('loading');
-        }
-      });
+    _setContent(html) {
+      this.contentArea.innerHTML = html;
     }
 
     /**
@@ -731,26 +745,21 @@
      * Handle close button click
      */
     _handleClose() {
-      if (this.hasUnsavedChanges) {
-        const confirmed = confirm(
-          "You have unsaved changes. Are you sure you want to close?"
-        );
-        if (!confirmed) return;
-      }
-      // Skip confirmation in cancel() since we already confirmed above
-      this.cancel(true);
+      this._hideModal();
     }
 
     /**
      * Cleanup when modal is hidden
      */
     _onHidden() {
-      // Reset state if cancelled
-      if (!this.hasUnsavedChanges) {
-        this.currentStep = 0;
-        this.stepData = {};
-        this.visitedSteps = new Set([0]);
-      }
+      // Clear server session
+      this.cancel();
+
+      // Reset wizard state
+      this.currentStep = 0;
+      this.stepData = {};
+      this.visitedSteps = new Set([0]);
+      this.hasUnsavedChanges = false;
     }
   }
 
