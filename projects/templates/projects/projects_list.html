@@ -73,14 +73,15 @@
     </tbody>
   </table>
 
-  {# Delete modals for each project #}
+  {# Delete modals for each project - pass project context for wizard #}
   {% for project in projects %}
-    {% include "components/modals/modal.html" with
+    {% include "components/modals/wizard_modal.html" with
       modal_id="deleteModal"|add:project.slug
-      modal_size="xl"
+      wizard_name="project_delete"
       modal_title="Delete Project"
-      modal_body_content="<p>Are you sure you want to delete this project?</p><br><p>TODO: ADD logged in user image and username.</p>"
-      modal_footer_content="<button class='btn btn-danger m-0'>Delete</button>"
+      modal_icon="bi bi-trash"
+      wizard_mode="delete"
+      wizard_context='{"project_slug":"'|add:project.slug|add:'"}'
     %}
   {% endfor %}
 
@@ -89,3 +90,5 @@
 {% block extra_js %}
 <script src="{% static 'js/components/sortable-table.js' %}" defer></script>
 {% endblock %}
+
+
