@@ -39,7 +39,7 @@
     <!-- Navigation rendered server-side by Django -->
     <ul class="list-unstyled sidebar-nav">
       {% for nav_item in navigation_items %}
-        {% include 'components/navigation/nav_item.html' with nav_item=nav_item %}
+        {% include 'components/navigation/sidebar_item.html' with nav_item=nav_item %}
       {% empty %}
         <li class="sidebar-item">
           <span class="sidebar-link text-muted">No navigation available</span>
