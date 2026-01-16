@@ -13,8 +13,9 @@ class ProjectSummaryForm(forms.Form):
 
     This is a plain Form (not ModelForm) as it doesn't save any data.
     The created_by field is set via get_extra_create_data in the wizard.
+    
+    Template: projects/wizard_steps/create_project/summary.html (auto-generated)
     """
 
     # No fields - this is a display-only confirmation step
     title = 'Summary'
-    template = 'projects/wizard_steps/summary.html'

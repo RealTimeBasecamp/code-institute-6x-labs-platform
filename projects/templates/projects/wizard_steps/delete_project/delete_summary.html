@@ -1,0 +1,80 @@
+{% comment %}
+Project Deletion Wizard - Summary Step
+
+Displays project details and warnings before deletion confirmation.
+No form fields - just review information.
+
+Context provided by wizard:
+- form: The summary form (no fields)
+- request.user: The user deleting the project
+- project: The project being deleted (passed via get_step_context)
+{% endcomment %}
+
+<div class="wizard-step">
+  {# Project info card #}
+  {% if project %}
+  <div class="card mb-4">
+    <div class="card-header">
+      <div class="d-flex align-items-center">
+        <i class="bi bi-folder fs-5 me-2"></i>
+        <span class="fw-semibold">Project Details</span>
+      </div>
+    </div>
+    <div class="card-body">
+      <div class="d-flex justify-content-between align-items-center mb-2">
+        <span class="text-body-secondary">Name</span>
+        <span class="fw-bold fs-5">{{ project.name }}</span>
+      </div>
+      <div class="d-flex justify-content-between align-items-center">
+        <span class="text-body-secondary">Status</span>
+        <span class="fw-semibold">
+          {% if project.status %}
+            {{ project.status.emoji }} {{ project.status.name }}
+          {% else %}
+            <span class="text-muted">No status</span>
+          {% endif %}
+        </span>
+      </div>
+    </div>
+  </div>
+  {% endif %}
+
+  {# User info card #}
+  <div class="card mb-4">
+    <div class="card-header">
+      <span class="fw-semibold">Deleting as</span>
+    </div>
+    <div class="card-body">
+      <div class="d-flex align-items-center gap-3">
+        {% if user.avatar %}
+          <img src="{{ user.avatar.url }}" alt="{{ user.username }}"
+               class="rounded-circle" width="40" height="40">
+        {% else %}
+          <div class="rounded-circle bg-primary d-flex align-items-center justify-content-center"
+               style="width: 40px; height: 40px;">
+            <span class="text-white fw-bold">{{ user.username|slice:":1"|upper }}</span>
+          </div>
+        {% endif %}
+        <div>
+          <div class="fw-semibold">{{ user.display_name|default:user.username }}</div>
+          <small class="text-body-secondary">{{ user.email }}</small>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  {# Danger zone warning #}
+  <div class="alert alert-danger border-danger mb-4">
+    <div class="d-flex align-items-center">
+      <i class="bi bi-exclamation-triangle-fill fs-4 me-3"></i>
+      <div>
+        <strong class="d-block">You are about to delete this project</strong>
+        <span class="text-body-secondary">This action <strong>cannot</strong> be undone.</span>
+        <div class="form-text mt-2">
+          <i class="bi bi-info-circle me-1"></i>
+          All project data, sites, plants, and related records will be permanently deleted.
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
