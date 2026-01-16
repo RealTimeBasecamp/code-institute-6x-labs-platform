@@ -97,6 +97,16 @@ class Project(models.Model):
         (SOIL_TYPE_MIXED, 'Mixed'),
     ]
 
+    SOIL_TYPE_DESCRIPTIONS = {
+        SOIL_TYPE_CLAY: 'Dense, water-retaining soil. Good for some trees.',
+        SOIL_TYPE_SANDY: 'Light, fast-draining soil. Needs more watering.',
+        SOIL_TYPE_SILTY: 'Fertile, moisture-retaining soil.',
+        SOIL_TYPE_PEATY: 'Acidic, high organic matter. Good for specific species.',
+        SOIL_TYPE_CHALKY: 'Alkaline, well-draining. Limited plant selection.',
+        SOIL_TYPE_LOAMY: 'Ideal balanced soil for most plants.',
+        SOIL_TYPE_MIXED: 'Combination of soil types across the site.',
+    }
+
     # Climate choices
     CLIMATE_TROPICAL = 'tropical'
     CLIMATE_DRY = 'dry'
@@ -113,6 +123,21 @@ class Project(models.Model):
         (CLIMATE_POLAR, 'Polar'),
         (CLIMATE_MEDITERRANEAN, 'Mediterranean'),
     ]
+
+    CLIMATE_DESCRIPTIONS = {
+        CLIMATE_TROPICAL: 'Hot and humid year-round with high rainfall.',
+        CLIMATE_DRY: 'Low rainfall, high evaporation. Drought-resistant species needed.',
+        CLIMATE_TEMPERATE: 'Mild temperatures with distinct seasons.',
+        CLIMATE_CONTINENTAL: 'Hot summers, cold winters. Wide temperature range.',
+        CLIMATE_POLAR: 'Very cold with short growing seasons.',
+        CLIMATE_MEDITERRANEAN: 'Warm, dry summers and mild, wet winters.',
+    }
+
+    COORDINATE_HELP = (
+        "GPS coordinates help us accurately map your project site. "
+        "You can find coordinates using Google Maps or GPS devices. "
+        "These are optional but recommended for larger projects."
+    )
 
     status = models.ForeignKey(
         Status,
