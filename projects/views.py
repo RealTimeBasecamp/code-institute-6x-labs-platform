@@ -24,7 +24,7 @@ def project_planner(request):
     """
     Redirect to project planner page without a specific project selected.
     """
-    projects = Project.objects.order_by('alphabetic_name')
+    projects = Project.objects.all().order_by(Lower('name'))
     context = {
         'project': None,
         'projects': projects,
@@ -73,7 +73,7 @@ def project(request, slug):
         project = get_object_or_404(Project, slug=slug)
     else:
         project = None
-    projects = Project.objects.all()
+    projects = Project.objects.all().order_by(Lower('name'))
 
     # Build breadcrumbs for this page
     breadcrumbs = [
