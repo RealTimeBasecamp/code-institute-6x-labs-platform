@@ -1,0 +1,87 @@
+/* Sortable Table Component */
+
+/* Search container */
+.sortable-table-search {
+    position: relative;
+    margin-bottom: 1rem;
+    max-width: 300px;
+}
+
+.sortable-table-search input {
+    width: 100%;
+    padding: 0.5rem 0.75rem 0.5rem 2.25rem;
+    border: 1px solid var(--bs-border-color);
+    border-radius: 0.375rem;
+    background-color: var(--bs-body-bg);
+    color: var(--bs-body-color);
+    font-size: 0.875rem;
+}
+
+.sortable-table-search input:focus {
+    outline: none;
+    border-color: var(--bs-primary);
+    box-shadow: 0 0 0 0.2rem rgba(var(--bs-primary-rgb), 0.25);
+}
+
+.sortable-table-search input::placeholder {
+    color: var(--bs-secondary-color);
+}
+
+.sortable-table-search .search-icon {
+    position: absolute;
+    left: 0.75rem;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--bs-secondary-color);
+    pointer-events: none;
+}
+
+/* Sortable headers */
+.sortable-table th[data-sortable] {
+    cursor: pointer;
+    user-select: none;
+    position: relative;
+    padding-right: 1.5rem;
+    transition: background-color 0.15s ease;
+}
+
+.sortable-table th[data-sortable]:hover {
+    background-color: var(--bs-tertiary-bg);
+}
+
+.sortable-table th[data-sortable]::after {
+    content: '';
+    position: absolute;
+    right: 0.5rem;
+    top: 50%;
+    transform: translateY(-50%);
+    opacity: 0.3;
+    font-family: 'bootstrap-icons';
+    font-size: 0.75rem;
+}
+
+.sortable-table th[data-sortable]::after {
+    content: '\F282'; /* bi-chevron-expand */
+}
+
+.sortable-table th[data-sortable].sort-asc::after {
+    content: '\F235'; /* bi-caret-up-fill */
+    opacity: 1;
+}
+
+.sortable-table th[data-sortable].sort-desc::after {
+    content: '\F229'; /* bi-caret-down-fill */
+    opacity: 1;
+}
+
+/* No results message */
+.sortable-table .no-results {
+    text-align: center;
+    color: var(--bs-secondary-color);
+    padding: 2rem;
+}
+
+/* Hidden rows during filter */
+.sortable-table tr.filtered-out {
+    display: none;
+}

@@ -4,6 +4,10 @@
 {% block meta_title %}Projects{% endblock %}
 {% block page_title %}Projects{% endblock %}
 
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/components/sortable-table.css' %}">
+{% endblock %}
+
 {% block header_contents %}
   <button
       type="button"
@@ -34,32 +38,36 @@
     {% endfor %}
   {% endif %}
 
-  <table class="table">
+  <table class="table sortable-table">
     <thead>
       <tr>
         <th scope="col">#</th>
-        <th scope="col">Name</th>
-        <th scope="col">Status</th>
-        <th scope="col">Total CO₂ (kg)</th>
-        <th scope="col">Area (ha)</th>
-        <th scope="col">Actions</th>
+        <th scope="col" data-sortable>Name</th>
+        <th scope="col" data-sortable>Status</th>
+        <th scope="col" data-sortable>Total CO₂ (kg)</th>
+        <th scope="col" data-sortable>Area (ha)</th>
+        <th scope="col" data-sortable>Actions</th>
       </tr>
     </thead>
     <tbody>
       {% for project in projects %}
       <tr>
-        <th scope="row">{{ forloop.counter }}</th>
+        <th scope="row" data-row-number>{{ forloop.counter }}</th>
         <td><a href="{% url 'projects:project_planner_detail' project.slug %}">{{ project.name }}</a></td>
         <td>{{ project.status }}</td>
         <td>{{ project.total_co2_sequestered_kg|default:"—" }}</td>
         <td>{{ project.area_hectares }}</td>
-        <td>
-          <a role="button"
-            class="bi bi-trash text-danger"
-            data-bs-toggle="modal"
-            data-bs-target="#deleteModal{{ project.slug }}">
-          </a>
-        </td>
+        {% if project.created_by == user %}
+          <td>
+            <a role="button"
+              class="bi bi-trash text-danger"
+              data-bs-toggle="modal"
+              data-bs-target="#deleteModal{{ project.slug }}">
+            </a>
+          </td>
+        {% else %}
+          <td></td>
+        {% endif %}
       </tr>
       {% endfor %}
     </tbody>
@@ -76,4 +84,8 @@
     %}
   {% endfor %}
 
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'js/components/sortable-table.js' %}" defer></script>
 {% endblock %}
