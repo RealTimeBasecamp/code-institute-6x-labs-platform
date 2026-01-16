@@ -126,6 +126,7 @@
             this._renderStepIndicators(result.step_titles);
           }
           this.contentArea.innerHTML = result.html;
+          this._hideLoading();
           this._updateProgress(result.progress);
           this._updateNavigation(0, result.is_skippable || false);
         } else {
@@ -298,6 +299,7 @@
 
         if (result.success) {
           this.contentArea.innerHTML = result.html;
+          this._hideLoading();
           this._updateProgress(result.progress);
           this._updateNavigation(step, result.is_skippable || false);
           this._populateStepData(step);
@@ -653,16 +655,44 @@
     }
 
     /**
-     * Show loading spinner
+     * Show loading spinner overlay without resizing content
      */
     _showLoading() {
-      this.contentArea.innerHTML = `
-        <div class="d-flex justify-content-center align-items-center py-5">
+      // Add loading class to fade out current content
+      const stepContent = this.contentArea.querySelector('.wizard-step');
+      if (stepContent) {
+        stepContent.classList.add('loading');
+      }
+      
+      // Add spinner overlay instead of replacing content
+      const existingSpinner = this.contentArea.querySelector('.wizard-loading-overlay');
+      if (!existingSpinner) {
+        const spinner = document.createElement('div');
+        spinner.className = 'wizard-loading-overlay';
+        spinner.innerHTML = `
           <div class="spinner-border text-primary" role="status">
             <span class="visually-hidden">Loading...</span>
           </div>
-        </div>
-      `;
+        `;
+        this.contentArea.appendChild(spinner);
+      }
+    }
+
+    /**
+     * Hide loading spinner and fade in new content
+     */
+    _hideLoading() {
+      const spinner = this.contentArea.querySelector('.wizard-loading-overlay');
+      if (spinner) {
+        spinner.remove();
+      }
+      // Small delay to trigger CSS transition
+      requestAnimationFrame(() => {
+        const stepContent = this.contentArea.querySelector('.wizard-step');
+        if (stepContent) {
+          stepContent.classList.remove('loading');
+        }
+      });
     }
 
     /**
