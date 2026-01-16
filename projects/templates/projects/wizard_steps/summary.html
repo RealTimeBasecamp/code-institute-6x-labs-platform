@@ -1,0 +1,87 @@
+{% comment %}
+Project Creation Wizard - Final Step: Summary/Confirmation
+
+Shows who is creating the project and a summary of entered data.
+
+Context provided by wizard:
+- form: The summary form (no fields)
+- request.user: The user creating the project
+- wizard_data: All collected data from previous steps
+{% endcomment %}
+
+<div class="wizard-step">
+  <div class="mb-4">
+    <h5 class="mb-3">Creating as:</h5>
+    <div class="card">
+      <ul class="list-group list-group-flush">
+        <li class="list-group-item d-flex align-items-center gap-3">
+          {% if user.avatar %}
+            <img src="{{ user.avatar.url }}" alt="{{ user.username }}" 
+                 class="rounded-circle" width="48" height="48">
+          {% else %}
+            <div class="rounded-circle bg-primary d-flex align-items-center justify-content-center" 
+                 style="width: 48px; height: 48px;">
+              <span class="text-white fw-bold">{{ user.username|slice:":1"|upper }}</span>
+            </div>
+          {% endif %}
+          <div>
+            <div class="fw-semibold">{{ user.display_name|default:user.username }}</div>
+          </div>
+        </li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="mb-4">
+    <h5 class="mb-3">Project Summary:</h5>
+    <div class="card">
+      <ul class="list-group list-group-flush">
+        <li class="list-group-item d-flex justify-content-between">
+          <span class="text-muted">Project Name</span>
+          <span class="fw-semibold" id="summary-name">—</span>
+        </li>
+        <li class="list-group-item d-flex justify-content-between">
+          <span class="text-muted">Project Type</span>
+          <span class="fw-semibold" id="summary-project_type">—</span>
+        </li>
+        <li class="list-group-item d-flex justify-content-between">
+          <span class="text-muted">Soil Type</span>
+          <span class="fw-semibold" id="summary-soil_type">—</span>
+        </li>
+        <li class="list-group-item d-flex justify-content-between">
+          <span class="text-muted">Climate</span>
+          <span class="fw-semibold" id="summary-climate">—</span>
+        </li>
+        <li class="list-group-item d-flex justify-content-between">
+          <span class="text-muted">City</span>
+          <span class="fw-semibold" id="summary-city">—</span>
+        </li>
+        <li class="list-group-item d-flex justify-content-between">
+          <span class="text-muted">Country</span>
+          <span class="fw-semibold" id="summary-country_code">—</span>
+        </li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="alert alert-info">
+    <i class="bi bi-info-circle me-2"></i>
+    Click <strong>Submit</strong> to create this project. You'll be the owner 
+    and can manage or delete it later.
+  </div>
+</div>
+
+<script>
+// Populate summary from wizard session data when step loads
+document.addEventListener('DOMContentLoaded', function() {
+  const wizardData = window.wizardSessionData || {};
+  const fields = ['name', 'project_type', 'soil_type', 'climate', 'city', 'country_code'];
+  
+  fields.forEach(field => {
+    const el = document.getElementById('summary-' + field);
+    if (el && wizardData[field]) {
+      el.textContent = wizardData[field];
+    }
+  });
+});
+</script>

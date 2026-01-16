@@ -16,6 +16,7 @@ from .environment import ProjectEnvironmentForm
 from .address import ProjectAddressForm
 from .coordinates import ProjectCoordinatesForm
 from .contact import ProjectContactForm
+from .summary import ProjectSummaryForm
 
 
 class ProjectWizard(BaseWizardView):
@@ -36,7 +37,12 @@ class ProjectWizard(BaseWizardView):
         ProjectAddressForm,
         ProjectCoordinatesForm,
         ProjectContactForm,
+        ProjectSummaryForm,
     ]
+
+    def get_extra_create_data(self, request):
+        """Set created_by to the current user when creating a project."""
+        return {'created_by': request.user}
 
     def get_step_context(self, request, step, form):
         """Add extra context for specific steps."""
@@ -77,4 +83,5 @@ __all__ = [
     'ProjectAddressForm',
     'ProjectCoordinatesForm',
     'ProjectContactForm',
+    'ProjectSummaryForm',
 ]
