@@ -10,7 +10,13 @@
        data-bs-target="#teamspaceModal"
        data-page-id="{{ nav_item.id }}"
        data-active="{{ nav_item.is_active|yesno:'true,false' }}">
-      <i class="bi bi-person-circle"></i>
+      {% if user.avatar %}
+        <img src="{{ user.avatar.url }}" alt="{{ user.username }}" class="rounded-circle" width="20" height="20">
+      {% else %}
+        <span class="rounded-circle bg-primary d-flex align-items-center justify-content-center" style="width: 20px; height: 20px; font-size: 0.6rem;">
+          <span class="text-white fw-bold">{{ user.username|slice:":1"|upper }}</span>
+        </span>
+      {% endif %}
       <span>{{ user.display_name|default:user.username }}</span>
     </a>
 
