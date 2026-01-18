@@ -21,6 +21,16 @@
   modal_icon="bi bi-folder-plus"
 %}
 
+{% if project %}
+{% include "components/modals/wizard_modal.html" with
+  modal_id="projectEditWizard"
+  wizard_name="project_edit"
+  modal_title="Edit Project"
+  modal_icon="bi bi-pencil-square"
+  wizard_context='{"project_slug": "'|add:project.slug|add:'"}'
+%}
+{% endif %}
+
 {% endblock %}
 
 
@@ -98,9 +108,8 @@
 <div class="tab-content mt-4">
   <div class="tab-pane fade show active d-flex flex-column gap-4" id="project-info" role="tabpanel" aria-labelledby="project-info-tab">
     {% if project %}
-    {% card card_title='Project description' card_icon='bi bi-card-text' card_body=project.description %}
         {% for group in card_groups %}
-            {% card card_title=group.title card_icon=group.icon card_body=group.body_html %}
+            {% card card_title=group.title card_icon=group.icon card_body=group.body_html edit_modal_id='projectEditWizard' edit_form=group.edit_form %}
         {% endfor %}
         {% card card_title='Contributor Information' card_icon='bi bi-person-plus' card_body='<p class="text-muted mb-0">No contributors added yet.</p>' %}
     {% endif %}

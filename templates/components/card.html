@@ -32,7 +32,7 @@ Template characteristics:
 
 <div class="card px-4 py-3 bordered rounded-4 bg-body-tertiary">
   {% if card_icon or card_title %}
-  <div class="card-header-custom d-flex align-items-center mb-3">
+  <div class="card-header-custom d-flex align-items-center justify-content-between mb-3">
     <div class="pb-3 d-flex align-items-center">
       {% if card_icon %}
         <i class="{{ card_icon }} fs-5 me-3" aria-hidden="true"></i>
@@ -41,6 +41,16 @@ Template characteristics:
         <h5 class="mb-0">{{ card_title }}</h5>
       {% endif %}
     </div>
+    {% if edit_modal_id and edit_form %}
+    <button type="button"
+            class="btn btn-sm btn-outline-secondary card-edit-btn"
+            data-bs-toggle="modal"
+            data-bs-target="#{{ edit_modal_id }}"
+            data-wizard-start-form="{{ edit_form }}"
+            title="Edit {{ card_title }}">
+      <i class="bi bi-pencil"></i>
+    </button>
+    {% endif %}
   </div>
   {% endif %}
   <div class="card-content">

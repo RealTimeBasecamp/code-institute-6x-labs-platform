@@ -3,6 +3,7 @@ Project wizard forms.
 
 Each wizard is organized in its own subfolder for clean separation:
     - create_project/  : Project creation wizard
+    - edit_project/    : Project edit wizard
     - delete_project/  : Project deletion wizard
 
 Importing this module registers all wizards with the core wizard registry.
@@ -16,6 +17,10 @@ from .create_project import (
     ProjectCoordinatesForm,
     ProjectContactForm,
     ProjectSummaryForm,
+)
+
+from .edit_project import (
+    ProjectEditWizard,
 )
 
 from .delete_project import (
@@ -33,6 +38,8 @@ __all__ = [
     'ProjectCoordinatesForm',
     'ProjectContactForm',
     'ProjectSummaryForm',
+    # Edit project wizard
+    'ProjectEditWizard',
     # Delete project wizard
     'ProjectDeleteWizard',
     'ProjectDeleteConfirmForm',

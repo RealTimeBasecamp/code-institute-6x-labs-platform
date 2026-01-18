@@ -98,7 +98,7 @@ def project(request, slug):
         'breadcrumbs': breadcrumbs,
     }
 
-    # Define card groups with data
+    # Define card groups with data (edit_form passed directly to frontend)
     if project:
         card_groups = project.get_card_groups()
         card_groups = render_card_groups(card_groups)
