@@ -9,18 +9,118 @@
 <!-- Component CSS -->
 <link rel="stylesheet" href="{% static 'planting/css/interactive-map.css' %}" />
 
-<!-- Map Container -->
-<div class="map-container">
-  <!-- Base MapLibre Map with 3D -->
-  <div id="map"></div>
+<!-- Map Container with Sidebar -->
+<div class="interactive-map-card">
+  <div class="interactive-map-flex">
+    <div class="map-container">
+      <!-- Base MapLibre Map with 3D -->
+      <div id="map"></div>
 
-  <!-- ECharts Overlay Layer -->
-  <div id="echarts-layer"></div>
+      <!-- ECharts Overlay Layer -->
+      <div id="echarts-layer"></div>
 
-  <!-- Info Panel -->
-  <div class="info-panel">
-    <h3>Project name</h3>
-    <p>Location info [hide this box]</p>
+      <!-- Info Panel -->
+      <div class="info-panel">
+        <h3>Project name</h3>
+        <p>Location info [hide this box]</p>
+      </div>
+    </div>
+
+    <div class="map-sidebar">
+      <ul class="nav nav-pills" role="tablist">
+        <li class="nav-item" role="presentation">
+          <a class="nav-link active bi-bounding-box-circles" id="sites-tab" data-bs-toggle="tab" href="#sites" role="tab" aria-controls="sites" aria-selected="true"></a>
+        </li>
+        <li class="nav-item" role="presentation">
+          <a class="nav-link bi-hexagon-half" id="zones-tab" data-bs-toggle="tab" href="#zones" role="tab" aria-controls="zones" aria-selected="false"></a>
+        </li>
+        <li class="nav-item" role="presentation">
+          <a class="nav-link bi-flower1" id="point-plotter-tab" data-bs-toggle="tab" href="#point-plotter" role="tab" aria-controls="point-plotter" aria-selected="false"></a>
+        </li>
+      </ul>
+
+      <div class="tab-content">
+        <div class="tab-pane fade show active" id="sites" role="tabpanel" aria-labelledby="sites-tab">
+          <span class="sidebar-label">Site name</span>
+          <div class="sidebar-site-row">
+            <div class="sidebar-site-dropdown">
+              {% include 'components/dropdown.html' with
+                  dropdown_id="siteDropdown"
+                  dropdown_label=project.sites.all.first.name|default:"No sites"
+                  dropdown_width="100%"
+                  list=project.sites.all
+              %}
+            </div>
+            <div class="sidebar-nav-buttons">
+              <button class="btn btn-secondary btn-square" title="Previous">
+                <i class="bi bi-chevron-left"></i>
+              </button>
+              <button class="btn btn-secondary btn-square" title="Next">
+                <i class="bi bi-chevron-right"></i>
+              </button>
+              <button class="btn btn-secondary btn-square" title="Add new">
+                <i class="bi bi-plus"></i>
+              </button>
+            </div>
+          </div>
+
+          <p class="sidebar-label">
+            Site bounds
+            <i class="bi bi-info-circle"
+               data-bs-toggle="tooltip"
+               data-bs-placement="top"
+               data-bs-title="Square boundary point for the overall available planting site.">
+            </i>
+          </p>
+
+          {# Replace with dynamic data from model #}
+          <table class="table table-sm bounds-table">
+            <thead>
+              <tr>
+                <th>Point</th>
+                <th>X Coordinate</th>
+                <th>Y Coordinate</th>
+                <th>Lock</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>1</td>
+                <td>51.5074</td>
+                <td>-0.1278</td>
+                <td><i class="bi bi-lock text-muted"></i></td>
+              </tr>
+              <tr>
+                <td>2</td>
+                <td>51.5174</td>
+                <td>-0.1278</td>
+                <td><i class="bi bi-lock text-muted"></i></td>
+              </tr>
+              <tr>
+                <td>3</td>
+                <td>51.5174</td>
+                <td>-0.1178</td>
+                <td><i class="bi bi-lock text-muted"></i></td>
+              </tr>
+              <tr>
+                <td>4</td>
+                <td>51.5074</td>
+                <td>-0.1178</td>
+                <td><i class="bi bi-lock text-muted"></i></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="tab-pane fade" id="zones" role="tabpanel" aria-labelledby="zones-tab">
+          <p class="text-muted">Zones content</p>
+        </div>
+
+        <div class="tab-pane fade" id="point-plotter" role="tabpanel" aria-labelledby="point-plotter-tab">
+          <p class="text-muted">Point plotter content</p>
+        </div>
+      </div>
+    </div>
   </div>
 </div>
 
