@@ -53,10 +53,22 @@ class SortableTable {
         this.searchInput.placeholder = 'Search...';
         this.searchInput.setAttribute('aria-label', 'Search table');
         
-        // Assemble and insert
+        // Assemble search container
         searchContainer.appendChild(searchIcon);
         searchContainer.appendChild(this.searchInput);
-        this.table.parentNode.insertBefore(searchContainer, this.table);
+        
+        // Check if table specifies a toolbar target for the search bar
+        const toolbarId = this.table.dataset.searchToolbar;
+        const toolbar = toolbarId ? document.getElementById(toolbarId) : null;
+        
+        if (toolbar) {
+            // Move search bar to toolbar (on the right)
+            searchContainer.style.marginBottom = '0';
+            toolbar.appendChild(searchContainer);
+        } else {
+            // Default: insert before table
+            this.table.parentNode.insertBefore(searchContainer, this.table);
+        }
         
         // Add event listener with debounce
         let debounceTimer;

@@ -1,0 +1,31 @@
+{# 
+View Toggle Component
+
+A button group for switching between table and grid views.
+
+Usage:
+{% include "components/view_toggle.html" with table_id="table-view" grid_id="grid-view" %}
+
+Parameters:
+- table_id: ID of the table view tab pane (default: "table-view")
+- grid_id: ID of the grid view tab pane (default: "grid-view")
+#}
+
+<div class="btn-group" role="group" aria-label="View toggle">
+  <button type="button" 
+          class="btn btn-secondary view-toggle-btn" 
+          data-bs-toggle="tab" 
+          data-bs-target="#{{ table_id|default:'table-view' }}" 
+          aria-selected="true" 
+          title="Table view">
+    <i class="bi bi-list"></i>
+  </button>
+  <button type="button" 
+          class="btn btn-outline-secondary view-toggle-btn" 
+          data-bs-toggle="tab" 
+          data-bs-target="#{{ grid_id|default:'grid-view' }}" 
+          aria-selected="false" 
+          title="Grid view">
+    <i class="bi bi-grid-3x3-gap"></i>
+  </button>
+</div>

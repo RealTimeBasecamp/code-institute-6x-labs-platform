@@ -72,6 +72,7 @@
       this.nextBtn = this.modal.querySelector(".wizard-next-btn");
       this.submitBtn = this.modal.querySelector(".wizard-submit-btn");
       this.skipBtn = this.modal.querySelector(".wizard-skip-btn");
+      this.saveCloseBtn = this.modal.querySelector(".wizard-save-close-btn");
       this.closeBtn = this.modal.querySelector(".wizard-close-btn");
       this.loadingSpinner = this.modal.querySelector(".wizard-loading");
     }
@@ -85,6 +86,7 @@
       this.nextBtn?.addEventListener("click", () => this.nextStep());
       this.submitBtn?.addEventListener("click", () => this.submit());
       this.skipBtn?.addEventListener("click", () => this.skipStep());
+      this.saveCloseBtn?.addEventListener("click", () => this.saveAndClose());
       this.closeBtn?.addEventListener("click", () => this._handleClose());
 
       // Step indicator click navigation
@@ -93,7 +95,7 @@
       });
 
       // Modal events
-      this.modal.addEventListener("show.bs.modal", () => this.start());
+      this.modal.addEventListener("show.bs.modal", (event) => this._handleModalShow(event));
       this.modal.addEventListener("hidden.bs.modal", () => this._onHidden());
 
       // Track form changes via event delegation
@@ -106,7 +108,27 @@
     }
 
     /**
-     * Start the wizard - load first step
+     * Handle modal show event - check if a specific start form was requested
+     */
+    _handleModalShow(event) {
+      // Check if the button that triggered the modal has a start form attribute
+      const triggerButton = event.relatedTarget;
+
+      // Support edit_form (form class name) - backend resolves to step number
+      const startForm = triggerButton?.dataset.wizardStartForm;
+
+      if (startForm) {
+        // Form class name - will be sent to backend for resolution
+        this.requestedStartForm = startForm;
+      } else {
+        this.requestedStartForm = null;
+      }
+
+      this.start();
+    }
+
+    /**
+     * Start the wizard - load first step (or requested form)
      */
     async start() {
       this.currentStep = 0;
@@ -114,11 +136,17 @@
       this.stepData = {};
       this.visitedSteps = new Set([0]);
 
+      // Clear previous content and show loading state immediately
+      this._showLoading();
+
       try {
-        // Build request body with optional context
+        // Build request body with optional context and start_form
         const requestBody = {};
         if (Object.keys(this.wizardContext).length > 0) {
           requestBody.context = this.wizardContext;
+        }
+        if (this.requestedStartForm) {
+          requestBody.start_form = this.requestedStartForm;
         }
 
         const response = await fetch(
@@ -140,9 +168,23 @@
           if (result.step_titles) {
             this._renderStepIndicators(result.step_titles);
           }
+
+          // Backend renders the requested step directly, use its response
+          const startStep = result.progress?.current || 0;
+          this.currentStep = startStep;
+
+          // Mark all steps up to the start step as visited
+          for (let i = 0; i <= startStep; i++) {
+            this.visitedSteps.add(i);
+          }
+
+          // Use the HTML from the response directly (no second request needed)
           this._setContent(result.html);
           this._updateProgress(result.progress);
-          this._updateNavigation(0, result.is_skippable || false);
+          this._updateNavigation(startStep, result.is_skippable || false);
+
+          // Reset after use
+          this.requestedStartForm = null;
         } else {
           this._showError(result.error || "Failed to start wizard");
         }
@@ -391,6 +433,63 @@
     }
 
     /**
+     * Save current step and close modal (for edit mode)
+     */
+    async saveAndClose() {
+      if (this.isLoading) return;
+
+      // Validate current step
+      const isValid = await this._validateCurrentStep();
+      if (!isValid) return;
+
+      this.isLoading = true;
+
+      try {
+        // Submit the wizard with current data
+        const response = await fetch(
+          `${this.options.apiBase}${this.wizardName}/submit/`,
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              "X-CSRFToken": this._getCsrfToken(),
+              "X-Requested-With": "XMLHttpRequest",
+            },
+            body: JSON.stringify({
+              all_data: this._mergeAllStepData(),
+            }),
+          }
+        );
+
+        const result = await response.json();
+
+        if (result.success) {
+          this.hasUnsavedChanges = false;
+          this._hideModal();
+
+          if (this.options.onComplete) {
+            this.options.onComplete(result);
+          }
+
+          if (result.message) {
+            console.log("Changes saved:", result.message);
+          }
+
+          // Reload the current page to reflect changes
+          window.location.reload();
+        } else {
+          // Show errors on current step
+          this._displayErrors(result.errors || { __all__: [result.error] });
+        }
+      } catch (error) {
+        console.error("Save error:", error);
+        this._displayErrors({ __all__: ["Save failed. Please try again."] });
+      } finally {
+        this.isLoading = false;
+      }
+    }
+
+    /**
      * Cancel the wizard - clears server session data
      */
     async cancel() {
@@ -611,11 +710,28 @@
         this.prevBtn.disabled = step === 0;
       }
 
-      // Next vs Submit button
+      // Determine if we're in edit mode (has wizard context)
+      const isEditMode = Object.keys(this.wizardContext).length > 0;
       const isLastStep = step === this.options.totalSteps - 1;
+
+      // Show/hide Save & Close button in edit mode
+      if (this.saveCloseBtn) {
+        this.saveCloseBtn.classList.toggle("d-none", !isEditMode || isLastStep);
+      }
+
+      // Next button - hide on last step, or make it secondary in edit mode
       if (this.nextBtn) {
         this.nextBtn.classList.toggle("d-none", isLastStep);
+        if (isEditMode) {
+          this.nextBtn.classList.remove("btn-primary");
+          this.nextBtn.classList.add("btn-outline-secondary");
+        } else {
+          this.nextBtn.classList.add("btn-primary");
+          this.nextBtn.classList.remove("btn-outline-secondary");
+        }
       }
+
+      // Submit button - show on last step
       if (this.submitBtn) {
         this.submitBtn.classList.toggle("d-none", !isLastStep);
       }
@@ -710,6 +826,27 @@
     }
 
     /**
+     * Show loading spinner and clear previous content
+     */
+    _showLoading() {
+      this.contentArea.innerHTML = `
+        <div class="d-flex justify-content-center align-items-center py-5">
+          <div class="spinner-border text-primary" role="status">
+            <span class="visually-hidden">Loading...</span>
+          </div>
+        </div>
+      `;
+      // Reset step indicators to initial state
+      if (this.stepsContainer) {
+        this.stepsContainer.innerHTML = "";
+      }
+      // Reset progress bar
+      if (this.progressBar) {
+        this.progressBar.style.width = "0%";
+      }
+    }
+
+    /**
      * Hide the modal
      */
     _hideModal() {
@@ -752,7 +889,7 @@
      * Cleanup when modal is hidden
      */
     _onHidden() {
-      // Clear server session
+      // Clear server session (fire and forget - don't block)
       this.cancel();
 
       // Reset wizard state
@@ -760,6 +897,17 @@
       this.stepData = {};
       this.visitedSteps = new Set([0]);
       this.hasUnsavedChanges = false;
+
+      // Clear DOM content to prevent flash of old content on reopen
+      if (this.contentArea) {
+        this.contentArea.innerHTML = "";
+      }
+      if (this.stepsContainer) {
+        this.stepsContainer.innerHTML = "";
+      }
+      if (this.progressBar) {
+        this.progressBar.style.width = "0%";
+      }
     }
   }
 

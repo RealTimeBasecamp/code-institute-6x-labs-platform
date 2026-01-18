@@ -73,15 +73,21 @@ class NavigationItem(models.Model):
 # COORDINATE
 # =============================================================================
 class Coordinate(models.Model):
-    latitude = models.DecimalField(max_digits=10, decimal_places=7, db_index=True)
-    longitude = models.DecimalField(max_digits=11, decimal_places=7, db_index=True)
+    latitude = models.DecimalField(
+        max_digits=10, decimal_places=7, db_index=True, null=True, blank=True
+    )
+    longitude = models.DecimalField(
+        max_digits=11, decimal_places=7, db_index=True, null=True, blank=True
+    )
     altitude = models.DecimalField(max_digits=7, decimal_places=2, null=True, blank=True)
     elevation = models.DecimalField(max_digits=7, decimal_places=2, null=True, blank=True)
-    coordinate_system = models.CharField(max_length=20, default="WGS84")
+    coordinate_system = models.CharField(max_length=20, default="WGS84", blank=True)
     what3w = models.CharField(max_length=50, null=True, blank=True, db_index=True)
 
     def __str__(self):
-        return f"{self.latitude}, {self.longitude}"
+        if self.latitude and self.longitude:
+            return f"{self.latitude}, {self.longitude}"
+        return "No coordinates"
 
 
 # =============================================================================

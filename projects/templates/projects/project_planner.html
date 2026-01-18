@@ -21,6 +21,16 @@
   modal_icon="bi bi-folder-plus"
 %}
 
+{% if project %}
+{% include "components/modals/wizard_modal.html" with
+  modal_id="projectEditWizard"
+  wizard_name="project_edit"
+  modal_title="Edit Project"
+  modal_icon="bi bi-pencil-square"
+  wizard_context='{"project_slug": "'|add:project.slug|add:'"}'
+%}
+{% endif %}
+
 {% endblock %}
 
 
@@ -41,35 +51,13 @@
         <!-- Left side: Dropdowns and nav buttons -->
         <div class="d-flex flex-wrap align-items-center gap-2">
             {% if project %}
-            {% include 'components/dropdown.html' with
-                dropdown_id="projectDropdown"
-                dropdown_label=project.name
-                dropdown_width="25rem"
-                list=projects
-            %}
-            {% include 'components/dropdown.html' with
-                dropdown_id="siteDropdown"
-                dropdown_label=project.sites.all.first.name|default:"No sites"
-                dropdown_width="8rem"
-                list=project.sites.all
-            %}
-            {% else %}
-            {% include 'components/dropdown.html' with
-                dropdown_id="projectDropdown"
-                dropdown_label="Select a project"
-                dropdown_width="25rem"
-                list=projects
-            %}
+              {% include 'components/dropdown.html' with
+                  dropdown_id="projectDropdown"
+                  dropdown_label=project.name
+                  dropdown_width="25rem"
+                  list=projects
+              %}
             {% endif %}
-            <button class="btn btn-secondary btn-square" title="Previous">
-                <i class="bi bi-chevron-left"></i>
-            </button>
-            <button class="btn btn-secondary btn-square" title="Next">
-                <i class="bi bi-chevron-right"></i>
-            </button>
-            <button class="btn btn-secondary btn-square" title="Add new">
-                <i class="bi bi-plus"></i>
-            </button>
         </div>
 
         <!-- Right side: Action buttons -->
@@ -84,7 +72,10 @@
     {% endif %}
 </section>
 
-{% include 'planting/point_plotter.html' %}
+{% card
+       snippet_path='planting/interactive_map.html'
+%}
+
 
 <ul class="nav nav-pills" role="tablist">
   <li class="nav-item" role="presentation">
@@ -98,9 +89,8 @@
 <div class="tab-content mt-4">
   <div class="tab-pane fade show active d-flex flex-column gap-4" id="project-info" role="tabpanel" aria-labelledby="project-info-tab">
     {% if project %}
-    {% card card_title='Project description' card_icon='bi bi-card-text' card_body=project.description %}
         {% for group in card_groups %}
-            {% card card_title=group.title card_icon=group.icon card_body=group.body_html %}
+            {% card card_title=group.title card_icon=group.icon card_body=group.body_html edit_modal_id='projectEditWizard' edit_form=group.edit_form %}
         {% endfor %}
         {% card card_title='Contributor Information' card_icon='bi bi-person-plus' card_body='<p class="text-muted mb-0">No contributors added yet.</p>' %}
     {% endif %}
@@ -110,5 +100,22 @@
     <p>Project breakdown here</p>
   </div>
 </div>
+
+{% if user.is_authenticated and project.created_by == user %}
+  {% card
+    card_title="Danger Zone"
+    card_icon="bi bi-exclamation-triangle-fill text-danger"
+    card_body='<p class="text-danger mb-3">Deleting this project is irreversible. All associated data will be lost.</p><a role="button" class="btn btn-outline-danger" data-bs-toggle="modal" data-bs-target="#deleteModal"><i class="bi bi-trash me-2"></i>Delete Project</a>'
+  %}
+
+  {% include "components/modals/wizard_modal.html" with
+    modal_id="deleteModal"
+    wizard_name="project_delete"
+    modal_title="Delete Project"
+    modal_icon="bi bi-trash"
+    wizard_mode="delete"
+    wizard_context='{"project_slug":"'|add:project.slug|add:'"}'
+  %}
+{% endif %}
 
 {% endblock %}

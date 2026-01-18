@@ -14,7 +14,7 @@ def split(value, delimiter=','):
 
 
 @register.inclusion_tag('components/card.html', takes_context=False)
-def card(card_title, card_icon, card_body=None, snippet_path=None, **context):
+def card(card_title=None, card_icon=None, card_body=None, snippet_path=None, edit_modal_id=None, edit_form=None, **context):
     """
     Reusable card component supporting both pre-rendered HTML and template snippets.
 
@@ -54,14 +54,22 @@ def card(card_title, card_icon, card_body=None, snippet_path=None, **context):
                    item=item %}
         {% endfor %}
 
+    Usage Option 3 - With edit functionality:
+        # Card with edit button that opens a wizard modal at specific form
+        {% card card_title='Site Details'
+               card_icon='bi bi-info-circle'
+               card_body=site_details_html
+               edit_modal_id='projectEditWizard'
+               edit_form='ProjectEnvironmentForm' %}
+
     Args:
         card_title (str): Card header title
-        card_icon (str): Bootstrap icon class (e.g., 'bi bi-star', 'bi bi-info-circle')
+        card_icon (str): Bootstrap icon class
         card_body (str, optional): HTML content string for the card body.
-                                   Use this OR snippet_path, not both.
-        snippet_path (str, optional): Path to template snippet to render as card body.
-                                      When provided, **context kwargs are passed to the template.
-        **context: Named arguments passed to the snippet template (only used with snippet_path)
+        snippet_path (str, optional): Path to template snippet to render.
+        edit_modal_id (str, optional): ID of modal to open on edit click.
+        edit_form (str, optional): Form class name to open in the wizard.
+        **context: Named arguments passed to snippet template
 
     Returns:
         dict: Context passed to components/card.html template
@@ -84,4 +92,6 @@ def card(card_title, card_icon, card_body=None, snippet_path=None, **context):
         'card_title': card_title,
         'card_icon': card_icon,
         'card_body': body_content,
+        'edit_modal_id': edit_modal_id,
+        'edit_form': edit_form,
     }
