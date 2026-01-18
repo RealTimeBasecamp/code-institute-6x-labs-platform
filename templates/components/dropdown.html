@@ -1,18 +1,27 @@
 {% comment %}
 Custom Dropdown Component
 
-Usage:
+Usage (buttons - no URLs):
   {% include 'components/dropdown.html' with
       dropdown_id="myDropdown"
       dropdown_label="Select Option"
       list=my_list
   %}
 
+Usage (links - automatic):
+  If items have get_absolute_url() method or .url attribute, they become links automatically.
+
+  {% include 'components/dropdown.html' with
+      dropdown_id="projectDropdown"
+      dropdown_label=project.name
+      list=projects
+  %}
+
 Parameters:
   - dropdown_id: Unique identifier for the dropdown
   - dropdown_label: Default text shown in the dropdown toggle
   - dropdown_width: Optional minimum width (default: auto)
-  - list: List of items (strings or objects with .name attribute)
+  - list: List of items (strings, or objects with .name/.url/get_absolute_url())
 {% endcomment %}
 
 <div class="custom-dropdown" {% if dropdown_id %}id="{{ dropdown_id }}"{% endif %} {% if dropdown_width %}style="min-width: {{ dropdown_width }};"{% endif %}>
@@ -26,7 +35,15 @@ Parameters:
   <ul class="dropdown-menu">
     {% if list %}
       {% for item in list %}
-        <li><button class="dropdown-item" type="button">{{ item }}</button></li>
+        <li>
+          {% if item.get_absolute_url %}
+            <a class="dropdown-item" href="{{ item.get_absolute_url }}">{{ item.name|default:item }}</a>
+          {% elif item.url %}
+            <a class="dropdown-item" href="{{ item.url }}">{{ item.name|default:item }}</a>
+          {% else %}
+            <button class="dropdown-item" type="button">{{ item.name|default:item }}</button>
+          {% endif %}
+        </li>
       {% endfor %}
     {% else %}
       <li><button class="dropdown-item" type="button">No options</button></li>

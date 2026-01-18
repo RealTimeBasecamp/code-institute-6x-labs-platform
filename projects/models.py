@@ -3,6 +3,7 @@ from decimal import Decimal
 
 from django.db import models
 from django.db.models import Avg, Sum, Count, Q
+from django.urls import reverse
 from django.utils.text import slugify
 
 from core.models import Address, Contact, Coordinate
@@ -439,6 +440,9 @@ class Project(models.Model):
                 ],
             },
         ]
+
+    def get_absolute_url(self):
+        return reverse('projects:project_planner_detail', kwargs={'slug': self.slug}) 
 
 
 # =============================================================================
