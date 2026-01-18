@@ -14,7 +14,7 @@ def split(value, delimiter=','):
 
 
 @register.inclusion_tag('components/card.html', takes_context=False)
-def card(card_title, card_icon, card_body=None, snippet_path=None, edit_modal_id=None, edit_form=None, **context):
+def card(card_title=None, card_icon=None, card_body=None, snippet_path=None, edit_modal_id=None, edit_form=None, **context):
     """
     Reusable card component supporting both pre-rendered HTML and template snippets.
 
