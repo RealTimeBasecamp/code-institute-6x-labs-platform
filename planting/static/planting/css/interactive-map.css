@@ -1,0 +1,190 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+.map-container {
+    position: relative;
+    width: 100%;
+    height: 0;
+    padding-bottom: 56.25%; /* 16:9 aspect ratio */
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+}
+
+#map {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+}
+
+#echarts-layer {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none; /* Allow map interactions through ECharts layer */
+}
+
+/* Custom Map Settings Control */
+.map-settings-control {
+    position: relative;
+}
+
+.map-settings-btn {
+    background: #fff;
+    border: none;
+    border-radius: 4px;
+    width: 29px;
+    height: 29px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 0 0 2px rgba(0,0,0,0.1);
+}
+
+.map-settings-btn:hover {
+    background: #f0f0f0;
+}
+
+.map-settings-btn svg {
+    width: 18px;
+    height: 18px;
+    fill: #333;
+}
+
+.map-settings-panel {
+    position: absolute;
+    top: 100%;
+    right: 0;
+    margin-top: 8px;
+    background: #fff;
+    border-radius: 8px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+    padding: 12px 16px;
+    min-width: 200px;
+    display: none;
+    z-index: 1000;
+}
+
+.map-settings-panel.open {
+    display: block;
+}
+
+.map-settings-panel h4 {
+    margin: 0 0 12px 0;
+    padding-bottom: 8px;
+    border-bottom: 1px solid #eee;
+    font-size: 14px;
+    color: #333;
+    font-weight: 600;
+}
+
+.map-settings-option {
+    display: flex;
+    align-items: center;
+    padding: 8px 0;
+    cursor: pointer;
+    user-select: none;
+}
+
+.map-settings-option:hover {
+    background: #f8f8f8;
+    margin: 0 -16px;
+    padding: 8px 16px;
+}
+
+.map-settings-option input[type="checkbox"] {
+    width: 18px;
+    height: 18px;
+    margin-right: 10px;
+    cursor: pointer;
+    accent-color: #3388ff;
+}
+
+.map-settings-option label {
+    font-size: 13px;
+    color: #444;
+    cursor: pointer;
+    flex: 1;
+}
+
+/* Number input styling */
+.map-settings-input-group {
+    display: flex;
+    align-items: center;
+    padding: 8px 0;
+}
+
+.map-settings-input-group label {
+    font-size: 13px;
+    color: #444;
+    flex: 1;
+}
+
+.map-settings-input-group input[type="number"] {
+    width: 70px;
+    padding: 4px 8px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    font-size: 13px;
+    text-align: center;
+}
+
+.map-settings-input-group input[type="number"]:focus {
+    outline: none;
+    border-color: #3388ff;
+    box-shadow: 0 0 0 2px rgba(51, 136, 255, 0.2);
+}
+
+.map-settings-input-group input[type="number"]:disabled {
+    background-color: #f5f5f5;
+    color: #999;
+    cursor: not-allowed;
+    border-color: #ddd;
+}
+
+.map-settings-input-group label:has(+ input:disabled) {
+    color: #999;
+}
+
+/* Remove default number spinner on some browsers, keep native on others */
+.map-settings-input-group input[type="number"]::-webkit-inner-spin-button,
+.map-settings-input-group input[type="number"]::-webkit-outer-spin-button {
+    opacity: 1;
+}
+
+.map-settings-divider {
+    height: 1px;
+    background: #eee;
+    margin: 8px 0;
+}
+
+.info-panel {
+    position: absolute;
+    top: 10px;
+    left: 10px;
+    background: rgba(255, 255, 255, 0.9);
+    padding: 15px;
+    border-radius: 8px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+    z-index: 1000;
+    max-width: 250px;
+}
+
+.info-panel h3 {
+    margin-bottom: 10px;
+    color: #333;
+}
+
+.info-panel p {
+    font-size: 14px;
+    color: #666;
+    margin-bottom: 5px;
+}

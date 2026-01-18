@@ -94,7 +94,12 @@
     {% endif %}
 </section>
 
-{% include 'planting/point_plotter.html' %}
+{% load card_tags %}
+
+{% card
+       snippet_path='planting/interactive_map.html'
+%}
+
 
 <ul class="nav nav-pills" role="tablist">
   <li class="nav-item" role="presentation">
