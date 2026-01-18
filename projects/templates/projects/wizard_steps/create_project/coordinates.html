@@ -8,6 +8,7 @@ Context provided by wizard:
   - step: Current step index (3)
   - coordinate_help: Help text for coordinates
 {% endcomment %}
+{% load form_tags %}
 
 <div class="wizard-step">
   <p class="text-muted mb-4">
@@ -21,31 +22,9 @@ Context provided by wizard:
   </div>
   {% endif %}
 
-  <div class="row">
-    <div class="col-md-6 mb-3">
-      <label for="id_latitude" class="form-label">Latitude</label>
-      {{ form.latitude }}
-      <div class="form-text">
-        Decimal degrees (-90 to 90). e.g., 51.5074 for London
-      </div>
-    </div>
-
-    <div class="col-md-6 mb-3">
-      <label for="id_longitude" class="form-label">Longitude</label>
-      {{ form.longitude }}
-      <div class="form-text">
-        Decimal degrees (-180 to 180). e.g., -0.1278 for London
-      </div>
-    </div>
-  </div>
-
-  <div class="mb-3">
-    <label for="id_altitude" class="form-label">Altitude (meters)</label>
-    {{ form.altitude }}
-    <div class="form-text">
-      Height above sea level in meters.
-    </div>
-  </div>
+  {% form_row form 'latitude' 'longitude' %}
+  {% form_row form 'altitude' 'elevation' %}
+  {% form_row form 'coordinate_system' 'what3w' %}
 
   <div class="alert alert-light mt-3">
     <h6 class="alert-heading mb-2">
