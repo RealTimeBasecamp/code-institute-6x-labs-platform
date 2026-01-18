@@ -94,8 +94,6 @@
     {% endif %}
 </section>
 
-{% load card_tags %}
-
 {% card
        snippet_path='planting/interactive_map.html'
 %}
@@ -124,5 +122,22 @@
     <p>Project breakdown here</p>
   </div>
 </div>
+
+{% if user.is_authenticated and project.created_by == user %}
+  {% card
+    card_title="Danger Zone"
+    card_icon="bi bi-exclamation-triangle-fill text-danger"
+    card_body='<p class="text-danger mb-3">Deleting this project is irreversible. All associated data will be lost.</p><a role="button" class="btn btn-outline-danger" data-bs-toggle="modal" data-bs-target="#deleteModal"><i class="bi bi-trash me-2"></i>Delete Project</a>'
+  %}
+
+  {% include "components/modals/wizard_modal.html" with
+    modal_id="deleteModal"
+    wizard_name="project_delete"
+    modal_title="Delete Project"
+    modal_icon="bi bi-trash"
+    wizard_mode="delete"
+    wizard_context='{"project_slug":"'|add:project.slug|add:'"}'
+  %}
+{% endif %}
 
 {% endblock %}
