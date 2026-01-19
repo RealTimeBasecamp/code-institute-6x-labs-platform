@@ -5,6 +5,7 @@
  * - Visual selection state for theme cards and mode buttons
  * - Real-time theme preview via ThemeManager
  * - Sync between visual state and hidden form fields
+ * - Pill navigation component for mode selector
  */
 (function() {
   'use strict';
@@ -27,7 +28,7 @@
       }
     }
 
-    // Initialize mode button selection
+    // Initialize mode button selection and pill nav
     if (modeSelect) {
       const currentMode = modeSelect.value || 'system';
       const modeBtn = document.querySelector(`.mode-btn[data-mode="${currentMode}"]`);
@@ -35,6 +36,12 @@
         document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active'));
         modeBtn.classList.add('active');
       }
+    }
+
+    // Initialize pill nav for mode selector (loaded via AJAX)
+    const modeSelector = document.querySelector('.mode-selector.nav-pills');
+    if (modeSelector && !modeSelector._pillNav && typeof PillNav !== 'undefined') {
+      modeSelector._pillNav = new PillNav(modeSelector);
     }
   }
 
@@ -89,6 +96,12 @@
       btn.classList.add('active');
       const select = document.getElementById('id_theme_mode');
       if (select) select.value = mode;
+
+      // Update pill nav indicator
+      const nav = btn.closest('.nav-pills');
+      if (nav && nav._pillNav) {
+        nav._pillNav.updateIndicator();
+      }
     }
   });
 
