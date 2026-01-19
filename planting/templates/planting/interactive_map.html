@@ -50,14 +50,12 @@
                     dropdown_label=project.sites.first.name
                     dropdown_width="100%"
                     list=project.sites.all
-                    only
                 %}
               {% else %}
                 {% include 'components/dropdown.html' with
                     dropdown_id="siteDropdown"
                     dropdown_label="No sites"
                     dropdown_width="100%"
-                    only
                 %}
               {% endif %}
             </div>
