@@ -407,16 +407,16 @@
             this.options.onComplete(result);
           }
 
-          // Show toast notification for success message
-          if (result.message && window.showToast) {
-            const toastType = result.toast_type || 'success';
-            const toastTitle = result.toast_title || null;
-            window.showToast(result.message, toastType, toastTitle);
-          }
-
           if (result.redirect_url) {
+            // Redirect to new page - Django messages will show toast there
             window.location.href = result.redirect_url;
           } else {
+            // No redirect - show toast before reload (for edit/save scenarios)
+            if (result.message && window.showToast) {
+              const toastType = result.toast_type || 'success';
+              const toastTitle = result.toast_title || null;
+              window.showToast(result.message, toastType, toastTitle);
+            }
             // Reload current page if no redirect specified
             window.location.reload();
           }
@@ -719,13 +719,14 @@
         this.prevBtn.disabled = step === 0;
       }
 
-      // Determine if we're in edit mode (has wizard context)
-      const isEditMode = Object.keys(this.wizardContext).length > 0;
+      // Determine wizard modes
+      const isDeleteMode = this.wizardMode === "delete";
+      const isEditMode = Object.keys(this.wizardContext).length > 0 && !isDeleteMode;
       const isLastStep = step === this.options.totalSteps - 1;
 
-      // Show/hide Save & Close button in edit mode
+      // Show/hide Save & Close button - only in edit mode, never in delete mode
       if (this.saveCloseBtn) {
-        this.saveCloseBtn.classList.toggle("d-none", !isEditMode || isLastStep);
+        this.saveCloseBtn.classList.toggle("d-none", isDeleteMode || !isEditMode || isLastStep);
       }
 
       // Next button - hide on last step, or make it secondary in edit mode
@@ -745,9 +746,9 @@
         this.submitBtn.classList.toggle("d-none", !isLastStep);
       }
 
-      // Skip button - only show for skippable steps that aren't the last step
+      // Skip button - only show for skippable steps, never in delete mode
       if (this.skipBtn) {
-        this.skipBtn.classList.toggle("d-none", !isSkippable || isLastStep);
+        this.skipBtn.classList.toggle("d-none", isDeleteMode || !isSkippable || isLastStep);
       }
     }
 
