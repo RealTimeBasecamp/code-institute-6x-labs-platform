@@ -4,38 +4,167 @@
 {% block meta_title %}Dashboard{% endblock %}
 {% block page_title %}Dashboard{% endblock %}
 
+{% block extra_css %}
+<style>
+  .dash-row { display: flex; gap: 1rem; flex-wrap: wrap; }
+  .dash-card { flex: 1 1 22%; min-width: 220px; background: #141414; border-radius: 12px; padding: 1rem; box-shadow: 0 6px 18px rgba(0,0,0,0.6); color: #fff; }
+  .dash-card h4 { color: #ffd96a; margin-bottom: 0.5rem; font-weight:600 }
+  .chart-wrap { width:100%; height:180px; }
+  @media (max-width: 900px) { .dash-card { flex: 1 1 48%; } }
+  @media (max-width: 520px) { .dash-card { flex: 1 1 100%; } }
+</style>
+{% endblock %}
+
 {% block content %}
-<p>Dashboard grid graphs and stats go here.</p>
+<div class="container">
+  <div class="dash-row">
+    <div class="dash-card">
+      <h4>Projects</h4>
+      <div id="projectsChart" class="chart-wrap"></div>
+    </div>
+
+    <div class="dash-card">
+      <h4>Total CO₂ Saved</h4>
+      <div id="co2Chart" class="chart-wrap"></div>
+    </div>
+
+    <div class="dash-card">
+      <h4>Plants Planted</h4>
+      <div id="plantsChart" class="chart-wrap"></div>
+    </div>
+
+    <div class="dash-card">
+      <h4>Years of Growth</h4>
+      <div id="yearsChart" class="chart-wrap"></div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+  <script src="https://cdn.jsdelivr.net/npm/echarts@5/dist/echarts.min.js"></script>
+  <script>
+    (function () {
+      // Theme colors
+      const mainColor = '#ffd966'; // warm yellow
+      const accentColor = '#7c5cff'; // purple accent
+
+      // gradient helper (object form supported by ECharts)
+      const verticalGradient = (c) => ({
+        type: 'linear', x: 0, y: 0, x2: 0, y2: 1,
+        colorStops: [
+          { offset: 0, color: c.replace('1)', '1)') },
+          { offset: 1, color: c.replace('1)', '0.12)') }
+        ]
+      });
+
+      // 1) Projects - gauge ring
+      const projectsEl = document.getElementById('projectsChart');
+      const projectsChart = echarts.init(projectsEl);
+      projectsChart.setOption({
+        series: [{
+          type: 'gauge',
+          startAngle: 180, endAngle: 0,
+          radius: '100%',
+          progress: { show: true, width: 18, itemStyle: { color: mainColor } },
+          axisLine: { lineStyle: { width: 18, color: [[1, verticalGradient('rgba(255,217,102,1)')]] } },
+          pointer: { show: false },
+          axisTick: { show: false },
+          splitLine: { show: false },
+          axisLabel: { show: false },
+          detail: { show: true, valueAnimation: true, fontSize: 26, color: '#fff', formatter: '{value}' },
+          data: [{ value: {{ num_projects }}, name: 'Projects' }]
+        }]
+      });
+
+      // 2) CO2 - doughnut
+      const co2El = document.getElementById('co2Chart');
+      const co2Chart = echarts.init(co2El);
+      const totalCo2 = {{ total_co2 }};
+      co2Chart.setOption({
+        series: [{
+          type: 'pie',
+          radius: ['62%', '82%'],
+          avoidLabelOverlap: false,
+          label: { show: true, position: 'center', formatter: totalCo2 + '\n tCO₂', color: '#fff', fontSize: 16 },
+          emphasis: { label: { show: true } },
+          data: [
+            { value: totalCo2, name: 'Saved', itemStyle: { color: verticalGradient('rgba(255,217,102,1)') } },
+            { value: Math.max(1, Math.round(totalCo2 * 0.2)), name: 'placeholder', itemStyle: { color: 'rgba(255,255,255,0.04)' } }
+          ]
+        }]
+      });
+
+      // 3) Plants - smooth line with area gradient (uses model aggregates passed from view)
+      const plantsEl = document.getElementById('plantsChart');
+      const plantsChart = echarts.init(plantsEl);
+      // Data populated from Django context arrays
+      const years = {{ plants_years|default:'[]'|safe }};
+      const plantsSeries = {{ plants_values|default:'[]'|safe }};
+      plantsChart.setOption({
+        xAxis: { type: 'category', data: years, axisLine: { lineStyle: { color: 'rgba(255,255,255,0.12)' } }, axisLabel: { color: '#ddd' } },
+        yAxis: { type: 'value', axisLine: { show: false }, splitLine: { lineStyle: { color: 'rgba(255,255,255,0.03)' } }, axisLabel: { color: '#ddd' } },
+        grid: { left: '6%', right: '6%', bottom: '10%', top: '10%' },
+        series: [{
+          data: plantsSeries,
+          type: 'line', smooth: true,
+          lineStyle: { color: accentColor, width: 3 },
+          symbol: 'circle', symbolSize: 6, itemStyle: { color: mainColor },
+          areaStyle: { color: verticalGradient('rgba(124,92,255,1)') }
+        }]
+      });
+
+      // 4) Years of growth - simple gauge/number
+      const yearsEl = document.getElementById('yearsChart');
+      const yearsChart = echarts.init(yearsEl);
+      yearsChart.setOption({
+        series: [{
+          type: 'gauge', startAngle: 180, endAngle: 0, radius: '100%',
+          progress: { show: true, width: 18, itemStyle: { color: accentColor } },
+          axisLine: { lineStyle: { width: 18, color: [[1, verticalGradient('rgba(124,92,255,1)')]] } },
+          pointer: { show: false },
+          axisTick: { show: false }, splitLine: { show: false }, axisLabel: { show: false },
+          detail: { valueAnimation: true, fontSize: 26, color: '#fff', formatter: '{value} yrs' },
+          data: [{ value: {{ years_of_growth }}, name: 'Years' }]
+        }]
+      });
+
+      // Resize handling
+      const charts = [projectsChart, co2Chart, plantsChart, yearsChart];
+      window.addEventListener('resize', () => charts.forEach(c => c.resize()));
+    })();
+  </script>
+
+
+  <script src="{% static 'js/components/theme-preferences.js' %}" defer></script>
+  {% if not user.profile_setup_complete %}
+  <script>
+    // Auto-open profile wizard on first login
+    document.addEventListener('DOMContentLoaded', function() {
+      const wizardModal = document.getElementById('userProfileWizard');
+      if (wizardModal) {
+        const modal = new bootstrap.Modal(wizardModal);
+        modal.show();
+      }
+    });
+  </script>
+  {% endif %}
 
 {% endblock %}
 
 {% block modals %}
-{{ block.super }}
-{% comment %}
-User Profile Setup Wizard Modal
-Triggered automatically on first login when profile_setup_complete is False.
-{% endcomment %}
-{% include 'components/modals/wizard_modal.html' with
-  modal_id='userProfileWizard'
-  wizard_name='user_profile'
-  modal_title='Complete Your Profile'
-  modal_icon='bi bi-person-circle'
-%}
+
+  {% comment %}
+  User Profile Setup Wizard Modal
+  Triggered automatically on first login when profile_setup_complete is False.
+  {% endcomment %}
+
+  {% include 'components/modals/wizard_modal.html' with
+    modal_id='userProfileWizard'
+    wizard_name='user_profile'
+    modal_title='Complete Your Profile'
+    modal_icon='bi bi-person-circle'
+  %}
+
 {% endblock %}
 
-{% block extra_js %}
-{{ block.super }}
-<script src="{% static 'js/components/theme-preferences.js' %}" defer></script>
-{% if not user.profile_setup_complete %}
-<script>
-  // Auto-open profile wizard on first login
-  document.addEventListener('DOMContentLoaded', function() {
-    const wizardModal = document.getElementById('userProfileWizard');
-    if (wizardModal) {
-      const modal = new bootstrap.Modal(wizardModal);
-      modal.show();
-    }
-  });
-</script>
-{% endif %}
-{% endblock %}
