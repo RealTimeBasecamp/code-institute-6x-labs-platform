@@ -10,14 +10,23 @@ Context provided by wizard:
 - project: The project being deleted (passed via get_step_context)
 {% endcomment %}
 
-<div class="wizard-step">
-  {# Final warning reminder #}
-  <div class="alert alert-danger border-danger mb-4">
-    <div class="d-flex align-items-center">
-      <i class="bi bi-exclamation-triangle-fill fs-4 me-3"></i>
-      <div>
-        <strong class="d-block">This is your final step</strong>
-        <span class="text-body-secondary">Once deleted, <strong>{{ project.name }}</strong> cannot be recovered.</span>
+  {# User info card #}
+  <div class="card mb-4">
+    <div class="card-header">
+      <span class="fw-semibold">Deleting as</span>
+    </div>
+    <div class="card-body">
+      <div class="d-flex align-items-center gap-3">
+        {% if user.avatar %}
+          <img src="{{ user.avatar.url }}" alt="{{ user.username }}"
+               class="rounded-circle" width="40" height="40">
+        {% else %}
+          {% include 'components/user_avatar.html' with user=user %}
+        {% endif %}
+        <div>
+          <div class="fw-semibold">{{ user.display_name|default:user.username }}</div>
+          <small class="text-body-secondary">{{ user.email }}</small>
+        </div>
       </div>
     </div>
   </div>
