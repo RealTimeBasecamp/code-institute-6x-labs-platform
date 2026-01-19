@@ -1,5 +1,6 @@
 /* ===== GLOBAL CUSTOM PROPERTIES ===== */
 :root {
+  --bs-border-radius: 0.5rem;
   --primary-color: #059acc; /* Fallback during theme transitions - overridden by themes */
   --sidebar-width: 16.25rem;
   --sidebar-min-width: 16.25rem;
@@ -216,6 +217,31 @@ h1, h2, h3, h4, h5, h6, p, span, div, a, button, input, textarea, select{
   padding: 0;
 }
 
+/* ===== LAYOUT UTILITIES ===== */
+/* Row with flexible input/dropdown and fixed-width buttons */
+.input-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.input-row > .flex-fill {
+  flex: 1;
+  min-width: 0;
+}
+
+/* Equal-width button group using CSS grid */
+.btn-group-equal {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 0.25rem;
+}
+
+.btn-group-equal-3 {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.25rem;
+}
 
 /* ===== PRIMARY BUTTON OVERRIDE ===== */
 .btn-primary {
@@ -228,6 +254,15 @@ h1, h2, h3, h4, h5, h6, p, span, div, a, button, input, textarea, select{
   --bs-btn-disabled-bg: var(--primary-color);
   --bs-btn-disabled-border-color: var(--primary-color);
 }
+
+.btn-secondary {
+  --bs-btn-bg: var(--bs-body-bg);
+  --bs-btn-border-color: var(--bs-border-color);
+  --bs-btn-hover-bg: var(--bs-hover-bg);
+  --bs-btn-hover-border-color: var(--bs-border-color);
+  --bs-btn-color: var(--bs-body-color);
+}
+
 
 .bi,
 svg {
