@@ -50,10 +50,7 @@ Context provided by wizard:
           <img src="{{ user.avatar.url }}" alt="{{ user.username }}"
                class="rounded-circle" width="40" height="40">
         {% else %}
-          <div class="rounded-circle bg-primary d-flex align-items-center justify-content-center"
-               style="width: 40px; height: 40px;">
-            <span class="text-white fw-bold">{{ user.username|slice:":1"|upper }}</span>
-          </div>
+          {% include 'components/user_avatar.html' with user=user %}
         {% endif %}
         <div>
           <div class="fw-semibold">{{ user.display_name|default:user.username }}</div>
