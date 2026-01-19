@@ -21,14 +21,13 @@ from .summary import ProjectSummaryForm
 class ProjectCreationWizard(BaseWizardView):
     """
     Project creation wizard.
-    
+
     Creates Project with related Address, Contact, and optional
     Coordinate records through a multi-step wizard interface.
     """
 
     wizard_name = 'project_creation'
     success_url = '/projects/project-planner/{slug}/'
-    success_message = 'Project created successfully!'
 
     forms = [
         ProjectBasicInfoForm,
@@ -42,6 +41,24 @@ class ProjectCreationWizard(BaseWizardView):
     def get_extra_create_data(self, request):
         """Set created_by to the current user when creating a project."""
         return {'created_by': request.user}
+
+    def on_complete(self, request, all_data):
+        """
+        Create project and return success with project name in message.
+
+        Overrides base on_complete to customize the success message
+        with the created project's name for toast notification.
+        """
+        # Call parent to create objects
+        result = super().on_complete(request, all_data)
+
+        if result.get('success'):
+            # Get the project name from the submitted data
+            project_name = all_data.get('name', 'Project')
+            result['message'] = f'Successfully created project: {project_name}'
+            result['toast_title'] = 'Project Created'
+
+        return result
 
     def get_form_kwargs(self, request, step):
         """

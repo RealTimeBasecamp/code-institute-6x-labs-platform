@@ -19,7 +19,7 @@ class UserBasicInfoForm(WizardModelForm):
 
     class Meta:
         model = User
-        fields = ['first_name', 'last_name', 'display_name']
+        fields = ['first_name', 'last_name', 'display_name', 'avatar', 'pronouns']
         widgets = {
             'first_name': forms.TextInput(attrs={
                 'placeholder': 'Enter your first name',
@@ -31,12 +31,22 @@ class UserBasicInfoForm(WizardModelForm):
             'display_name': forms.TextInput(attrs={
                 'placeholder': 'e.g., John D. or JD',
             }),
+            'avatar': forms.TextInput(attrs={
+                'placeholder': 'Avatar URL or path',
+            }),
+            'pronouns': forms.Select(choices=User.PRONOUNS_CHOICES, attrs={
+                'class': 'form-select',
+            }),
         }
         labels = {
             'first_name': 'First Name',
             'last_name': 'Last Name',
             'display_name': 'Display Name',
+            'avatar': 'Avatar',
+            'pronouns': 'Pronouns',
         }
         help_texts = {
             'display_name': 'How you want others to see your name',
+            'avatar': 'Profile image or avatar (URL or path)',
+            'pronouns': 'Select your pronouns',
         }

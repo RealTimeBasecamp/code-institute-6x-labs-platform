@@ -15,6 +15,19 @@ Context provided by wizard:
     Let's start with some basic information about you.
   </p>
 
+  <div class="avatar-preview mx-auto mb-3"
+        style="width: 100px; height: 100px; border-radius: 50%; background-color: var(--bs-secondary-bg); display: flex; align-items: center; justify-content: center;">
+    <i class="bi bi-person-circle" style="font-size: 4rem; color: var(--bs-secondary-color);"></i>
+  </div>
+
+  <div class="mb-3">
+    <label for="id_pronouns" class="form-label">Pronouns</label>
+    {{ form.pronouns }}
+    <div class="form-text">
+      Let others know how you'd like to be addressed.
+    </div>
+  </div>
+
   <div class="row">
     <div class="col-md-6 mb-3">
       <label for="id_first_name" class="form-label required">First Name</label>
@@ -33,5 +46,10 @@ Context provided by wizard:
     <div class="form-text">
       This is how your name will appear to others. Leave blank to use your full name.
     </div>
+  </div>
+
+  <div class="alert alert-info mt-4">
+    <i class="bi bi-info-circle me-2"></i>
+    You can always update your profile later from the settings page.
   </div>
 </div>
