@@ -5,14 +5,7 @@
 {% block page_title %}Dashboard{% endblock %}
 
 {% block extra_css %}
-<style>
-  .dash-row { display: flex; gap: 1rem; flex-wrap: wrap; }
-  .dash-card { flex: 1 1 22%; min-width: 220px; background: #141414; border-radius: 12px; padding: 1rem; box-shadow: 0 6px 18px rgba(0,0,0,0.6); color: #fff; }
-  .dash-card h4 { color: #ffd96a; margin-bottom: 0.5rem; font-weight:600 }
-  .chart-wrap { width:100%; height:180px; }
-  @media (max-width: 900px) { .dash-card { flex: 1 1 48%; } }
-  @media (max-width: 520px) { .dash-card { flex: 1 1 100%; } }
-</style>
+<link rel="stylesheet" href="{% static 'css/dashboard.css' %}">
 {% endblock %}
 
 {% block content %}
@@ -45,18 +38,12 @@
   <script src="https://cdn.jsdelivr.net/npm/echarts@5/dist/echarts.min.js"></script>
   <script>
     (function () {
-      // Theme colors
-      const mainColor = '#ffd966'; // warm yellow
-      const accentColor = '#7c5cff'; // purple accent
+      // Theme colors read from CSS variables (fall back to previous hardcoded values)
+      const rootStyles = getComputedStyle(document.documentElement);
+      const mainColorVar = rootStyles.getPropertyValue('--primary-color').trim() || '#ffd966';
+      const accentColorVar = rootStyles.getPropertyValue('--bs-secondary-color').trim() || '#7c5cff';
 
-      // gradient helper (object form supported by ECharts)
-      const verticalGradient = (c) => ({
-        type: 'linear', x: 0, y: 0, x2: 0, y2: 1,
-        colorStops: [
-          { offset: 0, color: c.replace('1)', '1)') },
-          { offset: 1, color: c.replace('1)', '0.12)') }
-        ]
-      });
+      // Use solid theme colors (no gradients)
 
       // 1) Projects - gauge ring
       const projectsEl = document.getElementById('projectsChart');
@@ -66,8 +53,8 @@
           type: 'gauge',
           startAngle: 180, endAngle: 0,
           radius: '100%',
-          progress: { show: true, width: 18, itemStyle: { color: mainColor } },
-          axisLine: { lineStyle: { width: 18, color: [[1, verticalGradient('rgba(255,217,102,1)')]] } },
+          progress: { show: true, width: 18, itemStyle: { color: mainColorVar } },
+          axisLine: { lineStyle: { width: 18, color: [[1, mainColorVar]] } },
           pointer: { show: false },
           axisTick: { show: false },
           splitLine: { show: false },
@@ -89,7 +76,7 @@
           label: { show: true, position: 'center', formatter: totalCo2 + '\n tCO₂', color: '#fff', fontSize: 16 },
           emphasis: { label: { show: true } },
           data: [
-            { value: totalCo2, name: 'Saved', itemStyle: { color: verticalGradient('rgba(255,217,102,1)') } },
+            { value: totalCo2, name: 'Saved', itemStyle: { color: mainColorVar } },
             { value: Math.max(1, Math.round(totalCo2 * 0.2)), name: 'placeholder', itemStyle: { color: 'rgba(255,255,255,0.04)' } }
           ]
         }]
@@ -108,9 +95,9 @@
         series: [{
           data: plantsSeries,
           type: 'line', smooth: true,
-          lineStyle: { color: accentColor, width: 3 },
-          symbol: 'circle', symbolSize: 6, itemStyle: { color: mainColor },
-          areaStyle: { color: verticalGradient('rgba(124,92,255,1)') }
+          lineStyle: { color: accentColorVar, width: 3 },
+          symbol: 'circle', symbolSize: 6, itemStyle: { color: mainColorVar },
+          areaStyle: { color: accentColorVar }
         }]
       });
 
@@ -120,8 +107,8 @@
       yearsChart.setOption({
         series: [{
           type: 'gauge', startAngle: 180, endAngle: 0, radius: '100%',
-          progress: { show: true, width: 18, itemStyle: { color: accentColor } },
-          axisLine: { lineStyle: { width: 18, color: [[1, verticalGradient('rgba(124,92,255,1)')]] } },
+          progress: { show: true, width: 18, itemStyle: { color: accentColorVar } },
+          axisLine: { lineStyle: { width: 18, color: [[1, accentColorVar]] } },
           pointer: { show: false },
           axisTick: { show: false }, splitLine: { show: false }, axisLabel: { show: false },
           detail: { valueAnimation: true, fontSize: 26, color: '#fff', formatter: '{value} yrs' },
