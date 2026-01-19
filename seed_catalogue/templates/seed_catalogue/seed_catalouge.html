@@ -1,0 +1,142 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block meta_title %}Seed catalogue{% endblock %}
+{% block page_title %}Seed catalogue{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/components/sortable-table.css' %}">
+{% endblock %}
+
+{# TODO: #}
+- Create Seed creation wizard modal
+- Hook up Seed view/url
+- Get Seed data into context
+- Update table to match Seed fields
+- Add delete functionality
+
+{# endcoment #}
+
+{% block header_contents %}
+  <button
+      type="button"
+      class="btn btn-primary"
+      data-bs-toggle="modal"
+      data-bs-target="#seedCreationWizard">
+      <i class="bi bi-funnel-fill me-1"></i>Add new Seed
+  </button>
+
+  {# Include the Seed creation wizard modal TODO #}
+  {% include "components/modals/wizard_modal.html" with
+    modal_id="seedCreationWizard"
+    wizard_name="seed_creation"
+    modal_title="Create New Seed"
+    modal_icon="bi bi-funnel-fill"
+  %}
+  {# end Seed creation wizard modal #}
+
+{% endblock %}
+
+{% block content %}
+
+  {# Toolbar: View toggle and search (search bar moved here by JS) #}
+  <div class="d-flex justify-content-between align-items-center mb-3" id="seeds-toolbar">
+    {% include "components/view_toggle.html" %}
+  </div>
+
+  {# Tab content #}
+  <div class="tab-content">
+    {# Table view #}
+    <div class="tab-pane fade show active" id="table-view" role="tabpanel">
+      <table class="table sortable-table" data-search-toolbar="seeds-toolbar">
+        <thead>
+          <tr>
+            <th scope="col">#</th>
+            <th scope="col" data-sortable>common_name</th>
+            <th scope="col" data-sortable>category</th>
+            <th scope="col" data-sortable>cultivar</th>
+            <th scope="col">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for seed in seeds %}
+          <tr data-seed-name="{{ seed.name|lower }}">
+            <th scope="row" data-row-number>{{ forloop.counter }}</th>
+            <td><a href="{% url 'seeds:seed_detail' seed.slug %}">{{ seed.name }}</a></td>
+            <td>{{ seed.category }}</td>
+            <td>{{ seed.cultivar }}</td>
+            <td>{{ seed.area_hectares }}</td>
+            {% if user_has_own_projects %}
+              <td>
+                {% if seed.created_by == user %}
+                  <a role="button"
+                    class="bi bi-trash text-danger"
+                    data-bs-toggle="modal"
+                    data-bs-target="#deleteModal{{ seed.slug }}">
+                  </a>
+                {% endif %}
+              </td>
+            {% endif %}
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+    {# Grid view #}
+    <div class="tab-pane fade" id="grid-view" role="tabpanel">
+      <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 row-cols-xl-4 g-4">
+        {% for project in projects %}
+        <div class="col" data-project-name="{{ project.name|lower }}">
+          <div class="card h-100">
+            <div class="card-body">
+              <h5 class="card-title">
+                <a href="{% url 'seeds:seed_detail' seed.slug %}" class="text-decoration-none">
+                  {{ seed.name }}
+                </a>
+              </h5>
+              <p class="card-text">
+                <span class="badge bg-secondary">{{ seed.category }}</span>
+              </p>
+              <ul class="list-unstyled small text-muted">
+                <li><i class="bi bi-cloud me-1"></i>CO₂: {{ seed.total_co2_sequestered_kg|default:"—" }} kg</li>
+                <li><i class="bi bi-map me-1"></i>Area: {{ seed.area_hectares }} ha</li>
+              </ul>
+            </div>
+            {% if seed.created_by == user %}
+            <div class="card-footer bg-transparent border-0">
+              <a role="button"
+                class="btn btn-sm btn-outline-danger"
+                data-bs-toggle="modal"
+                data-bs-target="#deleteModal{{ seed.slug }}">
+                <i class="bi bi-trash"></i> Delete
+              </a>
+            </div>
+            {% endif %}
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+
+  {# Delete modals for each seed - pass seed context for wizard #}
+  {% for seed in seeds %}
+    {% include "components/modals/wizard_modal.html" with
+      modal_id="deleteModal"|add:seed.slug
+      wizard_name="seed_delete"
+      modal_title="Delete Seed"
+      modal_icon="bi bi-trash"
+      wizard_mode="delete"
+      wizard_context='{"seed_slug":"'|add:seed.slug|add:'"}'
+    %}
+  {% endfor %}
+
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'js/components/sortable-table.js' %}" defer></script>
+<script src="{% static 'js/components/view-toggle.js' %}" defer></script>
+{% endblock %}
+
+
