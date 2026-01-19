@@ -57,7 +57,9 @@
 }
 
 .sidebar-link > i,
-.sidebar-link > .sidebar-icon-toggle {
+.sidebar-link > .sidebar-icon-toggle,
+.sidebar-link > img,
+.sidebar-link > .rounded-circle {
   margin-right: 0.5rem;
   flex-shrink: 0;
 }
