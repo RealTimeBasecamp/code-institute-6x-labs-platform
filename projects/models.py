@@ -400,12 +400,15 @@ class Project(models.Model):
                             ('Name', self.contact.company_name or '—' if self.contact else '—'),
                             ('Email', self.contact.company_email or '—' if self.contact else '—'),
                             ('Phone', self.contact.company_phone or '—' if self.contact else '—'),
+                            ('Website', self.contact.company_website or '—' if self.contact else '—'),
                         ],
                     },
                     {
                         'title': 'Primary Contact',
                         'fields': [
+                            ('Title/Role', self.contact.primary_contact_title or '—' if self.contact else '—'),
                             ('Name', self.contact.primary_contact_name or '—' if self.contact else '—'),
+                            ('Pronouns', self.contact.primary_contact_pronouns or '—' if self.contact else '—'),
                             ('Email', self.contact.primary_contact_email or '—' if self.contact else '—'),
                             ('Phone', self.contact.primary_contact_phone or '—' if self.contact else '—'),
                         ],
@@ -413,17 +416,29 @@ class Project(models.Model):
                     {
                         'title': 'Land Owner',
                         'fields': [
+                            ('Title/Role', self.contact.land_owner_title or '—' if self.contact else '—'),
                             ('Name', self.contact.land_owner_name or '—' if self.contact else '—'),
+                            ('Pronouns', self.contact.land_owner_pronouns or '—' if self.contact else '—'),
                             ('Email', self.contact.land_owner_email or '—' if self.contact else '—'),
                             ('Phone', self.contact.land_owner_phone or '—' if self.contact else '—'),
+                            ('Organization', self.contact.land_owner_organization or '—' if self.contact else '—'),
+                            ('Preferred Contact', self.contact.land_owner_preferred_contact_method or '—' if self.contact else '—'),
                         ],
                     },
                     {
                         'title': 'Secondary Contact',
                         'fields': [
+                            ('Title/Role', self.contact.secondary_contact_title or '—' if self.contact else '—'),
                             ('Name', self.contact.secondary_contact_name or '—' if self.contact else '—'),
+                            ('Pronouns', self.contact.secondary_contact_pronouns or '—' if self.contact else '—'),
                             ('Email', self.contact.secondary_contact_email or '—' if self.contact else '—'),
                             ('Phone', self.contact.secondary_contact_phone or '—' if self.contact else '—'),
+                        ],
+                    },
+                    {
+                        'title': 'Notes',
+                        'fields': [
+                            ('Notes', self.contact.notes or '—' if self.contact else '—'),
                         ],
                     },
                 ],
