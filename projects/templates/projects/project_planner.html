@@ -83,16 +83,16 @@
        snippet_path='planting/interactive_map.html'
 %}
 
-
+<div class="container d-flex justify-content-center mt-4">
 <ul class="nav nav-pills" role="tablist">
   <li class="nav-item" role="presentation">
-    <a class="nav-link active" id="project-info-tab" data-bs-toggle="tab" href="#project-info" role="tab" aria-controls="project-info" aria-selected="true">Project Info</a>
+    <a class="nav-link active" id="project-info-tab" data-bs-toggle="tab" href="#project-info" role="tab" aria-controls="project-info" aria-selected="true">Project Information</a>
   </li>
   <li class="nav-item" role="presentation">
     <a class="nav-link" id="project-breakdown-tab" data-bs-toggle="tab" href="#project-breakdown" role="tab" aria-controls="project-breakdown" aria-selected="false">Project Breakdown</a>
   </li>
 </ul>
-
+</div>
 <div class="tab-content mt-4">
   <div class="tab-pane fade show active d-flex flex-column gap-4" id="project-info" role="tabpanel" aria-labelledby="project-info-tab">
     {% if project %}
