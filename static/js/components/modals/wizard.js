@@ -391,6 +391,8 @@
             },
             body: JSON.stringify({
               all_data: this._mergeAllStepData(),
+              current_step: this.currentStep,
+              submit_type: "complete",
             }),
           }
         );
@@ -405,9 +407,11 @@
             this.options.onComplete(result);
           }
 
-          if (result.message) {
-            // Could show a toast notification here
-            console.log("Wizard completed:", result.message);
+          // Show toast notification for success message
+          if (result.message && window.showToast) {
+            const toastType = result.toast_type || 'success';
+            const toastTitle = result.toast_title || null;
+            window.showToast(result.message, toastType, toastTitle);
           }
 
           if (result.redirect_url) {
@@ -445,7 +449,7 @@
       this.isLoading = true;
 
       try {
-        // Submit the wizard with current data
+        // Submit the wizard with current data and step info for targeted message
         const response = await fetch(
           `${this.options.apiBase}${this.wizardName}/submit/`,
           {
@@ -457,6 +461,8 @@
             },
             body: JSON.stringify({
               all_data: this._mergeAllStepData(),
+              current_step: this.currentStep,
+              submit_type: "save_and_close",
             }),
           }
         );
@@ -471,8 +477,11 @@
             this.options.onComplete(result);
           }
 
-          if (result.message) {
-            console.log("Changes saved:", result.message);
+          // Show toast notification for success message
+          if (result.message && window.showToast) {
+            const toastType = result.toast_type || 'success';
+            const toastTitle = result.toast_title || null;
+            window.showToast(result.message, toastType, toastTitle);
           }
 
           // Reload the current page to reflect changes

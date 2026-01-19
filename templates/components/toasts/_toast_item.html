@@ -1,0 +1,47 @@
+{% comment %}
+Toast Item Partial (Internal)
+=============================
+
+This is an internal partial used by _toast_wrapper.html.
+Do not include this file directly - use toast_container.html instead.
+
+Receives:
+- message: Django message object with .tags and message text
+- bg_class: Bootstrap background color class (e.g., 'text-bg-success')
+- icon_class: Bootstrap icon class (e.g., 'bi-check-circle-fill')
+- title: Toast header title text
+- autohide_delay: Auto-hide delay in milliseconds (from parent context)
+{% endcomment %}
+
+{# Individual toast notification element #}
+{# Bootstrap's toast component with header and body #}
+<div
+    class="toast"
+    role="alert"
+    aria-live="assertive"
+    aria-atomic="true"
+    data-bs-autohide="true"
+    data-bs-delay="{{ autohide_delay|default:'30000' }}"
+>
+    {# Toast header with icon, title, timestamp, and close button #}
+    <div class="toast-header {{ bg_class }}">
+        {# Message type icon - provides visual indicator of severity #}
+        <i class="bi {{ icon_class }} me-2"></i>
+        {# Title - typically the message type (Success, Error, etc.) #}
+        <strong class="me-auto">{{ title }}</strong>
+        {# Timestamp - shows when the toast appeared #}
+        <small>just now</small>
+        {# Close button - allows manual dismissal #}
+        {# Use appropriate close button color based on background #}
+        <button
+            type="button"
+            class="btn-close{% if bg_class == 'text-bg-warning' or bg_class == 'text-bg-info' %} btn-close-dark{% else %} btn-close-white{% endif %}"
+            data-bs-dismiss="toast"
+            aria-label="Close"
+        ></button>
+    </div>
+    {# Toast body - contains the actual message content #}
+    <div class="toast-body">
+        {{ message }}
+    </div>
+</div>
