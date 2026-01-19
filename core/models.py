@@ -27,6 +27,10 @@ class NavigationItem(models.Model):
         help_text="Django URL name (e.g., 'projects:project_planner') or path"
     )
     is_active = models.BooleanField(default=True, help_text="False = 'Coming Soon'")
+    is_footer = models.BooleanField(
+        default=False,
+        help_text="If True, render this nav item pinned to the bottom of the sidebar"
+    )
 
     # Hierarchy
     parent = models.ForeignKey(

@@ -1,6 +1,6 @@
 {% load static %}
 
-<li class="sidebar-item{% if nav_item.type == 'parent' and nav_item.children %} has-children{% endif %}">
+<li class="sidebar-item{% if nav_item.type == 'parent' and nav_item.children %} has-children{% endif %}{% if nav_item.is_footer %} sidebar-item--bottom{% endif %}">
   {% if nav_item.type == 'profile' %}
     {# Profile item - triggers teamspace modal #}
     <a href="#"

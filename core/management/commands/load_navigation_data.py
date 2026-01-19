@@ -55,6 +55,7 @@ class Command(BaseCommand):
                     'icon': item_data.get('icon', ''),
                     'url_name': item_data.get('url_name', ''),
                     'is_active': item_data.get('is_active', True),
+                    'is_footer': item_data.get('is_footer', False),
                     'staff_only': item_data.get('staff_only', False),
                     'display_order': order,
                     'parent': parent,
