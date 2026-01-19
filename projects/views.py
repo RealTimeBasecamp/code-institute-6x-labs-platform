@@ -10,6 +10,17 @@ from core.card_utils import render_card_groups
 
 
 class ProjectListView(ListView):
+    """
+    Display list of all projects with table and grid views.
+
+    Data comes from: Project model queryset ordered by name
+    Data returned to: projects_list.html template
+
+    Context:
+        projects: All Project objects ordered by name (lowercase)
+        user_has_own_projects: Boolean indicating if user created any projects
+    """
+
     model = Project
     template_name = 'projects/projects_list.html'
     context_object_name = 'projects'
@@ -17,6 +28,18 @@ class ProjectListView(ListView):
 
     def get_queryset(self):
         return Project.objects.order_by(Lower('name'))
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        # Check if the current user has any projects they created
+        # Used to conditionally show the Actions column in the table
+        if self.request.user.is_authenticated:
+            context['user_has_own_projects'] = Project.objects.filter(
+                created_by=self.request.user
+            ).exists()
+        else:
+            context['user_has_own_projects'] = False
+        return context
 
 
 @login_required
