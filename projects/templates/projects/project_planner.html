@@ -57,6 +57,13 @@
                   dropdown_width="25rem"
                   list=projects
               %}
+            {% else %}
+              {% include 'components/dropdown.html' with
+                  dropdown_id="projectDropdown"
+                  dropdown_label="Select a project"
+                  dropdown_width="25rem"
+                  list=projects
+              %}
             {% endif %}
         </div>
 
