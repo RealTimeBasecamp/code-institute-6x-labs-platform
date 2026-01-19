@@ -6,6 +6,8 @@ together, defines the wizard order, and registers the wizard.
 
 Template convention: projects/wizard_steps/create_project/{step_name}.html
 """
+from django.contrib import messages
+
 from core.wizard import BaseWizardView
 from core.wizards import register_wizard
 from projects.models import Project
@@ -44,19 +46,21 @@ class ProjectCreationWizard(BaseWizardView):
 
     def on_complete(self, request, all_data):
         """
-        Create project and return success with project name in message.
+        Create project and add success message for toast notification.
 
-        Overrides base on_complete to customize the success message
-        with the created project's name for toast notification.
+        Uses Django messages framework so the toast persists across
+        the redirect to the project planner page.
         """
         # Call parent to create objects
         result = super().on_complete(request, all_data)
 
         if result.get('success'):
-            # Get the project name from the submitted data
+            # Add Django message - will be shown as toast on redirected page
             project_name = all_data.get('name', 'Project')
-            result['message'] = f'Successfully created project: {project_name}'
-            result['toast_title'] = 'Project Created'
+            messages.success(
+                request,
+                f'Successfully created project: {project_name}'
+            )
 
         return result
 
@@ -85,12 +89,6 @@ class ProjectCreationWizard(BaseWizardView):
         # Coordinates step - help text from model
         if step == 3:
             context['coordinate_help'] = Project.COORDINATE_HELP
-
-        # Summary step - choice mappings for display labels
-        if step == 5:
-            context['project_type_choices'] = Project.PROJECT_TYPE_CHOICES
-            context['soil_type_choices'] = Project.SOIL_TYPE_CHOICES
-            context['climate_choices'] = Project.CLIMATE_CHOICES
 
         return context
 

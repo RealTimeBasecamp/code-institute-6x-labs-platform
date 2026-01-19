@@ -1,7 +1,8 @@
 {% comment %}
 Project Creation Wizard - Step 5: Contact
 
-Collects company and primary contact information.
+Collects company and contact information for the project.
+Matches the Contact Information card on the project planner.
 
 Context provided by wizard:
   - form: ProjectContactForm instance
@@ -13,46 +14,147 @@ Context provided by wizard:
     Finally, add contact information for this project.
   </p>
 
+  <!-- Company/Organization Section -->
   <h6 class="text-muted border-bottom pb-2 mb-3">
     <i class="bi bi-building me-2"></i>Company/Organization
   </h6>
 
   <div class="mb-3">
-    <label for="id_company_name" class="form-label">Company Name</label>
+    <label for="id_company_name" class="form-label">{{ form.company_name.label }}</label>
     {{ form.company_name }}
   </div>
 
   <div class="row">
     <div class="col-md-6 mb-3">
-      <label for="id_company_email" class="form-label">Company Email</label>
+      <label for="id_company_email" class="form-label">{{ form.company_email.label }}</label>
       {{ form.company_email }}
     </div>
-
     <div class="col-md-6 mb-3">
-      <label for="id_company_phone" class="form-label">Company Phone</label>
+      <label for="id_company_phone" class="form-label">{{ form.company_phone.label }}</label>
       {{ form.company_phone }}
     </div>
   </div>
 
+  <div class="mb-3">
+    <label for="id_company_website" class="form-label">{{ form.company_website.label }}</label>
+    {{ form.company_website }}
+  </div>
+
+  <!-- Primary Contact Section -->
   <h6 class="text-muted border-bottom pb-2 mb-3 mt-4">
     <i class="bi bi-person me-2"></i>Primary Contact
   </h6>
 
+  <div class="row">
+    <div class="col-md-6 mb-3">
+      <label for="id_primary_contact_title" class="form-label">{{ form.primary_contact_title.label }}</label>
+      {{ form.primary_contact_title }}
+    </div>
+    <div class="col-md-6 mb-3">
+      <label for="id_primary_contact_pronouns" class="form-label">{{ form.primary_contact_pronouns.label }}</label>
+      {{ form.primary_contact_pronouns }}
+    </div>
+  </div>
+
   <div class="mb-3">
-    <label for="id_primary_contact_name" class="form-label">Contact Name</label>
+    <label for="id_primary_contact_name" class="form-label">{{ form.primary_contact_name.label }}</label>
     {{ form.primary_contact_name }}
   </div>
 
   <div class="row">
     <div class="col-md-6 mb-3">
-      <label for="id_primary_contact_email" class="form-label">Contact Email</label>
+      <label for="id_primary_contact_email" class="form-label">{{ form.primary_contact_email.label }}</label>
       {{ form.primary_contact_email }}
     </div>
-
     <div class="col-md-6 mb-3">
-      <label for="id_primary_contact_phone" class="form-label">Contact Phone</label>
+      <label for="id_primary_contact_phone" class="form-label">{{ form.primary_contact_phone.label }}</label>
       {{ form.primary_contact_phone }}
     </div>
+  </div>
+
+  <!-- Land Owner Section -->
+  <h6 class="text-muted border-bottom pb-2 mb-3 mt-4">
+    <i class="bi bi-house-door me-2"></i>Land Owner
+  </h6>
+
+  <div class="row">
+    <div class="col-md-6 mb-3">
+      <label for="id_land_owner_title" class="form-label">{{ form.land_owner_title.label }}</label>
+      {{ form.land_owner_title }}
+    </div>
+    <div class="col-md-6 mb-3">
+      <label for="id_land_owner_pronouns" class="form-label">{{ form.land_owner_pronouns.label }}</label>
+      {{ form.land_owner_pronouns }}
+    </div>
+  </div>
+
+  <div class="mb-3">
+    <label for="id_land_owner_name" class="form-label">{{ form.land_owner_name.label }}</label>
+    {{ form.land_owner_name }}
+  </div>
+
+  <div class="row">
+    <div class="col-md-6 mb-3">
+      <label for="id_land_owner_email" class="form-label">{{ form.land_owner_email.label }}</label>
+      {{ form.land_owner_email }}
+    </div>
+    <div class="col-md-6 mb-3">
+      <label for="id_land_owner_phone" class="form-label">{{ form.land_owner_phone.label }}</label>
+      {{ form.land_owner_phone }}
+    </div>
+  </div>
+
+  <div class="row">
+    <div class="col-md-6 mb-3">
+      <label for="id_land_owner_organization" class="form-label">{{ form.land_owner_organization.label }}</label>
+      {{ form.land_owner_organization }}
+    </div>
+    <div class="col-md-6 mb-3">
+      <label for="id_land_owner_preferred_contact_method" class="form-label">{{ form.land_owner_preferred_contact_method.label }}</label>
+      {{ form.land_owner_preferred_contact_method }}
+    </div>
+  </div>
+
+  <!-- Secondary Contact Section -->
+  <h6 class="text-muted border-bottom pb-2 mb-3 mt-4">
+    <i class="bi bi-person-plus me-2"></i>Secondary Contact
+  </h6>
+
+  <div class="row">
+    <div class="col-md-6 mb-3">
+      <label for="id_secondary_contact_title" class="form-label">{{ form.secondary_contact_title.label }}</label>
+      {{ form.secondary_contact_title }}
+    </div>
+    <div class="col-md-6 mb-3">
+      <label for="id_secondary_contact_pronouns" class="form-label">{{ form.secondary_contact_pronouns.label }}</label>
+      {{ form.secondary_contact_pronouns }}
+    </div>
+  </div>
+
+  <div class="mb-3">
+    <label for="id_secondary_contact_name" class="form-label">{{ form.secondary_contact_name.label }}</label>
+    {{ form.secondary_contact_name }}
+  </div>
+
+  <div class="row">
+    <div class="col-md-6 mb-3">
+      <label for="id_secondary_contact_email" class="form-label">{{ form.secondary_contact_email.label }}</label>
+      {{ form.secondary_contact_email }}
+    </div>
+    <div class="col-md-6 mb-3">
+      <label for="id_secondary_contact_phone" class="form-label">{{ form.secondary_contact_phone.label }}</label>
+      {{ form.secondary_contact_phone }}
+    </div>
+  </div>
+
+  <!-- Notes Section -->
+  <h6 class="text-muted border-bottom pb-2 mb-3 mt-4">
+    <i class="bi bi-journal-text me-2"></i>Notes
+  </h6>
+
+  <div class="mb-3">
+    <label for="id_notes" class="form-label">{{ form.notes.label }}</label>
+    {{ form.notes }}
   </div>
 
 </div>

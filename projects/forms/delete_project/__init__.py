@@ -8,6 +8,7 @@ Structure:
     delete_summary.py  -> delete_summary.html   (Step 1: Review)
     delete_confirm.py  -> delete_confirm.html   (Step 2: Confirm)
 """
+from django.contrib import messages
 from django.urls import reverse
 
 from core.wizard import BaseWizardView
@@ -94,10 +95,15 @@ class ProjectDeleteWizard(BaseWizardView):
         project_name = project.name
         project.delete()
 
+        # Add Django message - will be shown as toast on redirected page
+        messages.success(
+            request,
+            f'Successfully deleted project: {project_name}'
+        )
+
         return {
             'success': True,
             'redirect_url': reverse('projects:projects_list'),
-            'message': f'Project "{project_name}" has been permanently deleted.'
         }
 
 
