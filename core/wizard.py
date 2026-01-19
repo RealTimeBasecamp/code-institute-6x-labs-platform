@@ -651,6 +651,17 @@ class BaseWizardView(View, ABC):
         if isinstance(final_data, dict):
             all_data.update(final_data)
 
+        # Store submit metadata for on_complete to access
+        # This allows wizards to know which step was active when submitted
+        current_step = body.get('current_step', self.total_steps - 1)
+        submit_type = body.get('submit_type', 'complete')
+        wizard_data['_submit_metadata'] = {
+            'current_step': current_step,
+            'submit_type': submit_type,
+            'step_title': self.get_step_title(current_step) if 0 <= current_step < self.total_steps else None,
+        }
+        self.save_wizard_data(request, wizard_data)
+
         try:
             result = self.on_complete(request, all_data)
             if result.get('success'):
