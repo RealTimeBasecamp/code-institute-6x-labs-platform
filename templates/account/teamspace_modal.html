@@ -26,7 +26,13 @@
           </span> 
         </div>
       </div>
-      <a class="btn btn-outline-secondary btn-sm" role="button" href="{{ settings_url }}">Settings</a>
+      <button
+        role="button"
+        class="btn btn-outline-secondary btn-sm"
+        data-bs-toggle="modal"
+        data-bs-target="#">
+        <i class="bi bi-gear me-1"></i>Settings
+    </button>
     </div>
 
     {# Card body #}
@@ -51,4 +57,16 @@
       </div>
     {% endif %}
   </div>
-{% endblock %}
+
+  {# Modal for User Settings - TODO #}
+    {% include 'components/modals/modal.html' with
+      modal_id='UserSettingsModal'
+      modal_icon='bi bi-gear'
+      modal_title='User Settings'
+      modal_body_content='<p>User Settings here</p>'
+      modal_footer_content='<button>Save</button>'
+      modal_size='xl'
+    %}
+  {# end comment #}
+
+  {% endblock %}
