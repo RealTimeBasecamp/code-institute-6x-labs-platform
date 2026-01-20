@@ -159,26 +159,26 @@ def delete_site(request, slug):
 def project(request, slug):
     """
     Display project planner page with project details and sites.
-    
+
     FLOW: View defines card_groups with data → renders generic field template 
           → wraps in mark_safe → passes to template → template uses {% card %} tag
-    
+
     Card groups are defined as dicts with:
     - title: Card header title
     - icon: Bootstrap icon class
     - fields: List of (label, value) tuples displayed in 2-column layout
-    
+
     For each group, the view:
     1. Renders generic_field_list.html with the fields
     2. Wraps HTML with mark_safe()
     3. Passes to template context
-    
+
     This consolidates all card data into one data structure, avoiding template repetition.
-    
+
     Args:
         request: HTTP request object
         slug (str): Project slug for lookup
-    
+
     Context:
         project: The Project object (or None if slug not provided)
         projects: All Project objects for dropdown
@@ -189,29 +189,59 @@ def project(request, slug):
     else:
         project = None
     projects = Project.objects.all().order_by(Lower('name'))
-
-    # Build breadcrumbs for this page
-    breadcrumbs = [
-        {
-            'label': 'Projects',
-            'url': reverse('projects:projects_list'),
-            'is_current': False,
-            'is_ellipsis': False,
-        },
-    ]
     if project:
-        breadcrumbs.append({
+        sites = project.sites.all()
+    else:
+        sites = []  # or Site.objects.none() if you have imported Site
+
+    site_rows = [
+        [i+1, site.name, "None", site.total_co2_sequestered_kg] for i, site in enumerate(sites)]
+
+    # New: site_bounds_rows with #, X, Y, Lock
+    site_bounds_rows = []
+    for i, site in enumerate(sites):
+        # Default values
+        x, y = None, None
+        bounds = getattr(site, 'bounding_box_coordinates', {})
+
+        # Extract first coordinate if available
+        try:
+            coords = bounds.get('coordinates', [])
+            if coords and coords[0] and coords[0][0]:
+                x, y = coords[0][0][0], coords[0][0][1]
+        except Exception:
+            pass
+        site_bounds_rows.append([
+            i + 1,  # #
+            x,      # X (lng)
+            y,      # Y (lat)
+            False   # Lock (default to False, change as needed)
+        ])
+
+    context = {
+        'project': project,
+        'projects': projects,
+        'breadcrumbs': [
+            {
+                'label': 'Projects',
+                'url': reverse('projects:projects_list'),
+                'is_current': False,
+                'is_ellipsis': False,
+            },
+        ],
+        'sites': sites,
+        'site_rows': site_rows,
+        'site_bounds_rows': site_bounds_rows,
+    }
+    print("Site Bounds Rows:", site_bounds_rows)
+    # Build breadcrumbs for this page
+    if project:
+        context['breadcrumbs'].append({
             'label': project.name,
             'url': None,
             'is_current': True,
             'is_ellipsis': False,
         })
-
-    context = {
-        'project': project,
-        'projects': projects,
-        'breadcrumbs': breadcrumbs,
-    }
 
     # Define card groups with data (edit_form passed directly to frontend)
     if project:

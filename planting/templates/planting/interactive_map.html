@@ -51,12 +51,13 @@
           <button class="btn btn-secondary btn-square" title="Add new">
             <i class="bi bi-trash"></i>
           </button>
+
         </div>
           <span >Site name</span>
           {% include 'components/sortable_table.html' with
             table_id="sitesTable"
             table_headers="#,Site, Area (ha), Co2"
-            table_rows=project.site|default:None
+            table_rows=site_rows|default:None
           %}
 
           <p>
@@ -69,8 +70,8 @@
           </p>
             {% include 'components/sortable_table.html' with
             table_id="siteBoundsTable"
-            table_headers="#,X, Y, Lock"
-            table_rows=project.site.bounds|default:None
+            table_headers="#,X,Y,Lock"
+            table_rows=site_bounds_rows
           %}
         </div>
 
@@ -100,7 +101,7 @@
           {% include 'components/sortable_table.html' with
             table_id="zonesTable"
             table_headers="#,Zone name, Visibility"
-            table_rows=project.site.zones|default:None
+            table_rows=zones|default:None
           %}
         </div>
 
