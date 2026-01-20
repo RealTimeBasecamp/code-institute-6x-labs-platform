@@ -871,16 +871,14 @@
                 else if (sitesTable.tagName === 'TBODY') tbody = sitesTable;
                 else tbody = sitesTable.querySelector('tbody') || sitesTable;
 
-                // Collect existing local staged site names to avoid duplicates
-                const existingLocal = new Set(Array.from(tbody.querySelectorAll('tr[data-local-site]')).map(r => r.dataset.localSite));
+                // Remove any existing locally-staged rows so we can re-build them from `localSites`
+                Array.from(tbody.querySelectorAll('tr[data-local-site]')).forEach(r => r.remove());
 
-                // Determine starting index for numbering: count all non-header rows
+                // Determine starting index for numbering: count existing server rows
                 const existingCount = tbody.querySelectorAll('tr').length;
                 let idx = existingCount + 1;
 
                 localSites.forEach(site => {
-                    if (existingLocal.has(site.name)) return;
-
                     const row = document.createElement('tr');
                     row.dataset.localSite = site.name;
                     row.classList.add('local-site-row');
@@ -1023,10 +1021,10 @@
                         // ignore
                     }
 
-                    // Add final polygon to controller and local staging
-                    controller.addPolygon('New Site', finalCoords, { color: '#4ecdc4', height: 20 });
+                    // Prompt for site name, then add final polygon to controller and local staging
                     const siteName = prompt('Enter site name:', `Site ${localSites.length + 1}`);
                     const finalSiteName = siteName || `Site ${localSites.length + 1}`;
+                    controller.addPolygon(finalSiteName, finalCoords, { color: '#4ecdc4', height: 20 });
                     localSites.push({ name: finalSiteName, bounds: finalCoords });
                     updateSiteUI();
                     activatePublish();
@@ -1187,6 +1185,104 @@
                 alert('Publishing new sites to backend...');
                 publishBtn.disabled = true;
             });
+        }
+
+        // Delete selected site handler (trash button)
+        (function wireDeleteButton() {
+            // Find a button that contains a trash icon
+            const trashIcon = document.querySelector('button i.bi-trash');
+            const deleteBtn = trashIcon ? trashIcon.closest('button') : null;
+            if (!deleteBtn) return;
+
+            deleteBtn.addEventListener('click', () => {
+                deleteSelectedSite();
+            });
+        })();
+
+        function deleteSelectedSite() {
+            const rows = getSiteRows();
+            if (!rows || rows.length === 0) {
+                alert('No sites available to delete.');
+                return;
+            }
+
+            // Use currently highlighted index if set, otherwise try to find the active row
+            let idx = currentSiteIdx;
+            if (typeof idx !== 'number' || idx < 0 || idx >= rows.length) {
+                idx = rows.findIndex(r => r.classList && r.classList.contains('table-active'));
+            }
+
+            if (idx === -1 || idx === undefined) {
+                alert('Please select a site row to delete.');
+                return;
+            }
+
+            const row = rows[idx];
+            if (!row) return;
+
+            const confirmDelete = confirm('Are you sure you want to delete the selected site? This action cannot be undone.');
+            if (!confirmDelete) return;
+
+            // If this is a locally staged site (dataset.localSite present), remove from localSites
+            const localName = row.dataset && row.dataset.localSite;
+
+            if (localName) {
+                // Remove from localSites array
+                localSites = localSites.filter(s => s.name !== localName);
+
+                // Remove any polygons with this name from the controller
+                controller.polygonGeoJSON.features = controller.polygonGeoJSON.features.filter(f => !(f.properties && f.properties.name === localName));
+                // Also remove from ECharts data structures
+                controller.echartsData.polygons = controller.echartsData.polygons.filter(p => p.name !== localName);
+                controller.echartsData.points = controller.echartsData.points.filter(pt => !(pt.name && pt.name.includes(localName)));
+                controller._updateGeoJSONSource();
+                controller._updateECharts();
+
+                // Refresh UI and adjust selection
+                updateSiteUI();
+                activatePublish();
+
+                const newRows = getSiteRows();
+                if (newRows.length === 0) {
+                    currentSiteIdx = -1;
+                } else {
+                    const newIdx = Math.min(idx, newRows.length - 1);
+                    currentSiteIdx = newIdx;
+                    highlightSiteRow(currentSiteIdx);
+                }
+
+                console.log('Deleted local site:', localName);
+                return;
+            }
+
+            // Non-local/server-provided row: remove DOM row and attempt to remove matching polygon
+            // Get displayed site name from first td or th
+            const nameCell = row.querySelectorAll('td')[0] || row.querySelector('th');
+            const siteName = nameCell ? nameCell.textContent.trim() : null;
+
+            // Remove matching polygon if present
+            if (siteName) {
+                controller.polygonGeoJSON.features = controller.polygonGeoJSON.features.filter(f => !(f.properties && f.properties.name === siteName));
+                // Also remove any matching ECharts polygons/points
+                controller.echartsData.polygons = controller.echartsData.polygons.filter(p => p.name !== siteName);
+                controller.echartsData.points = controller.echartsData.points.filter(pt => !(pt.name && pt.name.includes(siteName)));
+                controller._updateGeoJSONSource();
+                controller._updateECharts();
+            }
+
+            // Remove the row from the DOM
+            try { row.parentNode.removeChild(row); } catch (e) { /* ignore */ }
+
+            // Update currentSiteIdx and re-highlight
+            const remaining = getSiteRows();
+            if (remaining.length === 0) {
+                currentSiteIdx = -1;
+            } else {
+                currentSiteIdx = Math.min(idx, remaining.length - 1);
+                highlightSiteRow(currentSiteIdx);
+            }
+
+            console.log('Deleted site row (DOM):', siteName || idx);
         }
     });
 }
