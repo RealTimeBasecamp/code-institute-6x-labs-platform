@@ -28,7 +28,7 @@ def build_site_bounds_and_list(project):
     rows = []
     idx = 1
     for s in project.sites.all():
-        coords = s.bounding_box_coordinates or s.site_boundary_polygon or {}
+        coords = s.bounding_box_coordinates or s.site_inclusion_polygons or {}
         pts = _extract_pts(coords)
 
         for p in pts:
@@ -42,7 +42,7 @@ def build_site_bounds_and_list(project):
     # Build per-site bounds mapping (by site id) for client-side navigation
     site_bounds_map = {}
     for s in project.sites.all():
-        coords = s.bounding_box_coordinates or s.site_boundary_polygon or {}
+        coords = s.bounding_box_coordinates or s.site_inclusion_polygons or {}
         pts = _extract_pts(coords)
 
         clean_pts = []

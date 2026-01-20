@@ -59,7 +59,7 @@
             table_rows=project.site|default:None
           %}
 
-          <p >
+          <p>
             Site bounds
             <i class="bi bi-info-circle"
                data-bs-toggle="tooltip"
@@ -187,4 +187,9 @@
 </script>
 {% else %}
 <script>window.siteBoundsMap = {};</script>
+{% endif %}
+{% if project %}
+<script>window.currentProjectSlug = "{{ project.slug }}";</script>
+{% else %}
+<script>window.currentProjectSlug = "";</script>
 {% endif %}

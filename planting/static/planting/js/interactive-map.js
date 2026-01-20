@@ -819,49 +819,10 @@
                     dropdown.appendChild(opt);
                 });
             }
-            // Table
-            const table = document.getElementById('siteBoundsTable');
-            if (table) {
-                // If the include renders a full <table>, target its <tbody>; otherwise treat element as container
-                let tbody = null;
-                if (table.tagName === 'TABLE') tbody = table.querySelector('tbody') || table;
-                else if (table.tagName === 'TBODY') tbody = table;
-                else tbody = table.querySelector('tbody') || table;
-
-                // Clear existing rows
-                tbody.innerHTML = '';
-
-                // Build one table row per boundary point so rows match headers: ['#','X','Y','Lock']
-                let index = 1;
-                localSites.forEach(site => {
-                    site.bounds.forEach(coord => {
-                        const row = document.createElement('tr');
-                        const idxCell = document.createElement('th');
-                        idxCell.scope = 'row';
-                        idxCell.textContent = String(index);
-                        row.appendChild(idxCell);
-
-                        const xCell = document.createElement('td');
-                        xCell.textContent = coord[0].toFixed(5);
-                        row.appendChild(xCell);
-
-                        const yCell = document.createElement('td');
-                        yCell.textContent = coord[1].toFixed(5);
-                        row.appendChild(yCell);
-
-                        const lockCell = document.createElement('td');
-                        const lockInput = document.createElement('input');
-                        lockInput.type = 'checkbox';
-                        lockInput.className = 'site-bound-lock';
-                        lockInput.dataset.site = site.name;
-                        lockCell.appendChild(lockInput);
-                        row.appendChild(lockCell);
-
-                        tbody.appendChild(row);
-                        index += 1;
-                    });
-                });
-            }
+            // NOTE: Do not clear or rebuild the server-provided site bounds table here.
+            // The site bounds table is populated from server context on initial render
+            // and via `renderSiteBoundsTable()` when a site is selected. Updating
+            // staged `localSites` should not remove server rows.
 
             // Update sites table (append staged local sites without touching server rows)
             const sitesTable = document.getElementById('sitesTable');
@@ -910,10 +871,13 @@
         function activatePublish() {
             const ids = ['publishSiteBtn', 'publish', 'publishBtn'];
             for (const id of ids) {
-                const publishBtn = document.getElementById(id);
-                if (publishBtn) {
-                    publishBtn.disabled = false;
-                    return;
+                const el = document.getElementById(id);
+                if (el) {
+                    const btn = el.tagName === 'BUTTON' ? el : el.closest('button');
+                    if (btn) {
+                        btn.disabled = false;
+                        return;
+                    }
                 }
             }
         }
@@ -1177,13 +1141,119 @@
             }
         }
 
-        // Publish button handler
-        const publishBtn = document.getElementById('publishSiteBtn');
+        // Helper to read CSRF token from cookie
+        function getCookie(name) {
+            const v = document.cookie.match('(^|;)\\s*' + name + '\\s*=\\s*([^;]+)');
+            return v ? v.pop() : '';
+        }
+
+        // Resolve project slug: prefer window.currentProjectSlug, fallback to URL parsing
+        function resolveProjectSlug() {
+            if (window.currentProjectSlug) return window.currentProjectSlug;
+            try {
+                const parts = window.location.pathname.split('/').filter(Boolean);
+                // Expect pattern: projects/project-planner/<slug>
+                const idx = parts.indexOf('project-planner');
+                if (idx >= 0 && parts.length > idx + 1) return parts[idx + 1];
+            } catch (e) {
+                // ignore
+            }
+            return '';
+        }
+
+        // Publish button handler - support multiple possible IDs (icon inside button)
+        const _publishIds = ['publishSiteBtn', 'publish', 'publishBtn'];
+        let publishBtn = null;
+        for (const id of _publishIds) {
+            const el = document.getElementById(id);
+            if (el) {
+                publishBtn = el.tagName === 'BUTTON' ? el : el.closest('button');
+                if (publishBtn) break;
+            }
+        }
+
         if (publishBtn) {
-            publishBtn.addEventListener('click', () => {
-                // TODO: AJAX to backend with localSites data
-                alert('Publishing new sites to backend...');
+            console.log('Interactive Map: publish button attached (id=', publishBtn.id, ')');
+            try { publishBtn.type = 'button'; } catch (e) {}
+            publishBtn.addEventListener('click', async (e) => {
+                if (e && e.preventDefault) e.preventDefault();
+                const resolvedSlug = resolveProjectSlug();
+                console.log('Interactive Map: publish clicked', { staged: (localSites||[]).length, projectSlug: resolvedSlug });
+                if (!resolvedSlug) {
+                    alert('No project selected. Cannot publish.');
+                    return;
+                }
+                if (!localSites || localSites.length === 0) {
+                    alert('No staged sites to publish.');
+                    return;
+                }
+
                 publishBtn.disabled = true;
+                const payload = {
+                    sites: localSites.map(s => ({ name: s.name, bounds: s.bounds }))
+                };
+
+                try {
+                    const resp = await fetch(`/projects/project-planner/${resolvedSlug}/api/publish-sites/`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRFToken': getCookie('csrftoken')
+                        },
+                        body: JSON.stringify(payload)
+                    });
+
+                    if (!resp.ok) {
+                        const text = await resp.text();
+                        throw new Error(text || resp.statusText);
+                    }
+
+                    const data = await resp.json();
+                    console.log('Published sites:', data);
+
+                    // Insert created server rows into the sites table and update site bounds map
+                    try {
+                        const created = data.created || [];
+                        const sitesTable = document.getElementById('sitesTable');
+                        const tbody = sitesTable ? (sitesTable.tagName === 'TABLE' ? (sitesTable.querySelector('tbody') || sitesTable) : (sitesTable.tagName === 'TBODY' ? sitesTable : (sitesTable.querySelector('tbody') || sitesTable))) : null;
+                        for (const c of created) {
+                            // update client-side map lookup
+                            try { window.siteBoundsMap = window.siteBoundsMap || {}; window.siteBoundsMap[String(c.id)] = c.bounds || []; } catch (e) {}
+
+                            if (tbody) {
+                                const row = document.createElement('tr');
+                                const th = document.createElement('th');
+                                th.scope = 'row';
+                                th.textContent = String(c.id);
+                                row.appendChild(th);
+
+                                const nameTd = document.createElement('td');
+                                nameTd.textContent = c.name || '';
+                                row.appendChild(nameTd);
+
+                                const plantsTd = document.createElement('td');
+                                plantsTd.textContent = '—';
+                                row.appendChild(plantsTd);
+
+                                const co2Td = document.createElement('td');
+                                co2Td.textContent = '—';
+                                row.appendChild(co2Td);
+
+                                tbody.appendChild(row);
+                            }
+                        }
+                    } catch (err) {
+                        console.warn('Publish: failed to inject server rows', err);
+                    }
+
+                    // Clear local staging and update UI (no full reload)
+                    localSites = [];
+                    updateSiteUI();
+                } catch (err) {
+                    console.error('Publish failed:', err);
+                    alert('Failed to publish sites: ' + err.message);
+                    publishBtn.disabled = false;
+                }
             });
         }
 
@@ -1199,7 +1269,7 @@
             });
         })();
 
-        function deleteSelectedSite() {
+        async function deleteSelectedSite() {
             const rows = getSiteRows();
             if (!rows || rows.length === 0) {
                 alert('No sites available to delete.');
@@ -1255,34 +1325,68 @@
                 return;
             }
 
-            // Non-local/server-provided row: remove DOM row and attempt to remove matching polygon
-            // Get displayed site name from first td or th
+            // Non-local/server-provided row: try to delete on server then remove DOM and map data
+            // site id is expected in the first <th>
+            const idCell = row.querySelector('th');
+            const siteId = idCell ? parseInt(idCell.textContent.trim(), 10) : NaN;
             const nameCell = row.querySelectorAll('td')[0] || row.querySelector('th');
             const siteName = nameCell ? nameCell.textContent.trim() : null;
 
-            // Remove matching polygon if present
-            if (siteName) {
-                controller.polygonGeoJSON.features = controller.polygonGeoJSON.features.filter(f => !(f.properties && f.properties.name === siteName));
-                // Also remove any matching ECharts polygons/points
-                controller.echartsData.polygons = controller.echartsData.polygons.filter(p => p.name !== siteName);
-                controller.echartsData.points = controller.echartsData.points.filter(pt => !(pt.name && pt.name.includes(siteName)));
-                controller._updateGeoJSONSource();
-                controller._updateECharts();
+            async function finalizeDelete() {
+                // Remove matching polygon if present
+                if (siteName) {
+                    controller.polygonGeoJSON.features = controller.polygonGeoJSON.features.filter(f => !(f.properties && f.properties.name === siteName));
+                    // Also remove any matching ECharts polygons/points
+                    controller.echartsData.polygons = controller.echartsData.polygons.filter(p => p.name !== siteName);
+                    controller.echartsData.points = controller.echartsData.points.filter(pt => !(pt.name && pt.name.includes(siteName)));
+                    controller._updateGeoJSONSource();
+                    controller._updateECharts();
+                }
+
+                // Remove the row from the DOM
+                try { row.parentNode.removeChild(row); } catch (e) { /* ignore */ }
+
+                // Update currentSiteIdx and re-highlight
+                const remaining = getSiteRows();
+                if (remaining.length === 0) {
+                    currentSiteIdx = -1;
+                } else {
+                    currentSiteIdx = Math.min(idx, remaining.length - 1);
+                    highlightSiteRow(currentSiteIdx);
+                }
+
+                console.log('Deleted site row (DOM):', siteName || idx);
             }
 
-            // Remove the row from the DOM
-            try { row.parentNode.removeChild(row); } catch (e) { /* ignore */ }
+            const resolvedDeleteSlug = resolveProjectSlug();
+            if (!isNaN(siteId) && resolvedDeleteSlug) {
+                // Call server to delete site
+                try {
+                    const resp = await fetch(`/projects/project-planner/${resolvedDeleteSlug}/api/delete-site/`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRFToken': getCookie('csrftoken')
+                        },
+                        body: JSON.stringify({ site_id: siteId })
+                    });
 
-            // Update currentSiteIdx and re-highlight
-            const remaining = getSiteRows();
-            if (remaining.length === 0) {
-                currentSiteIdx = -1;
+                    if (!resp.ok) {
+                        const text = await resp.text();
+                        throw new Error(text || resp.statusText);
+                    }
+
+                    const data = await resp.json();
+                    console.log('Server deleted site:', data);
+                    await finalizeDelete();
+                } catch (err) {
+                    console.error('Server delete failed:', err);
+                    alert('Failed to delete site on server: ' + err.message);
+                }
             } else {
-                currentSiteIdx = Math.min(idx, remaining.length - 1);
-                highlightSiteRow(currentSiteIdx);
+                // No server id available - just remove locally
+                await finalizeDelete();
             }
-
-            console.log('Deleted site row (DOM):', siteName || idx);
         }
     });
 }

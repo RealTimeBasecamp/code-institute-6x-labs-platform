@@ -3,6 +3,10 @@ from django.contrib import messages
 from django.urls import reverse
 from django.contrib.auth.decorators import login_required
 from django.db.models.functions import Lower
+from django.http import JsonResponse, HttpResponseBadRequest, HttpResponseForbidden
+from django.views.decorators.http import require_POST
+from django.utils import timezone
+import datetime
 
 from .models import Project
 import json
@@ -63,6 +67,92 @@ def project_planner(request):
         ],
     }
     return render(request, 'projects/project_planner.html', context)
+
+
+@login_required
+@require_POST
+def publish_sites(request, slug):
+    """
+    API endpoint to create new Site records for the given project slug.
+    Expects JSON payload: { sites: [{ name: "Site 1", bounds: [[lng,lat],...] }, ...] }
+    Returns JSON list of created site ids.
+    """
+    project = get_object_or_404(Project, slug=slug)
+
+    try:
+        payload = json.loads(request.body.decode('utf-8') or '{}')
+    except Exception:
+        return HttpResponseBadRequest('Invalid JSON')
+
+    sites = payload.get('sites') or []
+    created = []
+    for s in sites:
+        name = s.get('name') or 'Unnamed Site'
+        bounds = s.get('bounds') or []
+        if not bounds or not isinstance(bounds, list):
+            continue
+
+        # Save bounding box coordinates as GeoJSON Polygon
+        geo = {
+            'type': 'Polygon',
+            'coordinates': [bounds]
+        }
+
+        # Required Site model fields are not nullable; provide sensible defaults
+        est_completion_date = timezone.now()
+        completion_percentage = 0
+        maturity_years = 0
+        current_year = datetime.date.today().year
+        total_plants = 0
+
+        site_obj = project.sites.create(
+            name=name,
+            description='Staged via interactive map',
+            est_completion_date=est_completion_date,
+            completion_percentage=completion_percentage,
+            maturity_years=maturity_years,
+            current_year=current_year,
+            total_plants=total_plants,
+            bounding_box_coordinates=geo
+        )
+        # Include stored geometry in response for verification/debugging
+        created.append({
+            'id': site_obj.id,
+            'name': site_obj.name,
+            'bounds': bounds,
+            'stored_geometry': getattr(site_obj, 'bounding_box_coordinates', None)
+        })
+
+    return JsonResponse({'created': created})
+
+
+@login_required
+@require_POST
+def delete_site(request, slug):
+    """
+    Delete a site immediately. Expects JSON payload: { site_id: <int> }
+    """
+    project = get_object_or_404(Project, slug=slug)
+    try:
+        payload = json.loads(request.body.decode('utf-8') or '{}')
+    except Exception:
+        return HttpResponseBadRequest('Invalid JSON')
+
+    site_id = payload.get('site_id')
+    if not site_id:
+        return HttpResponseBadRequest('Missing site_id')
+
+    try:
+        site = project.sites.get(id=site_id)
+    except Exception:
+        return HttpResponseBadRequest('Site not found')
+
+    # Only allow deletion if user has permission (project owner)
+    if project.created_by != request.user:
+        return HttpResponseForbidden('Permission denied')
+
+    site.delete()
+    return JsonResponse({'deleted': site_id})
 
 
 @login_required

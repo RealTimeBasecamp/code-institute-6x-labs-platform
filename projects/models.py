@@ -253,7 +253,7 @@ class Project(models.Model):
         all_longitudes = []
 
         for site in self.sites.all():
-            geojson = site.site_boundary_polygon if site.site_boundary_polygon else site.bounding_box_coordinates
+            geojson = site.site_inclusion_polygons if site.site_inclusion_polygons else site.bounding_box_coordinates
 
             if geojson and isinstance(geojson, dict) and 'coordinates' in geojson:
                 coordinates = geojson['coordinates'][0]
@@ -279,7 +279,7 @@ class Project(models.Model):
         all_lngs = []
 
         for site in self.sites.all():
-            geojson = site.bounding_box_coordinates if site.bounding_box_coordinates else site.site_boundary_polygon
+            geojson = site.bounding_box_coordinates if site.bounding_box_coordinates else site.site_inclusion_polygons
 
             if geojson and isinstance(geojson, dict) and 'coordinates' in geojson:
                 coordinates = geojson['coordinates'][0]
@@ -509,7 +509,7 @@ class Site(models.Model):
 
     # Coordinate-based geometry (GeoJSON format for MapLibre compatibility)
     bounding_box_coordinates = models.JSONField(default=dict, blank=True)
-    site_boundary_polygon = models.JSONField(default=dict, blank=True)
+    site_inclusion_polygons = models.JSONField(db_column='site_boundary_polygon', default=dict, blank=True)
     site_exclusion_polygons = models.JSONField(default=dict, blank=True)
     entrance_pathfinding = models.JSONField(default=dict, blank=True)
 
