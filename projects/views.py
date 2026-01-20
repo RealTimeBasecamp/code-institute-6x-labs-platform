@@ -5,8 +5,10 @@ from django.contrib.auth.decorators import login_required
 from django.db.models.functions import Lower
 
 from .models import Project
+import json
 from django.views.generic import ListView
 from core.card_utils import render_card_groups
+from .utils import build_site_bounds_and_list
 
 
 class ProjectListView(ListView):
@@ -126,6 +128,10 @@ def project(request, slug):
         card_groups = project.get_card_groups()
         card_groups = render_card_groups(card_groups)
         context['card_groups'] = card_groups
+
+        # Move the map/table building logic into a utility to keep view concise
+        bounds_context = build_site_bounds_and_list(project)
+        context.update(bounds_context)
 
     return render(request, 'projects/project_planner.html', context)
 
