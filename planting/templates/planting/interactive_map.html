@@ -38,34 +38,23 @@
 
       <div class="tab-content">
         <div class="tab-pane fade show active" id="sites" role="tabpanel" aria-labelledby="sites-tab">
-          <span >Site name</span>
           <div class="input-row">
-            <div class="flex-fill">
-              {% if project and project.sites.exists %}
-                {% include 'components/dropdown.html' with
-                    dropdown_id="siteDropdown"
-                    dropdown_label=project.sites.first.name
-                    dropdown_width="100%"
-                    list=project.sites.all
-                %}
-              {% else %}
-                {% include 'components/dropdown.html' with
-                    dropdown_id="siteDropdown"
-                    dropdown_label="No sites"
-                    dropdown_width="100%"
-                %}
-              {% endif %}
-            </div>
-            <button class="btn btn-secondary btn-square" title="Previous">
-              <i class="bi bi-chevron-left"></i>
-            </button>
-            <button class="btn btn-secondary btn-square" title="Next">
-              <i class="bi bi-chevron-right"></i>
-            </button>
-            <button class="btn btn-secondary btn-square" title="Add new">
-              <i class="bi bi-plus"></i>
-            </button>
-          </div>
+          <button class="btn btn-secondary btn-square" title="Previous">
+            <i class="bi bi-chevron-left"></i>
+          </button>
+          <button class="btn btn-secondary btn-square" title="Next">
+            <i class="bi bi-chevron-right"></i>
+          </button>
+          <button class="btn btn-secondary btn-square" title="Add new">
+            <i class="bi bi-plus"></i>
+          </button>
+        </div>
+          <span >Site name</span>
+          {% include 'components/sortable_table.html' with
+            table_id="sitesTable"
+            table_headers="#,Site, Area (ha), Co2"
+            table_rows=project.site|default:None
+          %}
 
           <p >
             Site bounds
@@ -75,16 +64,15 @@
                data-bs-title="Square boundary point for the overall available planting site.">
             </i>
           </p>
-
-          {% include 'components/sortable_table.html' with
-              table_id="siteBoundsTable"
-              headers=site_bounds_headers
-              rows=site_bounds_rows
+            {% include 'components/sortable_table.html' with
+            table_id="siteBoundsTable"
+            table_headers="#,X, Y, Lock"
+            table_rows=project.site.bounds|default:None
           %}
         </div>
 
         <div class="tab-pane fade" id="zones" role="tabpanel" aria-labelledby="zones-tab">
-          <p >
+          <p>
             Zones
             <i class="bi bi-info-circle"
                data-bs-toggle="tooltip"
@@ -105,18 +93,11 @@
             </button>
           </div>
 
-          {% include 'components/sortable_table.html' with
-              table_id="zonesTable"
-              headers=zones_headers
-              rows=zones_rows
-          %}
-
           <p>Selected zone: {{ zones.current|default:"None" }}</p>
-
           {% include 'components/sortable_table.html' with
-              table_id="zoneBoundsTable"
-              headers=zone_bounds_headers
-              rows=zone_bounds_rows
+            table_id="zonesTable"
+            table_headers="#,Zone name, Visibility"
+            table_rows=project.site.zones|default:None
           %}
         </div>
 
@@ -161,9 +142,9 @@
           </i>
         </p>
         {% include 'components/sortable_table.html' with
-            table_id="speciesMixTable"
-            table_headers="'',Species name, r, p"
-            table_rows=point_plotter_data|default:"(), Quercus robur (English Oak), 8.5, 3.2"
+          table_id="speciesMixTable"
+          table_headers="#,Species name, r, p"
+          table_rows=point_plotter_data|default:None
         %}
 
         <p>Plotted points: {{ plotted_points.total|default:'1500' }}
@@ -173,10 +154,11 @@
               data-bs-title="The final points after estimation.">
           </i>
         </p>
+
         {% include 'components/sortable_table.html' with
             table_id="plottedPointsTable"
-            table_headers="'',Species name, n"
-            table_rows=point_plotter_data|default:"(), Quercus robur (English Oak), 45"
+            table_headers="#,Species name, n"
+            table_rows=point_plotter_data|default:None
         %}
           {# endcomment #}
         </div>
@@ -195,3 +177,11 @@
 <script src="https://cdn.jsdelivr.net/npm/echarts-gl@2.0.9/dist/echarts-gl.min.js"></script>
 
 <script src="{% static 'planting/js/interactive-map.js' %}"></script>
+
+{% if site_bounds_map_json %}
+<script>
+  window.siteBoundsMap = {{ site_bounds_map_json|safe }};
+</script>
+{% else %}
+<script>window.siteBoundsMap = {};</script>
+{% endif %}

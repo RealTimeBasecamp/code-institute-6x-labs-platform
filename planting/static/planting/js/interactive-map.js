@@ -795,13 +795,389 @@
     // ============================================
 
     async function main() {
-        const config = await loadConfig();
-        
-        waitForDependencies(() => {
-            const controller = new InteractiveMapController(config);
-            controller.init();
-        });
-    }
 
-    main();
+    const config = await loadConfig();
+    waitForDependencies(() => {
+        const controller = new InteractiveMapController(config);
+        controller.init();
+
+        // --- Site Creation Workflow ---
+        let localSites = [];
+        let drawingMode = false;
+        let drawnSquareCoords = null;
+
+        // Helper: Add site to dropdown and bounds table
+        function updateSiteUI() {
+            // Dropdown
+            const dropdown = document.getElementById('siteDropdown');
+            if (dropdown) {
+                dropdown.innerHTML = '';
+                localSites.forEach(site => {
+                    const opt = document.createElement('option');
+                    opt.value = site.name;
+                    opt.textContent = site.name;
+                    dropdown.appendChild(opt);
+                });
+            }
+            // Table
+            const table = document.getElementById('siteBoundsTable');
+            if (table) {
+                // If the include renders a full <table>, target its <tbody>; otherwise treat element as container
+                let tbody = null;
+                if (table.tagName === 'TABLE') tbody = table.querySelector('tbody') || table;
+                else if (table.tagName === 'TBODY') tbody = table;
+                else tbody = table.querySelector('tbody') || table;
+
+                // Clear existing rows
+                tbody.innerHTML = '';
+
+                // Build one table row per boundary point so rows match headers: ['#','X','Y','Lock']
+                let index = 1;
+                localSites.forEach(site => {
+                    site.bounds.forEach(coord => {
+                        const row = document.createElement('tr');
+                        const idxCell = document.createElement('th');
+                        idxCell.scope = 'row';
+                        idxCell.textContent = String(index);
+                        row.appendChild(idxCell);
+
+                        const xCell = document.createElement('td');
+                        xCell.textContent = coord[0].toFixed(5);
+                        row.appendChild(xCell);
+
+                        const yCell = document.createElement('td');
+                        yCell.textContent = coord[1].toFixed(5);
+                        row.appendChild(yCell);
+
+                        const lockCell = document.createElement('td');
+                        const lockInput = document.createElement('input');
+                        lockInput.type = 'checkbox';
+                        lockInput.className = 'site-bound-lock';
+                        lockInput.dataset.site = site.name;
+                        lockCell.appendChild(lockInput);
+                        row.appendChild(lockCell);
+
+                        tbody.appendChild(row);
+                        index += 1;
+                    });
+                });
+            }
+
+            // Update sites table (append staged local sites without touching server rows)
+            const sitesTable = document.getElementById('sitesTable');
+            if (sitesTable) {
+                let tbody = null;
+                if (sitesTable.tagName === 'TABLE') tbody = sitesTable.querySelector('tbody') || sitesTable;
+                else if (sitesTable.tagName === 'TBODY') tbody = sitesTable;
+                else tbody = sitesTable.querySelector('tbody') || sitesTable;
+
+                // Collect existing local staged site names to avoid duplicates
+                const existingLocal = new Set(Array.from(tbody.querySelectorAll('tr[data-local-site]')).map(r => r.dataset.localSite));
+
+                // Determine starting index for numbering: count all non-header rows
+                const existingCount = tbody.querySelectorAll('tr').length;
+                let idx = existingCount + 1;
+
+                localSites.forEach(site => {
+                    if (existingLocal.has(site.name)) return;
+
+                    const row = document.createElement('tr');
+                    row.dataset.localSite = site.name;
+                    row.classList.add('local-site-row');
+
+                    const th = document.createElement('th');
+                    th.scope = 'row';
+                    th.textContent = String(idx);
+                    row.appendChild(th);
+
+                    const nameTd = document.createElement('td');
+                    nameTd.textContent = site.name;
+                    row.appendChild(nameTd);
+
+                    const plantsTd = document.createElement('td');
+                    plantsTd.textContent = site.total_plants || '—';
+                    row.appendChild(plantsTd);
+
+                    const co2Td = document.createElement('td');
+                    co2Td.textContent = site.total_co2 || '—';
+                    row.appendChild(co2Td);
+
+                    tbody.appendChild(row);
+                    idx += 1;
+                });
+            }
+        }
+
+        // Enable publish button (robust: try multiple IDs)
+        function activatePublish() {
+            const ids = ['publishSiteBtn', 'publish', 'publishBtn'];
+            for (const id of ids) {
+                const publishBtn = document.getElementById(id);
+                if (publishBtn) {
+                    publishBtn.disabled = false;
+                    return;
+                }
+            }
+        }
+
+        // Add new site button handler (drag-to-draw square)
+        const addBtn = document.querySelector('button[title="Add new"]');
+        if (addBtn) {
+            addBtn.addEventListener('click', () => {
+                if (drawingMode) return;
+                if (!controller.map) return;
+                drawingMode = true;
+                alert('Drag on the map to draw a square: click, drag and release to finish.');
+
+                // Create temporary preview source/layers if not present
+                if (!controller.map.getSource('draw-temp')) {
+                    controller.map.addSource('draw-temp', { type: 'geojson', data: { type: 'FeatureCollection', features: [] } });
+                    controller.map.addLayer({
+                        id: 'draw-temp-fill',
+                        type: 'fill',
+                        source: 'draw-temp',
+                        paint: { 'fill-color': 'rgba(0,200,150,0.2)', 'fill-outline-color': '#00c896' }
+                    });
+                    controller.map.addLayer({
+                        id: 'draw-temp-line',
+                        type: 'line',
+                        source: 'draw-temp',
+                        paint: { 'line-color': '#00c896', 'line-width': 2 }
+                    });
+                }
+
+                let startPoint = null;
+
+                const onMouseDown = (e) => {
+                    startPoint = e.point;
+                    controller.map.getCanvas().style.cursor = 'crosshair';
+                    controller.map.on('mousemove', onMouseMove);
+                    controller.map.once('mouseup', onMouseUp);
+                };
+
+                const onMouseMove = (e) => {
+                    if (!startPoint) return;
+                    const current = e.point;
+                    const dx = current.x - startPoint.x;
+                    const dy = current.y - startPoint.y;
+                    const size = Math.max(Math.abs(dx), Math.abs(dy));
+                    const signX = dx >= 0 ? 1 : -1;
+                    const signY = dy >= 0 ? 1 : -1;
+
+                    const p1 = startPoint;
+                    const p2 = { x: startPoint.x + signX * size, y: startPoint.y };
+                    const p3 = { x: startPoint.x + signX * size, y: startPoint.y + signY * size };
+                    const p4 = { x: startPoint.x, y: startPoint.y + signY * size };
+
+                    const coords = [p1, p2, p3, p4, p1].map(p => {
+                        const ll = controller.map.unproject([p.x, p.y]);
+                        return [ll.lng, ll.lat];
+                    });
+
+                    const geo = { type: 'FeatureCollection', features: [{ type: 'Feature', geometry: { type: 'Polygon', coordinates: [coords] }, properties: {} }] };
+                    const src = controller.map.getSource('draw-temp');
+                    if (src) src.setData(geo);
+                };
+
+                const onMouseUp = (e) => {
+                    controller.map.off('mousemove', onMouseMove);
+                    controller.map.getCanvas().style.cursor = '';
+
+                    // Re-enable map interactions
+                    try {
+                        if (controller.map.dragPan) controller.map.dragPan.enable();
+                        if (controller.map.touchZoomRotate) controller.map.touchZoomRotate.enable();
+                        if (controller.map.doubleClickZoom) controller.map.doubleClickZoom.enable();
+                    } catch (err) {
+                        // ignore
+                    }
+
+                    if (!startPoint) {
+                        drawingMode = false;
+                        return;
+                    }
+
+                    const endPoint = e.point;
+                    const dx = endPoint.x - startPoint.x;
+                    const dy = endPoint.y - startPoint.y;
+                    const size = Math.max(Math.abs(dx), Math.abs(dy));
+                    const signX = dx >= 0 ? 1 : -1;
+                    const signY = dy >= 0 ? 1 : -1;
+
+                    const p1 = startPoint;
+                    const p2 = { x: startPoint.x + signX * size, y: startPoint.y };
+                    const p3 = { x: startPoint.x + signX * size, y: startPoint.y + signY * size };
+                    const p4 = { x: startPoint.x, y: startPoint.y + signY * size };
+
+                    const finalCoords = [p1, p2, p3, p4].map(p => {
+                        const ll = controller.map.unproject([p.x, p.y]);
+                        return [ll.lng, ll.lat];
+                    });
+
+                    // Clean up preview layers/sources
+                    try {
+                        if (controller.map.getLayer('draw-temp-fill')) controller.map.removeLayer('draw-temp-fill');
+                        if (controller.map.getLayer('draw-temp-line')) controller.map.removeLayer('draw-temp-line');
+                        if (controller.map.getSource('draw-temp')) controller.map.removeSource('draw-temp');
+                    } catch (err) {
+                        // ignore
+                    }
+
+                    // Add final polygon to controller and local staging
+                    controller.addPolygon('New Site', finalCoords, { color: '#4ecdc4', height: 20 });
+                    const siteName = prompt('Enter site name:', `Site ${localSites.length + 1}`);
+                    localSites.push({ name: siteName || `Site ${localSites.length + 1}`, bounds: finalCoords });
+                    updateSiteUI();
+                    activatePublish();
+
+                    drawingMode = false;
+                    startPoint = null;
+                };
+
+                // Disable map interactions while drawing, then listen for drag start
+                try {
+                    if (controller.map.dragPan) controller.map.dragPan.disable();
+                    if (controller.map.touchZoomRotate) controller.map.touchZoomRotate.disable();
+                    if (controller.map.doubleClickZoom) controller.map.doubleClickZoom.disable();
+                } catch (err) {
+                    // ignore
+                }
+
+                // Start listening for the drag on next mousedown
+                controller.map.once('mousedown', onMouseDown);
+            });
+        }
+
+        // Prev/Next site navigation: highlight site row and fly to bounds
+        let currentSiteIdx = -1;
+        function getSiteRows() {
+            const sitesTable = document.getElementById('sitesTable');
+            if (!sitesTable) return [];
+            const tbody = sitesTable.tagName === 'TABLE' ? (sitesTable.querySelector('tbody') || sitesTable) : (sitesTable.tagName === 'TBODY' ? sitesTable : (sitesTable.querySelector('tbody') || sitesTable));
+            return Array.from(tbody.querySelectorAll('tr'));
+        }
+
+        function highlightSiteRow(idx) {
+            const rows = getSiteRows();
+            rows.forEach(r => r.classList.remove('table-active'));
+            if (idx >= 0 && idx < rows.length) {
+                rows[idx].classList.add('table-active');
+                // Try to get site id and name
+                const idCell = rows[idx].querySelector('th');
+                const nameCell = rows[idx].querySelectorAll('td')[0] || rows[idx].querySelector('th');
+                const siteId = idCell ? idCell.textContent.trim() : null;
+                const siteName = nameCell ? nameCell.textContent.trim() : null;
+                // Fly to site bounds if available (localSites prioritized)
+                // Try site id lookup in server-provided map
+                if (siteId && window.siteBoundsMap && window.siteBoundsMap[siteId]) {
+                    const bounds = window.siteBoundsMap[siteId];
+                    renderSiteBoundsTable(bounds);
+                    const lngs = bounds.map(c => c[0]);
+                    const lats = bounds.map(c => c[1]);
+                    const sw = [Math.min(...lngs), Math.min(...lats)];
+                    const ne = [Math.max(...lngs), Math.max(...lats)];
+                    try { controller.map.fitBounds([sw, ne], { padding: 40 }); } catch (e) {}
+                    return;
+                }
+
+                // find in localSites by name
+                if (siteName) {
+                    const local = localSites.find(s => s.name === siteName);
+                    if (local && local.bounds && local.bounds.length) {
+                        renderSiteBoundsTable(local.bounds);
+                        const lngs = local.bounds.map(c => c[0]);
+                        const lats = local.bounds.map(c => c[1]);
+                        const sw = [Math.min(...lngs), Math.min(...lats)];
+                        const ne = [Math.max(...lngs), Math.max(...lats)];
+                        try { controller.map.fitBounds([sw, ne], { padding: 40 }); } catch (e) {}
+                        return;
+                    }
+
+                    // Fallback: search controller polygon features by name
+                    const feat = controller.polygonGeoJSON.features.find(f => f.properties && f.properties.name === siteName);
+                    if (feat && feat.geometry && feat.geometry.coordinates) {
+                        const coords = feat.geometry.coordinates[0] || feat.geometry.coordinates;
+                        const parsed = coords.map(c => [c[0], c[1]]);
+                        renderSiteBoundsTable(parsed);
+                        const lngs = parsed.map(c => c[0]);
+                        const lats = parsed.map(c => c[1]);
+                        const sw = [Math.min(...lngs), Math.min(...lats)];
+                        const ne = [Math.max(...lngs), Math.max(...lats)];
+                        try { controller.map.fitBounds([sw, ne], { padding: 40 }); } catch (e) {}
+                        return;
+                    }
+                }
+            }
+        }
+
+        function renderSiteBoundsTable(bounds) {
+            const table = document.getElementById('siteBoundsTable');
+            if (!table) return;
+            const tbody = table.tagName === 'TABLE' ? (table.querySelector('tbody') || table) : (table.querySelector('tbody') || table);
+            // clear existing rows
+            tbody.innerHTML = '';
+            if (!bounds || !bounds.length) return;
+            bounds.forEach((c, i) => {
+                const tr = document.createElement('tr');
+                const th = document.createElement('th');
+                th.scope = 'row';
+                th.textContent = String(i + 1);
+                tr.appendChild(th);
+
+                const tdX = document.createElement('td');
+                tdX.textContent = (typeof c[0] === 'number') ? c[0].toFixed(5) : String(c[0]);
+                tr.appendChild(tdX);
+
+                const tdY = document.createElement('td');
+                tdY.textContent = (typeof c[1] === 'number') ? c[1].toFixed(5) : String(c[1]);
+                tr.appendChild(tdY);
+
+                const tdLock = document.createElement('td');
+                const chk = document.createElement('input');
+                chk.type = 'checkbox';
+                tdLock.appendChild(chk);
+                tr.appendChild(tdLock);
+
+                tbody.appendChild(tr);
+            });
+        }
+
+        // Wire previous/next in sites input-row
+        const sitesPanel = document.querySelector('#sites');
+        if (sitesPanel) {
+            const prevBtn = sitesPanel.querySelector('button[title="Previous"]');
+            const nextBtn = sitesPanel.querySelector('button[title="Next"]');
+            if (prevBtn) prevBtn.addEventListener('click', () => {
+                const rows = getSiteRows();
+                if (rows.length === 0) return;
+                currentSiteIdx = currentSiteIdx <= 0 ? rows.length - 1 : currentSiteIdx - 1;
+                highlightSiteRow(currentSiteIdx);
+            });
+            if (nextBtn) nextBtn.addEventListener('click', () => {
+                const rows = getSiteRows();
+                if (rows.length === 0) return;
+                currentSiteIdx = (currentSiteIdx + 1) % rows.length;
+                highlightSiteRow(currentSiteIdx);
+            });
+            // Initialize selection to first site if present
+            const initialRows = getSiteRows();
+            if (initialRows.length > 0) {
+                currentSiteIdx = 0;
+                highlightSiteRow(currentSiteIdx);
+            }
+        }
+
+        // Publish button handler
+        const publishBtn = document.getElementById('publishSiteBtn');
+        if (publishBtn) {
+            publishBtn.addEventListener('click', () => {
+                // TODO: AJAX to backend with localSites data
+                alert('Publishing new sites to backend...');
+                publishBtn.disabled = true;
+            });
+        }
+    });
+}
+
+main();
 })();
