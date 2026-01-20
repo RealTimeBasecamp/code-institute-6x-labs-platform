@@ -1026,9 +1026,21 @@
                     // Add final polygon to controller and local staging
                     controller.addPolygon('New Site', finalCoords, { color: '#4ecdc4', height: 20 });
                     const siteName = prompt('Enter site name:', `Site ${localSites.length + 1}`);
-                    localSites.push({ name: siteName || `Site ${localSites.length + 1}`, bounds: finalCoords });
+                    const finalSiteName = siteName || `Site ${localSites.length + 1}`;
+                    localSites.push({ name: finalSiteName, bounds: finalCoords });
                     updateSiteUI();
                     activatePublish();
+
+                    // Auto-select the newly created local site row in the sites table
+                    // Use a short timeout to ensure DOM was updated by updateSiteUI()
+                    setTimeout(() => {
+                        const rows = getSiteRows();
+                        const idx = rows.findIndex(r => r.dataset && r.dataset.localSite === finalSiteName);
+                        if (idx >= 0) {
+                            currentSiteIdx = idx;
+                            highlightSiteRow(currentSiteIdx);
+                        }
+                    }, 0);
 
                     drawingMode = false;
                     startPoint = null;
