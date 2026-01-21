@@ -888,7 +888,8 @@
             addBtn.addEventListener('click', (e) => {
                 // Ignore clicks on buttons that are intended to open the "comingSoonModal"
                 const btnEl = e && (e.currentTarget || (e.target && e.target.closest ? e.target.closest('button') : null));
-                if (btnEl && (btnEl.getAttribute('data-bs-target') === '#comingSoonModal' || btnEl.dataset?.bsTarget === '#comingSoonModal')) return;
+                const targetAttr = btnEl && (btnEl.getAttribute('data-bs-target') || btnEl.dataset?.bsTarget || '');
+                if (targetAttr && (targetAttr.indexOf('featureComingSoonModal') !== -1 || targetAttr.indexOf('comingSoonModal') !== -1)) return;
                 if (drawingMode) return;
                 if (!controller.map) return;
                 drawingMode = true;
@@ -1126,7 +1127,8 @@
             const nextBtn = sitesPanel.querySelector('button[title="Next"]');
             if (prevBtn) prevBtn.addEventListener('click', (e) => {
                 const btnEl = e && (e.currentTarget || (e.target && e.target.closest ? e.target.closest('button') : null));
-                if (btnEl && (btnEl.getAttribute('data-bs-target') === '#comingSoonModal' || btnEl.dataset?.bsTarget === '#comingSoonModal')) return;
+                const targetAttr = btnEl && (btnEl.getAttribute('data-bs-target') || btnEl.dataset?.bsTarget || '');
+                if (targetAttr && (targetAttr.indexOf('featureComingSoonModal') !== -1 || targetAttr.indexOf('comingSoonModal') !== -1)) return;
                 const rows = getSiteRows();
                 if (rows.length === 0) return;
                 currentSiteIdx = currentSiteIdx <= 0 ? rows.length - 1 : currentSiteIdx - 1;
@@ -1134,7 +1136,8 @@
             });
             if (nextBtn) nextBtn.addEventListener('click', (e) => {
                 const btnEl = e && (e.currentTarget || (e.target && e.target.closest ? e.target.closest('button') : null));
-                if (btnEl && (btnEl.getAttribute('data-bs-target') === '#comingSoonModal' || btnEl.dataset?.bsTarget === '#comingSoonModal')) return;
+                const targetAttr = btnEl && (btnEl.getAttribute('data-bs-target') || btnEl.dataset?.bsTarget || '');
+                if (targetAttr && (targetAttr.indexOf('featureComingSoonModal') !== -1 || targetAttr.indexOf('comingSoonModal') !== -1)) return;
                 const rows = getSiteRows();
                 if (rows.length === 0) return;
                 currentSiteIdx = (currentSiteIdx + 1) % rows.length;
@@ -1274,7 +1277,8 @@
 
             deleteBtn.addEventListener('click', (e) => {
                 const btnEl = e && (e.currentTarget || (e.target && e.target.closest ? e.target.closest('button') : null));
-                if (btnEl && (btnEl.getAttribute('data-bs-target') === '#comingSoonModal' || btnEl.dataset?.bsTarget === '#comingSoonModal')) return;
+                const targetAttr = btnEl && (btnEl.getAttribute('data-bs-target') || btnEl.dataset?.bsTarget || '');
+                if (targetAttr && (targetAttr.indexOf('featureComingSoonModal') !== -1 || targetAttr.indexOf('comingSoonModal') !== -1)) return;
                 deleteSelectedSite();
             });
         })();
