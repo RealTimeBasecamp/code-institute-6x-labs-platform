@@ -16,6 +16,7 @@
   --pill-bg: var(--bs-secondary-bg, #f8f9fa);
   --pill-active-bg: var(--bs-body-bg, #fff);
   --pill-text-color: var(--bs-body-color);
+  --pill-active-text-color: var(--bs-body-color);
   --pill-transition: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 
   position: relative;
@@ -83,6 +84,12 @@
 
 :is(.pill-nav, .nav-pills) .nav-link.active {
   background: transparent !important;
+  color: var(--pill-active-text-color) !important;
+}
+
+/* Ensure any inner content (icons/labels) inherits correct color */
+:is(.pill-nav, .nav-pills) .nav-link * {
+  color: inherit;
 }
 
 /* Icon variant - fills container width with even spacing */

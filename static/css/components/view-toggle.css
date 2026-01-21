@@ -1,0 +1,41 @@
+/* Compact styling for the view toggle component.
+   Uses the same CSS custom properties as nav-pills to size the control smaller. */
+.view-toggle {
+  --pill-height: 2.4rem;
+  --pill-padding: 0.25rem;
+  --pill-radius: 1.5rem;
+  font-size: 0.95rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  /* Emulate Bootstrap .col-2 width but cap with a sensible max */
+  width: 16.666667%;
+  max-width: 10rem;
+  box-sizing: border-box;
+  padding: var(--pill-padding);
+}
+
+.view-toggle .nav-link {
+  width: 100%;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+}
+
+.view-toggle .nav-link i {
+  font-size: 1rem;
+  line-height: 1;
+}
+
+/* Slightly tighter look on small viewports */
+@media (max-width: 576px) {
+  .view-toggle {
+    --pill-height: 1.75rem;
+    font-size: 0.85rem;
+  }
+  .view-toggle .nav-link {
+    padding: 0 0.4rem;
+  }
+}
