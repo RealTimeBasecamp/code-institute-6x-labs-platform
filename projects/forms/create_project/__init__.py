@@ -6,6 +6,8 @@ together, defines the wizard order, and registers the wizard.
 
 Template convention: projects/wizard_steps/create_project/{step_name}.html
 """
+from django.contrib import messages
+
 from core.wizard import BaseWizardView
 from core.wizards import register_wizard
 from projects.models import Project
@@ -21,14 +23,13 @@ from .summary import ProjectSummaryForm
 class ProjectCreationWizard(BaseWizardView):
     """
     Project creation wizard.
-    
+
     Creates Project with related Address, Contact, and optional
     Coordinate records through a multi-step wizard interface.
     """
 
     wizard_name = 'project_creation'
     success_url = '/projects/project-planner/{slug}/'
-    success_message = 'Project created successfully!'
 
     forms = [
         ProjectBasicInfoForm,
@@ -42,6 +43,26 @@ class ProjectCreationWizard(BaseWizardView):
     def get_extra_create_data(self, request):
         """Set created_by to the current user when creating a project."""
         return {'created_by': request.user}
+
+    def on_complete(self, request, all_data):
+        """
+        Create project and add success message for toast notification.
+
+        Uses Django messages framework so the toast persists across
+        the redirect to the project planner page.
+        """
+        # Call parent to create objects
+        result = super().on_complete(request, all_data)
+
+        if result.get('success'):
+            # Add Django message - will be shown as toast on redirected page
+            project_name = all_data.get('name', 'Project')
+            messages.success(
+                request,
+                f'Successfully created project: {project_name}'
+            )
+
+        return result
 
     def get_form_kwargs(self, request, step):
         """
@@ -68,12 +89,6 @@ class ProjectCreationWizard(BaseWizardView):
         # Coordinates step - help text from model
         if step == 3:
             context['coordinate_help'] = Project.COORDINATE_HELP
-
-        # Summary step - choice mappings for display labels
-        if step == 5:
-            context['project_type_choices'] = Project.PROJECT_TYPE_CHOICES
-            context['soil_type_choices'] = Project.SOIL_TYPE_CHOICES
-            context['climate_choices'] = Project.CLIMATE_CHOICES
 
         return context
 

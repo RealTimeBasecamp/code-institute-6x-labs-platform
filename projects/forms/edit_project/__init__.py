@@ -7,8 +7,10 @@ and disables auto-generated fields for display only.
 Template convention: projects/wizard_steps/edit_project/{step_name}.html
 (Falls back to create_project templates if edit-specific ones don't exist)
 """
+from django.contrib import messages
 from django.db import transaction
 from django.shortcuts import get_object_or_404
+
 from core.wizard import BaseWizardView, _clean_value
 from core.wizards import register_wizard
 from projects.models import Project
@@ -81,6 +83,7 @@ class ProjectEditWizard(BaseWizardView):
             '0': {
                 'name': project.name,
                 'project_type': project.project_type,
+                'status': project.status.pk if project.status else None,
                 'description': project.description,
             },
             # Step 1: Environment
@@ -109,18 +112,33 @@ class ProjectEditWizard(BaseWizardView):
             },
             # Step 4: Contact
             '4': {
+                # Company
                 'company_name': project.contact.company_name if project.contact else '',
                 'company_email': project.contact.company_email if project.contact else '',
                 'company_phone': project.contact.company_phone if project.contact else '',
+                'company_website': project.contact.company_website if project.contact else '',
+                # Primary contact
+                'primary_contact_title': project.contact.primary_contact_title if project.contact else '',
                 'primary_contact_name': project.contact.primary_contact_name if project.contact else '',
+                'primary_contact_pronouns': project.contact.primary_contact_pronouns if project.contact else '',
                 'primary_contact_email': project.contact.primary_contact_email if project.contact else '',
                 'primary_contact_phone': project.contact.primary_contact_phone if project.contact else '',
+                # Land owner
+                'land_owner_title': project.contact.land_owner_title if project.contact else '',
                 'land_owner_name': project.contact.land_owner_name if project.contact else '',
+                'land_owner_pronouns': project.contact.land_owner_pronouns if project.contact else '',
                 'land_owner_email': project.contact.land_owner_email if project.contact else '',
                 'land_owner_phone': project.contact.land_owner_phone if project.contact else '',
+                'land_owner_organization': project.contact.land_owner_organization if project.contact else '',
+                'land_owner_preferred_contact_method': project.contact.land_owner_preferred_contact_method if project.contact else '',
+                # Secondary contact
+                'secondary_contact_title': project.contact.secondary_contact_title if project.contact else '',
                 'secondary_contact_name': project.contact.secondary_contact_name if project.contact else '',
+                'secondary_contact_pronouns': project.contact.secondary_contact_pronouns if project.contact else '',
                 'secondary_contact_email': project.contact.secondary_contact_email if project.contact else '',
                 'secondary_contact_phone': project.contact.secondary_contact_phone if project.contact else '',
+                # Notes
+                'notes': project.contact.notes if project.contact else '',
             },
         }
 
@@ -145,12 +163,6 @@ class ProjectEditWizard(BaseWizardView):
         # Coordinates step - help text from model
         if step == 3:
             context['coordinate_help'] = Project.COORDINATE_HELP
-
-        # Summary step - choice mappings for display labels
-        if step == 5:
-            context['project_type_choices'] = Project.PROJECT_TYPE_CHOICES
-            context['soil_type_choices'] = Project.SOIL_TYPE_CHOICES
-            context['climate_choices'] = Project.CLIMATE_CHOICES
 
         # Pass edit mode flag to all steps
         context['edit_mode'] = True
@@ -180,6 +192,13 @@ class ProjectEditWizard(BaseWizardView):
             project.name = _clean_value(all_data.get('name')) or project.name
         if 'project_type' in all_data:
             project.project_type = _clean_value(all_data.get('project_type')) or project.project_type
+        if 'status' in all_data:
+            from projects.models import Status
+            status_id = _clean_value(all_data.get('status'))
+            if status_id:
+                project.status = Status.objects.get(pk=status_id)
+            else:
+                project.status = None
         if 'description' in all_data:
             project.description = _clean_value(all_data.get('description', ''))
 
@@ -230,23 +249,40 @@ class ProjectEditWizard(BaseWizardView):
         if project.contact:
             contact = project.contact
             contact_fields = [
-                'company_name', 'company_email', 'company_phone',
-                'primary_contact_name', 'primary_contact_email', 'primary_contact_phone',
-                'land_owner_name', 'land_owner_email', 'land_owner_phone',
-                'secondary_contact_name', 'secondary_contact_email', 'secondary_contact_phone',
+                # Company
+                'company_name', 'company_email', 'company_phone', 'company_website',
+                # Primary contact
+                'primary_contact_title', 'primary_contact_name', 'primary_contact_pronouns',
+                'primary_contact_email', 'primary_contact_phone',
+                # Land owner
+                'land_owner_title', 'land_owner_name', 'land_owner_pronouns',
+                'land_owner_email', 'land_owner_phone', 'land_owner_organization',
+                'land_owner_preferred_contact_method',
+                # Secondary contact
+                'secondary_contact_title', 'secondary_contact_name', 'secondary_contact_pronouns',
+                'secondary_contact_email', 'secondary_contact_phone',
+                # Notes
+                'notes',
             ]
             for field in contact_fields:
                 if field in all_data:
                     setattr(contact, field, _clean_value(all_data.get(field, '')))
             contact.save()
 
-        # Get redirect URL with slug
-        redirect_url = self.success_url.replace('{slug}', project.slug)
+        # Get submit metadata to determine which step was edited
+        wizard_data = self.get_wizard_data(request)
+        submit_metadata = wizard_data.get('_submit_metadata', {})
+        step_title = submit_metadata.get('step_title', 'Project')
 
+        # Add Django message with the edited card/section name
+        messages.success(
+            request,
+            f'Successfully edited {step_title}'
+        )
+
+        # No redirect for edit wizard - page reloads to show changes
         return {
             'success': True,
-            'redirect_url': redirect_url,
-            'message': self.success_message,
         }
 
 

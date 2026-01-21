@@ -90,41 +90,20 @@
    * Show inactive page modal
    */
   function showInactivePageModal() {
-    const existingModal = document.getElementById('inactive-modal');
-    if (existingModal) {
-      existingModal.remove();
+    // Prefer server-rendered modal component with id `comingSoonModal`.
+    const modalElem = document.getElementById('comingSoonModal');
+    if (modalElem) {
+      try {
+        const bsModal = new bootstrap.Modal(modalElem);
+        bsModal.show();
+      } catch (err) {
+        console.warn('Failed to show comingSoonModal:', err);
+      }
+      return;
     }
 
-    const modal = document.createElement('div');
-    modal.id = 'inactive-modal';
-    modal.className = 'modal fade';
-    modal.setAttribute('tabindex', '-1');
-    modal.innerHTML = `
-      <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content">
-          <div class="modal-header">
-            <h5 class="modal-title"><i class="bi bi-hourglass-split me-2"></i>Coming Soon</h5>
-            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-          </div>
-          <div class="modal-body">
-            <p>This page is not ready yet.</p>
-            <p class="mb-0">Please check back soon!</p>
-          </div>
-          <div class="modal-footer">
-            <button type="button" class="btn btn-primary" data-bs-dismiss="modal">OK</button>
-          </div>
-        </div>
-      </div>
-    `;
-
-    document.body.appendChild(modal);
-
-    const bsModal = new bootstrap.Modal(modal);
-    bsModal.show();
-
-    modal.addEventListener('hidden.bs.modal', () => {
-      modal.remove();
-    });
+    // If the server-rendered modal isn't present, warn and do nothing.
+    console.warn('comingSoonModal not found — include the modal component in your templates.');
   }
 
   /**

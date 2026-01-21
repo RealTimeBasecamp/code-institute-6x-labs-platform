@@ -6,7 +6,7 @@ app_name = 'core'
 
 urlpatterns = [
     path('', views.login_view, name='login'),
-    path('dashboard/', views.dashboard_view, name='dashboard'),
+    path('dashboard/', views.dashboard, name='dashboard'),
 
     # Wizard API endpoints
     path(

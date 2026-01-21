@@ -1,5 +1,6 @@
 /* ===== GLOBAL CUSTOM PROPERTIES ===== */
 :root {
+  --bs-border-radius: 0.5rem;
   --primary-color: #059acc; /* Fallback during theme transitions - overridden by themes */
   --sidebar-width: 16.25rem;
   --sidebar-min-width: 16.25rem;
@@ -104,8 +105,12 @@ h1, h2, h3, h4, h5, h6, p, span, div, a, button, input, textarea, select{
   padding: 0.375rem 1rem;
   border: 1px solid var(--bs-border-color);
   border-radius: 0.28125rem;
-  background-color: #ffffff;
+  /* Use the theme tertiary surface so buttons keep good contrast
+     in both light and dark modes. Make text slightly stronger. */
+  background-color: var(--bs-tertiary-bg);
   color: var(--bs-body-color);
+  font-weight: 600;
+  letter-spacing: 0.2px;
   cursor: pointer;
   transition: background-color 0.15s ease;
 }
@@ -118,6 +123,9 @@ h1, h2, h3, h4, h5, h6, p, span, div, a, button, input, textarea, select{
   background-color: var(--primary-color);
   border-color: var(--primary-color);
   color: #ffffff;
+  /* subtle text shadow improves legibility on both light and dark
+     themed primary colors where plain white can appear to float */
+  text-shadow: 0 1px 2px rgba(0,0,0,0.18);
 }
 
 .btn-auth-primary:hover {
@@ -216,6 +224,31 @@ h1, h2, h3, h4, h5, h6, p, span, div, a, button, input, textarea, select{
   padding: 0;
 }
 
+/* ===== LAYOUT UTILITIES ===== */
+/* Row with flexible input/dropdown and fixed-width buttons */
+.input-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.input-row > .flex-fill {
+  flex: 1;
+  min-width: 0;
+}
+
+/* Equal-width button group using CSS grid */
+.btn-group-equal {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 0.25rem;
+}
+
+.btn-group-equal-3 {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.25rem;
+}
 
 /* ===== PRIMARY BUTTON OVERRIDE ===== */
 .btn-primary {
@@ -228,6 +261,15 @@ h1, h2, h3, h4, h5, h6, p, span, div, a, button, input, textarea, select{
   --bs-btn-disabled-bg: var(--primary-color);
   --bs-btn-disabled-border-color: var(--primary-color);
 }
+
+.btn-secondary {
+  --bs-btn-bg: var(--bs-body-bg);
+  --bs-btn-border-color: var(--bs-border-color);
+  --bs-btn-hover-bg: var(--bs-hover-bg);
+  --bs-btn-hover-border-color: var(--bs-border-color);
+  --bs-btn-color: var(--bs-body-color);
+}
+
 
 .bi,
 svg {
@@ -281,4 +323,31 @@ svg {
 
 ::view-transition-group(root) {
   animation-duration: 0.2s;
+}
+
+/* Utility: Primary background (used for avatar fallback, badges, etc.) */
+.bg-primary {
+  background-color: var(--primary-color) !important;
+  color: #ffffff !important;
+}
+
+/* Override modal default paddings for cases where a utility class like p-0
+   is applied to the modal content. modal.css uses !important on
+   .modal-body/.modal-footer which can win over utility classes; make a
+   more specific selector so p-0 behaves as expected. */
+.modal-content.p-0 .modal-body,
+.modal-content.p-0 > .modal-body,
+.modal-content.p-0 .modal-footer,
+.modal-content.p-0 > .modal-footer {
+  padding-top: 0 !important;
+  padding-right: 0 !important;
+  padding-left: 0 !important;
+  padding-bottom: 0 !important;
+  margin: 0 !important;
+}
+
+/* Also ensure modal-minimal variants that rely on p-0 keep zero padding */
+.modal-no-backdrop .modal-content.p-0 .modal-body,
+.modal-no-backdrop .modal-content.p-0 .modal-footer {
+  padding-top: 0 !important;
 }

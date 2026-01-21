@@ -1,0 +1,201 @@
+/**
+ * Toast Notification Styles
+ *
+ * Customizes Bootstrap 5 toasts with:
+ * - Enhanced visibility and shadow
+ * - Consistent icon sizing
+ * - Smooth animations for show/hide
+ * - Theme-aware styling for light/dark modes
+ */
+
+/* Toast container positioning */
+#toast-container {
+  z-index: 1090;
+  pointer-events: none;
+}
+
+/* Individual toast styling */
+#toast-container .toast {
+  pointer-events: auto;
+  min-width: 280px;
+  max-width: 350px;
+  box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+  border: none;
+  border-radius: 0.5rem;
+  overflow: hidden;
+}
+
+/* Toast header styling */
+#toast-container .toast-header {
+  border-bottom: none;
+  padding: 0.75rem 1rem;
+}
+
+/* Icon styling in header */
+#toast-container .toast-header i {
+  font-size: 1.1rem;
+}
+
+/* Title styling */
+#toast-container .toast-header strong {
+  font-weight: 600;
+}
+
+/* Timestamp styling */
+#toast-container .toast-header small {
+  opacity: 0.8;
+}
+
+/* Close button adjustments */
+#toast-container .toast-header .btn-close {
+  margin-left: 0.5rem;
+  padding: 0.5rem;
+}
+
+/* Toast body styling */
+#toast-container .toast-body {
+  padding: 0.75rem 1rem;
+  font-size: 0.9rem;
+  line-height: 1.4;
+}
+
+/* Animation for toast appearance */
+#toast-container .toast.showing {
+  animation: toast-slide-in 0.3s ease-out;
+}
+
+/* Animation for toast disappearance */
+#toast-container .toast.hiding {
+  animation: toast-slide-out 0.3s ease-in;
+}
+
+@keyframes toast-slide-in {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+@keyframes toast-slide-out {
+  from {
+    transform: translateX(0);
+    opacity: 1;
+  }
+  to {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+}
+
+/* Left-positioned toasts slide from left */
+.toast-container.start-0 .toast.showing {
+  animation: toast-slide-in-left 0.3s ease-out;
+}
+
+.toast-container.start-0 .toast.hiding {
+  animation: toast-slide-out-left 0.3s ease-in;
+}
+
+@keyframes toast-slide-in-left {
+  from {
+    transform: translateX(-100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+@keyframes toast-slide-out-left {
+  from {
+    transform: translateX(0);
+    opacity: 1;
+  }
+  to {
+    transform: translateX(-100%);
+    opacity: 0;
+  }
+}
+
+/* Center-positioned toasts slide from top/bottom */
+.toast-container.translate-middle-x .toast.showing {
+  animation: toast-slide-in-center 0.3s ease-out;
+}
+
+.toast-container.translate-middle-x .toast.hiding {
+  animation: toast-slide-out-center 0.3s ease-in;
+}
+
+@keyframes toast-slide-in-center {
+  from {
+    transform: translateY(-20px) translateX(-50%);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0) translateX(-50%);
+    opacity: 1;
+  }
+}
+
+@keyframes toast-slide-out-center {
+  from {
+    transform: translateY(0) translateX(-50%);
+    opacity: 1;
+  }
+  to {
+    transform: translateY(-20px) translateX(-50%);
+    opacity: 0;
+  }
+}
+
+/* Stack spacing between toasts */
+#toast-container .toast + .toast {
+  margin-top: 0.5rem;
+}
+
+/* Dark mode adjustments */
+[data-bs-theme="dark"] #toast-container .toast {
+  box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.3);
+}
+
+[data-bs-theme="dark"] #toast-container .toast-body {
+  background-color: var(--bs-body-bg);
+}
+
+/* Ensure toast text is readable on colored backgrounds */
+#toast-container .toast-header.text-bg-warning,
+#toast-container .toast-header.text-bg-info {
+  color: #000 !important;
+}
+
+#toast-container .toast-header.text-bg-success,
+#toast-container .toast-header.text-bg-danger,
+#toast-container .toast-header.text-bg-secondary {
+  color: #fff !important;
+}
+
+/* Mobile responsiveness */
+@media (max-width: 576px) {
+  #toast-container {
+    left: 0.5rem;
+    right: 0.5rem;
+    width: auto;
+  }
+
+  #toast-container .toast {
+    min-width: 100%;
+    max-width: 100%;
+  }
+
+  /* Center all toasts on mobile */
+  .toast-container.end-0,
+  .toast-container.start-0 {
+    left: 0.5rem !important;
+    right: 0.5rem !important;
+  }
+}

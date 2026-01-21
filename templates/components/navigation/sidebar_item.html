@@ -1,6 +1,6 @@
 {% load static %}
 
-<li class="sidebar-item{% if nav_item.type == 'parent' and nav_item.children %} has-children{% endif %}">
+<li class="sidebar-item{% if nav_item.type == 'parent' and nav_item.children %} has-children{% endif %}{% if nav_item.is_footer %} sidebar-item--bottom{% endif %}">
   {% if nav_item.type == 'profile' %}
     {# Profile item - triggers teamspace modal #}
     <a href="#"
@@ -13,9 +13,7 @@
       {% if user.avatar %}
         <img src="{{ user.avatar.url }}" alt="{{ user.username }}" class="rounded-circle" width="20" height="20">
       {% else %}
-        <span class="rounded-circle bg-primary d-flex align-items-center justify-content-center" style="width: 20px; height: 20px; font-size: 0.6rem;">
-          <span class="text-white fw-bold">{{ user.username|slice:":1"|upper }}</span>
-        </span>
+        {% include 'components/user_avatar.html' with user=user width=20 height=20 %}
       {% endif %}
       <span>{{ user.display_name|default:user.username }}</span>
     </a>

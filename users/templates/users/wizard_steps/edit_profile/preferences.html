@@ -111,17 +111,23 @@ JS handler: static/js/components/theme-preferences.js
   <!-- Mode Selection -->
   <div class="mb-3">
     <label class="form-label fw-semibold">Display Mode</label>
-    <div class="mode-selector btn-group w-100" role="group" aria-label="Display mode selection">
-      <button type="button" class="btn btn-outline-secondary mode-btn" data-mode="light">
-        <i class="bi bi-sun me-2"></i>Light
-      </button>
-      <button type="button" class="btn btn-outline-secondary mode-btn" data-mode="dark">
-        <i class="bi bi-moon-stars me-2"></i>Dark
-      </button>
-      <button type="button" class="btn btn-outline-secondary mode-btn" data-mode="system">
-        <i class="bi bi-display me-2"></i>System
-      </button>
-    </div>
+    <ul class="nav nav-pills nav-pills--icons mode-selector" role="group" aria-label="Display mode selection">
+      <li class="nav-item" role="presentation">
+        <button type="button" class="nav-link mode-btn" data-mode="light" aria-label="Light mode">
+          <i class="bi bi-sun"></i><span class="mode-label">Light</span>
+        </button>
+      </li>
+      <li class="nav-item" role="presentation">
+        <button type="button" class="nav-link mode-btn" data-mode="dark" aria-label="Dark mode">
+          <i class="bi bi-moon-stars"></i><span class="mode-label">Dark</span>
+        </button>
+      </li>
+      <li class="nav-item" role="presentation">
+        <button type="button" class="nav-link mode-btn" data-mode="system" aria-label="System mode">
+          <i class="bi bi-display"></i><span class="mode-label">(System)</span>
+        </button>
+      </li>
+    </ul>
     <div class="form-text mt-2">
       System mode automatically matches your device's light/dark setting.
     </div>
@@ -214,11 +220,29 @@ JS handler: static/js/components/theme-preferences.js
     color: var(--bs-body-color);
   }
 
-  /* Mode Button Styles */
-  .mode-selector .mode-btn.active {
-    background-color: var(--primary-color) !important;
-    border-color: var(--primary-color) !important;
-    color: var(--bs-white, #fff) !important;
+  /* Mode Selector - uses pill-nav component */
+  .mode-selector.nav-pills {
+    margin-bottom: 0.5rem;
+  }
+
+  /* Align icon and label inline for mode buttons */
+  .mode-selector .mode-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: .35rem .6rem;
+  }
+
+  .mode-selector .mode-btn .bi {
+    font-size: 1.05rem;
+    line-height: 1;
+    display: inline-block;
+  }
+
+  .mode-label {
+    margin: 0;
+    font-size: 0.95rem;
+    line-height: 1;
   }
 
   @media (max-width: 400px) {

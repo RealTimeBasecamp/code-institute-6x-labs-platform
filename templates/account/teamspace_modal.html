@@ -8,29 +8,35 @@
   {% url 'account_signup' as signup_url %}
   {% url 'account_logout' as logout_url %}
 
-  <div class="card border-0">
+  <div class="card">
     {% if user.is_authenticated %}
-    {# Card header - Bootstrap handles light/dark theme colors automatically #}
     <div class="card-header d-flex justify-content-between align-items-center">
       <div class="d-flex align-items-center" id="accountdisplaybox">
         <div class="me-3">
-          {% if user.avatar %}
-            <img src="{{ user.avatar.url }}" alt="{{ user.username }}" class="rounded-circle" width="40" height="40">
-          {% else %}
-            <div class="rounded-circle bg-primary d-flex align-items-center justify-content-center" style="width: 40px; height: 40px;">
-              <span class="text-white fw-bold">{{ user.username|slice:":1"|upper }}</span>
-            </div>
-          {% endif %}
+          {% include 'components/user_avatar.html' with user=user height=48 width=48 %}
         </div>
         <div id="accountinfo">
           <div class="fw-bold">{{ user.display_name|default:user.username }}</div>
-          {# <span>
-            <div>{{ user.subscription_tier }}</div>
-            <div class="text-muted">{{ user.team_members.count }} members</div>
-          </span> #}
+           <span>
+            {% if user.is_admin %}
+              <div>Admin</div>
+            {% elif user.is_superuser %}
+              <div>Superuser</div>
+            {% else %}
+              <div>{{ user.subscription_tier|default:"Sapling Tier" }}</div>
+              {# <div class="text-muted">{{ user.team_members.count }} members</div>#}
+            {% endif %}
+
+          </span> 
         </div>
       </div>
-      <a class="btn btn-outline-secondary btn-sm" role="button" href="{{ settings_url }}">Settings</a>
+      <button
+        role="button"
+        class="btn btn-secondary btn-sm"
+        data-bs-toggle="modal"
+        data-bs-target="#UserSettingsModal">
+        <i class="bi bi-gear me-1"></i>Settings
+    </button>
     </div>
 
     {# Card body #}
@@ -41,7 +47,11 @@
         {# <div>{{ user.teamspace }}</div> #}
       </div>
       <hr>
-      <a href="{{ logout_url }}">Log out</a>
+      <a
+        class="btn btn-secondary btn-sm"
+        href="{{ logout_url }}"
+        role="button"
+        >Log out</a>
     </div>
 
     {% else %}
@@ -51,4 +61,8 @@
       </div>
     {% endif %}
   </div>
-{% endblock %}
+
+  
+  {# UserSettingsModal deliberately not included here to avoid nesting modals; see sidebar include #}
+
+  {% endblock %}

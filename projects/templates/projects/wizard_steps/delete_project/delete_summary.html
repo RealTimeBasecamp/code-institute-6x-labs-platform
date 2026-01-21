@@ -39,32 +39,8 @@ Context provided by wizard:
   </div>
   {% endif %}
 
-  {# User info card #}
-  <div class="card mb-4">
-    <div class="card-header">
-      <span class="fw-semibold">Deleting as</span>
-    </div>
-    <div class="card-body">
-      <div class="d-flex align-items-center gap-3">
-        {% if user.avatar %}
-          <img src="{{ user.avatar.url }}" alt="{{ user.username }}"
-               class="rounded-circle" width="40" height="40">
-        {% else %}
-          <div class="rounded-circle bg-primary d-flex align-items-center justify-content-center"
-               style="width: 40px; height: 40px;">
-            <span class="text-white fw-bold">{{ user.username|slice:":1"|upper }}</span>
-          </div>
-        {% endif %}
-        <div>
-          <div class="fw-semibold">{{ user.display_name|default:user.username }}</div>
-          <small class="text-body-secondary">{{ user.email }}</small>
-        </div>
-      </div>
-    </div>
-  </div>
-
   {# Danger zone warning #}
-  <div class="alert alert-danger border-danger mb-4">
+  <div class="card border border-3 border-danger p-3">
     <div class="d-flex align-items-center">
       <i class="bi bi-exclamation-triangle-fill fs-4 me-3"></i>
       <div>

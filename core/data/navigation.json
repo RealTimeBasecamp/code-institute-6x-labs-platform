@@ -167,9 +167,10 @@
       "item_id": "upgrade",
       "item_type": "modal",
       "label": "Upgrade Plan",
-      "icon": "bi-arrow-up-circle",
+      "icon": "bi-stars",
       "url_name": "",
       "is_active": true,
+      "is_footer": true,
       "staff_only": false,
       "allowed_tiers": ["sapling", "growth", "thrive", "enterprise"]
     }

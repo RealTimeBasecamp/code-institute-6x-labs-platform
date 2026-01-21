@@ -10,10 +10,7 @@ Importing this module registers all wizards with the core wizard registry.
 from .edit_profile import (
     UserProfileWizard,
     UserBasicInfoForm,
-    UserContactForm,
-    UserWorkInfoForm,
     UserPreferencesForm,
-    UserAvatarForm,
 )
 
 
@@ -21,8 +18,5 @@ __all__ = [
     # Edit profile wizard
     'UserProfileWizard',
     'UserBasicInfoForm',
-    'UserContactForm',
-    'UserWorkInfoForm',
     'UserPreferencesForm',
-    'UserAvatarForm',
 ]

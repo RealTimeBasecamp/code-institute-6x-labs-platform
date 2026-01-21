@@ -1,0 +1,131 @@
+/**
+ * Pill Navigation Component
+ * Reusable pill navigation with smooth sliding indicator animation.
+ *
+ * Usage:
+ *   <ul class="nav nav-pills" role="tablist">...</ul>
+ *   <ul class="nav nav-pills nav-pills--icons" role="tablist">...</ul>
+ */
+
+/* Base styles for both .pill-nav and .nav-pills */
+.pill-nav,
+.nav-pills {
+  --pill-height: 2.5rem;
+  --pill-padding: 0.25rem;
+  --pill-radius: 100vmax;
+  --pill-bg: var(--bs-secondary-bg, #f8f9fa);
+  --pill-active-bg: var(--bs-body-bg, #fff);
+  --pill-text-color: var(--bs-body-color);
+  --pill-active-text-color: var(--bs-body-color);
+  --pill-transition: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  background: var(--pill-bg);
+  border-radius: var(--pill-radius);
+  padding: var(--pill-padding);
+  height: var(--pill-height);
+  gap: 0;
+  flex-shrink: 0;
+}
+
+.nav-pills {
+  margin-bottom: 1rem;
+}
+
+/* Sliding indicator */
+.pill-nav::before,
+.nav-pills::before {
+  content: '';
+  position: absolute;
+  top: var(--pill-padding);
+  left: var(--pill-padding);
+  height: calc(var(--pill-height) - var(--pill-padding) * 2);
+  width: var(--indicator-width, 0);
+  background: var(--pill-active-bg);
+  border-radius: var(--pill-radius);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+  transition: transform var(--pill-transition), width var(--pill-transition);
+  transform: translateX(var(--indicator-offset, 0));
+  z-index: 0;
+}
+
+/* Nav items */
+:is(.pill-nav, .nav-pills) .nav-item {
+  list-style: none;
+  margin: 0;
+  z-index: 1;
+}
+
+/* Nav links */
+:is(.pill-nav, .nav-pills) .nav-link {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 1rem;
+  height: calc(var(--pill-height) - var(--pill-padding) * 2);
+  border-radius: var(--pill-radius);
+  color: var(--pill-text-color);
+  font-size: 0.875rem;
+  font-weight: 500;
+  text-decoration: none;
+  white-space: nowrap;
+  background: transparent !important;
+  border: none;
+  transition: color var(--pill-transition);
+  z-index: 1;
+}
+
+:is(.pill-nav, .nav-pills) .nav-link:hover {
+  opacity: 0.8;
+}
+
+:is(.pill-nav, .nav-pills) .nav-link.active {
+  background: transparent !important;
+  color: var(--pill-active-text-color) !important;
+}
+
+/* Ensure any inner content (icons/labels) inherits correct color */
+:is(.pill-nav, .nav-pills) .nav-link * {
+  color: inherit;
+}
+
+/* Icon variant - fills container width with even spacing */
+.pill-nav--icons,
+.nav-pills--icons {
+  display: flex !important;
+  width: 100%;
+  max-width: 100%;
+  flex-shrink: 1;
+  flex-wrap: nowrap !important;
+}
+
+:is(.pill-nav--icons, .nav-pills--icons) .nav-item {
+  flex: 1 1 0 !important;
+  width: 0;
+  min-width: 0;
+  max-width: none;
+}
+
+:is(.pill-nav--icons, .nav-pills--icons) .nav-link {
+  width: 100%;
+  padding: 0;
+  font-size: 1.125rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+}
+
+/* Ensure Bootstrap Icons center properly */
+:is(.pill-nav--icons, .nav-pills--icons) .nav-link::before {
+  display: block;
+  margin: 0 auto;
+}
+
+/* Text variant */
+:is(.pill-nav--text, .nav-pills--text) .nav-link {
+  padding: 0 1.25rem;
+}

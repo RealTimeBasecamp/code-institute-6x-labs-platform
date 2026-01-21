@@ -253,7 +253,7 @@ class Project(models.Model):
         all_longitudes = []
 
         for site in self.sites.all():
-            geojson = site.site_boundary_polygon if site.site_boundary_polygon else site.bounding_box_coordinates
+            geojson = site.site_inclusion_polygons if site.site_inclusion_polygons else site.bounding_box_coordinates
 
             if geojson and isinstance(geojson, dict) and 'coordinates' in geojson:
                 coordinates = geojson['coordinates'][0]
@@ -279,7 +279,7 @@ class Project(models.Model):
         all_lngs = []
 
         for site in self.sites.all():
-            geojson = site.bounding_box_coordinates if site.bounding_box_coordinates else site.site_boundary_polygon
+            geojson = site.bounding_box_coordinates if site.bounding_box_coordinates else site.site_inclusion_polygons
 
             if geojson and isinstance(geojson, dict) and 'coordinates' in geojson:
                 coordinates = geojson['coordinates'][0]
@@ -400,12 +400,15 @@ class Project(models.Model):
                             ('Name', self.contact.company_name or '—' if self.contact else '—'),
                             ('Email', self.contact.company_email or '—' if self.contact else '—'),
                             ('Phone', self.contact.company_phone or '—' if self.contact else '—'),
+                            ('Website', self.contact.company_website or '—' if self.contact else '—'),
                         ],
                     },
                     {
                         'title': 'Primary Contact',
                         'fields': [
+                            ('Title/Role', self.contact.primary_contact_title or '—' if self.contact else '—'),
                             ('Name', self.contact.primary_contact_name or '—' if self.contact else '—'),
+                            ('Pronouns', self.contact.primary_contact_pronouns or '—' if self.contact else '—'),
                             ('Email', self.contact.primary_contact_email or '—' if self.contact else '—'),
                             ('Phone', self.contact.primary_contact_phone or '—' if self.contact else '—'),
                         ],
@@ -413,17 +416,29 @@ class Project(models.Model):
                     {
                         'title': 'Land Owner',
                         'fields': [
+                            ('Title/Role', self.contact.land_owner_title or '—' if self.contact else '—'),
                             ('Name', self.contact.land_owner_name or '—' if self.contact else '—'),
+                            ('Pronouns', self.contact.land_owner_pronouns or '—' if self.contact else '—'),
                             ('Email', self.contact.land_owner_email or '—' if self.contact else '—'),
                             ('Phone', self.contact.land_owner_phone or '—' if self.contact else '—'),
+                            ('Organization', self.contact.land_owner_organization or '—' if self.contact else '—'),
+                            ('Preferred Contact', self.contact.land_owner_preferred_contact_method or '—' if self.contact else '—'),
                         ],
                     },
                     {
                         'title': 'Secondary Contact',
                         'fields': [
+                            ('Title/Role', self.contact.secondary_contact_title or '—' if self.contact else '—'),
                             ('Name', self.contact.secondary_contact_name or '—' if self.contact else '—'),
+                            ('Pronouns', self.contact.secondary_contact_pronouns or '—' if self.contact else '—'),
                             ('Email', self.contact.secondary_contact_email or '—' if self.contact else '—'),
                             ('Phone', self.contact.secondary_contact_phone or '—' if self.contact else '—'),
+                        ],
+                    },
+                    {
+                        'title': 'Notes',
+                        'fields': [
+                            ('Notes', self.contact.notes or '—' if self.contact else '—'),
                         ],
                     },
                 ],
@@ -494,7 +509,7 @@ class Site(models.Model):
 
     # Coordinate-based geometry (GeoJSON format for MapLibre compatibility)
     bounding_box_coordinates = models.JSONField(default=dict, blank=True)
-    site_boundary_polygon = models.JSONField(default=dict, blank=True)
+    site_inclusion_polygons = models.JSONField(db_column='site_boundary_polygon', default=dict, blank=True)
     site_exclusion_polygons = models.JSONField(default=dict, blank=True)
     entrance_pathfinding = models.JSONField(default=dict, blank=True)
 

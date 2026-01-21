@@ -1,0 +1,101 @@
+{% comment %}
+Toast Notification Container Component
+======================================
+
+A reusable, configurable Bootstrap 5 toast notification system that integrates
+with Django's messages framework for displaying user feedback.
+
+Documentation: https://getbootstrap.com/docs/5.3/components/toasts/
+
+Features:
+---------
+- Configurable screen position (top-right, top-left, bottom-right, bottom-left)
+- Automatic integration with Django messages framework
+- Stackable toasts for multiple notifications
+- Auto-hide with configurable delay (default: 30 seconds)
+- Color-coded by message type (success, error, warning, info)
+- Accessible with ARIA attributes
+
+Usage:
+------
+Include this component in your base template:
+
+    {% include 'components/toasts/toast_container.html' %}
+
+Optional configuration via template variables:
+
+    {% include 'components/toasts/toast_container.html' with
+        position="bottom-left"
+        autohide_delay=5000
+    %}
+
+Position Options:
+-----------------
+- "top-right" (default) - Top right corner
+- "top-left" - Top left corner
+- "bottom-right" - Bottom right corner
+- "bottom-left" - Bottom left corner
+- "top-center" - Top center
+- "bottom-center" - Bottom center
+
+Message Type Mapping:
+---------------------
+Django messages are automatically styled based on their level:
+- messages.SUCCESS -> Green toast with checkmark icon
+- messages.ERROR -> Red toast with X icon
+- messages.WARNING -> Yellow toast with warning icon
+- messages.INFO -> Blue toast with info icon
+- messages.DEBUG -> Gray toast with bug icon
+
+JavaScript API:
+---------------
+The toast system exposes a global API for programmatic toast creation:
+
+    // Show a simple toast
+    window.showToast('Operation completed successfully!', 'success');
+
+    // Show toast with custom title
+    window.showToast('Data saved', 'info', 'Save Complete');
+
+    // Show toast with custom delay (ms)
+    window.showToast('Quick message', 'warning', null, 3000);
+
+Data Attributes:
+----------------
+The container element supports these data attributes for configuration:
+- data-toast-position: Override default position
+- data-toast-delay: Override default auto-hide delay in ms
+{% endcomment %}
+
+{% load static %}
+
+{# Determine position classes based on the 'position' variable #}
+{# Default position is top-right if not specified #}
+{% with pos=position|default:"top-right" %}
+    {% if pos == "top-left" %}
+        {% with pos_classes="top-0 start-0" %}
+            {% include "components/toasts/_toast_wrapper.html" %}
+        {% endwith %}
+    {% elif pos == "bottom-right" %}
+        {% with pos_classes="bottom-0 end-0" %}
+            {% include "components/toasts/_toast_wrapper.html" %}
+        {% endwith %}
+    {% elif pos == "bottom-left" %}
+        {% with pos_classes="bottom-0 start-0" %}
+            {% include "components/toasts/_toast_wrapper.html" %}
+        {% endwith %}
+    {% elif pos == "top-center" %}
+        {% with pos_classes="top-0 start-50 translate-middle-x" %}
+            {% include "components/toasts/_toast_wrapper.html" %}
+        {% endwith %}
+    {% elif pos == "bottom-center" %}
+        {% with pos_classes="bottom-0 start-50 translate-middle-x" %}
+            {% include "components/toasts/_toast_wrapper.html" %}
+        {% endwith %}
+    {% else %}
+        {# Default: top-right #}
+        {% with pos_classes="top-0 end-0" %}
+            {% include "components/toasts/_toast_wrapper.html" %}
+        {% endwith %}
+    {% endif %}
+{% endwith %}

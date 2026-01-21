@@ -1,7 +1,7 @@
 {% comment %}
 Project Creation Wizard - Step 1: Basic Info
 
-Collects core project details including name, description, and type.
+Collects core project details including name, type, status, and description.
 
 Context provided by wizard:
   - form: ProjectBasicInfoForm instance
@@ -16,5 +16,6 @@ Context provided by wizard:
 
   {% form_field form 'name' help_text='Choose a unique, descriptive name for your project.' %}
   {% form_field form 'project_type' help_text='This helps categorize your project for reporting and analysis.' %}
+  {% form_field form 'status' help_text='Set the current workflow status of your project.' %}
   {% form_field form 'description' help_text='Provide details about the project goals, scope, and any special considerations.' %}
 </div>

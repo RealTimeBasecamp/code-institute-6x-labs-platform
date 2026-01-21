@@ -1,58 +1,26 @@
-{# 
-Sortable Table Component
+{% load string_extras %}
 
-A reusable table with sorting and search functionality.
 
-Usage:
-{% include "components/sortable_table.html" with headers=headers rows=rows %}
-
-Parameters:
-- headers: List of dicts with 'label', optional 'sortable' (bool), optional 'sort_type' ('string'|'number')
-- rows: List of dicts with 'cells' (list of cell values), optional 'url' for row link
-- table_id: Optional unique ID for the table
-
-Example:
-headers = [
-    {'label': '#', 'sortable': False},
-    {'label': 'Name', 'sortable': True},
-    {'label': 'Status', 'sortable': True},
-    {'label': 'Total CO₂ (kg)', 'sortable': True, 'sort_type': 'number'},
-]
-rows = [
-    {'cells': ['1', 'Project Alpha', 'Active', '1500']},
-    {'cells': ['2', 'Project Beta', 'Pending', '200']},
-]
-#}
-
-<table class="table sortable-table"{% if table_id %} id="{{ table_id }}"{% endif %}>
+<table id="{{ table_id }}" class="table sortable-table">
     <thead>
         <tr>
-            {% for header in headers %}
-            <th scope="col"
-                {% if header.sortable %}data-sortable{% endif %}
-                {% if header.sort_type %}data-sort-type="{{ header.sort_type }}"{% endif %}>
-                {{ header.label }}
-            </th>
+            {% for header in table_headers|split:"," %}
+                <th onclick="sortTable('{{ table_id }}', {{ forloop.counter0 }})">
+                    {{ header|strip }}
+                </th>
             {% endfor %}
         </tr>
     </thead>
+
     <tbody>
-        {% for row in rows %}
-        <tr>
-            {% for cell in row.cells %}
-            {% if forloop.first %}
-            <th scope="row">{{ cell }}</th>
-            {% else %}
-            <td{% if cell.sort_value %} data-sort-value="{{ cell.sort_value }}"{% endif %}>
-                {% if cell.url %}
-                <a href="{{ cell.url }}">{{ cell.value|default:cell }}</a>
-                {% else %}
-                {{ cell.value|default:cell }}
-                {% endif %}
-            </td>
-            {% endif %}
+        {% if table_rows %}
+            {% for row in table_rows %}
+              <tr>
+                {% for cell in row %}
+                  <td>{{ cell }}</td>
+                {% endfor %}
+              </tr>
             {% endfor %}
-        </tr>
-        {% endfor %}
+        {% endif %}
     </tbody>
 </table>

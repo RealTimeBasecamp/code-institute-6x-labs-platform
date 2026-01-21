@@ -25,7 +25,10 @@
     <link rel="stylesheet" href="{% static 'css/components/card.css' %}">
     <link rel="stylesheet" href="{% static 'css/components/dropdown.css' %}">
     <link rel="stylesheet" href="{% static 'css/components/modal.css' %}">
+    <link rel="stylesheet" href="{% static 'css/components/nav-pills.css' %}">
+    <link rel="stylesheet" href="{% static 'css/components/view-toggle.css' %}">
     <link rel="stylesheet" href="{% static 'css/components/toggle-switch.css' %}">
+    <link rel="stylesheet" href="{% static 'css/components/toast.css' %}">
     <!-- Page-specific CSS -->
     {% block extra_css %}{% endblock %}
     <title>{% block meta_title %}Title{% endblock %}</title>
@@ -34,6 +37,7 @@
 <body>
     {% include 'components/navigation/navbar.html' %}
     {% include 'components/navigation/sidebar.html' %}
+    {% include 'components/toasts/toast_container.html' %}
 
     <!-- Mobile Menu Button -->
     <button
@@ -60,18 +64,6 @@
             <hr class="header-line" />
 
             <div class="container main-content">
-                <!-- Django Messages -->
-                {% if messages %}
-                    <div class="messages-container mb-3">
-                        {% for message in messages %}
-                            <div class="alert alert-{{ message.tags|default:'info' }} alert-dismissible fade show" role="alert">
-                                {{ message }}
-                                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-                            </div>
-                        {% endfor %}
-                    </div>
-                {% endif %}
-
                 {% block content %}
                     <!-- Your page content goes here -->
                 {% endblock %}
@@ -101,6 +93,8 @@
     <script src="{% static 'js/theme-manager.js' %}" defer></script>
     <script src="{% static 'js/tooltip-init.js' %}" defer></script>
     <script src="{% static 'js/components/dropdown.js' %}" defer></script>
+    <script src="{% static 'js/components/toast.js' %}" defer></script>
+    <script src="{% static 'js/components/nav-pills.js' %}" defer></script>
 
     {% block extra_js %}{% endblock %}
   </body>

@@ -1,0 +1,55 @@
+{% comment %}
+Toast Wrapper Partial (Internal)
+================================
+
+This is an internal partial used by toast_container.html.
+Do not include this file directly - use toast_container.html instead.
+
+Receives:
+- pos_classes: Bootstrap position classes for the container
+- autohide_delay: Auto-hide delay in milliseconds (optional, default: 30000)
+- messages: Django messages (automatically available from context processor)
+{% endcomment %}
+
+{# Toast container - fixed position overlay for notifications #}
+{# Data attributes allow JS configuration override #}
+<div
+    class="toast-container position-fixed {{ pos_classes }} p-3"
+    id="toast-container"
+    aria-live="polite"
+    aria-atomic="true"
+    data-toast-position="{{ position|default:'top-right' }}"
+    data-toast-delay="{{ autohide_delay|default:'30000' }}"
+    style="z-index: 1090;"
+>
+    {# Render Django messages as toast notifications #}
+    {# Each message from Django's messages framework becomes a toast #}
+    {% if messages %}
+        {% for message in messages %}
+            {# Map Django message tags to Bootstrap color classes and icons #}
+            {# Django uses 'error' but Bootstrap uses 'danger' for red styling #}
+            {% if message.tags == 'error' %}
+                {% with bg_class="text-bg-danger" icon_class="bi-x-circle-fill" title="Error" %}
+                    {% include "components/toasts/_toast_item.html" %}
+                {% endwith %}
+            {% elif message.tags == 'success' %}
+                {% with bg_class="text-bg-success" icon_class="bi-check-circle-fill" title="Success" %}
+                    {% include "components/toasts/_toast_item.html" %}
+                {% endwith %}
+            {% elif message.tags == 'warning' %}
+                {% with bg_class="text-bg-warning" icon_class="bi-exclamation-triangle-fill" title="Warning" %}
+                    {% include "components/toasts/_toast_item.html" %}
+                {% endwith %}
+            {% elif message.tags == 'debug' %}
+                {% with bg_class="text-bg-secondary" icon_class="bi-bug-fill" title="Debug" %}
+                    {% include "components/toasts/_toast_item.html" %}
+                {% endwith %}
+            {% else %}
+                {# Default to info styling for 'info' tag or any unknown tags #}
+                {% with bg_class="text-bg-info" icon_class="bi-info-circle-fill" title="Info" %}
+                    {% include "components/toasts/_toast_item.html" %}
+                {% endwith %}
+            {% endif %}
+        {% endfor %}
+    {% endif %}
+</div>

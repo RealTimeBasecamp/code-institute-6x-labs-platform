@@ -1,0 +1,9 @@
+{% load static %}
+
+{% if user.avatar %}
+    <img src="{{ user.avatar.url }}" alt="{{ user.username }}" class="rounded-circle" width="{{ width|default:'40' }}" height="{{ height|default:'40' }}">
+    {% else %}
+    <div class="rounded-circle bg-primary d-flex align-items-center justify-content-center" style="width: {{ width|default:'40' }}px; height: {{ height|default:'40' }}px;">
+        <span class="text-white fw-bold">{{ user.username|slice:":1"|upper }}</span>
+    </div>
+{% endif %}

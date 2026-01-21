@@ -12,20 +12,23 @@
 
 document.addEventListener('DOMContentLoaded', function() {
     const toggleButtons = document.querySelectorAll('.view-toggle-btn');
-    
+
     if (toggleButtons.length === 0) return;
-    
+
+    // Rely on Bootstrap's Tab API and the nav-pills markup for active state
     toggleButtons.forEach(btn => {
-        btn.addEventListener('click', function() {
-            // Remove active styling from all buttons
-            toggleButtons.forEach(b => {
-                b.classList.remove('btn-secondary');
-                b.classList.add('btn-outline-secondary');
-            });
-            
-            // Add active styling to clicked button
-            this.classList.remove('btn-outline-secondary');
-            this.classList.add('btn-secondary');
+        btn.addEventListener('click', function(event) {
+            // Use Bootstrap Tab to show the target pane and update active classes
+            try {
+                if (window.bootstrap && window.bootstrap.Tab) {
+                    const tab = window.bootstrap.Tab.getOrCreateInstance(this);
+                    tab.show();
+                }
+            } catch (e) {
+                // Fallback: manually toggle active class
+                toggleButtons.forEach(b => b.classList.remove('active'));
+                this.classList.add('active');
+            }
         });
     });
     

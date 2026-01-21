@@ -59,6 +59,7 @@ def navigation_context(request):
                 'icon': item.icon,
                 'url': resolve_url(item.url_name),
                 'is_active': item.is_active,
+                'is_footer': item.is_footer,
                 'is_locked': not is_allowed,
                 'children': [],
             }

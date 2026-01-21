@@ -1,3 +1,23 @@
 .card {
   background-color: var(--bs-tertiary-bg);
 }
+
+/* Danger zone specific styling */
+.card.danger-zone {
+  background-color: rgba(220, 53, 69, 0.06);
+  border: 1px solid rgba(220, 53, 69, 0.35);
+}
+
+/* Inside danger card, make outline-danger button neutral until hover */
+.card.danger-zone .btn-outline-danger {
+  color: var(--bs-body-color) !important;
+  background-color: transparent !important;
+  border-color: rgba(220, 53, 69, 0.35) !important;
+}
+
+.card.danger-zone .btn-outline-danger:hover,
+.card.danger-zone .btn-outline-danger:focus {
+  color: #dc3545 !important;
+  border-color: #dc3545 !important;
+  background-color: rgba(220, 53, 69, 0.03) !important;
+}
