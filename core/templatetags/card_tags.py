@@ -14,7 +14,7 @@ def split(value, delimiter=','):
 
 
 @register.inclusion_tag('components/card.html', takes_context=False)
-def card(card_title=None, card_icon=None, card_body=None, snippet_path=None, edit_modal_id=None, edit_form=None, **context):
+def card(card_title=None, card_icon=None, card_body=None, snippet_path=None, edit_modal_id=None, edit_form=None, card_class=None, **context):
     """
     Reusable card component supporting both pre-rendered HTML and template snippets.
 
@@ -79,8 +79,23 @@ def card(card_title=None, card_icon=None, card_body=None, snippet_path=None, edi
     """
     # Determine card body content
     if snippet_path:
-        # Render template snippet with provided context
-        body_html = render_to_string(snippet_path, context)
+        # Render template snippet with provided context.
+        # Forward any named card params (e.g. card_class) so snippet templates
+        # can use them without requiring the caller to pass them twice.
+        render_context = dict(context)
+        # Include commonly useful card params if present
+        if card_title is not None:
+            render_context['card_title'] = card_title
+        if card_icon is not None:
+            render_context['card_icon'] = card_icon
+        if card_class is not None:
+            render_context['card_class'] = card_class
+        if edit_modal_id is not None:
+            render_context['edit_modal_id'] = edit_modal_id
+        if edit_form is not None:
+            render_context['edit_form'] = edit_form
+
+        body_html = render_to_string(snippet_path, render_context)
         body_content = mark_safe(body_html)
     elif card_body is not None:
         # Use pre-rendered HTML
@@ -94,4 +109,5 @@ def card(card_title=None, card_icon=None, card_body=None, snippet_path=None, edi
         'card_body': body_content,
         'edit_modal_id': edit_modal_id,
         'edit_form': edit_form,
+        'card_class': card_class,
     }
