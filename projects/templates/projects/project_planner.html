@@ -68,7 +68,9 @@
         </div>
 
         <!-- Right side: Action buttons -->
-        {% include 'components/state_manager.html' %}
+        {% if project.created_by == user or user.is_superuser or user.is_staff %}
+          {% include 'components/state_manager.html' %}
+        {% endif %}
     </div>
 
     <!-- Last updated timestamp -->
