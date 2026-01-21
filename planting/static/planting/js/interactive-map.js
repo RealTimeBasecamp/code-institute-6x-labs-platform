@@ -885,7 +885,10 @@
         // Add new site button handler (drag-to-draw square)
         const addBtn = document.querySelector('button[title="Add new"]');
         if (addBtn) {
-            addBtn.addEventListener('click', () => {
+            addBtn.addEventListener('click', (e) => {
+                // Ignore clicks on buttons that are intended to open the "comingSoonModal"
+                const btnEl = e && (e.currentTarget || (e.target && e.target.closest ? e.target.closest('button') : null));
+                if (btnEl && (btnEl.getAttribute('data-bs-target') === '#comingSoonModal' || btnEl.dataset?.bsTarget === '#comingSoonModal')) return;
                 if (drawingMode) return;
                 if (!controller.map) return;
                 drawingMode = true;
@@ -1121,13 +1124,17 @@
         if (sitesPanel) {
             const prevBtn = sitesPanel.querySelector('button[title="Previous"]');
             const nextBtn = sitesPanel.querySelector('button[title="Next"]');
-            if (prevBtn) prevBtn.addEventListener('click', () => {
+            if (prevBtn) prevBtn.addEventListener('click', (e) => {
+                const btnEl = e && (e.currentTarget || (e.target && e.target.closest ? e.target.closest('button') : null));
+                if (btnEl && (btnEl.getAttribute('data-bs-target') === '#comingSoonModal' || btnEl.dataset?.bsTarget === '#comingSoonModal')) return;
                 const rows = getSiteRows();
                 if (rows.length === 0) return;
                 currentSiteIdx = currentSiteIdx <= 0 ? rows.length - 1 : currentSiteIdx - 1;
                 highlightSiteRow(currentSiteIdx);
             });
-            if (nextBtn) nextBtn.addEventListener('click', () => {
+            if (nextBtn) nextBtn.addEventListener('click', (e) => {
+                const btnEl = e && (e.currentTarget || (e.target && e.target.closest ? e.target.closest('button') : null));
+                if (btnEl && (btnEl.getAttribute('data-bs-target') === '#comingSoonModal' || btnEl.dataset?.bsTarget === '#comingSoonModal')) return;
                 const rows = getSiteRows();
                 if (rows.length === 0) return;
                 currentSiteIdx = (currentSiteIdx + 1) % rows.length;
@@ -1177,6 +1184,7 @@
             try { publishBtn.type = 'button'; } catch (e) {}
             publishBtn.addEventListener('click', async (e) => {
                 if (e && e.preventDefault) e.preventDefault();
+                return; // early return: disable publish action
                 const resolvedSlug = resolveProjectSlug();
                 console.log('Interactive Map: publish clicked', { staged: (localSites||[]).length, projectSlug: resolvedSlug });
                 if (!resolvedSlug) {
@@ -1264,7 +1272,9 @@
             const deleteBtn = trashIcon ? trashIcon.closest('button') : null;
             if (!deleteBtn) return;
 
-            deleteBtn.addEventListener('click', () => {
+            deleteBtn.addEventListener('click', (e) => {
+                const btnEl = e && (e.currentTarget || (e.target && e.target.closest ? e.target.closest('button') : null));
+                if (btnEl && (btnEl.getAttribute('data-bs-target') === '#comingSoonModal' || btnEl.dataset?.bsTarget === '#comingSoonModal')) return;
                 deleteSelectedSite();
             });
         })();
