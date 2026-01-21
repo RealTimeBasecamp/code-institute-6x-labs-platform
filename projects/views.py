@@ -11,11 +11,12 @@ import datetime
 from .models import Project
 import json
 from django.views.generic import ListView
+from django.contrib.auth.mixins import LoginRequiredMixin
 from core.card_utils import render_card_groups
 from .utils import build_site_bounds_and_list
 
 
-class ProjectListView(ListView):
+class ProjectListView(LoginRequiredMixin, ListView):
     """
     Display list of all projects with table and grid views.
 
