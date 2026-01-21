@@ -72,6 +72,12 @@
   overflow-y: auto;
 }
 
+/* Remove default paragraph vertical margins inside sidebar to tighten spacing */
+.map-sidebar p {
+  margin-top: 0;
+  margin-bottom: 0;
+}
+
 .map-sidebar .tab-pane.show.active {
   display: flex;
   flex-direction: column;
