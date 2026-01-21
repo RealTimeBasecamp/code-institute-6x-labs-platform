@@ -66,6 +66,8 @@ def project_planner(request):
             },
         ],
     }
+    # Provide default plotting algorithms list for templates
+    context['plotting_algorithms'] = ['Poisson Disc sampling']
     return render(request, 'projects/project_planner.html', context)
 
 
@@ -78,6 +80,10 @@ def publish_sites(request, slug):
     Returns JSON list of created site ids.
     """
     project = get_object_or_404(Project, slug=slug)
+
+    # Only allow publishing sites if user is project owner or staff/superuser
+    if not (request.user.is_staff or request.user.is_superuser or project.created_by == request.user):
+        return HttpResponseForbidden('Permission denied')
 
     try:
         payload = json.loads(request.body.decode('utf-8') or '{}')
@@ -147,8 +153,8 @@ def delete_site(request, slug):
     except Exception:
         return HttpResponseBadRequest('Site not found')
 
-    # Only allow deletion if user has permission (project owner)
-    if project.created_by != request.user:
+    # Only allow deletion if user has permission (project owner or staff/superuser)
+    if not (request.user.is_staff or request.user.is_superuser or project.created_by == request.user):
         return HttpResponseForbidden('Permission denied')
 
     site.delete()
@@ -232,8 +238,9 @@ def project(request, slug):
         'sites': sites,
         'site_rows': site_rows,
         'site_bounds_rows': site_bounds_rows,
+        'plotting_algorithms': ['Poisson Disc sampling', 'Sample Elimination'],
     }
-    print("Site Bounds Rows:", site_bounds_rows)
+
     # Build breadcrumbs for this page
     if project:
         context['breadcrumbs'].append({
@@ -253,9 +260,14 @@ def project(request, slug):
         bounds_context = build_site_bounds_and_list(project)
         context.update(bounds_context)
 
+    # Ensure plotting_algorithms is always a list so templates iterate items, not characters
+    if 'plotting_algorithms' not in context:
+        context['plotting_algorithms'] = ['Poisson Disc sampling', 'Sample Elimination']
+
     return render(request, 'projects/project_planner.html', context)
 
 
+@require_POST
 @login_required
 def delete_project(request, slug):
     """
@@ -269,8 +281,8 @@ def delete_project(request, slug):
     project = get_object_or_404(Project, slug=slug)
     project_name = project.name
 
-    # Check if current user is the creator
-    if project.created_by != request.user:
+    # Check if current user is the creator or staff/superuser
+    if not (request.user.is_staff or request.user.is_superuser or project.created_by == request.user):
         messages.error(request, 'You do not have permission to delete this project.')
         return redirect('projects:projects_list')
 
