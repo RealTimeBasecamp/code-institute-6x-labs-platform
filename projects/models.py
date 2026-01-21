@@ -350,6 +350,7 @@ class Project(models.Model):
                 'fields': [
                     ('Project Name', self.name or 'N/A'),
                     ('Project Type', project_type_display),
+                    ('Status', str(self.status) if self.status else 'N/A'),
                     ('Description', self.description or '—'),
                 ],
             },
