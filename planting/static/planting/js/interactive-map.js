@@ -26,7 +26,7 @@
 
     const DEFAULT_CONFIG = {
         project: { name: 'My Project', description: '' },
-        location: { center: [-0.9105, 51.4243], zoom: 17, pitch: 45, bearing: -17.6 },
+        location: { center: [-0.9105, 51.4243], zoom: 15, pitch: 45, bearing: -17.6 },
         layers: { echarts: true, extrusion: true, hillshade: true },
         terrain: { enabled: true, exaggeration: 3.0 },
         demoPolygon: { enabled: false }
@@ -799,7 +799,57 @@
     const config = await loadConfig();
     waitForDependencies(() => {
         const controller = new InteractiveMapController(config);
+        // If the template exposed project coordinates, prefer them as initial center
+        try {
+            if (window.projectCoordinatesFirst && Array.isArray(window.projectCoordinatesFirst) && window.projectCoordinatesFirst.length >= 2) {
+                // Expecting [lng, lat]
+                controller.config.location = controller.config.location || {};
+                controller.config.location.center = window.projectCoordinatesFirst;
+                console.log('Interactive Map: using project coordinates for initial center', window.projectCoordinatesFirst);
+            }
+        } catch (err) {
+            // ignore
+        }
         controller.init();
+
+        // Expose controller for external control and detect project changes
+        try {
+            window._interactiveMapController = controller;
+
+            // Track last seen project slug so we can react to SPA/nav changes
+            let _lastProjectSlug = typeof window.currentProjectSlug !== 'undefined' ? String(window.currentProjectSlug) : '';
+
+            // Poll for changes to `window.currentProjectSlug` or `window.projectCoordinatesFirst`.
+            // This is a robust fallback for pages that update via pushState/Turbolinks without full reload.
+            const _checkInterval = 750; // ms
+            setInterval(() => {
+                try {
+                    const curSlug = typeof window.currentProjectSlug !== 'undefined' ? String(window.currentProjectSlug) : '';
+                    if (curSlug !== _lastProjectSlug) {
+                        _lastProjectSlug = curSlug;
+                        console.log('Interactive Map: detected project slug change ->', curSlug);
+                        if (window.projectCoordinatesFirst && Array.isArray(window.projectCoordinatesFirst) && window.projectCoordinatesFirst.length >= 2) {
+                            // update controller config and move map
+                            controller.config.location = controller.config.location || {};
+                            controller.config.location.center = window.projectCoordinatesFirst;
+                            if (controller.map && typeof controller.map.flyTo === 'function') {
+                                try {
+                                    controller.map.flyTo({ center: window.projectCoordinatesFirst, zoom: controller.config.location.zoom || 17, pitch: controller.config.location.pitch || 45, bearing: controller.config.location.bearing || 0, duration: 1200 });
+                                } catch (e) {
+                                    try { controller.map.setCenter(window.projectCoordinatesFirst); } catch (e2) {}
+                                }
+                            }
+                        } else {
+                            console.log('Interactive Map: no project coordinates available for new slug');
+                        }
+                    }
+                } catch (err) {
+                    // swallow errors in polling loop
+                }
+            }, _checkInterval);
+        } catch (err) {
+            // ignore
+        }
 
         // --- Site Creation Workflow ---
         let localSites = [];

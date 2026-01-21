@@ -29,11 +29,12 @@ class ProjectCoordinatesForm(WizardModelForm):
 
     title = 'Coordinates'
 
-    # Override to make lat/long optional in form (validation handles it)
+    # Override to make lat/long required in form (validation handles it)
     latitude = forms.DecimalField(
         max_digits=10,
         decimal_places=7,
-        required=False,
+        required=True,
+        label='Latitude',
         widget=forms.NumberInput(attrs={
             'placeholder': 'e.g., 51.5074',
             'step': 'any',
@@ -44,7 +45,8 @@ class ProjectCoordinatesForm(WizardModelForm):
     longitude = forms.DecimalField(
         max_digits=11,
         decimal_places=7,
-        required=False,
+        required=True,
+        label='Longitude',
         widget=forms.NumberInput(attrs={
             'placeholder': 'e.g., -0.1278',
             'step': 'any',

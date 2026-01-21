@@ -192,17 +192,9 @@
 <!-- ECharts GL for 3D charts -->
 <script src="https://cdn.jsdelivr.net/npm/echarts-gl@2.0.9/dist/echarts-gl.min.js"></script>
 
-<script src="{% static 'planting/js/interactive-map.js' %}"></script>
-
-{% include 'components/modals/modal.html' with
-  modal_id='featureComingSoonModal'
-  modal_icon='bi bi-cone-striped'
-  modal_title='Feature Coming Soon'
-  modal_body_content='<p>This feature is coming soon.</p>'
-  modal_footer_content='<button type="button" class="btn btn-primary" data-bs-dismiss="modal">Ok</button>'
-  modal_size='md'
-%}
-
+{# Expose page globals before loading the interactive-map script so it
+   can read them synchronously on init. This prevents a race where the map
+   initializes before these variables are defined. #}
 {% if site_bounds_map_json %}
 <script>
   window.siteBoundsMap = {{ site_bounds_map_json|safe }};
@@ -215,3 +207,22 @@
 {% else %}
 <script>window.currentProjectSlug = "";</script>
 {% endif %}
+{% if project and project.coordinates %}
+<script>
+  // Expose project first coordinates to the map code as [lng, lat]
+  window.projectCoordinatesFirst = [{{ project.coordinates.longitude|default:0|floatformat:6 }}, {{ project.coordinates.latitude|default:0|floatformat:6 }}];
+</script>
+{% else %}
+<script>window.projectCoordinatesFirst = null;</script>
+{% endif %}
+
+<script src="{% static 'planting/js/interactive-map.js' %}"></script>
+
+{% include 'components/modals/modal.html' with
+  modal_id='featureComingSoonModal'
+  modal_icon='bi bi-cone-striped'
+  modal_title='Feature Coming Soon'
+  modal_body_content='<p>This feature is coming soon.</p>'
+  modal_footer_content='<button type="button" class="btn btn-primary" data-bs-dismiss="modal">Ok</button>'
+  modal_size='md'
+%}
