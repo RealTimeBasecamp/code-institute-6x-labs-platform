@@ -115,11 +115,53 @@
   </div>
 
   <div class="tab-pane fade" id="project-breakdown" role="tabpanel" aria-labelledby="project-breakdown-tab">
-    <p>Project breakdown here</p>
-  </div>
-</div>
+    <div class="container">
+      <div id="project-breakdown-data"
+           data-project-name="{{ project.name|default:'' }}"
+           data-total-co2="{{ project.total_co2_sequestered_kg|default:0 }}"
+           data-area-hectares="{{ project.area_hectares|default:0 }}"
+           data-total-plants="{{ project.total_plants|default:0 }}"
+           style="display:none;"></div>
 
-{% if user.is_authenticated %}
+      <div class="row g-3">
+        <div class="col-12 col-md-4">
+          <div class="card p-3 h-100">
+            <h5 class="mb-2">CO₂ Sequestered</h5>
+            <div id="pbCo2Chart" class="chart-wrap" style="height:220px; position:relative;">
+              <div class="d-flex justify-content-center align-items-center" style="height:100%;"><div class="spinner-border text-secondary" role="status"></div></div>
+            </div>
+            <small class="text-muted">kg CO₂ (converted to tCO₂ in chart)</small>
+          </div>
+        </div>
+
+        <div class="col-12 col-md-4">
+          <div class="card p-3 h-100">
+            <h5 class="mb-2">Area (hectares)</h5>
+            <div id="pbAreaChart" class="chart-wrap" style="height:220px; position:relative;">
+              <div class="d-flex justify-content-center align-items-center" style="height:100%;"><div class="spinner-border text-secondary" role="status"></div></div>
+            </div>
+            <small class="text-muted">Project site area</small>
+          </div>
+        </div>
+
+        <div class="col-12 col-md-4">
+          <div class="card p-3 h-100">
+            <h5 class="mb-2">Total Plants</h5>
+            <div id="pbPlantsChart" class="chart-wrap" style="height:220px; position:relative;">
+              <div class="d-flex justify-content-center align-items-center" style="height:100%;"><div class="spinner-border text-secondary" role="status"></div></div>
+            </div>
+            <small class="text-muted">Number of plants recorded for this project</small>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/echarts@5/dist/echarts.min.js"></script>
+  <script src="{% static 'projects/js/project_breakdown.js' %}" defer></script>
+
+  {% if user.is_authenticated %}
   {% if project.created_by == user or user.is_superuser or user.is_staff %}
     {% card
       card_title="Danger Zone"
