@@ -443,17 +443,6 @@ class Project(models.Model):
                     },
                 ],
             },
-            {
-                'title': 'Carbon Metrics',
-                'icon': 'bi bi-graph-up',
-                # No edit_form - all fields are auto-calculated
-                'fields': [
-                    ('Total CO2 Sequestered', f"{self.total_co2_sequestered_kg:,} kg" if self.total_co2_sequestered_kg else 'Not calculated'),
-                    ('Soil CO2 Sequestered', f"{self.soil_co2_sequestered_kg:,} kg" if self.soil_co2_sequestered_kg else 'Not calculated'),
-                    ('Plant CO2 Sequestered', f"{self.plant_co2_sequestered_kg:,} kg" if self.plant_co2_sequestered_kg else 'Not calculated'),
-                    ('Total Plants', f"{self.total_plants:,}" if self.total_plants else '0'),
-                ],
-            },
         ]
 
     def get_absolute_url(self):
