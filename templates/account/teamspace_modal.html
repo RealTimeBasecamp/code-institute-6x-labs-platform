@@ -8,9 +8,8 @@
   {% url 'account_signup' as signup_url %}
   {% url 'account_logout' as logout_url %}
 
-  <div class="card border-0">
+  <div class="card">
     {% if user.is_authenticated %}
-    {# Card header - Bootstrap handles light/dark theme colors automatically #}
     <div class="card-header d-flex justify-content-between align-items-center">
       <div class="d-flex align-items-center" id="accountdisplaybox">
         <div class="me-3">
@@ -19,18 +18,23 @@
         <div id="accountinfo">
           <div class="fw-bold">{{ user.display_name|default:user.username }}</div>
            <span>
-            <div>{{ user.subscription_tier|default:"Sapling Tier" }}</div>
-
-            {# <div class="text-muted">{{ user.team_members.count }} members</div>#}
+            {% if user.is_admin %}
+              <div>Admin</div>
+            {% elif user.is_superuser %}
+              <div>Superuser</div>
+            {% else %}
+              <div>{{ user.subscription_tier|default:"Sapling Tier" }}</div>
+              {# <div class="text-muted">{{ user.team_members.count }} members</div>#}
+            {% endif %}
 
           </span> 
         </div>
       </div>
       <button
         role="button"
-        class="btn btn-outline-secondary btn-sm"
+        class="btn btn-secondary btn-sm"
         data-bs-toggle="modal"
-        data-bs-target="#">
+        data-bs-target="#UserSettingsModal">
         <i class="bi bi-gear me-1"></i>Settings
     </button>
     </div>
@@ -44,7 +48,7 @@
       </div>
       <hr>
       <a
-        class="btn btn-outline-secondary btn-sm"
+        class="btn btn-secondary btn-sm"
         href="{{ logout_url }}"
         role="button"
         >Log out</a>
@@ -58,15 +62,7 @@
     {% endif %}
   </div>
 
-  {# Modal for User Settings - TODO #}
-    {% include 'components/modals/modal.html' with
-      modal_id='UserSettingsModal'
-      modal_icon='bi bi-gear'
-      modal_title='User Settings'
-      modal_body_content='<p>User Settings here</p>'
-      modal_footer_content='<button>Save</button>'
-      modal_size='xl'
-    %}
-  {# end comment #}
+  
+  {# UserSettingsModal deliberately not included here to avoid nesting modals; see sidebar include #}
 
   {% endblock %}
