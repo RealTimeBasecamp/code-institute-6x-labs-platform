@@ -68,7 +68,7 @@
         </div>
 
         <!-- Right side: Action buttons -->
-        {% if project.created_by == user or user.is_superuser or user.is_staff %}
+        {% if user.is_superuser or user.is_staff %}
           {% include 'components/state_manager.html' %}
         {% endif %}
     </div>
