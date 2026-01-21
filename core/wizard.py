@@ -51,7 +51,7 @@ Multiple Wizards Per App:
 import json
 import re
 from abc import ABC
-from datetime import datetime
+from datetime import datetime, date
 from decimal import Decimal
 
 from django.db import models, transaction
@@ -75,15 +75,22 @@ def serialize_form_data(data):
     Returns:
         dict: JSON-serializable dict
     """
-    serialized = {}
-    for key, value in data.items():
+    def _serialize_value(value):
+        # Handle common non-serializable types
         if isinstance(value, Decimal):
-            serialized[key] = str(value)
-        elif value is None:
-            serialized[key] = None
-        else:
-            serialized[key] = value
-    return serialized
+            return str(value)
+        if isinstance(value, models.Model):
+            # Convert model instances (e.g. Status) to their PK
+            return getattr(value, 'pk', None)
+        if isinstance(value, (list, tuple)):
+            return [_serialize_value(v) for v in value]
+        if isinstance(value, dict):
+            return {k: _serialize_value(v) for k, v in value.items()}
+        if isinstance(value, (datetime, date)):
+            return value.isoformat()
+        return value
+
+    return {key: _serialize_value(value) for key, value in data.items()}
 
 
 def _get_app_label(form_class):
@@ -796,7 +803,38 @@ class BaseWizardView(View, ABC):
             # Collect field values
             for field_name in fields:
                 if field_name in all_data:
-                    model_data[model][field_name] = _clean_value(all_data[field_name])
+                    value = _clean_value(all_data[field_name])
+                    # If this field is a ForeignKey on the model and value is a numeric string,
+                    # coerce to int so Django accepts it as a pk during create().
+                    try:
+                        field_obj = model._meta.get_field(field_name)
+                    except Exception:
+                        field_obj = None
+
+                    if field_obj is not None and isinstance(field_obj, models.ForeignKey):
+                        # Accept numeric PKs as strings (e.g. "12") and coerce to int
+                        if isinstance(value, str) and value.isdigit():
+                            value = int(value)
+                        # Accept lookup by a common human-friendly key (e.g. status code or slug)
+                        # If a non-numeric string was provided, attempt to resolve it to the
+                        # related object's PK by checking for `code` or `slug` fields.
+                        elif isinstance(value, str) and value:
+                            try:
+                                related_model = field_obj.related_model
+                                obj = None
+                                if hasattr(related_model, 'objects'):
+                                    if hasattr(related_model, 'code'):
+                                        obj = related_model.objects.filter(code=value).first()
+                                    if obj is None and hasattr(related_model, 'slug'):
+                                        obj = related_model.objects.filter(slug=value).first()
+                                if obj is not None:
+                                    value = obj.pk
+                            except Exception:
+                                # If lookup fails for any reason, leave the original value
+                                # and let form/model validation handle the error.
+                                pass
+
+                    model_data[model][field_name] = value
 
         # Determine main model (the one with FKs to others)
         main_model = self._detect_main_model(model_order)
@@ -838,6 +876,41 @@ class BaseWizardView(View, ABC):
                     related_model = field.related_model
                     if related_model in created_objects:
                         data[field.name] = created_objects[related_model]
+
+            # Coerce numeric FK values to '<field>_id' so Django accepts PKs
+            # e.g., {'status': 1} -> {'status_id': 1}
+            for key in list(data.keys()):
+                try:
+                    field_obj = main_model._meta.get_field(key)
+                except Exception:
+                    field_obj = None
+
+                if field_obj is not None and isinstance(field_obj, models.ForeignKey):
+                    val = data.get(key)
+                    # If value is a numeric string, convert to int PK
+                    if isinstance(val, str) and val.isdigit():
+                        data[f"{key}_id"] = int(val)
+                        data.pop(key, None)
+                    # If value is an int, use it directly as PK
+                    elif isinstance(val, int):
+                        data[f"{key}_id"] = val
+                        data.pop(key, None)
+                    # If value is a non-numeric string, attempt to resolve to related object's PK
+                    elif isinstance(val, str) and val:
+                        try:
+                            related_model = field_obj.related_model
+                            obj = None
+                            if hasattr(related_model, 'objects'):
+                                if hasattr(related_model, 'code'):
+                                    obj = related_model.objects.filter(code=val).first()
+                                if obj is None and hasattr(related_model, 'slug'):
+                                    obj = related_model.objects.filter(slug=val).first()
+                            if obj is not None:
+                                data[f"{key}_id"] = obj.pk
+                                data.pop(key, None)
+                        except Exception:
+                            # Ignore lookup failures and allow normal validation to report issues
+                            pass
 
             # Add extra data from subclass (e.g., created_by=request.user)
             extra_data = self.get_extra_create_data(request)
