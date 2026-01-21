@@ -1,19 +1,20 @@
 {# State manager component: Undo, Redo, Save Draft, Discard Changes, Publish buttons #}
 
+
 <div class="d-flex flex-wrap align-items-center gap-2">
-    <button class="btn btn-secondary btn-square" title="Undo">
+    <button class="btn btn-secondary btn-square" id="undoChanges" title="Undo" data-bs-toggle="modal" data-bs-target="#featureComingSoonModal">
         <i class="bi bi-arrow-counterclockwise"></i>
     </button>
-    <button class="btn btn-secondary btn-square" title="Redo">
+    <button class="btn btn-secondary btn-square" id="redoChanges" title="Redo" data-bs-toggle="modal" data-bs-target="#featureComingSoonModal">
         <i class="bi bi-arrow-clockwise"></i>
     </button>
-    <button class="btn btn-secondary">
+    <button class="btn btn-secondary" id="saveDraft" data-bs-toggle="modal" data-bs-target="#featureComingSoonModal">
         <i class="bi bi-floppy"></i> Save Draft
     </button>
-    <button class="btn btn-secondary">
+    <button class="btn btn-secondary" id="discardChanges" data-bs-toggle="modal" data-bs-target="#featureComingSoonModal">
         <i class="bi bi-x-lg"></i> Discard Changes
     </button>
-    <button class="btn btn-primary">
-        <i class="bi bi-upload"></i> Publish
+    <button class="btn btn-primary" id="publish" data-bs-toggle="modal" data-bs-target="#featureComingSoonModal">
+        <i class="bi bi-upload" ></i> Publish
     </button>
 </div>
