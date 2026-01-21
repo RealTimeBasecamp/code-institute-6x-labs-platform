@@ -54,14 +54,22 @@
   <script src="https://cdn.jsdelivr.net/npm/echarts@5/dist/echarts.min.js"></script>
   <script>
     (function () {
-      // Theme colors read from CSS variables (fall back to previous hardcoded values)
+      // Read theme CSS variables and derive usable colours
       const rootStyles = getComputedStyle(document.documentElement);
-      const mainColorVar = rootStyles.getPropertyValue('--primary-color').trim() || '#ffd966';
-      const accentColorVar = rootStyles.getPropertyValue('--bs-secondary-color').trim() || '#7c5cff';
+      const mainColorVar = rootStyles.getPropertyValue('--primary-color').trim() || '#059acc';
+      const textColorVar = rootStyles.getPropertyValue('--bs-body-color').trim() || '#111';
 
-      // Use solid theme colors (no gradients)
+      function hexToRgba(hex, alpha = 1) {
+        if (!hex) return `rgba(0,0,0,${alpha})`;
+        hex = hex.replace('#', '').trim();
+        if (hex.length === 3) hex = hex.split('').map(c => c + c).join('');
+        const r = parseInt(hex.substring(0, 2), 16);
+        const g = parseInt(hex.substring(2, 4), 16);
+        const b = parseInt(hex.substring(4, 6), 16);
+        return `rgba(${r},${g},${b},${alpha})`;
+      }
 
-      // 1) Projects - gauge ring
+      // 1) Projects - gauge ring (primary colour, text colour for labels)
       const projectsEl = document.getElementById('projectsChart');
       const projectsChart = echarts.init(projectsEl);
       projectsChart.setOption({
@@ -75,12 +83,13 @@
           axisTick: { show: false },
           splitLine: { show: false },
           axisLabel: { show: false },
-          detail: { show: true, valueAnimation: true, fontSize: 26, color: '#fff', formatter: '{value}' },
+          title: { color: textColorVar },
+          detail: { show: true, valueAnimation: true, fontSize: 26, color: textColorVar, formatter: '{value}' },
           data: [{ value: {{ num_projects }}, name: 'Projects' }]
         }]
       });
 
-      // 2) CO2 - doughnut
+      // 2) CO2 - doughnut (primary for saved slice, text colour for labels/ghost slice)
       const co2El = document.getElementById('co2Chart');
       const co2Chart = echarts.init(co2El);
       const totalCo2 = {{ total_co2 }};
@@ -89,45 +98,45 @@
           type: 'pie',
           radius: ['62%', '82%'],
           avoidLabelOverlap: false,
-          label: { show: true, position: 'center', formatter: totalCo2 + '\n tCO₂', color: '#fff', fontSize: 16 },
+          label: { show: true, position: 'center', formatter: totalCo2 + '\n tCO₂', color: textColorVar, fontSize: 16 },
           emphasis: { label: { show: true } },
           data: [
             { value: totalCo2, name: 'Saved', itemStyle: { color: mainColorVar } },
-            { value: Math.max(1, Math.round(totalCo2 * 0.2)), name: 'placeholder', itemStyle: { color: 'rgba(255,255,255,0.04)' } }
+            { value: Math.max(1, Math.round(totalCo2 * 0.2)), name: 'placeholder', itemStyle: { color: hexToRgba(textColorVar, 0.08) } }
           ]
         }]
       });
 
-      // 3) Plants - smooth line with area gradient (uses model aggregates passed from view)
+      // 3) Plants - smooth line (primary line + subtle primary area fill, labels use text colour)
       const plantsEl = document.getElementById('plantsChart');
       const plantsChart = echarts.init(plantsEl);
-      // Data populated from Django context arrays
       const years = {{ plants_years|default:'[]'|safe }};
       const plantsSeries = {{ plants_values|default:'[]'|safe }};
       plantsChart.setOption({
-        xAxis: { type: 'category', data: years, axisLine: { lineStyle: { color: 'rgba(255,255,255,0.12)' } }, axisLabel: { color: '#ddd' } },
-        yAxis: { type: 'value', axisLine: { show: false }, splitLine: { lineStyle: { color: 'rgba(255,255,255,0.03)' } }, axisLabel: { color: '#ddd' } },
+        xAxis: { type: 'category', data: years, axisLine: { lineStyle: { color: hexToRgba(textColorVar, 0.16) } }, axisLabel: { color: textColorVar } },
+        yAxis: { type: 'value', axisLine: { show: false }, splitLine: { lineStyle: { color: hexToRgba(textColorVar, 0.12) } }, axisLabel: { color: textColorVar } },
         grid: { left: '6%', right: '6%', bottom: '10%', top: '10%' },
         series: [{
           data: plantsSeries,
           type: 'line', smooth: true,
-          lineStyle: { color: accentColorVar, width: 3 },
+          lineStyle: { color: mainColorVar, width: 3 },
           symbol: 'circle', symbolSize: 6, itemStyle: { color: mainColorVar },
-          areaStyle: { color: accentColorVar }
+          areaStyle: { color: hexToRgba(mainColorVar, 0.12) }
         }]
       });
 
-      // 4) Years of growth - simple gauge/number
+      // 4) Years of growth - gauge using primary colour for progress and text colour for labels
       const yearsEl = document.getElementById('yearsChart');
       const yearsChart = echarts.init(yearsEl);
       yearsChart.setOption({
         series: [{
           type: 'gauge', startAngle: 180, endAngle: 0, radius: '100%',
-          progress: { show: true, width: 18, itemStyle: { color: accentColorVar } },
-          axisLine: { lineStyle: { width: 18, color: [[1, accentColorVar]] } },
+          progress: { show: true, width: 18, itemStyle: { color: mainColorVar } },
+          axisLine: { lineStyle: { width: 18, color: [[1, mainColorVar]] } },
           pointer: { show: false },
           axisTick: { show: false }, splitLine: { show: false }, axisLabel: { show: false },
-          detail: { valueAnimation: true, fontSize: 26, color: '#fff', formatter: '{value} yrs' },
+          title: { color: textColorVar },
+          detail: { valueAnimation: true, fontSize: 26, color: textColorVar, formatter: '{value} yrs' },
           data: [{ value: {{ years_of_growth }}, name: 'Years' }]
         }]
       });
