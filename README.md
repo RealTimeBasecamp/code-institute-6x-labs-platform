@@ -1,6 +1,6 @@
 # 6x Labs Platform
 
-<img alt="desktop" src="./assets/6xLabsDrones.png"></p>
+<img alt="desktop" src="./assets/6xLabsDrones.png">
 
 This project is an interactive platform for the drone reforestation enterprise 6x Labs. This platform is designed to plan and store reforestation project data as well as display detailed carbon sequestration information for the customer. The projects planned here will eventually be planted using drones in the real world.
 
@@ -11,13 +11,13 @@ In terms of design, a modern and minimalistic colour theme was chosen in order t
 A responsive site layout enables easy navigation on all devices.
 
 ## Desktop
-<img alt="desktop" src="./assets/Desktop.png"></p>
+<img alt="desktop" src="./assets/Desktop.png">
 
 ## Tablet
-<img width="600" alt="tablet" src="./assets/Tablet.png"></p>
+<img width="600" alt="tablet" src="./assets/Tablet.png">
 
 ## Mobile
-<img width="400" alt="iphone" src="./assets/Mobile.png"></p>
+<img width="400" alt="iphone" src="./assets/Mobile.png">
 
 
 ## UX Design
@@ -39,11 +39,11 @@ The 6x Labs branding is used to inform the minimalist UX. This orange was not im
 The website uses a "default" colour palette that contains a light and dark version of the theme. These were deliberately chosen to be minimalist and simple. The primary colours are only used on significant buttons, navigation links and the user avatar.
 
 **Light mode:**
-
+<br>
 <img alt="Light mode colour palette" src="./assets/LightModePalette.png">
 
 **Dark mode:**
-
+<br>
 <img alt="Dark mode colour palette" src="./assets/DarkModePalette.png">
 
 
@@ -63,42 +63,42 @@ Each theme has been configured with a light and dark mode, which can be triggere
 
 **Final render light mode:**
 <br>
-<img alt="Light mode" src="./assets/LightMode.png"></p>
+<img alt="Light mode" src="./assets/LightMode.png">
 
 
 **Final render dark mode:**
 <br>
-<img alt="Dark mode" src="./assets/DarkMode.png"></p>
+<img alt="Dark mode" src="./assets/DarkMode.png">
 
 ### Wireframes ###
 Traditional 2D wireframes were not used in the developement process. Instead, a more accurate, iterative design methodology was chosen by using Figma AI to rapidly prototype the overall look and feel of the website wireframes.
 
 You can find the interactive Figma wireframe [**here.**](https://www.figma.com/make/jcqTNS8Q5eVMfk0JePleqs/Project-Creation-Page?p=f)
 
-<img alt="Dark mode" src="./assets/FigmaAi.png"></p>
+<img alt="Dark mode" src="./assets/FigmaAi.png">
 
 The benefit of using an interative design tool in this way is that the website layout could be updated and reverted quickly, allowing multiple versions to be tested out before being developed. Additionally buttons and functionality can be previewed to get a better understanding of the real UX that the user will perform. Finally, the CSS and base functionality can be extracted, allowing a much faster design loop than traditional wireframing.
 
 ### Main project page Wireframe Design
-<img alt="Dark mode" src="./assets/Wireframe_001.png"></p>
+<img alt="Dark mode" src="./assets/Wireframe_001.png">
 
 ### Main project info Wireframe Design
-<img alt="Dark mode" src="./assets/Wireframe_002.png"></p>
+<img alt="Dark mode" src="./assets/Wireframe_002.png">
 
 ### Main project breakdown Wireframe Design
-<img alt="Dark mode" src="./assets/Wireframe_003.png"></p>
+<img alt="Dark mode" src="./assets/Wireframe_003.png">
 
 ### Generic page template Wireframe Design
-<img alt="Dark mode" src="./assets/Wireframe_004.png"></p>
+<img alt="Dark mode" src="./assets/Wireframe_004.png">
 
 ### Modal component Wireframe Design
-<img alt="Dark mode" src="./assets/WireframeModal.png"></p>
+<img alt="Dark mode" src="./assets/WireframeModal.png">
 
 
 ### Component inspiration
 As the rest of the website is very minimalist, the design for certain aspects was taken from other SaaS platforms such as Notion. The login and sidebar UX was taken as inspiration.
-<img alt="Dark mode" src="./assets/NotionLogin.png"></p>
-<img alt="Dark mode" src="./assets/NotionSidebar.png"></p>
+<img alt="Dark mode" src="./assets/NotionLogin.png">
+<img alt="Dark mode" src="./assets/NotionSidebar.png">
 
 
 
@@ -201,10 +201,12 @@ The dashboard page is home page of the platform per user, it is set up as the re
 **Projects page**
 <br>
 The projects page provides users with a granular list or table view of the ongoing reforestation projects. Users can also sort projects by keywords using the search bar functionality. The table is also sortable by clicking on each heading. Only project owners, site staff or superusers will see the "actions" header in the table. This ensures projects cannot be deleted by the wrong users.
-
+<br>
 <img alt="Projects list table view" src="./assets/ProjectsPage_001.png">
-<img alt="Projects list grid view" src="./assets/ProjectsPage_002.png">
+<br>
 
+<img alt="Projects list grid view" src="./assets/ProjectsPage_002.png">
+<br>
 
 **Project planner page [Interactive 3D map]**
 <br>
@@ -213,7 +215,7 @@ The project planner page automatically loads the project data and interactive ma
 The interactive map has three modes with the sidebar (Sites, Zones and Point plotter). These modes are disabled for users currently as they are also under development. The intention is to allow users to draw out "sites" then draw out inclusion and exclusion zones with the site. Finally the point plotting system will spawn millions of points within the inclusion zones. The spawned points will be linked to a specific biodiversity species mix database.
 
 
-<img alt="Dark mode" src="./assets/ProjectPlannerPage_001.png"></p>
+<img alt="Dark mode" src="./assets/ProjectPlannerPage_001.png">
 
 
 **Map components**
@@ -229,51 +231,51 @@ The visualisations below are working "point plotting" algorithms that have been 
 <br>
 
 The red areas are "exclusion" zones and the white area is the overall "site". The points are spawned inside the "inclusion" zones. These would be used to define viable land to plant trees.
-<img alt="Dark mode" src="./assets/Poisson.PNG"></p>
-<img alt="Dark mode" src="./assets/SampleElimination.PNG"></p>
+<img alt="Dark mode" src="./assets/Poisson.PNG">
+<img alt="Dark mode" src="./assets/SampleElimination.PNG">
 
 Under the "Reading regeneration charity forest" project there is a hardcoded visualisation concept of how these points will be rendered. This not an exposed feature for users.
-<img alt="Dark mode" src="./assets/PointsOnMap.PNG"></p>
+<img alt="Dark mode" src="./assets/PointsOnMap.PNG">
 
 
 **Project planner page [Project info section]**
 <br>
 All of the project data is rendered using grouped "cards". Each card has a related edit button and the data per card can be configured within the projects model for easy updating.
-<img alt="Dark mode" src="./assets/ProjectPlannerPage_002.png"></p>
-<img alt="Dark mode" src="./assets/ProjectPlannerPage_003.png"></p>
+<img alt="Dark mode" src="./assets/ProjectPlannerPage_002.png">
+<img alt="Dark mode" src="./assets/ProjectPlannerPage_003.png">
 
 **Project planner page [Project breakdown section]**
 <br>
 The project breakdown section shows off the relevant data per project. All of the graphs automatically update and when the page is loaded. Therefore long term data can be studied as the reforestation project is updated.
-<img alt="Dark mode" src="./assets/ProjectPlannerPage_004UPDATE.png"></p>
+<img alt="Dark mode" src="./assets/ProjectPlannerPage_004UPDATE.png">
 
 
 **Project creation flow**
 <br>
 The "Add new project" button is triggered from any project/ sub page. This project creation flow is build using a custom wizard modal component that allows any forms to be integrated as "steps". Each step is a separate form to allow flexible and customisable pages for various user interaction. This wizard is also used for the user onboarding and is designed in an agnostic way, allowing any type of form to be used.
 
-<img alt="Dark mode" src="./assets/AddProjectFlow_001.png"></p>
+<img alt="Dark mode" src="./assets/AddProjectFlow_001.png">
 
 The wizard has two distinct modes, create and edit. The create mode omits autogenerated fields from each form. The edit mode loads existing data into the form and unhides autogenerated fields that are present within the project as to not confuse the user. The autogenerated fields are disabled as the user should not edit them manually.
 
 Users can see the data within the project's info cards meaning they can edit specific groups of data at one time. The "card" they click on will automatically load the related edit form for that data group. This keeps data handling consistent across the site and user journey.
 
 **Data displayed in project environment "card"**
-<img alt="Dark mode" src="./assets/AddProjectFlow_002.png"></p>
+<img alt="Dark mode" src="./assets/AddProjectFlow_002.png">
 
 **Editable data in project environment form**
-<img alt="Dark mode" src="./assets/AddProjectFlow_003.png"></p>
+<img alt="Dark mode" src="./assets/AddProjectFlow_003.png">
 
 **Project deletion flow**
 <br>
 Projects can be deleted using the delete wizard which is designed to safely delete projects. It uses a 2 step form with a project name confirmation field. The additional data shows the user on the second page to ensure the correct user is deleting the project for audit trails.
 
 
-<img alt="Dark mode" src="./assets/ProjectDeleteFlow_001.png"></p>
+<img alt="Dark mode" src="./assets/ProjectDeleteFlow_001.png">
 The danger zone card at the bottom of the project planner page is only exposed to staff, superusers or users who created the project.
 <br><br>
-<img alt="Dark mode" src="./assets/ProjectDeleteFlow_002.png"></p>
-<img alt="Dark mode" src="./assets/ProjectDeleteFlow_003.png"></p>
+<img alt="Dark mode" src="./assets/ProjectDeleteFlow_002.png">
+<img alt="Dark mode" src="./assets/ProjectDeleteFlow_003.png">
 
 **Side Bar**
 
@@ -283,7 +285,7 @@ The sidebar has custom CSS and JS functionality which stores the current sidebar
 
 The sidebar also has expandable nav item folders which is designed to make navigation easier. In the future the currently open folders will persist across pages.
 <br>
-<img alt="Dark mode" src="./assets/Sidebar_002.png"></p>
+<img alt="Dark mode" src="./assets/Sidebar_002.png">
 
 In mobile view the sidebar is rendered on top of the current page allowing easier selection by touch. This can be hidden/unhidden using the arrow in the top left.
 <img alt="navbar2" src="https://github.com/mbriscoe/broken-lines-blog/assets/86828720/c68630ba-a572-4079-a07e-1b7e56c6a82a">
@@ -291,51 +293,54 @@ In mobile view the sidebar is rendered on top of the current page allowing easie
 **Navigation Bar**
 <br>
 The navigation bar is deliberately kept very simple and only includes breadcrumbs and the theme lightmode toggle. It is responsive to the sidebar being hidden/expanded. The sidebar button and 6x logo are automatically hidden/unhidden from the sidebar and nav components ensuring a smooth experience.
-<img alt="Dark mode" src="./assets/NavBar_001.png"></p>
-<img alt="Dark mode" src="./assets/NavBar_002.png"></p>
+<br>
+<img alt="Dark mode" src="./assets/NavBar_001.png">
+<br>
+<img alt="Dark mode" src="./assets/NavBar_002.png">
 
 
 **The Footer**
+<br>
 The footer is a simple copyright notice applied to each page. This can be overridden using the footer template block.
-<img alt="Footer" src="./assets/Footer.png"></p>
+<img alt="Footer" src="./assets/Footer.png">
 
 
 
 **Sign Up**
 
 The site allows users to register as user. Users cannot access the site unless they are logged in with an authenticated account. All of the django views have been defined with the @login_required decorator and mixin to ensure no users can bypass the login screen.
-<img alt="Footer" src="./assets/SignUp.png"></p>
+<img alt="Footer" src="./assets/SignUp.png">
 
 
 **Log In**
 
 The site allows users to log in to already registered accounts. You are redirected to the dashboard upon login.
 
-<img alt="Footer" src="./assets/LogIn.png"></p>
+<img alt="Footer" src="./assets/LogIn.png">
 
 
 **Onboarding**
 The site uses an onboarding form to capture and update the users information. User Avatars are still WIP and the icon is currently disabled.
-<img alt="Footer" src="./assets/Onboarding.png"></p>
+<img alt="Footer" src="./assets/Onboarding.png">
 <br>
 
 **Teamspace modal**
 
 The site has a "teamspace" modal that can be opened via the sidebar by clicking on the user button. This shows the currently logged in user, their "subscription tier" or account status (Defaults to "Sapling" due to a lack of payment system integration), their email and display name. The user can log out via this modal.
 
-<img alt="Footer" src="./assets/TeamspaceModal.png"></p>
+<img alt="Footer" src="./assets/TeamspaceModal.png">
 
 **Sign Out**
 
 The site has a facility for a user to sign out of their account.
-<img alt="Footer" src="./assets/SignOut.png"></p>
+<img alt="Footer" src="./assets/SignOut.png">
 <br><br>
 
 **Admin**
 
 The site has a facility for designated administrators to sign in, in order to administrate the site via the standard Django admin interface.
 
-<img alt="Footer" src="./assets/Admin.png"></p>
+<img alt="Footer" src="./assets/Admin.png">
 
 <br>
 
