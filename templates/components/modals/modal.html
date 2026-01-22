@@ -32,7 +32,7 @@ Modal Sizes:
 
 <link rel="stylesheet" href="{% static 'css/components/modal.css' %}">
 
-<div class="modal fade" id="{{ modal_id }}" tabindex="-1" aria-labelledby="{{ modal_id }}Label" aria-hidden="true">
+<div class="modal fade" id="{{ modal_id }}" tabindex="-1" role="dialog" aria-modal="true" aria-labelledby="{{ modal_id }}Label" aria-hidden="true">
   <div class="modal-dialog{% if modal_centered != false %} modal-dialog-centered{% endif %}{% if modal_size %} modal-{{ modal_size }}{% endif %}">
     <div class="modal-content p-4 bordered rounded-3 bg-body-tertiary">
       
@@ -45,7 +45,7 @@ Modal Sizes:
           <i class="{{ modal_icon }} fs-4 me-2" aria-hidden="true"></i>
         {% endif %}
         {% if modal_title %}
-          <div class="mb-0" id="{{ modal_id }}Label">{{ modal_title|safe }}</div>
+          <h2 class="h5 mb-0" id="{{ modal_id }}Label">{{ modal_title|safe }}</h2>
         {% endif %}
       </div>
       {% endif %}
