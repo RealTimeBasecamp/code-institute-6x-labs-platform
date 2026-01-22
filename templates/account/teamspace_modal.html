@@ -8,6 +8,7 @@
   {% url 'account_signup' as signup_url %}
   {% url 'account_logout' as logout_url %}
 
+  <h2 id="{{ modal_id }}Label" class="visually-hidden">Account menu</h2>
   <div class="card">
     {% if user.is_authenticated %}
     <div class="card-header d-flex justify-content-between align-items-center">
@@ -17,7 +18,7 @@
         </div>
         <div id="accountinfo">
           <div class="fw-bold">{{ user.display_name|default:user.username }}</div>
-           <span>
+          <div>
             {% if user.is_admin %}
               <div>Admin</div>
             {% elif user.is_superuser %}
@@ -26,8 +27,7 @@
               <div>{{ user.subscription_tier|default:"Sapling Tier" }}</div>
               {# <div class="text-muted">{{ user.team_members.count }} members</div>#}
             {% endif %}
-
-          </span> 
+          </div>
         </div>
       </div>
       <button

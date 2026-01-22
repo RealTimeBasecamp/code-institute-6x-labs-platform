@@ -98,11 +98,11 @@
         <div class="col" data-project-name="{{ project.name|lower }}">
           <div class="card h-100">
             <div class="card-body">
-              <h5 class="card-title">
+              <div class="card-title">
                 <a href="{% url 'projects:project_planner_detail' project.slug %}" class="text-decoration-none">
                   {{ project.name }}
                 </a>
-              </h5>
+              </div>
               <p class="card-text">
                 <span class="badge bg-secondary">{{ project.status }}</span>
               </p>

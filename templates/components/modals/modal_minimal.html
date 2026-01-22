@@ -52,6 +52,8 @@ Notes:
   class="modal fade{% if not modal_greyout %} modal-no-backdrop{% endif %}"
   id="{% block modal_id %}{{ modal_id }}{% endblock %}"
   tabindex="-1"
+  role="dialog"
+  aria-modal="true"
   aria-labelledby="{{ modal_id }}Label"
   aria-hidden="true"
 >

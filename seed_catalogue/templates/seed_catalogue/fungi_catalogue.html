@@ -90,11 +90,11 @@
         <div class="col" data-fungi-name="{{ fungi.name|lower }}">
           <div class="card h-100">
             <div class="card-body">
-              <h5 class="card-title">
+              <div class="card-title">
                 <a href="{% url 'fungi:fungi_detail' fungi.slug %}" class="text-decoration-none">
                   {{ fungi.name }}
                 </a>
-              </h5>
+              </div>
               <p class="card-text">
                 <span class="badge bg-secondary">{{ fungi.category }}</span>
               </p>
