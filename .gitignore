@@ -241,3 +241,4 @@ CLAUDE.md
 MarkSchemeGuideForClaude.txt
 nul
 core/management/commands/load_sample_projects.py
+LighthousePerformanceImprovementsToMake.json
