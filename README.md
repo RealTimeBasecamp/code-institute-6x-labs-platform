@@ -75,32 +75,29 @@ Traditional 2D wireframes were not used in the developement process. Instead, a 
 
 You can find the interactive Figma wireframe [**here.**](https://www.figma.com/make/jcqTNS8Q5eVMfk0JePleqs/Project-Creation-Page?p=f)
 
-<img alt="Dark mode" src="./assets/FigmaAi.png">
+<img alt="Figma Ai wireframe" src="./assets/FigmaAi.png">
 
 The benefit of using an interative design tool in this way is that the website layout could be updated and reverted quickly, allowing multiple versions to be tested out before being developed. Additionally buttons and functionality can be previewed to get a better understanding of the real UX that the user will perform. Finally, the CSS and base functionality can be extracted, allowing a much faster design loop than traditional wireframing.
 
 ### Main project page Wireframe Design
-<img alt="Dark mode" src="./assets/Wireframe_001.png">
+<img alt="Wireframe diagram 1" src="./assets/Wireframe_001.png">
 
 ### Main project info Wireframe Design
-<img alt="Dark mode" src="./assets/Wireframe_002.png">
+<img alt="Wireframe diagram 2" src="./assets/Wireframe_002.png">
 
 ### Main project breakdown Wireframe Design
-<img alt="Dark mode" src="./assets/Wireframe_003.png">
+<img alt="Wireframe diagram 3" src="./assets/Wireframe_003.png">
 
 ### Generic page template Wireframe Design
-<img alt="Dark mode" src="./assets/Wireframe_004.png">
+<img alt="Wireframe diagram 4" src="./assets/Wireframe_004.png">
 
 ### Modal component Wireframe Design
-<img alt="Dark mode" src="./assets/WireframeModal.png">
-
+<img alt="Wireframe diagram 5" src="./assets/WireframeModal.png">
 
 ### Component inspiration
 As the rest of the website is very minimalist, the design for certain aspects was taken from other SaaS platforms such as Notion. The login and sidebar UX was taken as inspiration.
-<img alt="Dark mode" src="./assets/NotionLogin.png">
-<img alt="Dark mode" src="./assets/NotionSidebar.png">
-
-
+<img alt="Notion log in inspiration" src="./assets/NotionLogin.png">
+<img alt="Notion sidebar inspiration" src="./assets/NotionSidebar.png">
 
 ## User Stories
 
@@ -215,7 +212,7 @@ The project planner page automatically loads the project data and interactive ma
 The interactive map has three modes with the sidebar (Sites, Zones and Point plotter). These modes are disabled for users currently as they are also under development. The intention is to allow users to draw out "sites" then draw out inclusion and exclusion zones with the site. Finally the point plotting system will spawn millions of points within the inclusion zones. The spawned points will be linked to a specific biodiversity species mix database.
 
 
-<img alt="Dark mode" src="./assets/ProjectPlannerPage_001.png">
+<img alt="Project planner page" src="./assets/ProjectPlannerPage_001.png">
 
 
 **Map components**
@@ -231,51 +228,51 @@ The visualisations below are working "point plotting" algorithms that have been 
 <br>
 
 The red areas are "exclusion" zones and the white area is the overall "site". The points are spawned inside the "inclusion" zones. These would be used to define viable land to plant trees.
-<img alt="Dark mode" src="./assets/Poisson.PNG">
-<img alt="Dark mode" src="./assets/SampleElimination.PNG">
+<img alt="Poisson algorithm" src="./assets/Poisson.PNG">
+<img alt="Sample elimination algorithm" src="./assets/SampleElimination.PNG">
 
 Under the "Reading regeneration charity forest" project there is a hardcoded visualisation concept of how these points will be rendered. This not an exposed feature for users.
-<img alt="Dark mode" src="./assets/PointsOnMap.PNG">
+<img alt="Rendered points on map" src="./assets/PointsOnMap.PNG">
 
 
 **Project planner page [Project info section]**
 <br>
 All of the project data is rendered using grouped "cards". Each card has a related edit button and the data per card can be configured within the projects model for easy updating.
-<img alt="Dark mode" src="./assets/ProjectPlannerPage_002.png">
-<img alt="Dark mode" src="./assets/ProjectPlannerPage_003.png">
+<img alt="Project planner page 2" src="./assets/ProjectPlannerPage_002.png">
+<img alt="Project planner page 3" src="./assets/ProjectPlannerPage_003.png">
 
 **Project planner page [Project breakdown section]**
 <br>
 The project breakdown section shows off the relevant data per project. All of the graphs automatically update and when the page is loaded. Therefore long term data can be studied as the reforestation project is updated.
-<img alt="Dark mode" src="./assets/ProjectPlannerPage_004UPDATE.png">
+<img alt="Project planner page 4" src="./assets/ProjectPlannerPage_004UPDATE.png">
 
 
 **Project creation flow**
 <br>
 The "Add new project" button is triggered from any project/ sub page. This project creation flow is build using a custom wizard modal component that allows any forms to be integrated as "steps". Each step is a separate form to allow flexible and customisable pages for various user interaction. This wizard is also used for the user onboarding and is designed in an agnostic way, allowing any type of form to be used.
 
-<img alt="Dark mode" src="./assets/AddProjectFlow_001.png">
+<img alt="Create project 1" src="./assets/AddProjectFlow_001.png">
 
 The wizard has two distinct modes, create and edit. The create mode omits autogenerated fields from each form. The edit mode loads existing data into the form and unhides autogenerated fields that are present within the project as to not confuse the user. The autogenerated fields are disabled as the user should not edit them manually.
 
 Users can see the data within the project's info cards meaning they can edit specific groups of data at one time. The "card" they click on will automatically load the related edit form for that data group. This keeps data handling consistent across the site and user journey.
 
 **Data displayed in project environment "card"**
-<img alt="Dark mode" src="./assets/AddProjectFlow_002.png">
+<img alt="Create project 2" src="./assets/AddProjectFlow_002.png">
 
 **Editable data in project environment form**
-<img alt="Dark mode" src="./assets/AddProjectFlow_003.png">
+<img alt="Create project 3" src="./assets/AddProjectFlow_003.png">
 
 **Project deletion flow**
 <br>
 Projects can be deleted using the delete wizard which is designed to safely delete projects. It uses a 2 step form with a project name confirmation field. The additional data shows the user on the second page to ensure the correct user is deleting the project for audit trails.
 
 
-<img alt="Dark mode" src="./assets/ProjectDeleteFlow_001.png">
+<img alt="Project delete data 1" src="./assets/ProjectDeleteFlow_001.png">
 The danger zone card at the bottom of the project planner page is only exposed to staff, superusers or users who created the project.
 <br><br>
-<img alt="Dark mode" src="./assets/ProjectDeleteFlow_002.png">
-<img alt="Dark mode" src="./assets/ProjectDeleteFlow_003.png">
+<img alt="Project delete data 2" src="./assets/ProjectDeleteFlow_002.png">
+<img alt="Project delete data 3" src="./assets/ProjectDeleteFlow_003.png">
 
 **Side Bar**
 
@@ -285,7 +282,7 @@ The sidebar has custom CSS and JS functionality which stores the current sidebar
 
 The sidebar also has expandable nav item folders which is designed to make navigation easier. In the future the currently open folders will persist across pages.
 <br>
-<img alt="Dark mode" src="./assets/Sidebar_002.png">
+<img alt="6x Sidebar" src="./assets/Sidebar_002.png">
 
 In mobile view the sidebar is rendered on top of the current page allowing easier selection by touch. This can be hidden/unhidden using the arrow in the top left.
 <img alt="navbar2" src="https://github.com/mbriscoe/broken-lines-blog/assets/86828720/c68630ba-a572-4079-a07e-1b7e56c6a82a">
