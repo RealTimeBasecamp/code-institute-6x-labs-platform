@@ -63,12 +63,12 @@ Each theme has been configured with a light and dark mode, which can be triggere
 
 **Final render light mode:**
 <br>
-<img alt="Light mode" src="./assets/LightMode.png">
+<img alt="Light mode" src="./assets/LightMode.PNG">
 
 
 **Final render dark mode:**
 <br>
-<img alt="Dark mode" src="./assets/DarkMode.png">
+<img alt="Dark mode" src="./assets/DarkMode.PNG">
 
 ### Wireframes ###
 Traditional 2D wireframes were not used in the developement process. Instead, a more accurate, iterative design methodology was chosen by using Figma AI to rapidly prototype the overall look and feel of the website wireframes.
@@ -199,10 +199,10 @@ The dashboard page is home page of the platform per user, it is set up as the re
 <br>
 The projects page provides users with a granular list or table view of the ongoing reforestation projects. Users can also sort projects by keywords using the search bar functionality. The table is also sortable by clicking on each heading. Only project owners, site staff or superusers will see the "actions" header in the table. This ensures projects cannot be deleted by the wrong users.
 <br>
-<img alt="Projects list table view" src="./assets/ProjectsPage_001.png">
+<img alt="Projects list table view" src="./assets/ProjectsPage_001.PNG">
 <br>
 
-<img alt="Projects list grid view" src="./assets/ProjectsPage_002.png">
+<img alt="Projects list grid view" src="./assets/ProjectsPage_002.PNG">
 <br>
 
 **Project planner page [Interactive 3D map]**
@@ -291,53 +291,53 @@ In mobile view the sidebar is rendered on top of the current page allowing easie
 <br>
 The navigation bar is deliberately kept very simple and only includes breadcrumbs and the theme lightmode toggle. It is responsive to the sidebar being hidden/expanded. The sidebar button and 6x logo are automatically hidden/unhidden from the sidebar and nav components ensuring a smooth experience.
 <br>
-<img alt="Dark mode" src="./assets/NavBar_001.png">
+<img alt="Dark mode" src="./assets/NavBar_001.PNG">
 <br>
-<img alt="Dark mode" src="./assets/NavBar_002.png">
+<img alt="Dark mode" src="./assets/NavBar_002.PNG">
 
 
 **The Footer**
 <br>
 The footer is a simple copyright notice applied to each page. This can be overridden using the footer template block.
-<img alt="Footer" src="./assets/Footer.png">
+<img alt="Footer" src="./assets/Footer.PNG">
 
 
 
 **Sign Up**
 
 The site allows users to register as user. Users cannot access the site unless they are logged in with an authenticated account. All of the django views have been defined with the @login_required decorator and mixin to ensure no users can bypass the login screen.
-<img alt="Footer" src="./assets/SignUp.png">
+<img alt="Footer" src="./assets/SignUp.PNG">
 
 
 **Log In**
 
 The site allows users to log in to already registered accounts. You are redirected to the dashboard upon login.
 
-<img alt="Footer" src="./assets/LogIn.png">
+<img alt="Footer" src="./assets/LogIn.PNG">
 
 
 **Onboarding**
 The site uses an onboarding form to capture and update the users information. User Avatars are still WIP and the icon is currently disabled.
-<img alt="Footer" src="./assets/Onboarding.png">
+<img alt="Footer" src="./assets/Onboarding.PNG">
 <br>
 
 **Teamspace modal**
 
 The site has a "teamspace" modal that can be opened via the sidebar by clicking on the user button. This shows the currently logged in user, their "subscription tier" or account status (Defaults to "Sapling" due to a lack of payment system integration), their email and display name. The user can log out via this modal.
 
-<img alt="Footer" src="./assets/TeamspaceModal.png">
+<img alt="Footer" src="./assets/TeamspaceModal.PNG">
 
 **Sign Out**
 
 The site has a facility for a user to sign out of their account.
-<img alt="Footer" src="./assets/SignOut.png">
+<img alt="Footer" src="./assets/SignOut.PNG">
 <br><br>
 
 **Admin**
 
 The site has a facility for designated administrators to sign in, in order to administrate the site via the standard Django admin interface.
 
-<img alt="Footer" src="./assets/Admin.png">
+<img alt="Footer" src="./assets/Admin.PNG">
 
 <br>
 
