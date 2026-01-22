@@ -4,7 +4,7 @@
 
 This project is an interactive platform for the drone reforestation enterprise 6x Labs. This platform is designed to plan and store reforestation project data as well as display detailed carbon sequestration information for the customer. The projects planned here will eventually be planted using drones in the real world.
 
-From a users perspective, they should be able to view reforestation projects planned and run by 6x Labs, and, if a registered user, create and edit the projects.
+From a users perspective, they should be able to view reforestation projects planned and run by 6x Labs, and, if they are registered user, they can create, edit and delete Projects.
 
 In terms of design, a modern and minimalistic colour theme was chosen in order to streamline the UX and keep the focus on the raw data. This design is reflected across the whole site. The site UX is inspired by platforms such as Notion, ensuring a modern and easy to use interface.
 
@@ -26,9 +26,9 @@ A responsive site layout enables easy navigation on all devices.
 
 [**Bootstrap icons**](https://icons.getbootstrap.com/) icons were used for all icons across the site to ensure consistency and reduce dependency on custom made icons.
 
-**Segoe UI** was used for the all text across the site. Font weights were used to define headers and body text. This design choice was made to keep the site art style minimal and clean.
+**Segoe UI** was used for the all text across the site as it is a default browser font meaning no font packages needed to be bundled with the deployment. Font weights were used to define headers and body text. This design choice was made to keep the site art style minimal and clean.
 
-Fallback font are also used if this font is not available based on the users OS type.
+Fallback fonts are also used if this font is not available based on the users OS type.
 
 
 ### Company branding ###
