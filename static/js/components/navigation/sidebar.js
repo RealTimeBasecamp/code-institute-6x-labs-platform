@@ -326,9 +326,17 @@
 
         return false;
       });
+
+      // Support keyboard activation for non-button element (Enter / Space)
+      button.addEventListener('keydown', function(e) {
+        if (e.key === 'Enter' || e.key === ' ' || e.key === 'Spacebar') {
+          e.preventDefault();
+          this.click();
+        }
+      });
     });
 
-    const parentLinks = document.querySelectorAll('.sidebar-item.has-children > .sidebar-link');
+    const parentLinks = document.querySelectorAll('.sidebar-item.has-children .sidebar-link');
 
     parentLinks.forEach(link => {
       link.addEventListener('click', function(e) {
