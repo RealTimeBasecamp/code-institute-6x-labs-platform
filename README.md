@@ -459,7 +459,7 @@ Once the app setup is complete, click on the Deploy tab and:
 3. click the Deploy Branch button to start the  deployment.
 4. Once deployment finishes the app can be launched.
 
-<img alt="HTML Check" src="./assets/Deployment.PNG">
+<img alt="HTML Check" src="./assets/Deployment.png">
 
 
 The live link can be found [_here_](https://sass-platform-909cf929c260.herokuapp.com/dashboard/)
