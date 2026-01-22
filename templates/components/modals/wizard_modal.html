@@ -68,7 +68,7 @@ Note: Step titles and count are loaded from the backend wizard class (single sou
           {% else %}
           <i class="bi bi-list-check fs-4 me-2" aria-hidden="true"></i>
           {% endif %}
-          <h5 class="mb-0" id="{{ modal_id }}Label">{{ modal_title|default:"Setup Wizard" }}</h5>
+          <div class="mb-0" id="{{ modal_id }}Label">{{ modal_title|default:"Setup Wizard" }}</div>
         </div>
         <button type="button" class="btn-close wizard-close-btn" aria-label="Close"></button>
       </div>

@@ -90,11 +90,11 @@
         <div class="col" data-project-name="{{ project.name|lower }}">
           <div class="card h-100">
             <div class="card-body">
-              <h5 class="card-title">
+              <div class="card-title">
                 <a href="{% url 'seeds:seed_detail' seed.slug %}" class="text-decoration-none">
                   {{ seed.name }}
                 </a>
-              </h5>
+              </div>
               <p class="card-text">
                 <span class="badge bg-secondary">{{ seed.category }}</span>
               </p>
