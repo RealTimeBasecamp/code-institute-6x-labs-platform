@@ -356,7 +356,7 @@ The following database schema ERD was created for the project.<img alt="Entity R
 
 This is a simplified diagram explaining the core data models and how they relate. Not every table is currently integrated, the data structure has been generated to future-proof the development.
 
-<img alt="Simple ERD diagram" src="./assets/SimpleERD.png"></p
+<img alt="Simple ERD diagram" src="./assets/SimpleERD.png">
 
 ## Testing
 
@@ -367,69 +367,41 @@ The site was tested on the following browsers for compatibility:
 |   Test	|  Expected Result 	|  Actual Result	|
 |---	|---	|---	|
 |   Click Home menu	|  success 	|  success 	|
-|   Click About menu	|  success 	|  success 	|
-|   Click Biogs menu	|  success 	|  success 	|
-|   Click Admin menu	|  success 	|  success 	|
-|   Click Login menu	|  success 	|  success 	|
+|   Click projects menu	|  success 	|  success 	|
+|   Click project planner menu	|  success 	|  success 	|
+|   Click the project (Grid/Table) buttons	|  success 	|  success 	|
+|   Click teamspace menu	|  success 	|  success 	|
+|   Click Light/Dark mode toggle	|  success 	|  success 	|
+|   Click the sidebar button	|  success 	|  success 	|
+|   Drag the sidebar	|  success 	|  success 	|
 |   Click Logout	|  success 	|  success 	|
-|   Click individual blog post	|  success 	|  success 	|
-|   Create, edit, delete a personal comment	|  success 	|  success 	|
+|   Click individual project	|  success 	|  success 	|
+|   Create, delete a project	|  success 	|  success 	|
+|   Edit a project field	|  success 	|  success 	|
 |   Register new account	|  success 	|  success 	|
-|   Create collaboration request	|  success 	|  success 	|
 |   Access admin interface	|  success 	|  success 	|
-|   Responsivity	|  success 	|  success 	|
-|   Open new page from social media links	|  success 	|  success 	|
+|   Responsivity	|  success 	|  Functional, Mobile needs improvement 	|
 
-### Firefox ###
-|   Test	|  Expected Result 	|  Actual Result	|
-|---	|---	|---	|
-|   Click Home menu	|  success 	|  success 	|
-|   Click About menu	|  success 	|  success 	|
-|   Click Biogs menu	|  success 	|  success 	|
-|   Click Admin menu	|  success 	|  success 	|
-|   Click Login menu	|  success 	|  success 	|
-|   Click Logout	|  success 	|  success 	|
-|   Click individual blog post	|  success 	|  success 	|
-|   Create, edit, delete a personal comment	|  success 	|  success 	|
-|   Register new account	|  success 	|  success 	|
-|   Create collaboration request	|  success 	|  success 	|
-|   Access admin interface	|  success 	|  success 	|
-|   Responsivity	|  success 	|  success 	|
-|   Open new page from social media links	|  success 	|  success 	|
 
 ### Edge ###
 |   Test	|  Expected Result 	|  Actual Result	|
 |---	|---	|---	|
 |   Click Home menu	|  success 	|  success 	|
-|   Click About menu	|  success 	|  success 	|
-|   Click Biogs menu	|  success 	|  success 	|
-|   Click Admin menu	|  success 	|  success 	|
-|   Click Login menu	|  success 	|  success 	|
+|   Click projects menu	|  success 	|  success 	|
+|   Click project planner menu	|  success 	|  success 	|
+|   Click the project (Grid/Table) buttons	|  success 	|  success 	|
+|   Click teamspace menu	|  success 	|  success 	|
+|   Click Light/Dark mode toggle	|  success 	|  success 	|
+|   Click the sidebar button	|  success 	|  success 	|
+|   Drag the sidebar	|  success 	|  success 	|
 |   Click Logout	|  success 	|  success 	|
-|   Click individual blog post	|  success 	|  success 	|
-|   Create, edit, delete a personal comment	|  success 	|  success 	|
+|   Click individual project	|  success 	|  success 	|
+|   Create, delete a project	|  success 	|  success 	|
+|   Edit a project field	|  success 	|  success 	|
 |   Register new account	|  success 	|  success 	|
-|   Create collaboration request	|  success 	|  success 	|
 |   Access admin interface	|  success 	|  success 	|
-|   Responsivity	|  success 	|  success 	|
-|   Open new page from social media links	|  success 	|  success 	|
+|   Responsivity	|  success 	|  Functional, Mobile needs improvement 	|
 
-### Safari ###
-|   Test	|  Expected Result 	|  Actual Result	|
-|---	|---	|---	|
-|   Click Home menu	|  success 	|  success 	|
-|   Click About menu	|  success 	|  success 	|
-|   Click Biogs menu	|  success 	|  success 	|
-|   Click Admin menu	|  success 	|  success 	|
-|   Click Login menu	|  success 	|  success 	|
-|   Click Logout	|  success 	|  success 	|
-|   Click individual blog post	|  success 	|  success 	|
-|   Create, edit, delete a personal comment	|  success 	|  success 	|
-|   Register new account	|  success 	|  success 	|
-|   Create collaboration request	|  success 	|  success 	|
-|   Access admin interface	|  success 	|  success 	|
-|   Responsivity	|  success 	|  success 	|
-|   Open new page from social media links	|  success 	|  success 	|
 
 ### Lighthouse
 The site was tested using Lighthouse with the following results:
