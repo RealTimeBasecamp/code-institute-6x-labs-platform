@@ -31,7 +31,7 @@ Usage as inclusion tag (optional):
   {% for section in sections %}
     <div class="mb-4">
       {% if section.title %}
-        <h6 class="fw-semibold mb-3">{{ section.title }}</h6>
+        <p class="fw-semibold mb-3">{{ section.title }}</p>
       {% endif %}
       <div class="row">
         {% for label, value in section.fields %}
