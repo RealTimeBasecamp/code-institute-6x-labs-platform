@@ -101,91 +101,101 @@ As the rest of the website is very minimalist, the design for certain aspects wa
 
 ## User Stories
 
-**As a site user, I can view a list of posts and click on the post I want to view.**
+**As a site user, I want to be able to register an account and log in so I can interact with the platform.**
 
-- A list of posts is displayed on the front page
-- Multiple posts are listed and paginated
+- The login pages need to be styled to fit the site-wide style guide
 
-**As a Site User, I can click on a post so that I can read the full text.**
+- Users need to be able to register and log in.
 
-- When a blog post title is clicked, a detailed view of the individual post is displayed.
+**As a site admin, I want to be able to view and edit all active projects so I can easily filter them by status.**
 
-**As a Site Admin I can create draft posts so that I can finish writing the content later, prior to publishing.**
+- A user can create and edit projects.
 
-- As a logged in Admin, they can save a draft blog post
-- As a logged in Admin they can finish the content at a later time
+- A user can delete projects from the database safely.
 
-**As a Site User I can view comments on an individual post**
+- A user can filter the table by alphabetical name, status, last edited, country, and total carbon sequestered size.
 
-- Given one or more user comments the user can view them.
-- Given one or more user comments the admin can view them.
+**As a site admin, I want to view and edit individual sections of project information to make it easier to manage a large project.**
 
-**As a Site User I can leave comments on a post**
+- Automatically populate a list of project information entries
 
-- Comments need to be approved by an admin user
-- Approved comments are listed on the individual post page
+- Be able to edit each section with an edit button
 
-**As a Site User I can modify or delete my comments on a post**
+- Apply null and required fields to all relevant entry boxes to validate the user-inputted data.
 
-- A logged in user can modify their own comments
-- A logged in user can delete their own comments
+**As a user, I will be redirected to an upgrade page if I click on a button or page that my current tier is not authorised for.**
 
-**As a site admin I can approve/disapprove comments in order to filter out objectionable comments**
+- User UX will automatically take them to an upgrade page
 
-- Admin can approve a comment
-- Admin can un-approve a comment
+- Users need to visually see which tier they are using.
 
-**As a Site User, I can click on the About link and read about the site.**
+**As a user I want to be able to see an interactive map showing project information such as the location in the world.**
 
-- When the About link is clicked, the about page is displayed.
+- The map should render latitude and longitude information from the project
 
-**As a Site Admin, I can create or update the about page.**
+- The map should render terrain to showcase where the project is
 
-- The About app is visible in the admin panel
-- The About app is accessible to Admin users
+**As a site admin, I want to interact with the map in a way that reflects conventional 2D/3D map controls**
 
-**As a site user I can fill in a contact /collaboration form so that I can submit a message to the site owner.**
+- As a site admin/user, I should be able to full-screen the map
 
-- Contact/collaboration form is submitted and feedback given
+- A site admin should be able to hide/unhide the map sidebar.
 
-**As a Site Admin I can mark contact messages as "read".**
+- As a site admin/user, I should be able to filter map information, update the 2D/3D View mode and edit the map settings.
 
-- Admin can mark messages as read
+**As a site admin, I want to be able to control the current changes and state of a project to make the user experience more standardised.**
 
-**As a user I can click on the biography menu and read the band biography**
+- Undo, redo buttons that actively iterate through the edited version history.
 
-- User clicks biography and band biog page displays
-- Admin can add/edit band biographies
+- A function that marks the system as "dirty" when something has been edited. These changes can be saved as a draft or discarded.
 
-**As a Site User I can register an account so that I can comment posts.**
+- A publish changes/project button that saves the draft changes to the project and then updates the UI with a timestamp.
 
-- Given an email a user can register an account and log in.
-- When the user is logged in they can comment.
+**As a site admin, I can render a point on the interactive map based on the settings that are configured. This is so the seed locations can be exported to a drone to be planted.**
 
-**As a site user/admin I can login so that I can access all of available content.**
+- As a site user, I can select which algorithm to use for the point plotting on the map (Poisson-disc distribution/ Sample elimination).
 
-- User can login and se the full range of available menus.
+- The points can be saved to the database.
 
-**As a site user/admin I can logout so that I can leave the site safely.**
+**As a site admin, I can manage a seed catalogue database table so this information can be accessed in other project pages.**
 
-- User/admin can logout successfully
+- As a site admin, I can view, edit and delete individual seed species entries in the database table
 
-**As a site user I can view a list of past and present band events**
+- As a site user I can view and filter each column by species name, country of origin, primary country, total alive instances etc.
 
-- User can view a list of events successfully
+**As a site user I can use the interactive map to plot seed points.**
 
-**As a site admin I can add events to a band event list.**
+- Multiple nested criteria acceptance points
 
-- Admin can add event items successfully
+**As a site user, I want to view and export the calculated project breakdown information, such as total CO2 captured, so I can meet government regulations.**
 
-The completed sprint was composed of 17 separate items. Having used the MoSCoW approach to prioritisation, 9 were classified as "Must-Have" making up less than 60% of the tasks as recommended. The rest of the first sprint was made up of "Should-Have" and "Could-Have" items.
-There were no remaining backlog items.
+- The user can select which type of carbon regulatory body from a dropdown, and it will filter the data accordingly.
 
-EXPLAIN HERE HOW I USED LINEAR AS ITS BETTER THAN GITHUB PROJECTS + I CAN CREATE A PARENT WITH MULTIPLE SUB ISSUSES TO TRACK LONGER TASKS
-I have also used milestones as a way to track larger features of the overall project, most of which are outside of the scope of the capstone.
+- The user can view individual graphs showcasing the project or site-specific breakdown information.
 
-<img alt="kanban" src="https://github.com/mbriscoe/broken-lines-blog/assets/86828720/ba4b5b09-7b18-4449-b7ba-399ea99bbf00">
+- The user can export a .csv or .pdf file containing the breakdown information.
 
+The completed sprint was made up of 35 issues, 21 of which were "must have", making up 60% of the overall project issues. Ultimately a lot of the issues planned were outside the scope of the django project MVP and will be implemented in the future.
+
+<img alt="Notion sidebar inspiration" src="./assets/Linear_001.PNG">
+
+**Linear (Agile project management platform)**
+
+[**Linear**](https://linear.app/) was used to manage the project agile development. The advantage of linear over github projects is that tasks are easier to create and manage due to the intuitive UX.
+
+For example this user story template was set up to automatically break the issue into the fields (User story: title, description, AC1,AC2 and AC3).
+<img alt="Notion sidebar inspiration" src="./assets/Linear_002.png">
+
+This automatically generates the issue.
+<img alt="Notion sidebar inspiration" src="./assets/Linear_003.png">
+
+Various sub tasks were assigned to larger issues when 3 acceptance criteria was not enough.
+<img alt="Notion sidebar inspiration" src="./assets/Linear_004.png">
+
+These can be hidden/unhidden using the "Show sub-issues" display flag. This kept the kanban board clean and easy to view.
+
+<img alt="Notion sidebar inspiration" src="./assets/SubIssues.png">
+<img alt="Notion sidebar inspiration" src="./assets/Linear_005.png">
 
 
 ## Features
