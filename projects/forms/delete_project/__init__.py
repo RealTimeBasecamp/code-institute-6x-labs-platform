@@ -78,7 +78,7 @@ class ProjectDeleteWizard(BaseWizardView):
             }
 
         # Security check: only creator can delete
-        if project.created_by != request.user:
+        if (project.created_by != request.user) and not (request.user.is_superuser or request.user.is_staff):
             return {
                 'success': False,
                 'error': 'You do not have permission to delete this project.'
