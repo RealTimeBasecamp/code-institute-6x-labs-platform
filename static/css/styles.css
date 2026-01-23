@@ -49,6 +49,20 @@ h1, h2, h3, h4, h5, h6, p, span, div, a, button, input, textarea, select{
   min-height: 100vh;
 }
 
+/* Reduce horizontal padding on small tablets and mobile (<=768px) */
+@media (max-width: 768px) {
+  .page-content {
+    padding-left: 0.0rem;
+    padding-right: 0.0rem;
+  }
+
+  /* Remove main-content horizontal padding on tablet/mobile */
+  .main-content {
+    padding-left: 0.5rem;
+    padding-right: 0.5rem;
+  }
+}
+
 
 /* ===== MINIMAL LAYOUT (login, signup, etc.) ===== */
 .minimal-layout {

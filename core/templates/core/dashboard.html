@@ -8,164 +8,140 @@
 <link rel="stylesheet" href="{% static 'css/dashboard.css' %}">
 {% endblock %}
 
-{# Dashboard comment for claude #}
-- Make cards bigger and more spaced out
-- Make cards responsive using rems not px
-- Update CSS to use theme colours not hardcoded
-- Move js to a separate file 
-- Fix card data headings to be clearer
-- Add proper co2 data to each project as an example
-- Add hover tooltips to charts
-- Add loading spinners to charts while data loads
-- Get better example charts
-- Create one long example chart and make it fit in the grid
-- Add delay animations to the dashboard charts on load
-
-{# endcomment #}
-
-
 {% block content %}
-<div class="container">
-  <div class="dash-row">
-    <div class="dash-card">
-      <h4>Projects</h4>
-      <div id="projectsChart" class="chart-wrap"></div>
+<div class="container-fluid dashboard-container">
+  {# Full-width overview chart - shows plants planted over time #}
+  <div class="row">
+    <div class="col-12">
+      <div class="dash-card dash-card-wide">
+        <div class="dash-card-header">
+          <h4>Plants Planted Over Time</h4>
+          <span class="dash-card-subtitle">Annual planting activity</span>
+        </div>
+        <div class="chart-container">
+          <div id="overviewChart" class="chart-wrap chart-wrap-wide"></div>
+          <div class="chart-loading">
+            <div class="spinner-border spinner-border-sm text-primary" role="status">
+              <span class="visually-hidden">Loading...</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  {# Three metric cards in a row #}
+  <div class="row dash-metrics-row">
+    <div class="col-lg-4 col-md-6 col-12">
+      <div class="dash-card">
+        <div class="dash-card-header">
+          <h4>Projects</h4>
+          <span class="dash-card-subtitle">Active initiatives</span>
+        </div>
+        <div class="chart-container">
+          <div id="projectsChart" class="chart-wrap"></div>
+          <div class="chart-loading">
+            <div class="spinner-border spinner-border-sm text-primary" role="status">
+              <span class="visually-hidden">Loading...</span>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
 
-    <div class="dash-card">
-      <h4>Total CO₂ Saved</h4>
-      <div id="co2Chart" class="chart-wrap"></div>
+    <div class="col-lg-4 col-md-6 col-12">
+      <div class="dash-card">
+        <div class="dash-card-header">
+          <h4>CO₂ Sequestered</h4>
+          <span class="dash-card-subtitle">Total carbon captured</span>
+        </div>
+        <div class="chart-container">
+          <div id="co2Chart" class="chart-wrap"></div>
+          <div class="chart-loading">
+            <div class="spinner-border spinner-border-sm text-primary" role="status">
+              <span class="visually-hidden">Loading...</span>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
 
-    <div class="dash-card">
-      <h4>Plants Planted</h4>
-      <div id="plantsChart" class="chart-wrap"></div>
+    <div class="col-lg-4 col-md-12 col-12">
+      <div class="dash-card">
+        <div class="dash-card-header">
+          <h4>Growth Duration</h4>
+          <span class="dash-card-subtitle">Time since first project</span>
+        </div>
+        <div class="chart-container">
+          <div id="yearsChart" class="chart-wrap"></div>
+          <div class="chart-loading">
+            <div class="spinner-border spinner-border-sm text-primary" role="status">
+              <span class="visually-hidden">Loading...</span>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
+  </div>
 
-    <div class="dash-card">
-      <h4>Years of Growth</h4>
-      <div id="yearsChart" class="chart-wrap"></div>
+  {# Additional metric - total plants #}
+  <div class="row">
+    <div class="col-lg-4 col-md-6 col-12">
+      <div class="dash-card">
+        <div class="dash-card-header">
+          <h4>Total Plants</h4>
+          <span class="dash-card-subtitle">Cumulative planting</span>
+        </div>
+        <div class="chart-container">
+          <div id="plantsChart" class="chart-wrap"></div>
+          <div class="chart-loading">
+            <div class="spinner-border spinner-border-sm text-primary" role="status">
+              <span class="visually-hidden">Loading...</span>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
 </div>
 {% endblock %}
 
 {% block extra_js %}
-  <script src="https://cdn.jsdelivr.net/npm/echarts@5/dist/echarts.min.js"></script>
-  <script>
-    (function () {
-      // Read theme CSS variables and derive usable colours
-      const rootStyles = getComputedStyle(document.documentElement);
-      const mainColorVar = rootStyles.getPropertyValue('--primary-color').trim() || '#059acc';
-      const textColorVar = rootStyles.getPropertyValue('--bs-body-color').trim() || '#111';
+<script src="https://cdn.jsdelivr.net/npm/echarts@5/dist/echarts.min.js"></script>
+<script src="{% static 'js/dashboard.js' %}"></script>
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    // Dashboard data from Django context
+    var dashboardData = {
+      numProjects: {{ num_projects|default:0 }},
+      totalCo2: {{ total_co2|default:0 }},
+      totalPlants: {{ total_plants|default:0 }},
+      yearsOfGrowth: {{ years_of_growth|default:0 }},
+      plantsYears: {{ plants_years|default:'[]'|safe }},
+      plantsValues: {{ plants_values|default:'[]'|safe }}
+    };
 
-      function hexToRgba(hex, alpha = 1) {
-        if (!hex) return `rgba(0,0,0,${alpha})`;
-        hex = hex.replace('#', '').trim();
-        if (hex.length === 3) hex = hex.split('').map(c => c + c).join('');
-        const r = parseInt(hex.substring(0, 2), 16);
-        const g = parseInt(hex.substring(2, 4), 16);
-        const b = parseInt(hex.substring(4, 6), 16);
-        return `rgba(${r},${g},${b},${alpha})`;
-      }
+    // Initialize charts with data
+    DashboardCharts.init(dashboardData);
+  });
+</script>
 
-      // 1) Projects - gauge ring (primary colour, text colour for labels)
-      const projectsEl = document.getElementById('projectsChart');
-      const projectsChart = echarts.init(projectsEl);
-      projectsChart.setOption({
-        series: [{
-          type: 'gauge',
-          startAngle: 180, endAngle: 0,
-          radius: '100%',
-          progress: { show: true, width: 18, itemStyle: { color: mainColorVar } },
-          axisLine: { lineStyle: { width: 18, color: [[1, mainColorVar]] } },
-          pointer: { show: false },
-          axisTick: { show: false },
-          splitLine: { show: false },
-          axisLabel: { show: false },
-          title: { color: textColorVar },
-          detail: { show: true, valueAnimation: true, fontSize: 26, color: textColorVar, formatter: '{value}' },
-          data: [{ value: {{ num_projects }}, name: 'Projects' }]
-        }]
-      });
-
-      // 2) CO2 - doughnut (primary for saved slice, text colour for labels/ghost slice)
-      const co2El = document.getElementById('co2Chart');
-      const co2Chart = echarts.init(co2El);
-      const totalCo2 = {{ total_co2 }};
-      co2Chart.setOption({
-        series: [{
-          type: 'pie',
-          radius: ['62%', '82%'],
-          avoidLabelOverlap: false,
-          label: { show: true, position: 'center', formatter: totalCo2 + '\n tCO₂', color: textColorVar, fontSize: 16 },
-          emphasis: { label: { show: true } },
-          data: [
-            { value: totalCo2, name: 'Saved', itemStyle: { color: mainColorVar } },
-            { value: Math.max(1, Math.round(totalCo2 * 0.2)), name: 'placeholder', itemStyle: { color: hexToRgba(textColorVar, 0.08) } }
-          ]
-        }]
-      });
-
-      // 3) Plants - smooth line (primary line + subtle primary area fill, labels use text colour)
-      const plantsEl = document.getElementById('plantsChart');
-      const plantsChart = echarts.init(plantsEl);
-      const years = {{ plants_years|default:'[]'|safe }};
-      const plantsSeries = {{ plants_values|default:'[]'|safe }};
-      plantsChart.setOption({
-        xAxis: { type: 'category', data: years, axisLine: { lineStyle: { color: hexToRgba(textColorVar, 0.16) } }, axisLabel: { color: textColorVar } },
-        yAxis: { type: 'value', axisLine: { show: false }, splitLine: { lineStyle: { color: hexToRgba(textColorVar, 0.12) } }, axisLabel: { color: textColorVar } },
-        grid: { left: '6%', right: '6%', bottom: '10%', top: '10%' },
-        series: [{
-          data: plantsSeries,
-          type: 'line', smooth: true,
-          lineStyle: { color: mainColorVar, width: 3 },
-          symbol: 'circle', symbolSize: 6, itemStyle: { color: mainColorVar },
-          areaStyle: { color: hexToRgba(mainColorVar, 0.12) }
-        }]
-      });
-
-      // 4) Years of growth - gauge using primary colour for progress and text colour for labels
-      const yearsEl = document.getElementById('yearsChart');
-      const yearsChart = echarts.init(yearsEl);
-      yearsChart.setOption({
-        series: [{
-          type: 'gauge', startAngle: 180, endAngle: 0, radius: '100%',
-          progress: { show: true, width: 18, itemStyle: { color: mainColorVar } },
-          axisLine: { lineStyle: { width: 18, color: [[1, mainColorVar]] } },
-          pointer: { show: false },
-          axisTick: { show: false }, splitLine: { show: false }, axisLabel: { show: false },
-          title: { color: textColorVar },
-          detail: { valueAnimation: true, fontSize: 26, color: textColorVar, formatter: '{value} yrs' },
-          data: [{ value: {{ years_of_growth }}, name: 'Years' }]
-        }]
-      });
-
-      // Resize handling
-      const charts = [projectsChart, co2Chart, plantsChart, yearsChart];
-      window.addEventListener('resize', () => charts.forEach(c => c.resize()));
-    })();
-  </script>
-
-
-  <script src="{% static 'js/components/theme-preferences.js' %}" defer></script>
-  {% if not user.profile_setup_complete %}
-  <script>
-    // Auto-open profile wizard on first login
-    document.addEventListener('DOMContentLoaded', function() {
-      const wizardModal = document.getElementById('userProfileWizard');
-      if (wizardModal) {
-        const modal = new bootstrap.Modal(wizardModal);
-        modal.show();
-      }
-    });
-  </script>
-  {% endif %}
-
+<script src="{% static 'js/components/theme-preferences.js' %}" defer></script>
+{% if not user.profile_setup_complete %}
+<script>
+  // Auto-open profile wizard on first login
+  document.addEventListener('DOMContentLoaded', function() {
+    var wizardModal = document.getElementById('userProfileWizard');
+    if (wizardModal) {
+      var modal = new bootstrap.Modal(wizardModal);
+      modal.show();
+    }
+  });
+</script>
+{% endif %}
 {% endblock %}
 
 {% block modals %}
-
   {% comment %}
   User Profile Setup Wizard Modal
   Triggered automatically on first login when profile_setup_complete is False.
@@ -177,6 +153,4 @@
     modal_title='Complete Your Profile'
     modal_icon='bi bi-person-circle'
   %}
-
 {% endblock %}
-
