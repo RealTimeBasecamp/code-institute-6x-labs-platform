@@ -10,6 +10,37 @@ In terms of design, a modern and minimalistic colour theme was chosen in order t
 
 A responsive site layout enables easy navigation on all devices.
 
+### Table of contents
+
+- [Desktop](#desktop)
+- [Tablet](#tablet)
+- [Mobile](#mobile)
+- [UX Design](#ux-design)
+  - [Typography](#typography)
+  - [Company branding](#company-branding)
+  - [Colour Palette](#colour-palette)
+  - [Theme select](#theme-select)
+  - [Dark/Light mode toggle](#darklight-mode-toggle)
+  - [Wireframes](#wireframes)
+  - [Main project page Wireframe Design](#main-project-page-wireframe-design)
+  - [Main project info Wireframe Design](#main-project-info-wireframe-design)
+  - [Main project breakdown Wireframe Design](#main-project-breakdown-wireframe-design)
+  - [Generic page template Wireframe Design](#generic-page-template-wireframe-design)
+  - [Modal component Wireframe Design](#modal-component-wireframe-design)
+  - [Component inspiration](#component-inspiration)
+- [User Stories](#user-stories)
+- [Features](#features)
+- [Testing](#testing)
+  - [Manual Testing](#manual-testing)
+  - [Chrome](#chrome)
+  - [Edge](#edge)
+  - [Lighthouse](#lighthouse)
+  - [Responsive Testing](#responsive-testing)
+  - [Validator Testing](#validator-testing)
+  - [HTML](#html)
+  - [CSS](#css)
+- [Deployment](#deployment)
+
 ## Desktop
 <img alt="desktop" src="./assets/Desktop.png">
 
@@ -203,7 +234,7 @@ These can be hidden/unhidden using the "Show sub-issues" display flag. This kept
 
 The dashboard page is home page of the platform per user, it is set up as the redirect for login. The dashboard features working graphs that showcase breakdown information about the ongoing projects. In the future these graphs will be configured towards each users specific projects and company carbon compliance information.
 
-![screenshot](docs/images/homepage.png)
+<img alt="Notion sidebar inspiration" src="./assets/Dashboard.PNG">
 
 **Projects page**
 <br>
@@ -254,7 +285,7 @@ All of the project data is rendered using grouped "cards". Each card has a relat
 **Project planner page [Project breakdown section]**
 <br>
 The project breakdown section shows off the relevant data per project. All of the graphs automatically update and when the page is loaded. Therefore long term data can be studied as the reforestation project is updated.
-<img alt="Project planner page 4" src="./assets/ProjectPlannerPage_004UPDATE.png">
+<img alt="Entity Relationship Diagram" src="./assets/ProjectBreakdownDashboard.png">
 
 
 **Project creation flow**
@@ -352,7 +383,8 @@ The site has a facility for designated administrators to sign in, in order to ad
 <br>
 
 **Entity Relationship Diagram**
-The following database schema ERD was created for the project.<img alt="Entity Relationship Diagram" src="./assets/DatabaseERDSchema.png">
+The following database schema ERD was created for the project.
+<img alt="Entity Relationship Diagram" src="./assets/DatabaseERDSchema.png">
 
 This is a simplified diagram explaining the core data models and how they relate. Not every table is currently integrated, the data structure has been generated to future-proof the development.
 
@@ -423,7 +455,7 @@ Alongside the built in Bootstrap responsive CSS, Chrome dev tools were used freq
 
 
 ## CSS
-1 error was found during the official CSS error check. This is due to to 
+1 error was found during the official CSS error check. This is due to newer CSS being used. This will be fixed in future updates as the CSS functions visually currently for the MVP. 
 <img alt="HTML Check" src="./assets/CSSError.PNG">
 
 Python
