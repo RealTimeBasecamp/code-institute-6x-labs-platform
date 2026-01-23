@@ -4,11 +4,42 @@
 
 This project is an interactive platform for the drone reforestation enterprise 6x Labs. This platform is designed to plan and store reforestation project data as well as display detailed carbon sequestration information for the customer. The projects planned here will eventually be planted using drones in the real world.
 
-From a users perspective, they should be able to view reforestation projects planned and run by 6x Labs, and, if they are registered user, they can create, edit and delete Projects.
+From a user's perspective, they should be able to view reforestation projects planned and run by 6x Labs, and, if they are a registered user, they can create, edit and delete Projects.
 
 In terms of design, a modern and minimalistic colour theme was chosen in order to streamline the UX and keep the focus on the raw data. This design is reflected across the whole site. The site UX is inspired by platforms such as Notion, ensuring a modern and easy to use interface.
 
 A responsive site layout enables easy navigation on all devices.
+
+### Table of contents
+
+- [Desktop](#desktop)
+- [Tablet](#tablet)
+- [Mobile](#mobile)
+- [UX Design](#ux-design)
+  - [Typography](#typography)
+  - [Company branding](#company-branding)
+  - [Colour Palette](#colour-palette)
+  - [Theme select](#theme-select)
+  - [Dark/Light mode toggle](#darklight-mode-toggle)
+  - [Wireframes](#wireframes)
+  - [Main project page Wireframe Design](#main-project-page-wireframe-design)
+  - [Main project info Wireframe Design](#main-project-info-wireframe-design)
+  - [Main project breakdown Wireframe Design](#main-project-breakdown-wireframe-design)
+  - [Generic page template Wireframe Design](#generic-page-template-wireframe-design)
+  - [Modal component Wireframe Design](#modal-component-wireframe-design)
+  - [Component inspiration](#component-inspiration)
+- [User Stories](#user-stories)
+- [Features](#features)
+- [Testing](#testing)
+  - [Manual Testing](#manual-testing)
+  - [Chrome](#chrome)
+  - [Edge](#edge)
+  - [Lighthouse](#lighthouse)
+  - [Responsive Testing](#responsive-testing)
+  - [Validator Testing](#validator-testing)
+  - [HTML](#html)
+  - [CSS](#css)
+- [Deployment](#deployment)
 
 ## Desktop
 <img alt="desktop" src="./assets/Desktop.png">
@@ -26,9 +57,9 @@ A responsive site layout enables easy navigation on all devices.
 
 [**Bootstrap icons**](https://icons.getbootstrap.com/) were used for all icons across the site to ensure consistency and reduce dependency on custom made icons.
 
-**Segoe UI** was used for the all text across the site as it is a default browser font, meaning no font packages needed to be bundled with the deployment. Font weights were used to define headers and body text. This design choice was made to keep the site art style minimal and clean.
+**Segoe UI** was used for all text across the site as it is a default browser font, meaning no font packages needed to be bundled with the deployment. Font weights were used to define headers and body text. This design choice was made to keep the site art style minimal and clean.
 
-Fallback fonts are also used if this font is not available based on the users OS type.
+Fallback fonts are also used if this font is not available based on the user's OS type.
 
 
 ### Company branding ###
@@ -53,7 +84,7 @@ During onboarding the user can select from a choice of themes that utilise these
 
 The darker red themes of Sunset and Honeycomb are currently WIP and will be updated in the future to be more accessible and include higher contrast colours.
 <br>
-<img alt="6x Labs branding" src="./assets/ColourPalettes_002.png">
+<img alt="Theme colour palettes" src="./assets/ColourPalettes_002.png">
 
 ### Dark/Light mode toggle ###
 
@@ -71,13 +102,13 @@ Each theme has been configured with a light and dark mode, which can be triggere
 <img alt="Dark mode" src="./assets/DarkMode.PNG">
 
 ### Wireframes ###
-Traditional 2D wireframes were not used in the developement process. Instead, a more accurate, iterative design methodology was chosen by using Figma AI to rapidly prototype the overall look and feel of the website wireframes.
+Traditional 2D wireframes were not used in the development process. Instead, a more accurate, iterative design methodology was chosen by using Figma AI to rapidly prototype the overall look and feel of the website wireframes.
 
 You can find the interactive Figma wireframe [**here.**](https://www.figma.com/make/jcqTNS8Q5eVMfk0JePleqs/Project-Creation-Page?p=f)
 
 <img alt="Figma Ai wireframe" src="./assets/FigmaAi.png">
 
-The benefit of using an interative design tool in this way is that the website layout could be updated and reverted quickly, allowing multiple versions to be tested out before being developed. Additionally buttons and functionality can be previewed to get a better understanding of the real UX that the user will perform. Finally, the CSS and base functionality can be extracted, allowing a much faster design loop than traditional wireframing.
+The benefit of using an iterative design tool in this way is that the website layout could be updated and reverted quickly, allowing multiple versions to be tested out before being developed. Additionally buttons and functionality can be previewed to get a better understanding of the real UX that the user will perform. Finally, the CSS and base functionality can be extracted, allowing a much faster design loop than traditional wireframing.
 
 ### Main project page Wireframe Design
 <img alt="Wireframe diagram 1" src="./assets/Wireframe_001.png">
@@ -175,35 +206,35 @@ As the rest of the website is very minimalist, the design for certain aspects wa
 
 - The user can export a .csv or .pdf file containing the breakdown information.
 
-The completed sprint was made up of 35 issues, 21 of which were "must have", making up 60% of the overall project issues. Ultimately a lot of the issues planned were outside the scope of the django project MVP and will be implemented in the future.
+The completed sprint was made up of 35 issues, 21 of which were "must have", making up 60% of the overall project issues. Ultimately a lot of the issues planned were outside the scope of the Django project MVP and will be implemented in the future.
 
-<img alt="Notion sidebar inspiration" src="./assets/Linear_001.PNG">
+<img alt="Linear sprint overview" src="./assets/Linear_001.PNG">
 
 **Linear (Agile project management platform)**
 
-[**Linear**](https://linear.app/) was used to manage the project agile development. The advantage of linear over github projects is that tasks are easier to create and manage due to the intuitive UX.
+[**Linear**](https://linear.app/) was used to manage the project agile development. The advantage of Linear over GitHub Projects is that tasks are easier to create and manage due to the intuitive UX.
 
-For example this user story template was set up to automatically break the issue into the fields (User story: title, description, AC1,AC2 and AC3).
-<img alt="Notion sidebar inspiration" src="./assets/Linear_002.png">
+For example this user story template was set up to automatically break the issue into the fields (User story: title, description, AC1, AC2 and AC3).
+<img alt="Linear user story template" src="./assets/Linear_002.png">
 
 This automatically generates the issue.
-<img alt="Notion sidebar inspiration" src="./assets/Linear_003.png">
+<img alt="Linear generated issue" src="./assets/Linear_003.png">
 
-Various sub tasks were assigned to larger issues when 3 acceptance criteria was not enough.
-<img alt="Notion sidebar inspiration" src="./assets/Linear_004.png">
+Various subtasks were assigned to larger issues when 3 acceptance criteria was not enough.
+<img alt="Linear subtasks" src="./assets/Linear_004.png">
 
 These can be hidden/unhidden using the "Show sub-issues" display flag. This kept the kanban board clean and easy to view.
 
-<img alt="Notion sidebar inspiration" src="./assets/SubIssues.png">
-<img alt="Notion sidebar inspiration" src="./assets/Linear_005.png">
+<img alt="Linear sub-issues toggle" src="./assets/SubIssues.png">
+<img alt="Linear kanban board" src="./assets/Linear_005.png">
 
 
 ## Features
 **Dashboard Page**
 
-The dashboard page is home page of the platform per user, it is set up as the redirect for login. The dashboard features working graphs that showcase breakdown information about the ongoing projects. In the future these graphs will be configured towards each users specific projects and company carbon compliance information.
+The dashboard page is the home page of the platform per user, it is set up as the redirect for login. The dashboard features working graphs that showcase breakdown information about the ongoing projects. In the future these graphs will be configured towards each user's specific projects and company carbon compliance information.
 
-![screenshot](docs/images/homepage.png)
+<img alt="Dashboard page" src="./assets/Dashboard.PNG">
 
 **Projects page**
 <br>
@@ -217,9 +248,9 @@ The projects page provides users with a granular list or table view of the ongoi
 
 **Project planner page [Interactive 3D map]**
 <br>
-The project planner page automatically loads the project data and interactive map at the correct latitude and longitude. Projects can be navigated to by using the dropdown menu within the screen. This ensures the user does not need to go back to the projects list page. The "state managment" actions bar in the top right is currently under development and is hidden from all non-staff and non-super users. In future updates users will be able to undo, redo, save a draft, discard their changes and publish drafts to the platform. The state management queue system was outside of the scope of the MVP for this project so has been omitted for normal users.
+The project planner page automatically loads the project data and interactive map at the correct latitude and longitude. Projects can be navigated to by using the dropdown menu within the screen. This ensures the user does not need to go back to the projects list page. The "state management" actions bar in the top right is currently under development and is hidden from all non-staff and non-super users. In future updates users will be able to undo, redo, save a draft, discard their changes and publish drafts to the platform. The state management queue system was outside of the scope of the MVP for this project so has been omitted for normal users.
 
-The interactive map has three modes with the sidebar (Sites, Zones and Point plotter). These modes are disabled for users currently as they are also under development. The intention is to allow users to draw out "sites" then draw out inclusion and exclusion zones with the site. Finally the point plotting system will spawn millions of points within the inclusion zones. The spawned points will be linked to a specific biodiversity species mix database.
+The interactive map has three modes with the sidebar (Sites, Zones and Point plotter). These modes are disabled for users currently as they are also under development. The intention is to allow users to draw out "sites" then draw out inclusion and exclusion zones within the site. Finally the point plotting system will spawn millions of points within the inclusion zones. The spawned points will be linked to a specific biodiversity species mix database.
 
 
 <img alt="Project planner page" src="./assets/ProjectPlannerPage_001.png">
@@ -229,19 +260,19 @@ The interactive map has three modes with the sidebar (Sites, Zones and Point plo
 <br>
 - The map is rendered using [**MapLibre.**](https://maplibre.org/)
 - The points are rendered using an [**Apache Echarts**](https://echarts.apache.org/en/index.html) layer on top of the MapLibre render pass.
-- The additional tile data is rendered using open street maps ([**OSM**](https://tile.openstreetmap.org)).
+- The additional tile data is rendered using OpenStreetMap ([**OSM**](https://tile.openstreetmap.org)).
 - The additional terrain/shadow detail is rendered using AWS ([**Amazon Terrarium**](https://aws.amazon.com/marketplace/pp/prodview-x7vtai3hasf26)).
 
 **Future updates**
 <br>
-The visualisations below are working "point plotting" algorithms that have been developed using various computer science Python libraries and rendered with MatPlotLib. The long term goals of the platform is to generate these points on the interactive map and save them per site and per project. After iterating on the points and collaborating with the relevant forestry commission these points can be sent to a drone for future seed dispersal.
+The visualisations below are working "point plotting" algorithms that have been developed using various computer science Python libraries and rendered with Matplotlib. The long-term goals of the platform are to generate these points on the interactive map and save them per site and per project. After iterating on the points and collaborating with the relevant forestry commission these points can be sent to a drone for future seed dispersal.
 <br>
 
 The red areas are "exclusion" zones and the white area is the overall "site". The points are spawned inside the "inclusion" zones. These would be used to define viable land to plant trees.
 <img alt="Poisson algorithm" src="./assets/Poisson.PNG">
 <img alt="Sample elimination algorithm" src="./assets/SampleElimination.PNG">
 
-Under the "Reading regeneration charity forest" project there is a hardcoded visualisation concept of how these points will be rendered. This not an exposed feature for users.
+Under the "Reading regeneration charity forest" project there is a hardcoded visualisation concept of how these points will be rendered. This is not an exposed feature for users.
 <img alt="Rendered points on map" src="./assets/PointsOnMap.PNG">
 
 
@@ -253,13 +284,13 @@ All of the project data is rendered using grouped "cards". Each card has a relat
 
 **Project planner page [Project breakdown section]**
 <br>
-The project breakdown section shows off the relevant data per project. All of the graphs automatically update and when the page is loaded. Therefore long term data can be studied as the reforestation project is updated.
-<img alt="Project planner page 4" src="./assets/ProjectPlannerPage_004UPDATE.png">
+The project breakdown section shows off the relevant data per project. All of the graphs automatically update when the page is loaded. Therefore long-term data can be studied as the reforestation project is updated.
+<img alt="Project breakdown dashboard" src="./assets/ProjectBreakdownDashboard.png">
 
 
 **Project creation flow**
 <br>
-The "Add new project" button is triggered from any project/ sub page. This project creation flow is build using a custom wizard modal component that allows any forms to be integrated as "steps". Each step is a separate form to allow flexible and customisable pages for various user interaction. This wizard is also used for the user onboarding and is designed in an agnostic way, allowing any type of form to be used.
+The "Add new project" button is triggered from any project/ sub page. This project creation flow is built using a custom wizard modal component that allows any forms to be integrated as "steps". Each step is a separate form to allow flexible and customisable pages for various user interaction. This wizard is also used for the user onboarding and is designed in an agnostic way, allowing any type of form to be used.
 
 <img alt="Create project 1" src="./assets/AddProjectFlow_001.png">
 
@@ -284,26 +315,26 @@ The danger zone card at the bottom of the project planner page is only exposed t
 <img alt="Project delete data 2" src="./assets/ProjectDeleteFlow_002.png">
 <img alt="Project delete data 3" src="./assets/ProjectDeleteFlow_003.png">
 
-**Side Bar**
+**Sidebar**
 
-The sidebar is custom implementation of the bootstrap oncanvas component. The sidebar has been extended to allow for custom "nav-item" functionality per user. Currently the user is denied access to navigation items that are not accessible under the default subscription tier (Sapling). This is intentional as only subscribed users can access the premium pages. The navigation items and metadata is stored within a navigation.json file.
+The sidebar is a custom implementation of the Bootstrap offcanvas component. The sidebar has been extended to allow for custom "nav-item" functionality per user. Currently the user is denied access to navigation items that are not accessible under the default subscription tier (Sapling). This is intentional as only subscribed users can access the premium pages. The navigation items and metadata are stored within a navigation.json file.
 
-The sidebar has custom CSS and JS functionality which stores the current sidebar side hidden/unhidden preference per user within their user config. This is config preference persists between pages to ensure a smoother user experience.
+The sidebar has custom CSS and JS functionality which stores the current sidebar hidden/unhidden preference per user within their user config. This config preference persists between pages to ensure a smoother user experience.
 
 The sidebar also has expandable nav item folders which is designed to make navigation easier. In the future the currently open folders will persist across pages.
 <br>
 <img alt="6x Sidebar" src="./assets/Sidebar_002.png">
 
 In mobile view the sidebar is rendered on top of the current page allowing easier selection by touch. This can be hidden/unhidden using the arrow in the top left.
-<img alt="navbar2" src="https://github.com/mbriscoe/broken-lines-blog/assets/86828720/c68630ba-a572-4079-a07e-1b7e56c6a82a">
+
 
 **Navigation Bar**
 <br>
 The navigation bar is deliberately kept very simple and only includes breadcrumbs and the theme lightmode toggle. It is responsive to the sidebar being hidden/expanded. The sidebar button and 6x logo are automatically hidden/unhidden from the sidebar and nav components ensuring a smooth experience.
 <br>
-<img alt="Dark mode" src="./assets/NavBar_001.PNG">
+<img alt="Navigation bar expanded" src="./assets/NavBar_001.PNG">
 <br>
-<img alt="Dark mode" src="./assets/NavBar_002.PNG">
+<img alt="Navigation bar collapsed" src="./assets/NavBar_002.PNG">
 
 
 **The Footer**
@@ -315,44 +346,45 @@ The footer is a simple copyright notice applied to each page. This can be overri
 
 **Sign Up**
 
-The site allows users to register as user. Users cannot access the site unless they are logged in with an authenticated account. All of the django views have been defined with the @login_required decorator and mixin to ensure no users can bypass the login screen.
-<img alt="Footer" src="./assets/SignUp.PNG">
+The site allows users to register as a user. Users cannot access the site unless they are logged in with an authenticated account. All of the Django views have been defined with the @login_required decorator and mixin to ensure no users can bypass the login screen.
+<img alt="Sign up page" src="./assets/SignUp.PNG">
 
 
 **Log In**
 
 The site allows users to log in to already registered accounts. You are redirected to the dashboard upon login.
 
-<img alt="Footer" src="./assets/LogIn.PNG">
+<img alt="Log in page" src="./assets/LogIn.PNG">
 
 
 **Onboarding**
-The site uses an onboarding form to capture and update the users information. User Avatars are still WIP and the icon is currently disabled.
-<img alt="Footer" src="./assets/Onboarding.PNG">
+The site uses an onboarding form to capture and update the user's information. User Avatars are still WIP and the icon is currently disabled.
+<img alt="Onboarding form" src="./assets/Onboarding.PNG">
 <br>
 
 **Teamspace modal**
 
 The site has a "teamspace" modal that can be opened via the sidebar by clicking on the user button. This shows the currently logged in user, their "subscription tier" or account status (Defaults to "Sapling" due to a lack of payment system integration), their email and display name. The user can log out via this modal.
 
-<img alt="Footer" src="./assets/TeamspaceModal.PNG">
+<img alt="Teamspace modal" src="./assets/TeamspaceModal.PNG">
 
 **Sign Out**
 
 The site has a facility for a user to sign out of their account.
-<img alt="Footer" src="./assets/SignOut.PNG">
+<img alt="Sign out page" src="./assets/SignOut.PNG">
 <br><br>
 
 **Admin**
 
 The site has a facility for designated administrators to sign in, in order to administrate the site via the standard Django admin interface.
 
-<img alt="Footer" src="./assets/Admin.PNG">
+<img alt="Admin interface" src="./assets/Admin.PNG">
 
 <br>
 
 **Entity Relationship Diagram**
-The following database schema ERD was created for the project.<img alt="Entity Relationship Diagram" src="./assets/DatabaseERDSchema.png">
+The following database schema ERD was created for the project.
+<img alt="Entity Relationship Diagram" src="./assets/DatabaseERDSchema.png">
 
 This is a simplified diagram explaining the core data models and how they relate. Not every table is currently integrated, the data structure has been generated to future-proof the development.
 
@@ -407,37 +439,62 @@ The site was tested on the following browsers for compatibility:
 The site was tested using Lighthouse with the following results:
 <img alt="Lighthouse" src="./assets/Lighthouse.PNG">
 
-The performance losses are mainly occurred from external CDN issues with Bootstrap icons and Maplibre.
+The performance losses are mainly caused by external CDN issues with Bootstrap icons and MapLibre.
 
 ### Responsive Testing
 
-Alongside the built in Bootstrap responsive CSS, Chrome dev tools were used frequently to test the site at standard screen sizes and the site was manually viewed on laptops, tablets and phones.
+Alongside the built-in Bootstrap responsive CSS, Chrome dev tools were used frequently to test the site at standard screen sizes and the site was manually viewed on laptops, tablets and phones.
 
 
 ### Validator Testing
 
-## HTML
+### HTML
 
 3 errors were returned during the HTML check. After investigation these were triggered due to my custom nav-item logic within my sidebar menu. This is due to the way children are nested within the nav-items. This will be rectified in future updates.
-<img alt="HTML Check" src="./assets/HTMLCheck.PNG">
+<img alt="HTML validation results" src="./assets/HTMLCheck.PNG">
 
 
-## CSS
-1 error was found during the official CSS error check. This is due to to 
-<img alt="HTML Check" src="./assets/CSSError.PNG">
+### CSS
+1 error was found during the official CSS error check. This is due to newer CSS being used. This will be fixed in future updates as the CSS functions visually currently for the MVP.
+<img alt="CSS validation results" src="./assets/CSSError.PNG">
 
-Python
+### Python (PEP 8)
 
-All Python code was tested for PEP8 compatibility using the pylance and Black formatters.
+All Python code was validated for PEP 8 compliance using a combination of VS Code extensions integrated into the development workflow:
+
+**Pylance** - Microsoft's static type checker and language server was configured to run continuously during development, providing real-time feedback on:
+- Import organisation and unused imports
+- Variable naming conventions (snake_case for functions/variables, PascalCase for classes)
+- Line length violations
+- Indentation and whitespace issues
+- Type hint suggestions
+
+**Black Formatter** - The opinionated code formatter was run on all Python files to ensure consistent styling. Black enforces:
+- Consistent line lengths (88 characters)
+- Standardised string quote usage
+- Proper spacing around operators and after commas
+- Trailing comma formatting in multi-line structures
+
+After each significant code change and prior to commits, all Python files were checked for linting errors. Any warnings or errors flagged by Pylance were resolved before proceeding. Black was then run to auto-format the code, ensuring uniform styling across the entire codebase.
+
+### JavaScript (ESLint)
+
+All JavaScript files were validated using ESLint configured within VS Code. The linter was run after each development session to catch:
+- Undefined or unused variables
+- Missing semicolons and inconsistent formatting
+- Potential runtime errors (e.g., accessing properties on null/undefined)
+- Best practice violations (var vs let/const usage)
+
+Any issues identified were resolved before deployment to ensure clean, maintainable frontend code.
 
 
 ## Deployment
 
 The site was deployed to Heroku from the main branch of the repository early in the development stage for continuous deployment and checking.
 
-The Heroku app is setup with 3 environment variables, replacing the environment variables stored in env.py (which doesn't get pushed to github).
+The Heroku app is setup with 3 environment variables, replacing the environment variables stored in env.py (which doesn't get pushed to GitHub).
 
-In order to create an Heroku app:
+In order to create a Heroku app:
 
 1. Click on New in the Heroku dashboard, and Create new app from the menu dropdown.
 
@@ -456,10 +513,10 @@ Once the app setup is complete, click on the Deploy tab and:
 
 1. connect to the required GitHub account
 2. select the repository to deploy from
-3. click the Deploy Branch button to start the  deployment.
+3. click the Deploy Branch button to start the deployment.
 4. Once deployment finishes the app can be launched.
 
-<img alt="HTML Check" src="./assets/Deployment.png">
+<img alt="Heroku deployment" src="./assets/Deployment.png">
 
 
 The live link can be found [_here_](https://sass-platform-909cf929c260.herokuapp.com/dashboard/)
