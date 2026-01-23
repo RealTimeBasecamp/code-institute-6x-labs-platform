@@ -298,13 +298,10 @@ svg {
 /* ===== MOBILE MENU BUTTON ===== */
 .mobile-menu-btn {
   display: none;
-  position: fixed;
-  top: 1rem;
-  left: 1rem;
-  z-index: 1050;
   background: none;
   border: none;
   padding: 0;
+  padding-right: 0.75rem;
   align-items: center;
   justify-content: center;
   cursor: pointer;
