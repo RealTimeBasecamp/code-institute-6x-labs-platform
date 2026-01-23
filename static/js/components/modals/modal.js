@@ -13,6 +13,26 @@ document.addEventListener('DOMContentLoaded', function() {
   const modalForm = confirmModal.querySelector('#confirmModalForm');
   const modalButton = confirmModal.querySelector('#confirmModalButton');
 
+  /**
+   * Retrieves the CSRF token from cookies.
+   * @returns {string} The CSRF token value
+   */
+  function getCsrfToken() {
+    const name = 'csrftoken';
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+      const cookies = document.cookie.split(';');
+      for (let i = 0; i < cookies.length; i++) {
+        const cookie = cookies[i].trim();
+        if (cookie.substring(0, name.length + 1) === (name + '=')) {
+          cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+          break;
+        }
+      }
+    }
+    return cookieValue;
+  }
+
   // Listen for modal show event
   confirmModal.addEventListener('show.bs.modal', function(event) {
     // Button that triggered the modal
@@ -49,6 +69,7 @@ document.addEventListener('DOMContentLoaded', function() {
       method: method,
       body: formData,
       headers: {
+        'X-CSRFToken': getCsrfToken(),
         'X-Requested-With': 'XMLHttpRequest',
       }
     })
