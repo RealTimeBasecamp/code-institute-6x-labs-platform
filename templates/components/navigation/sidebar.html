@@ -21,6 +21,10 @@
     >
       <i class="bi bi-layout-sidebar" style="font-size: 20px"></i>
     </button>
+    {# Dark mode toggle - only visible on mobile, positioned far right #}
+    <div class="d-lg-none ms-auto">
+      {% include 'components/toggle_switch.html' with switch_id='themeSwitchMobile' icon_unchecked='bi-moon-fill' icon_checked='bi-sun-fill' aria_label='Toggle dark mode' %}
+    </div>
     <div class="sidebar-resizer" data-sidebar-resizer aria-hidden="true"></div>
   </div>
   <div class="offcanvas-body">
