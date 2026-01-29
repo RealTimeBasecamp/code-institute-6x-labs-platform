@@ -1,0 +1,61 @@
+{#
+  Reusable Dockable Window Component
+  Styled like Unreal Engine 5.7 panels
+
+  Usage:
+  {% include 'planting/components/dockable_window.html' with
+      window_id="outliner"
+      window_title="Outliner"
+      window_icon="bi-list-nested"
+      window_class=""
+      show_close=True
+  %}
+
+  Parameters:
+  - window_id: Unique identifier for the window (required)
+  - window_title: Display title in header (required)
+  - window_icon: Bootstrap icon class (optional)
+  - window_class: Additional CSS classes (optional)
+  - show_close: Whether to show close button (optional, default True)
+  - window_content: Block for content (use template inheritance)
+#}
+
+<div class="dockable-window {{ window_class|default:'' }}"
+     id="window-{{ window_id }}"
+     data-window-id="{{ window_id }}">
+
+  {# Window Header - Draggable area #}
+  <div class="dockable-window-header" data-drag-handle>
+    <div class="window-header-left">
+      {% if window_icon %}
+        <i class="{{ window_icon }} window-icon"></i>
+      {% endif %}
+      <span class="window-title">{{ window_title }}</span>
+    </div>
+    {% if show_close|default:True %}
+    <div class="window-header-controls">
+      <button class="window-control-btn window-control-close" data-action="close" title="Close">
+        <i class="bi bi-x"></i>
+      </button>
+    </div>
+    {% endif %}
+  </div>
+
+  {# Window Content Area #}
+  <div class="dockable-window-content">
+    {% block window_content %}
+      {# Content will be inserted here when using this component #}
+      {{ content|default:"" }}
+    {% endblock %}
+  </div>
+
+  {# Resize Handles #}
+  <div class="resize-handle resize-handle-n" data-resize="n"></div>
+  <div class="resize-handle resize-handle-s" data-resize="s"></div>
+  <div class="resize-handle resize-handle-e" data-resize="e"></div>
+  <div class="resize-handle resize-handle-w" data-resize="w"></div>
+  <div class="resize-handle resize-handle-ne" data-resize="ne"></div>
+  <div class="resize-handle resize-handle-nw" data-resize="nw"></div>
+  <div class="resize-handle resize-handle-se" data-resize="se"></div>
+  <div class="resize-handle resize-handle-sw" data-resize="sw"></div>
+</div>

@@ -1,0 +1,480 @@
+{#
+  Point Plotter Panel Component
+  Controls for the planting algorithm and point generation
+
+  Usage:
+  {% include 'planting/components/panel_point_plotter.html' with project=project %}
+
+  This panel:
+  - Shows planting algorithm controls
+  - Allows configuration of point generation parameters
+  - Displays generation progress and statistics
+  - Provides manual point placement and editing tools
+#}
+
+<div class="window-section">
+  <div class="window-section-header" data-section="plotter-algorithm">
+    <i class="bi bi-chevron-down"></i>
+    <span>Algorithm</span>
+  </div>
+  <div class="window-section-content">
+    <div class="window-property-grid">
+      <div class="window-property-row">
+        <span class="window-property-label">Algorithm Type</span>
+        <div class="window-property-value">
+          <select id="plotter-algorithm-type">
+            <option value="uniform">Uniform Grid</option>
+            <option value="random">Random Distribution</option>
+            <option value="poisson">Poisson Disk Sampling</option>
+            <option value="cluster">Clustered</option>
+            <option value="manual">Manual Placement</option>
+          </select>
+        </div>
+      </div>
+      <div class="window-property-row">
+        <span class="window-property-label">Point Spacing</span>
+        <div class="window-property-value">
+          <input type="number" id="plotter-point-spacing" value="5.00" min="0.5" step="0.5">
+          <span class="property-unit">m</span>
+        </div>
+      </div>
+      <div class="window-property-row">
+        <span class="window-property-label">Randomness</span>
+        <div class="window-property-value">
+          <input type="range" id="plotter-randomness" value="0" min="0" max="100" step="5">
+          <span id="plotter-randomness-value">0%</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="window-section">
+  <div class="window-section-header" data-section="plotter-constraints">
+    <i class="bi bi-chevron-down"></i>
+    <span>Constraints</span>
+  </div>
+  <div class="window-section-content">
+    <div class="window-property-grid">
+      <div class="window-property-row">
+        <span class="window-property-label">Min Distance from Edge</span>
+        <div class="window-property-value">
+          <input type="number" id="plotter-edge-distance" value="1.00" min="0" step="0.5">
+          <span class="property-unit">m</span>
+        </div>
+      </div>
+      <div class="window-property-row">
+        <span class="window-property-label">Respect Existing Points</span>
+        <div class="window-property-value">
+          <input type="checkbox" id="plotter-respect-existing" checked>
+        </div>
+      </div>
+      <div class="window-property-row">
+        <span class="window-property-label">Avoid Obstacles</span>
+        <div class="window-property-value">
+          <input type="checkbox" id="plotter-avoid-obstacles" checked>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="window-section">
+  <div class="window-section-header" data-section="plotter-plant-options">
+    <i class="bi bi-chevron-down"></i>
+    <span>Plant Configuration</span>
+  </div>
+  <div class="window-section-content">
+    <div class="window-property-grid">
+      <div class="window-property-row">
+        <span class="window-property-label">Default Species</span>
+        <div class="window-property-value">
+          <select id="plotter-default-species">
+            <option value="">-- None --</option>
+            <option value="oak">Oak Tree</option>
+            <option value="maple">Maple Tree</option>
+            <option value="birch">Birch Tree</option>
+            <option value="pine">Pine Tree</option>
+            <option value="spruce">Spruce Tree</option>
+            <option value="ash">Ash Tree</option>
+          </select>
+        </div>
+      </div>
+      <div class="window-property-row">
+        <span class="window-property-label">Planting Year</span>
+        <div class="window-property-value">
+          <input type="number" id="plotter-planting-year" value="2026" min="2020" max="2100">
+        </div>
+      </div>
+      <div class="window-property-row">
+        <span class="window-property-label">Maintenance Cycle (years)</span>
+        <div class="window-property-value">
+          <input type="number" id="plotter-maintenance-cycle" value="5" min="1" max="50">
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="window-section">
+  <div class="window-section-header" data-section="plotter-generation">
+    <i class="bi bi-chevron-down"></i>
+    <span>Generation</span>
+  </div>
+  <div class="window-section-content">
+    <div class="plotter-controls">
+      <button class="plotter-btn plotter-btn-primary" id="plotter-generate-btn" title="Generate points">
+        <i class="bi bi-play-fill"></i>
+        Generate Points
+      </button>
+      <button class="plotter-btn plotter-btn-secondary" id="plotter-clear-btn" title="Clear all points">
+        <i class="bi bi-trash"></i>
+        Clear Points
+      </button>
+      <button class="plotter-btn plotter-btn-secondary" id="plotter-undo-btn" title="Undo last action">
+        <i class="bi bi-arrow-counterclockwise"></i>
+        Undo
+      </button>
+    </div>
+
+    <div class="plotter-progress" id="plotter-progress" style="display: none;">
+      <div class="plotter-progress-bar">
+        <div class="plotter-progress-fill" id="plotter-progress-fill"></div>
+      </div>
+      <span class="plotter-progress-text" id="plotter-progress-text">0%</span>
+    </div>
+
+    <div class="plotter-statistics" id="plotter-statistics" style="display: none;">
+      <div class="plotter-stat-row">
+        <span class="plotter-stat-label">Total Points:</span>
+        <span class="plotter-stat-value" id="plotter-stat-total">0</span>
+      </div>
+      <div class="plotter-stat-row">
+        <span class="plotter-stat-label">Estimated CO2:</span>
+        <span class="plotter-stat-value" id="plotter-stat-co2">0 kg</span>
+      </div>
+      <div class="plotter-stat-row">
+        <span class="plotter-stat-label">Coverage:</span>
+        <span class="plotter-stat-value" id="plotter-stat-coverage">0%</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<style>
+  .plotter-controls {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .plotter-btn {
+    padding: 8px 12px;
+    border: 1px solid var(--bs-border-color);
+    border-radius: 4px;
+    background: var(--bs-tertiary-bg);
+    color: var(--bs-body-color);
+    font-size: 0.875rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    justify-content: center;
+    transition: all 0.2s ease;
+  }
+
+  .plotter-btn:hover {
+    background: color-mix(in srgb, var(--bs-body-bg) 80%, var(--bs-border-color));
+  }
+
+  .plotter-btn:active {
+    transform: scale(0.98);
+  }
+
+  .plotter-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+
+  .plotter-btn-primary {
+    background: color-mix(in srgb, var(--bs-primary) 30%, var(--bs-tertiary-bg));
+    border-color: var(--bs-primary);
+    color: var(--bs-primary);
+  }
+
+  .plotter-btn-primary:hover {
+    background: color-mix(in srgb, var(--bs-primary) 40%, var(--bs-tertiary-bg));
+  }
+
+  .plotter-btn-secondary:hover {
+    background: color-mix(in srgb, var(--bs-body-color) 15%, var(--bs-tertiary-bg));
+  }
+
+  .plotter-progress {
+    margin-top: 12px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .plotter-progress-bar {
+    flex: 1;
+    height: 8px;
+    background: var(--bs-tertiary-bg);
+    border-radius: 4px;
+    overflow: hidden;
+    border: 1px solid var(--bs-border-color);
+  }
+
+  .plotter-progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--bs-primary), color-mix(in srgb, var(--bs-primary) 70%, white));
+    width: 0%;
+    transition: width 0.3s ease;
+  }
+
+  .plotter-progress-text {
+    min-width: 40px;
+    font-size: 0.75rem;
+    color: var(--bs-secondary);
+  }
+
+  .plotter-statistics {
+    margin-top: 12px;
+    padding: 12px;
+    background: var(--bs-tertiary-bg);
+    border-radius: 4px;
+    border: 1px solid var(--bs-border-color);
+  }
+
+  .plotter-stat-row {
+    display: flex;
+    justify-content: space-between;
+    padding: 6px 0;
+    font-size: 0.875rem;
+  }
+
+  .plotter-stat-row:not(:last-child) {
+    border-bottom: 1px solid var(--bs-border-color);
+  }
+
+  .plotter-stat-label {
+    color: var(--bs-secondary);
+  }
+
+  .plotter-stat-value {
+    font-weight: 600;
+    color: var(--bs-primary);
+  }
+
+  .property-unit {
+    font-size: 0.75rem;
+    color: var(--bs-secondary);
+    margin-left: 4px;
+  }
+</style>
+
+<script>
+  /**
+   * Point Plotter Panel - Planting Algorithm Controls
+   *
+   * Manages point generation parameters and provides controls for:
+   * - Algorithm selection (uniform grid, random, Poisson disk, etc.)
+   * - Point spacing and distribution parameters
+   * - Constraint configuration (edge distance, obstacles, etc.)
+   * - Plant species and timing configuration
+   * - Generation execution and statistics display
+   */
+  (function() {
+    'use strict';
+
+    document.addEventListener('DOMContentLoaded', function() {
+      // Initialize state
+      window.plotterState = {
+        isGenerating: false,
+        generatedPoints: [],
+        algorithmType: 'uniform',
+        parameters: {}
+      };
+
+      const sectionHeaders = document.querySelectorAll('[data-section^="plotter-"]');
+      const generateBtn = document.getElementById('plotter-generate-btn');
+      const clearBtn = document.getElementById('plotter-clear-btn');
+      const undoBtn = document.getElementById('plotter-undo-btn');
+      const randomnessSlider = document.getElementById('plotter-randomness');
+      const randomnessValue = document.getElementById('plotter-randomness-value');
+
+      // Handle section collapse/expand
+      sectionHeaders.forEach(header => {
+        header.addEventListener('click', function() {
+          const section = this.closest('.window-section');
+          section.classList.toggle('is-collapsed');
+        });
+      });
+
+      // Update randomness percentage display
+      randomnessSlider.addEventListener('input', function() {
+        randomnessValue.textContent = this.value + '%';
+      });
+
+      // Generate points button
+      generateBtn.addEventListener('click', function() {
+        if (window.plotterState.isGenerating) return;
+
+        generatePoints();
+      });
+
+      // Clear points button
+      clearBtn.addEventListener('click', function() {
+        if (confirm('Clear all generated points?')) {
+          clearPoints();
+        }
+      });
+
+      // Undo button
+      undoBtn.addEventListener('click', function() {
+        undoLastAction();
+      });
+
+      // Listen for outliner selection changes
+      document.addEventListener('outlinerSelection', function(e) {
+        const selectedItem = e.detail;
+
+        // Could enable/disable generation based on selection
+        generateBtn.disabled = !selectedItem || selectedItem.type !== 'site';
+
+        console.log('Point Plotter: Selection changed to', selectedItem.type);
+      });
+
+      // Listen for viewport selection changes
+      document.addEventListener('viewportSelection', function(e) {
+        const selectedItem = e.detail;
+
+        // Could enable/disable generation based on selection
+        generateBtn.disabled = !selectedItem || selectedItem.type !== 'site';
+
+        console.log('Point Plotter: Viewport selection changed to', selectedItem.type);
+      });
+
+      function generatePoints() {
+        window.plotterState.isGenerating = true;
+        generateBtn.disabled = true;
+
+        const progressDiv = document.getElementById('plotter-progress');
+        const progressFill = document.getElementById('plotter-progress-fill');
+        const progressText = document.getElementById('plotter-progress-text');
+        progressDiv.style.display = 'flex';
+        progressFill.style.width = '0%';
+        progressText.textContent = '0%';
+
+        // Collect parameters
+        const algorithm = document.getElementById('plotter-algorithm-type').value;
+        const spacing = parseFloat(document.getElementById('plotter-point-spacing').value);
+        const randomness = parseInt(document.getElementById('plotter-randomness').value);
+        const edgeDistance = parseFloat(document.getElementById('plotter-edge-distance').value);
+        const respectExisting = document.getElementById('plotter-respect-existing').checked;
+        const avoidObstacles = document.getElementById('plotter-avoid-obstacles').checked;
+
+        window.plotterState.algorithmType = algorithm;
+        window.plotterState.parameters = {
+          spacing,
+          randomness,
+          edgeDistance,
+          respectExisting,
+          avoidObstacles
+        };
+
+        // Simulate point generation with progress
+        let progress = 0;
+        const interval = setInterval(() => {
+          progress += Math.random() * 20;
+          if (progress >= 100) {
+            progress = 100;
+            clearInterval(interval);
+
+            // Simulate point generation completion
+            simulatePointGeneration(algorithm, spacing, randomness);
+            updateStatistics();
+
+            progressFill.style.width = progress + '%';
+            progressText.textContent = '100%';
+
+            window.plotterState.isGenerating = false;
+            generateBtn.disabled = false;
+
+            console.log('Point generation complete with algorithm:', algorithm);
+          } else {
+            progressFill.style.width = progress + '%';
+            progressText.textContent = Math.floor(progress) + '%';
+          }
+        }, 200);
+      }
+
+      function simulatePointGeneration(algorithm, spacing, randomness) {
+        // This would call the backend API to generate actual points
+        // For now, simulate with random count
+        const basePoints = Math.floor(1000 / (spacing * spacing));
+        const randomFactor = 1 + (randomness / 100) * 0.5;
+        const generatedCount = Math.floor(basePoints * randomFactor);
+
+        window.plotterState.generatedPoints = Array.from({ length: generatedCount }, (_, i) => ({
+          id: i,
+          algorithm: algorithm,
+          confidence: 0.85 + Math.random() * 0.15
+        }));
+
+        // Dispatch event to notify other components
+        document.dispatchEvent(new CustomEvent('pointsGenerated', {
+          detail: {
+            count: generatedCount,
+            algorithm: algorithm,
+            parameters: window.plotterState.parameters
+          },
+          bubbles: true
+        }));
+      }
+
+      function clearPoints() {
+        window.plotterState.generatedPoints = [];
+
+        const statsDiv = document.getElementById('plotter-statistics');
+        statsDiv.style.display = 'none';
+
+        document.dispatchEvent(new CustomEvent('pointsCleared', {
+          detail: {},
+          bubbles: true
+        }));
+
+        console.log('All points cleared');
+      }
+
+      function undoLastAction() {
+        // Undo last point generation or manual edit
+        console.log('Undo: Would revert to previous point configuration');
+
+        document.dispatchEvent(new CustomEvent('plotterUndo', {
+          detail: {},
+          bubbles: true
+        }));
+      }
+
+      function updateStatistics() {
+        const statsDiv = document.getElementById('plotter-statistics');
+        const totalEl = document.getElementById('plotter-stat-total');
+        const co2El = document.getElementById('plotter-stat-co2');
+        const coverageEl = document.getElementById('plotter-stat-coverage');
+
+        const pointCount = window.plotterState.generatedPoints.length;
+        const estimatedCO2 = (pointCount * 25.5).toFixed(0); // Assume ~25.5kg CO2 per tree
+        const coverage = (pointCount > 0 ? Math.min(Math.round(pointCount / 10), 100) : 0) + '%';
+
+        totalEl.textContent = pointCount.toLocaleString();
+        co2El.textContent = parseInt(estimatedCO2).toLocaleString() + ' kg';
+        coverageEl.textContent = coverage;
+
+        statsDiv.style.display = 'block';
+      }
+    });
+
+  })();
+</script>

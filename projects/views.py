@@ -69,7 +69,31 @@ def project_planner(request):
     }
     # Provide default plotting algorithms list for templates
     context['plotting_algorithms'] = ['Poisson Disc sampling']
-    return render(request, 'projects/project_planner.html', context)
+    return render(request, 'planting/project_planner.html', context)
+
+
+
+# @login_required
+# def project_planner(request):
+#     """
+#     Redirect to project planner page without a specific project selected.
+#     """
+#     projects = Project.objects.all().order_by(Lower('name'))
+#     context = {
+#         'project': None,
+#         'projects': projects,
+#         'breadcrumbs': [
+#             {
+#                 'label': 'Projects',
+#                 'url': reverse('projects:projects_list'),
+#                 'is_current': False,
+#                 'is_ellipsis': False,
+#             },
+#         ],
+#     }
+#     # Provide default plotting algorithms list for templates
+#     context['plotting_algorithms'] = ['Poisson Disc sampling']
+#     return render(request, 'projects/project_planner.html', context)
 
 
 @login_required
@@ -163,43 +187,32 @@ def delete_site(request, slug):
 
 
 @login_required
-def project(request, slug):
+def project_detail(request, slug):
     """
-    Display project planner page with project details and sites.
+    Display project info page with project details, breakdown charts, and sites.
 
-    FLOW: View defines card_groups with data → renders generic field template 
-          → wraps in mark_safe → passes to template → template uses {% card %} tag
+    This page shows a comprehensive view of project information including:
+    - Project metadata and cards
+    - Interactive map with site bounds
+    - Breakdown charts (CO2, area, plants)
 
-    Card groups are defined as dicts with:
-    - title: Card header title
-    - icon: Bootstrap icon class
-    - fields: List of (label, value) tuples displayed in 2-column layout
-
-    For each group, the view:
-    1. Renders generic_field_list.html with the fields
-    2. Wraps HTML with mark_safe()
-    3. Passes to template context
-
-    This consolidates all card data into one data structure, avoiding template repetition.
+    Data comes from: Project model, Site model, card_utils
+    Data returned to: projects/project.html template
 
     Args:
         request: HTTP request object
         slug (str): Project slug for lookup
 
     Context:
-        project: The Project object (or None if slug not provided)
+        project: The Project object
         projects: All Project objects for dropdown
         card_groups: List of dicts with title, icon, and body_html keys
+        site_rows: Table rows for interactive map
+        site_bounds_rows: Coordinate data for map bounds
     """
-    if slug:
-        project = get_object_or_404(Project, slug=slug)
-    else:
-        project = None
+    project = get_object_or_404(Project, slug=slug)
     projects = Project.objects.all().order_by(Lower('name'))
-    if project:
-        sites = project.sites.all()
-    else:
-        sites = []  # or Site.objects.none() if you have imported Site
+    sites = project.sites.all()
 
     site_rows = [
         [i+1, site.name, "None", site.total_co2_sequestered_kg] for i, site in enumerate(sites)]
@@ -243,29 +256,79 @@ def project(request, slug):
     }
 
     # Build breadcrumbs for this page
-    if project:
-        context['breadcrumbs'].append({
-            'label': project.name,
-            'url': None,
-            'is_current': True,
-            'is_ellipsis': False,
-        })
+    context['breadcrumbs'].append({
+        'label': project.name,
+        'url': None,
+        'is_current': True,
+        'is_ellipsis': False,
+    })
 
     # Define card groups with data (edit_form passed directly to frontend)
-    if project:
-        card_groups = project.get_card_groups()
-        card_groups = render_card_groups(card_groups)
-        context['card_groups'] = card_groups
+    card_groups = project.get_card_groups()
+    card_groups = render_card_groups(card_groups)
+    context['card_groups'] = card_groups
 
-        # Move the map/table building logic into a utility to keep view concise
-        bounds_context = build_site_bounds_and_list(project)
-        context.update(bounds_context)
+    # Move the map/table building logic into a utility to keep view concise
+    bounds_context = build_site_bounds_and_list(project)
+    context.update(bounds_context)
 
     # Ensure plotting_algorithms is always a list so templates iterate items, not characters
     if 'plotting_algorithms' not in context:
         context['plotting_algorithms'] = ['Poisson Disc sampling', 'Sample Elimination']
 
-    return render(request, 'projects/project_planner.html', context)
+    return render(request, 'projects/project.html', context)
+
+
+@login_required
+def project_planner_detail(request, slug):
+    """
+    Display Unreal-style editor with specific project loaded.
+
+    This is the interactive editor interface where users can:
+    - Edit project sites
+    - View/modify the interactive map
+    - Access planting algorithms
+
+    Data comes from: Project model, Site model
+    Data returned to: planting/project_planner.html template
+
+    Args:
+        request: HTTP request object
+        slug (str): Project slug for lookup
+
+    Context:
+        project: The Project object
+        projects: All Project objects for dropdown
+        site_rows: Table rows for interactive map
+        site_bounds_rows: Coordinate data for map bounds
+    """
+    project = get_object_or_404(Project, slug=slug)
+    projects = Project.objects.all().order_by(Lower('name'))
+
+    # Build site data for interactive map
+    sites = project.sites.all()
+    site_rows = [[i+1, site.name, "None", site.total_co2_sequestered_kg] for i, site in enumerate(sites)]
+
+    site_bounds_rows = []
+    for i, site in enumerate(sites):
+        x, y = None, None
+        bounds = getattr(site, 'bounding_box_coordinates', {})
+        try:
+            coords = bounds.get('coordinates', [])
+            if coords and coords[0] and coords[0][0]:
+                x, y = coords[0][0][0], coords[0][0][1]
+        except Exception:
+            pass
+        site_bounds_rows.append([i + 1, x, y, False])
+
+    context = {
+        'project': project,
+        'projects': projects,
+        'sites': sites,
+        'site_rows': site_rows,
+        'site_bounds_rows': site_bounds_rows,
+    }
+    return render(request, 'planting/project_planner.html', context)
 
 
 @require_POST

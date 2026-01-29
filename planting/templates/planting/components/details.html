@@ -1,0 +1,243 @@
+{#
+  Details Panel Component
+  Shows properties and attributes of selected objects
+
+  Usage:
+  {% include 'planting/components/panel_details.html' with project=project %}
+
+  This panel:
+  - Displays transform properties (Location X/Y/Z)
+  - Shows object properties (Name, Visible, etc.)
+  - Displays tool-specific options based on active tool
+  - Updates when items are selected in the outliner
+  - Updates when tool selection changes
+#}
+
+<div class="window-section">
+  <div class="window-section-header" data-section="details-transform">
+    <i class="bi bi-chevron-down"></i>
+    <span>Transform</span>
+  </div>
+  <div class="window-section-content">
+    <div class="window-property-grid">
+      <div class="window-property-row">
+        <span class="window-property-label">Location X</span>
+        <div class="window-property-value">
+          <input type="number" id="details-location-x" value="0.00" step="0.01">
+        </div>
+      </div>
+      <div class="window-property-row">
+        <span class="window-property-label">Location Y</span>
+        <div class="window-property-value">
+          <input type="number" id="details-location-y" value="0.00" step="0.01">
+        </div>
+      </div>
+      <div class="window-property-row">
+        <span class="window-property-label">Location Z</span>
+        <div class="window-property-value">
+          <input type="number" id="details-location-z" value="0.00" step="0.01">
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="window-section">
+  <div class="window-section-header" data-section="details-properties">
+    <i class="bi bi-chevron-down"></i>
+    <span>Properties</span>
+  </div>
+  <div class="window-section-content">
+    <div class="window-property-grid">
+      <div class="window-property-row">
+        <span class="window-property-label">Name</span>
+        <div class="window-property-value">
+          <input type="text" id="details-name" value="">
+        </div>
+      </div>
+      <div class="window-property-row">
+        <span class="window-property-label">Visible</span>
+        <div class="window-property-value">
+          <input type="checkbox" id="details-visible" checked>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+{# Tool-specific options section - populated dynamically based on active tool #}
+<div class="window-section" id="details-tool-options-section" style="display: none;">
+  <div class="window-section-header" data-section="details-tool-options">
+    <i class="bi bi-chevron-down"></i>
+    <span id="details-tool-options-title">Tool Options</span>
+  </div>
+  <div class="window-section-content" id="details-tool-options-content">
+    {# Populated by JavaScript based on active tool #}
+  </div>
+</div>
+
+<script>
+  /**
+   * Details Panel - Object Properties Inspector
+   *
+   * Displays and allows editing of properties for selected objects.
+   * Responds to selection changes from the outliner and tool changes.
+   * Updates tool-specific options based on the active tool.
+   */
+  (function() {
+    'use strict';
+
+    document.addEventListener('DOMContentLoaded', function() {
+      // Initialize state
+      window.detailsState = {
+        selectedItem: null,
+        activeTool: null,
+        isDirty: false
+      };
+
+      const sectionHeaders = document.querySelectorAll('[data-section^="details-"]');
+
+      // Handle section collapse/expand
+      sectionHeaders.forEach(header => {
+        header.addEventListener('click', function() {
+          const section = this.closest('.window-section');
+          section.classList.toggle('is-collapsed');
+        });
+      });
+
+      // Listen for outliner selection changes
+      document.addEventListener('outlinerSelection', function(e) {
+        const selectedItem = e.detail;
+        window.detailsState.selectedItem = selectedItem;
+
+        // Update display with selected item's properties
+        updateDetailsDisplay(selectedItem);
+
+        console.log('Details panel updated for:', selectedItem.type, selectedItem.id);
+      });
+
+      // Listen for tool changes
+      document.addEventListener('toolChange', function(e) {
+        const tool = e.detail;
+        window.detailsState.activeTool = tool;
+
+        // Update tool-specific options
+        updateToolOptions(tool);
+
+        console.log('Details panel tool options updated for:', tool.toolId);
+      });
+
+      // Listen for viewport selection changes
+      document.addEventListener('viewportSelection', function(e) {
+        const selectedItem = e.detail;
+        window.detailsState.selectedItem = selectedItem;
+
+        // Update display with selected item's properties
+        updateDetailsDisplay(selectedItem);
+
+        console.log('Details panel updated from viewport:', selectedItem.type, selectedItem.id);
+      });
+
+      function updateDetailsDisplay(item) {
+        // Update transform properties
+        document.getElementById('details-location-x').value = (item.x || 0).toFixed(2);
+        document.getElementById('details-location-y').value = (item.y || 0).toFixed(2);
+        document.getElementById('details-location-z').value = (item.z || 0).toFixed(2);
+
+        // Update object properties
+        document.getElementById('details-name').value = item.name || '';
+        document.getElementById('details-visible').checked = item.visible !== false;
+      }
+
+      function updateToolOptions(tool) {
+        const optionsSection = document.getElementById('details-tool-options-section');
+        const optionsTitle = document.getElementById('details-tool-options-title');
+        const optionsContent = document.getElementById('details-tool-options-content');
+
+        // Hide if no tool options
+        if (!tool.options || tool.options.length === 0) {
+          optionsSection.style.display = 'none';
+          return;
+        }
+
+        // Show section and update title
+        optionsSection.style.display = 'block';
+        optionsTitle.textContent = (tool.label || 'Tool') + ' Options';
+
+        // Clear and rebuild options
+        optionsContent.innerHTML = '';
+
+        const grid = document.createElement('div');
+        grid.className = 'window-property-grid';
+
+        tool.options.forEach(option => {
+          const row = document.createElement('div');
+          row.className = 'window-property-row';
+
+          const label = document.createElement('span');
+          label.className = 'window-property-label';
+          label.textContent = option.label || option.id;
+
+          const value = document.createElement('div');
+          value.className = 'window-property-value';
+
+          // Create appropriate input based on option type
+          let input;
+          if (option.type === 'checkbox') {
+            input = document.createElement('input');
+            input.type = 'checkbox';
+            input.id = `tool-option-${option.id}`;
+            input.checked = option.value || false;
+          } else if (option.type === 'select') {
+            input = document.createElement('select');
+            input.id = `tool-option-${option.id}`;
+            if (option.choices) {
+              option.choices.forEach(choice => {
+                const opt = document.createElement('option');
+                opt.value = choice.value || choice;
+                opt.textContent = choice.label || choice;
+                input.appendChild(opt);
+              });
+            }
+            input.value = option.value || '';
+          } else if (option.type === 'number') {
+            input = document.createElement('input');
+            input.type = 'number';
+            input.id = `tool-option-${option.id}`;
+            input.value = option.value || 0;
+            if (option.min !== undefined) input.min = option.min;
+            if (option.max !== undefined) input.max = option.max;
+            if (option.step !== undefined) input.step = option.step;
+          } else {
+            // Default to text input
+            input = document.createElement('input');
+            input.type = 'text';
+            input.id = `tool-option-${option.id}`;
+            input.value = option.value || '';
+          }
+
+          input.dataset.optionId = option.id;
+          input.addEventListener('change', function() {
+            // Dispatch option change event
+            document.dispatchEvent(new CustomEvent('toolOptionChange', {
+              detail: {
+                toolId: tool.toolId,
+                optionId: option.id,
+                value: input.type === 'checkbox' ? input.checked : input.value
+              },
+              bubbles: true
+            }));
+          });
+
+          value.appendChild(input);
+          row.appendChild(label);
+          row.appendChild(value);
+          grid.appendChild(row);
+        });
+
+        optionsContent.appendChild(grid);
+      }
+    });
+
+  })();
+</script>

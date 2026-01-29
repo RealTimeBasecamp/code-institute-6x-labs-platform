@@ -1,0 +1,99 @@
+{
+  "menu_id": "object",
+  "label": "Object",
+  "active": true,
+  "entries": [
+    {
+      "type": "submenu",
+      "id": "object_add",
+      "label": "Add",
+      "icon": "bi-plus-circle",
+      "active": true,
+      "visible_to": ["authenticated"],
+      "entries": [
+        {
+          "type": "item",
+          "id": "object_add_site",
+          "label": "Site",
+          "icon": "bi-geo-alt",
+          "callback": "editorActions.addSite",
+          "active": true,
+          "visible_to": ["authenticated"],
+          "enabled_when": "hasActiveProject"
+        },
+        {
+          "type": "item",
+          "id": "object_add_planting_zone",
+          "label": "Planting Zone",
+          "icon": "bi-tree",
+          "callback": "editorActions.addPlantingZone",
+          "active": true,
+          "visible_to": ["authenticated"],
+          "enabled_when": "hasActiveSite"
+        },
+        {
+          "type": "item",
+          "id": "object_add_marker",
+          "label": "Marker",
+          "icon": "bi-pin-map",
+          "callback": "editorActions.addMarker",
+          "active": true,
+          "visible_to": ["authenticated"],
+          "enabled_when": "hasActiveSite"
+        }
+      ]
+    },
+    {
+      "type": "separator",
+      "visible_to": ["authenticated"]
+    },
+    {
+      "type": "item",
+      "id": "object_duplicate",
+      "label": "Duplicate",
+      "icon": "bi-copy",
+      "callback": "editorActions.duplicateObject",
+      "shortcut": "Ctrl+D",
+      "active": true,
+      "visible_to": ["authenticated"],
+      "enabled_when": "hasSelection"
+    },
+    {
+      "type": "item",
+      "id": "object_delete",
+      "label": "Delete",
+      "icon": "bi-trash",
+      "callback": "editorActions.deleteObject",
+      "shortcut": "Delete",
+      "active": true,
+      "visible_to": ["authenticated"],
+      "enabled_when": "hasSelection"
+    },
+    {
+      "type": "separator",
+      "visible_to": ["authenticated"]
+    },
+    {
+      "type": "item",
+      "id": "object_group",
+      "label": "Group",
+      "icon": "bi-collection",
+      "callback": "editorActions.groupObjects",
+      "shortcut": "Ctrl+G",
+      "active": true,
+      "visible_to": ["authenticated"],
+      "enabled_when": "hasMultiSelection"
+    },
+    {
+      "type": "item",
+      "id": "object_ungroup",
+      "label": "Ungroup",
+      "icon": "bi-collection",
+      "callback": "editorActions.ungroupObjects",
+      "shortcut": "Ctrl+Shift+G",
+      "active": true,
+      "visible_to": ["authenticated"],
+      "enabled_when": "hasGroupSelection"
+    }
+  ]
+}

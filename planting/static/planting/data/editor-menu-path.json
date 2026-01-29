@@ -1,0 +1,80 @@
+{
+  "menu_id": "path",
+  "label": "Path",
+  "active": true,
+  "entries": [
+    {
+      "type": "item",
+      "id": "path_simplify",
+      "label": "Simplify",
+      "icon": "bi-bezier2",
+      "callback": "editorActions.simplifyPath",
+      "active": true,
+      "visible_to": ["authenticated"],
+      "enabled_when": "hasPathSelection",
+      "description": "Reduce path complexity"
+    },
+    {
+      "type": "item",
+      "id": "path_smooth",
+      "label": "Smooth",
+      "icon": "bi-bezier",
+      "callback": "editorActions.smoothPath",
+      "active": true,
+      "visible_to": ["authenticated"],
+      "enabled_when": "hasPathSelection",
+      "description": "Smooth path curves"
+    },
+    {
+      "type": "separator",
+      "visible_to": ["authenticated"]
+    },
+    {
+      "type": "item",
+      "id": "path_reverse",
+      "label": "Reverse Direction",
+      "icon": "bi-arrow-left-right",
+      "callback": "editorActions.reversePath",
+      "active": true,
+      "visible_to": ["authenticated"],
+      "enabled_when": "hasPathSelection"
+    },
+    {
+      "type": "separator",
+      "visible_to": ["authenticated"]
+    },
+    {
+      "type": "item",
+      "id": "path_union",
+      "label": "Union",
+      "icon": "bi-union",
+      "callback": "editorActions.pathUnion",
+      "active": true,
+      "visible_to": ["authenticated"],
+      "enabled_when": "hasMultiPathSelection",
+      "description": "Combine selected paths"
+    },
+    {
+      "type": "item",
+      "id": "path_subtract",
+      "label": "Subtract",
+      "icon": "bi-subtract",
+      "callback": "editorActions.pathSubtract",
+      "active": true,
+      "visible_to": ["authenticated"],
+      "enabled_when": "hasMultiPathSelection",
+      "description": "Subtract top path from bottom"
+    },
+    {
+      "type": "item",
+      "id": "path_intersect",
+      "label": "Intersect",
+      "icon": "bi-intersect",
+      "callback": "editorActions.pathIntersect",
+      "active": true,
+      "visible_to": ["authenticated"],
+      "enabled_when": "hasMultiPathSelection",
+      "description": "Keep overlapping area"
+    }
+  ]
+}

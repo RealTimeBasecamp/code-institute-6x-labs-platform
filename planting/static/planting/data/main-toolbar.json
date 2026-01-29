@@ -1,0 +1,427 @@
+{
+  "toolbar_id": "viewport",
+  "label": "Viewport Tools",
+  "description": "Left-side tool palette for the editor viewport",
+  "tools": [
+    {
+      "group": "selection",
+      "label": "Selection",
+      "tools": [
+        {
+          "id": "select",
+          "label": "Select / Point to Click",
+          "icon": "bi-cursor",
+          "shortcut": "V",
+          "options": []
+        }
+      ]
+    },
+    {
+      "group": "transform",
+      "label": "Transform",
+      "tools": [
+        {
+          "id": "move",
+          "label": "Move",
+          "icon": "bi-arrows-move",
+          "shortcut": "G",
+          "options": ["snap-to-grid", "constrain-axis"]
+        },
+        {
+          "id": "rotate",
+          "label": "Rotate",
+          "icon": "bi-arrow-repeat",
+          "shortcut": "R",
+          "options": ["snap-angle", "pivot-point"]
+        },
+        {
+          "id": "scale",
+          "label": "Scale",
+          "icon": "bi-arrows-angle-expand",
+          "shortcut": "S",
+          "options": ["uniform-scale", "snap-scale"]
+        }
+      ]
+    },
+    {
+      "group": "mass-update",
+      "label": "Mass Update",
+      "tools": [
+        {
+          "id": "mass-update",
+          "label": "Mass Update",
+          "icon": "bi-stack",
+          "description": "Batch edit selected objects. Shows options if selected objects are same type.",
+          "options": ["filter-type", "batch-properties"]
+        }
+      ]
+    },
+    {
+      "group": "area-selection",
+      "label": "Area Selection",
+      "tools": [
+        {
+          "id": "rect-select",
+          "label": "Rectangle Select",
+          "icon": "bi-bounding-box",
+          "shortcut": "M",
+          "options": ["selection-mode"]
+        },
+        {
+          "id": "ellipse-select",
+          "label": "Ellipse Select",
+          "icon": "bi-circle-square",
+          "options": ["selection-mode"]
+        }
+      ]
+    },
+    {
+      "group": "marquee",
+      "label": "Marquee",
+      "tools": [
+        {
+          "id": "marquee",
+          "label": "Marquee Selection",
+          "icon": "bi-dash-lg",
+          "shortcut": "L",
+          "options": ["selection-mode"]
+        },
+        {
+          "id": "polygon-marquee",
+          "label": "Polygon Marquee",
+          "icon": "bi-pentagon",
+          "options": ["selection-mode"]
+        }
+      ]
+    },
+    {
+      "group": "boolean",
+      "label": "Boolean Operations",
+      "tools": [
+        {
+          "id": "boolean-join",
+          "label": "Boolean Join - Combine Shapes",
+          "icon": "bi-union",
+          "options": ["join-mode"]
+        },
+        {
+          "id": "boolean-weld",
+          "label": "Weld Close Vertices",
+          "icon": "bi-link-45deg",
+          "options": ["weld-threshold"]
+        }
+      ]
+    },
+    {
+      "group": "shapes",
+      "label": "Shapes",
+      "description": "All shapes support: Annotation/Inclusion/Exclusion mode, Fill type, Fill colour, Fill icon",
+      "tools": [
+        {
+          "id": "shape-square",
+          "label": "Square",
+          "icon": "bi-square-fill",
+          "shortcut": "U",
+          "options": ["shape-mode", "fill-type", "fill-colour", "fill-icon"]
+        },
+        {
+          "id": "shape-rectangle",
+          "label": "Rectangle",
+          "icon": "bi-aspect-ratio",
+          "options": ["shape-mode", "fill-type", "fill-colour", "fill-icon"]
+        },
+        {
+          "id": "shape-ellipse",
+          "label": "Ellipse / Circle",
+          "icon": "bi-circle",
+          "shortcut": "O",
+          "options": ["shape-mode", "circle-radii", "fill-type", "fill-colour", "fill-icon"]
+        },
+        {
+          "id": "shape-polygon",
+          "label": "Polygon",
+          "icon": "bi-hexagon",
+          "options": ["shape-mode", "polygon-sides", "fill-type", "fill-colour", "fill-icon"]
+        }
+      ]
+    },
+    {
+      "group": "eraser",
+      "label": "Eraser",
+      "tools": [
+        {
+          "id": "eraser",
+          "label": "Eraser",
+          "icon": "bi-eraser",
+          "shortcut": "E",
+          "options": ["eraser-size", "eraser-mode"]
+        }
+      ]
+    },
+    {
+      "group": "fill",
+      "label": "Fill",
+      "tools": [
+        {
+          "id": "fill",
+          "label": "Fill Tool - Paint shapes",
+          "icon": "bi-paint-bucket",
+          "shortcut": "F",
+          "options": ["fill-colour", "fill-tolerance"]
+        }
+      ]
+    },
+    {
+      "group": "annotation",
+      "label": "Annotation / Text",
+      "tools": [
+        {
+          "id": "annotation",
+          "label": "Annotation / Text",
+          "icon": "bi-chat-square-text",
+          "shortcut": "T",
+          "options": [
+            {
+              "id": "annotation-title",
+              "label": "Title",
+              "type": "text"
+            },
+            {
+              "id": "annotation-description",
+              "label": "Description",
+              "type": "textarea"
+            },
+            {
+              "id": "annotation-icon",
+              "label": "Icon",
+              "type": "dropdown",
+              "description": "Dropdown icon list"
+            },
+            {
+              "id": "annotation-upload",
+              "label": "Upload Icon",
+              "type": "file",
+              "accept": "image/*",
+              "description": "64x64 or 32x32 custom icon"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "group": "picture",
+      "label": "Picture",
+      "tools": [
+        {
+          "id": "picture",
+          "label": "Picture - Place image on map",
+          "icon": "bi-image",
+          "options": [
+            {
+              "id": "picture-upload",
+              "label": "Upload File",
+              "type": "file",
+              "accept": "image/*"
+            },
+            {
+              "id": "picture-size",
+              "label": "Size on Map",
+              "type": "select",
+              "values": ["small", "medium", "large", "actual"]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "group": "line",
+      "label": "Line Tool",
+      "tools": [
+        {
+          "id": "line",
+          "label": "Line Tool",
+          "icon": "bi-pencil",
+          "shortcut": "P",
+          "options": [
+            {
+              "id": "line-mode",
+              "label": "Mode",
+              "type": "select",
+              "values": ["annotation", "inclusion", "exclusion"],
+              "description": "Can still apply fill type on inclusion/exclusion"
+            },
+            {
+              "id": "line-spacing",
+              "label": "Line Spacing",
+              "type": "number",
+              "min": 0,
+              "max": 100,
+              "default": 100,
+              "description": "Checkbox for 100% solid - autochecked at 100%"
+            },
+            {
+              "id": "line-type",
+              "label": "Line Type",
+              "type": "select",
+              "values": ["straight", "curved"]
+            },
+            {
+              "id": "line-shape",
+              "label": "Shape (Lofting)",
+              "type": "select",
+              "values": ["none", "round", "square", "custom"]
+            },
+            {
+              "id": "fill-type",
+              "label": "Fill Type",
+              "type": "select",
+              "values": ["solid", "hatched", "dotted", "none"]
+            },
+            {
+              "id": "fill-colour",
+              "label": "Fill Colour",
+              "type": "color"
+            },
+            {
+              "id": "fill-icon",
+              "label": "Fill Icon",
+              "type": "dropdown"
+            }
+          ]
+        },
+        {
+          "id": "line-curved",
+          "label": "Curved Line / Bezier",
+          "icon": "bi-bezier2",
+          "options": ["line-mode", "line-spacing", "bezier-handles", "line-shape", "fill-type", "fill-colour", "fill-icon"]
+        }
+      ]
+    },
+    {
+      "group": "navigation",
+      "label": "Navigation",
+      "tools": [
+        {
+          "id": "hand",
+          "label": "Hand / Pan",
+          "icon": "bi-hand-index",
+          "shortcut": "H",
+          "options": []
+        }
+      ]
+    },
+    {
+      "group": "magnification",
+      "label": "Magnification",
+      "tools": [
+        {
+          "id": "magnify",
+          "label": "Magnification / Zoom",
+          "icon": "bi-search",
+          "shortcut": "Z",
+          "options": ["zoom-level"]
+        },
+        {
+          "id": "zoom-in",
+          "label": "Zoom In",
+          "icon": "bi-zoom-in",
+          "shortcut": "+",
+          "action": true
+        },
+        {
+          "id": "zoom-out",
+          "label": "Zoom Out",
+          "icon": "bi-zoom-out",
+          "shortcut": "-",
+          "action": true
+        },
+        {
+          "id": "zoom-fit",
+          "label": "Fit to Screen",
+          "icon": "bi-fullscreen",
+          "shortcut": "0",
+          "action": true
+        }
+      ]
+    }
+  ],
+  "option_definitions": {
+    "shape-mode": {
+      "label": "Mode",
+      "type": "select",
+      "values": [
+        {"value": "annotation", "label": "Annotation"},
+        {"value": "inclusion", "label": "Inclusion Zone"},
+        {"value": "exclusion", "label": "Exclusion Zone"}
+      ],
+      "default": "annotation"
+    },
+    "fill-type": {
+      "label": "Fill Type",
+      "type": "select",
+      "values": [
+        {"value": "solid", "label": "Solid"},
+        {"value": "hatched", "label": "Hatched"},
+        {"value": "dotted", "label": "Dotted"},
+        {"value": "none", "label": "None / Outline Only"}
+      ],
+      "default": "solid"
+    },
+    "fill-colour": {
+      "label": "Fill Colour",
+      "type": "color",
+      "default": "#4CAF50"
+    },
+    "fill-icon": {
+      "label": "Fill Icon",
+      "type": "icon-dropdown",
+      "description": "Select icon pattern for fill"
+    },
+    "circle-radii": {
+      "label": "Circle Radii",
+      "type": "number",
+      "min": 1,
+      "default": 50,
+      "unit": "m"
+    },
+    "polygon-sides": {
+      "label": "Number of Sides",
+      "type": "number",
+      "min": 3,
+      "max": 32,
+      "default": 6
+    },
+    "selection-mode": {
+      "label": "Selection Mode",
+      "type": "select",
+      "values": [
+        {"value": "new", "label": "New Selection"},
+        {"value": "add", "label": "Add to Selection"},
+        {"value": "subtract", "label": "Subtract from Selection"},
+        {"value": "intersect", "label": "Intersect with Selection"}
+      ],
+      "default": "new"
+    },
+    "line-spacing": {
+      "label": "Line Spacing",
+      "type": "range",
+      "min": 0,
+      "max": 100,
+      "default": 100,
+      "unit": "%",
+      "checkbox": {
+        "label": "100% Solid",
+        "auto_check_at": 100
+      }
+    },
+    "line-type": {
+      "label": "Line Type",
+      "type": "select",
+      "values": [
+        {"value": "straight", "label": "Straight"},
+        {"value": "curved", "label": "Curved / Bezier"}
+      ],
+      "default": "straight"
+    }
+  }
+}

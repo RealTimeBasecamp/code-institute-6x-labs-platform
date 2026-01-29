@@ -1,0 +1,63 @@
+{
+  "menu_id": "help",
+  "label": "Help",
+  "active": true,
+  "entries": [
+    {
+      "type": "item",
+      "id": "help_docs",
+      "label": "Documentation",
+      "icon": "bi-book",
+      "callback": "editorActions.openDocs",
+      "active": true,
+      "visible_to": ["all"],
+      "description": "Open documentation in new tab"
+    },
+    {
+      "type": "item",
+      "id": "help_support",
+      "label": "Support",
+      "icon": "bi-life-preserver",
+      "callback": "editorActions.openSupport",
+      "active": true,
+      "visible_to": ["all"],
+      "description": "Get help and support"
+    },
+    {
+      "type": "separator",
+      "visible_to": ["all"]
+    },
+    {
+      "type": "item",
+      "id": "help_keyboard_shortcuts",
+      "label": "Keyboard Shortcuts",
+      "icon": "bi-keyboard",
+      "callback": "editorActions.showKeyboardShortcuts",
+      "shortcut": "Ctrl+/",
+      "active": true,
+      "visible_to": ["all"]
+    },
+    {
+      "type": "separator",
+      "visible_to": ["all"]
+    },
+    {
+      "type": "item",
+      "id": "help_blog",
+      "label": "Blog",
+      "icon": "bi-rss",
+      "callback": "editorActions.openBlog",
+      "active": true,
+      "visible_to": ["all"]
+    },
+    {
+      "type": "item",
+      "id": "help_about",
+      "label": "About",
+      "icon": "bi-info-circle",
+      "callback": "editorActions.showAbout",
+      "active": true,
+      "visible_to": ["all"]
+    }
+  ]
+}

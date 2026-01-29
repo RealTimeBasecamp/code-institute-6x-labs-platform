@@ -1,0 +1,255 @@
+{
+  "toolbar_id": "viewport-settings",
+  "label": "Viewport Settings",
+  "description": "Horizontal toolbar above the map viewport with grid, snapping, camera and render settings",
+  "sections": [
+    {
+      "group": "transform-tools",
+      "label": "Transform",
+      "items": [
+        {
+          "id": "rotate",
+          "type": "button",
+          "label": "Rotate",
+          "icon": "bi-arrow-repeat",
+          "shortcut": "R",
+          "tooltip": "Rotate selected objects"
+        },
+        {
+          "id": "scale",
+          "type": "button",
+          "label": "Scale",
+          "icon": "bi-arrows-angle-expand",
+          "shortcut": "S",
+          "tooltip": "Scale selected objects"
+        }
+      ]
+    },
+    {
+      "group": "snapping",
+      "label": "Snapping",
+      "items": [
+        {
+          "id": "snap-toggle",
+          "type": "toggle",
+          "label": "Snap",
+          "icon": "bi-magnet",
+          "shortcut": "Shift+S",
+          "tooltip": "Toggle snapping on/off",
+          "default": true
+        },
+        {
+          "id": "snap-settings",
+          "type": "dropdown",
+          "label": "Snap Settings",
+          "icon": "bi-gear",
+          "tooltip": "Configure snapping options",
+          "options": [
+            {
+              "id": "snap-to-grid",
+              "type": "toggle",
+              "label": "Snap to Grid",
+              "default": true
+            },
+            {
+              "id": "snap-to-objects",
+              "type": "toggle",
+              "label": "Snap to Objects",
+              "default": false
+            },
+            {
+              "id": "snap-to-vertices",
+              "type": "toggle",
+              "label": "Snap to Vertices",
+              "default": false
+            },
+            {
+              "id": "snap-to-edges",
+              "type": "toggle",
+              "label": "Snap to Edges",
+              "default": false
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "group": "grid",
+      "label": "Grid",
+      "items": [
+        {
+          "id": "grid-visible",
+          "type": "toggle",
+          "label": "Show Grid",
+          "icon": "bi-grid-3x3",
+          "shortcut": "G",
+          "tooltip": "Toggle grid visibility",
+          "default": true
+        },
+        {
+          "id": "grid-size",
+          "type": "dropdown",
+          "label": "Grid Size",
+          "icon": "bi-grid",
+          "tooltip": "Set grid spacing",
+          "options": [
+            {"value": "0.5", "label": "0.5m"},
+            {"value": "1", "label": "1m", "default": true},
+            {"value": "2", "label": "2m"},
+            {"value": "5", "label": "5m"},
+            {"value": "10", "label": "10m"},
+            {"value": "25", "label": "25m"},
+            {"value": "50", "label": "50m"},
+            {"value": "100", "label": "100m"}
+          ]
+        },
+        {
+          "id": "snap-angle",
+          "type": "dropdown",
+          "label": "Angle Snap",
+          "icon": "bi-rulers",
+          "tooltip": "Rotation snap increment",
+          "options": [
+            {"value": "5", "label": "5°"},
+            {"value": "10", "label": "10°"},
+            {"value": "15", "label": "15°", "default": true},
+            {"value": "30", "label": "30°"},
+            {"value": "45", "label": "45°"},
+            {"value": "90", "label": "90°"}
+          ]
+        },
+        {
+          "id": "snap-scale",
+          "type": "dropdown",
+          "label": "Scale Snap",
+          "icon": "bi-aspect-ratio",
+          "tooltip": "Scale snap increment",
+          "options": [
+            {"value": "0.1", "label": "0.1x"},
+            {"value": "0.25", "label": "0.25x", "default": true},
+            {"value": "0.5", "label": "0.5x"},
+            {"value": "1", "label": "1x"}
+          ]
+        }
+      ]
+    },
+    {
+      "group": "camera",
+      "label": "Camera",
+      "items": [
+        {
+          "id": "camera-mode",
+          "type": "dropdown",
+          "label": "Camera Mode",
+          "icon": "bi-camera",
+          "tooltip": "Switch camera projection",
+          "options": [
+            {"value": "perspective", "label": "Perspective", "icon": "bi-box", "default": true},
+            {"value": "orthographic", "label": "Orthographic", "icon": "bi-square"},
+            {"value": "top", "label": "Top Down", "icon": "bi-arrow-down-square"}
+          ]
+        },
+        {
+          "id": "camera-speed",
+          "type": "slider",
+          "label": "Camera Speed",
+          "icon": "bi-speedometer2",
+          "tooltip": "Adjust camera movement speed",
+          "min": 1,
+          "max": 10,
+          "default": 5,
+          "step": 1
+        }
+      ]
+    },
+    {
+      "group": "render-mode",
+      "label": "Render Mode",
+      "items": [
+        {
+          "id": "render-mode",
+          "type": "dropdown",
+          "label": "Render Mode",
+          "icon": "bi-eye",
+          "tooltip": "Change viewport rendering style",
+          "options": [
+            {"value": "default", "label": "Default", "icon": "bi-map", "default": true},
+            {"value": "satellite", "label": "Satellite", "icon": "bi-globe"},
+            {"value": "terrain", "label": "Terrain", "icon": "bi-mountains"},
+            {"value": "wireframe", "label": "Wireframe", "icon": "bi-grid-3x3-gap"},
+            {"value": "zones-only", "label": "Zones Only", "icon": "bi-layers"}
+          ]
+        },
+        {
+          "id": "lighting-mode",
+          "type": "dropdown",
+          "label": "Lighting",
+          "icon": "bi-sun",
+          "tooltip": "Lighting visualization mode",
+          "options": [
+            {"value": "default", "label": "Default", "default": true},
+            {"value": "shadows", "label": "Show Shadows"},
+            {"value": "sun-path", "label": "Sun Path"},
+            {"value": "flat", "label": "Flat (No Lighting)"}
+          ]
+        }
+      ]
+    },
+    {
+      "group": "view-options",
+      "label": "View Options",
+      "items": [
+        {
+          "id": "show-labels",
+          "type": "toggle",
+          "label": "Labels",
+          "icon": "bi-tag",
+          "tooltip": "Show/hide object labels",
+          "default": true
+        },
+        {
+          "id": "show-stats",
+          "type": "toggle",
+          "label": "Statistics",
+          "icon": "bi-bar-chart",
+          "tooltip": "Show viewport statistics",
+          "default": false
+        },
+        {
+          "id": "show-coordinates",
+          "type": "toggle",
+          "label": "Coordinates",
+          "icon": "bi-geo-alt",
+          "tooltip": "Show cursor coordinates",
+          "default": true
+        }
+      ]
+    },
+    {
+      "group": "coordinate-system",
+      "label": "Coordinates",
+      "items": [
+        {
+          "id": "coord-system",
+          "type": "button-group",
+          "label": "Coordinate System",
+          "tooltip": "Transform coordinate space",
+          "options": [
+            {"value": "world", "label": "World", "icon": "bi-globe2", "default": true},
+            {"value": "local", "label": "Local", "icon": "bi-bounding-box"}
+          ]
+        },
+        {
+          "id": "pivot-mode",
+          "type": "button-group",
+          "label": "Pivot Point",
+          "tooltip": "Transform pivot location",
+          "options": [
+            {"value": "center", "label": "Center", "icon": "bi-bullseye", "default": true},
+            {"value": "origin", "label": "Origin", "icon": "bi-crosshair"}
+          ]
+        }
+      ]
+    }
+  ]
+}

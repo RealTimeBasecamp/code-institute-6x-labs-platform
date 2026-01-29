@@ -1,0 +1,176 @@
+/**
+ * Project Planner Editor Styles
+ * Unreal Engine 5.7-inspired dark theme editor layout
+ */
+
+/* ============================================
+   Editor Container - Full viewport layout
+   ============================================ */
+.editor-container {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  width: 100vw;
+  overflow: hidden;
+  background: var(--bs-body-bg);
+  color: var(--bs-body-color);
+}
+
+/* ============================================
+   Main Toolbar - TOP (Horizontal menu bar)
+   ============================================ */
+.editor-main-toolbar {
+  display: flex;
+  align-items: center;
+  height: 40px;
+  min-height: 40px;
+  background: var(--bs-tertiary-bg);
+  border-bottom: 1px solid var(--bs-border-color);
+  padding: 0 8px;
+  user-select: none;
+  flex-shrink: 0;
+}
+
+.editor-main-toolbar .toolbar-placeholder {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  font-size: 14px;
+}
+
+/* ============================================
+   Editor Workspace - Contains toolbar + panels
+   ============================================ */
+.editor-workspace {
+  display: flex;
+  flex: 1;
+  overflow: hidden;
+}
+
+/* ============================================
+   Viewport Toolbar - LEFT (Vertical tool palette)
+   ============================================ */
+.editor-viewport-toolbar {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 48px;
+  min-width: 48px;
+  background: var(--bs-tertiary-bg);
+  border-right: 1px solid var(--bs-border-color);
+  padding: 8px 0;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.editor-viewport-toolbar .toolbar-placeholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+
+.editor-viewport-toolbar .toolbar-placeholder i {
+  font-size: 18px;
+  padding: 8px;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background-color 0.15s, color 0.15s;
+}
+
+.editor-viewport-toolbar .toolbar-placeholder i:hover {
+  background: var(--bs-secondary-bg);
+  color: var(--primary-color, var(--bs-primary));
+}
+
+/* ============================================
+   Editor Panels - Main workspace area
+   ============================================ */
+.editor-panels {
+  display: flex;
+  flex: 1;
+  overflow: hidden;
+  gap: 0;
+  background: var(--bs-body-bg);
+}
+
+/* ============================================
+   Panel Placeholder - Temporary styling
+   Will be replaced by dockable_window component
+   ============================================ */
+.panel-placeholder {
+  display: flex;
+  flex-direction: column;
+  background: var(--bs-body-bg);
+  min-width: 200px;
+  flex: 0 0 250px;
+}
+
+.panel-placeholder.panel-viewport {
+  flex: 1;
+  min-width: 400px;
+}
+
+.panel-placeholder .panel-header {
+  display: flex;
+  align-items: center;
+  height: 32px;
+  padding: 0 12px;
+  background: var(--bs-tertiary-bg);
+  border-bottom: 1px solid var(--bs-border-color);
+  font-size: 13px;
+  font-weight: 500;
+  user-select: none;
+}
+
+.panel-placeholder .panel-content {
+  flex: 1;
+  padding: 12px;
+  overflow: auto;
+  font-size: 13px;
+}
+
+.panel-placeholder .panel-content .text-muted {
+  color: var(--bs-secondary-color) !important;
+}
+
+/* ============================================
+   Responsive - Stack panels on small screens
+   ============================================ */
+@media (max-width: 992px) {
+  .editor-panels {
+    flex-direction: column;
+  }
+
+  .panel-placeholder {
+    flex: 0 0 auto;
+    min-width: 100%;
+    min-height: 150px;
+  }
+
+  .panel-placeholder.panel-viewport {
+    flex: 1;
+    min-height: 300px;
+  }
+}
+
+/* ============================================
+   Scrollbar styling (UE5-style thin scrollbars)
+   ============================================ */
+.editor-container ::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.editor-container ::-webkit-scrollbar-track {
+  background: var(--bs-body-bg);
+}
+
+.editor-container ::-webkit-scrollbar-thumb {
+  background: var(--bs-border-color);
+  border-radius: 4px;
+}
+
+.editor-container ::-webkit-scrollbar-thumb:hover {
+  background: var(--bs-secondary-color);
+}

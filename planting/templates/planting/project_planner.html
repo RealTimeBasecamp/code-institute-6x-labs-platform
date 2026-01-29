@@ -1,0 +1,119 @@
+{% extends 'base_blank.html' %}
+{% load static %}
+
+{% block meta_title %}Project Planner{% endblock %}
+{% block page_title %}Project Planner{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'planting/css/editor.css' %}">
+<link rel="stylesheet" href="{% static 'planting/css/dockable-window.css' %}">
+<link rel="stylesheet" href="{% static 'planting/css/toolbars.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="editor-container">
+  {# Main Toolbar - TOP (File, Edit, Window, Help menus) #}
+  {% include 'planting/components/editor_menu.html' %}
+
+  <div class="editor-workspace">
+    {# Main Toolbar - LEFT (Photoshop-style tools) #}
+    {% include 'planting/components/main_toolbar.html' %}
+
+    {# Main workspace with dockable panels #}
+    <div id="workspace-panels" class="editor-panels">
+
+      {# Center Panel - Viewport (always visible, no close button) #}
+      <div class="dockable-window window-viewport" id="window-viewport" data-window-id="viewport">
+        <div class="dockable-window-header" data-drag-handle>
+          <div class="window-header-left">
+            <i class="bi bi-display window-icon"></i>
+            <span class="window-title">Viewport</span>
+          </div>
+        </div>
+        {# Viewport Settings Toolbar - horizontal bar above the map #}
+        {% include 'planting/components/viewport_toolbar.html' %}
+        <div class="dockable-window-content">
+          {% include 'planting/interactive_map.html' %}
+        </div>
+      </div>
+      {# Left Panel - Outliner (closeable, respawn via Window menu) #}
+      <div class="dockable-window window-side-panel" id="window-outliner" data-window-id="outliner">
+        <div class="dockable-window-header" data-drag-handle>
+          <div class="window-header-left">
+            <i class="bi bi-list-nested window-icon"></i>
+            <span class="window-title">Outliner</span>
+          </div>
+          <div class="window-header-controls">
+            <button class="window-control-btn window-control-close" data-action="close" title="Close">
+              <i class="bi bi-x"></i>
+            </button>
+          </div>
+        </div>
+        <div class="dockable-window-content">
+          {% include 'planting/components/outliner.html' with sites=sites project=project %}
+        </div>
+        {# Resize handles #}
+        <div class="resize-handle resize-handle-e" data-resize="e"></div>
+      </div>
+
+      {# Right Panel - Details (can be closed, reopen via Window menu) #}
+      <div class="dockable-window window-side-panel" id="window-details" data-window-id="details">
+        <div class="dockable-window-header" data-drag-handle>
+          <div class="window-header-left">
+            <i class="bi bi-sliders window-icon"></i>
+            <span class="window-title">Details</span>
+          </div>
+          <div class="window-header-controls">
+            <button class="window-control-btn window-control-close" data-action="close" title="Close">
+              <i class="bi bi-x"></i>
+            </button>
+          </div>
+        </div>
+        <div class="dockable-window-content">
+          {% include 'planting/components/details.html' with project=project %}
+        </div>
+        {# Resize handles #}
+        <div class="resize-handle resize-handle-w" data-resize="w"></div>
+      </div>
+
+      {# Final Panel - Point Plotter (closeable, respawn via Window menu) #}
+      <div class="dockable-window window-side-panel" id="window-point-plotter" data-window-id="point-plotter">
+        <div class="dockable-window-header" data-drag-handle>
+          <div class="window-header-left">
+            <i class="bi bi-list-nested window-icon"></i>
+            <span class="window-title">Point Plotter</span>
+          </div>
+          <div class="window-header-controls">
+            <button class="window-control-btn window-control-close" data-action="close" title="Close">
+              <i class="bi bi-x"></i>
+            </button>
+          </div>
+        </div>
+        <div class="dockable-window-content">
+          {% include 'planting/components/point_plotter.html' with project=project %}
+        </div>
+        {# Resize handles #}
+        <div class="resize-handle resize-handle-e" data-resize="e"></div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+{# Pass Django context to JavaScript #}
+<script>
+  window.editorContext = {
+    projectSlug: '{{ project.slug|default:"" }}',
+    projectName: '{{ project.name|default:"" }}',
+    csrfToken: '{{ csrf_token }}',
+    user: {
+      isAuthenticated: {{ user.is_authenticated|yesno:"true,false" }},
+      isStaff: {{ user.is_staff|yesno:"true,false" }},
+      isSuperuser: {{ user.is_superuser|yesno:"true,false" }}
+    }
+  };
+</script>
+<script src="{% static 'planting/js/dockable-window.js' %}" defer></script>
+<script src="{% static 'planting/js/editor-actions.js' %}" defer></script>
+<script src="{% static 'planting/js/menu-renderer.js' %}" defer></script>
+{% endblock %}

@@ -1,0 +1,380 @@
+/**
+ * Dockable Window Component Styles
+ * Inspired by Unreal Engine 5.7 panel design
+ */
+
+/* ============================================
+   Dockable Window Container
+   ============================================ */
+.dockable-window {
+  display: flex;
+  flex-direction: column;
+  background: var(--bs-body-bg);
+  border: 1px solid var(--bs-border-color);
+  border-radius: 4px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  min-width: 200px;
+  min-height: 150px;
+  position: relative;
+  overflow: hidden;
+  transition: box-shadow 0.2s ease;
+}
+
+.dockable-window:hover {
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+}
+
+.dockable-window.is-focused {
+  border-color: var(--primary-color, var(--bs-primary));
+  box-shadow: 0 0 0 1px var(--primary-color, var(--bs-primary)),
+              0 4px 16px rgba(0, 0, 0, 0.25);
+}
+
+.dockable-window.is-dragging {
+  opacity: 0.9;
+  cursor: grabbing;
+  z-index: 1000;
+}
+
+/* ============================================
+   Window Header - UE5.7 Style
+   ============================================ */
+.dockable-window-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 28px;
+  min-height: 28px;
+  padding: 0 8px;
+  background: linear-gradient(180deg,
+    color-mix(in srgb, var(--bs-tertiary-bg) 100%, transparent) 0%,
+    color-mix(in srgb, var(--bs-tertiary-bg) 85%, var(--bs-body-bg) 15%) 100%
+  );
+  border-bottom: 1px solid var(--bs-border-color);
+  cursor: grab;
+  user-select: none;
+}
+
+.dockable-window-header:active {
+  cursor: grabbing;
+}
+
+.window-header-left {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  overflow: hidden;
+}
+
+.window-icon {
+  font-size: 12px;
+  color: var(--bs-secondary-color);
+  flex-shrink: 0;
+}
+
+.window-title {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--bs-body-color);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ============================================
+   Window Header Controls
+   ============================================ */
+.window-header-controls {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  margin-left: 8px;
+}
+
+.window-control-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: var(--bs-secondary-color);
+  border-radius: 3px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.window-control-btn:hover {
+  background: var(--bs-secondary-bg);
+  color: var(--bs-body-color);
+}
+
+.window-control-btn i {
+  font-size: 12px;
+}
+
+.window-control-close:hover {
+  background: #dc3545;
+  color: white;
+}
+
+/* ============================================
+   Window Content Area
+   ============================================ */
+.dockable-window-content {
+  flex: 1;
+  overflow: auto;
+  padding: 8px;
+  font-size: 13px;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Viewport content should fill completely */
+.window-viewport .dockable-window-content {
+  padding: 0;
+}
+
+/* Make child content (like interactive_map) fill the viewport */
+.window-viewport .dockable-window-content > * {
+  flex: 1;
+  width: 100%;
+  height: 100%;
+}
+
+/* Scrollbar styling for content */
+.dockable-window-content::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+.dockable-window-content::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.dockable-window-content::-webkit-scrollbar-thumb {
+  background: var(--bs-border-color);
+  border-radius: 3px;
+}
+
+.dockable-window-content::-webkit-scrollbar-thumb:hover {
+  background: var(--bs-secondary-color);
+}
+
+/* ============================================
+   Resize Handles
+   ============================================ */
+.resize-handle {
+  position: absolute;
+  background: transparent;
+  z-index: 10;
+}
+
+/* Edge handles */
+.resize-handle-n {
+  top: 0;
+  left: 4px;
+  right: 4px;
+  height: 4px;
+  cursor: n-resize;
+}
+
+.resize-handle-s {
+  bottom: 0;
+  left: 4px;
+  right: 4px;
+  height: 4px;
+  cursor: s-resize;
+}
+
+.resize-handle-e {
+  top: 4px;
+  right: 0;
+  bottom: 4px;
+  width: 4px;
+  cursor: e-resize;
+}
+
+.resize-handle-w {
+  top: 4px;
+  left: 0;
+  bottom: 4px;
+  width: 4px;
+  cursor: w-resize;
+}
+
+/* Corner handles */
+.resize-handle-ne {
+  top: 0;
+  right: 0;
+  width: 8px;
+  height: 8px;
+  cursor: ne-resize;
+}
+
+.resize-handle-nw {
+  top: 0;
+  left: 0;
+  width: 8px;
+  height: 8px;
+  cursor: nw-resize;
+}
+
+.resize-handle-se {
+  bottom: 0;
+  right: 0;
+  width: 8px;
+  height: 8px;
+  cursor: se-resize;
+}
+
+.resize-handle-sw {
+  bottom: 0;
+  left: 0;
+  width: 8px;
+  height: 8px;
+  cursor: sw-resize;
+}
+
+/* Show resize indicator on hover */
+.resize-handle:hover {
+  background: color-mix(in srgb, var(--primary-color, var(--bs-primary)) 20%, transparent);
+}
+
+/* ============================================
+   Window States
+   ============================================ */
+
+/* ============================================
+   Window Variants
+   ============================================ */
+
+/* Viewport window (main content area) - fills available space */
+.dockable-window.window-viewport {
+  flex: 1 1 auto;
+  min-width: 300px;
+  min-height: 300px;
+}
+
+/* Side panel windows - fixed width, resizable, draggable */
+.dockable-window.window-side-panel {
+  flex: 0 0 280px;
+  width: 280px;
+}
+
+/* ============================================
+   Panel-specific content styles
+   ============================================ */
+
+/* Tree view (for Outliner) */
+.window-tree-view {
+  padding: 0;
+}
+
+.window-tree-item {
+  display: flex;
+  align-items: center;
+  padding: 4px 8px;
+  gap: 6px;
+  cursor: pointer;
+  border-radius: 3px;
+  transition: background-color 0.1s;
+}
+
+.window-tree-item:hover {
+  background: var(--bs-tertiary-bg);
+}
+
+.window-tree-item.is-selected {
+  background: color-mix(in srgb, var(--primary-color, var(--bs-primary)) 20%, transparent);
+}
+
+.window-tree-item i {
+  font-size: 12px;
+  color: var(--bs-secondary-color);
+}
+
+.window-tree-item span {
+  font-size: 12px;
+}
+
+/* Property grid (for Details panel) */
+.window-property-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.window-property-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 0;
+}
+
+.window-property-label {
+  flex: 0 0 100px;
+  font-size: 11px;
+  color: var(--bs-secondary-color);
+  text-align: right;
+}
+
+.window-property-value {
+  flex: 1;
+}
+
+.window-property-value input {
+  width: 100%;
+  padding: 3px 6px;
+  font-size: 12px;
+  background: var(--bs-body-bg);
+  border: 1px solid var(--bs-border-color);
+  border-radius: 3px;
+  color: var(--bs-body-color);
+}
+
+.window-property-value input:focus {
+  outline: none;
+  border-color: var(--primary-color, var(--bs-primary));
+}
+
+/* Section headers (for collapsible sections) */
+.window-section {
+  margin-bottom: 8px;
+}
+
+.window-section-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 8px;
+  background: var(--bs-tertiary-bg);
+  border-radius: 3px;
+  cursor: pointer;
+  user-select: none;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.window-section-header:hover {
+  background: var(--bs-secondary-bg);
+}
+
+.window-section-header i {
+  font-size: 10px;
+  transition: transform 0.2s;
+}
+
+.window-section.is-collapsed .window-section-header i {
+  transform: rotate(-90deg);
+}
+
+.window-section-content {
+  padding: 8px;
+}
+
+.window-section.is-collapsed .window-section-content {
+  display: none;
+}

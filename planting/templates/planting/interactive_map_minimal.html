@@ -1,0 +1,228 @@
+{% load static %}
+
+<!-- MapLibre GL JS -->
+<link
+  href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css"
+  rel="stylesheet"
+/>
+
+<!-- Component CSS -->
+<link rel="stylesheet" href="{% static 'planting/css/interactive-map-minimal.css' %}" />
+
+<!-- Map Container with Sidebar -->
+<div class="interactive-map-card">
+  <div class="interactive-map-flex">
+    <div class="map-container">
+      <!-- Base MapLibre Map with 3D -->
+      <div id="map"></div>
+
+      <!-- ECharts Overlay Layer -->
+      <div id="echarts-layer"></div>
+
+    </div>
+
+    <div class="map-sidebar">
+      <div class="d-flex justify-content-center">
+        <ul class="nav nav-pills nav-pills--icons" role="tablist">
+          <li class="nav-item" role="presentation">
+            <a class="nav-link active bi-bounding-box-circles" id="sites-tab" data-bs-toggle="tab" href="#sites" role="tab" aria-controls="sites" aria-selected="true" aria-label="Sites" title="Sites"></a>
+          </li>
+          <li class="nav-item" role="presentation">
+            <a class="nav-link bi-hexagon-half" id="zones-tab" data-bs-toggle="tab" href="#zones" role="tab" aria-controls="zones" aria-selected="false" aria-label="Zones" title="Zones"></a>
+          </li>
+          <li class="nav-item" role="presentation">
+            <a class="nav-link bi-flower1" id="point-plotter-tab" data-bs-toggle="tab" href="#point-plotter" role="tab" aria-controls="point-plotter" aria-selected="false" aria-label="Point plotter" title="Point plotter"></a>
+          </li>
+        </ul>
+      </div>
+
+      <div class="tab-content">
+        <div class="tab-pane fade show active" id="sites" role="tabpanel" aria-labelledby="sites-tab">
+            <p>Sites
+              <i class="bi bi-info-circle"
+                data-bs-toggle="tooltip"
+                data-bs-placement="top"
+                data-bs-title="All of the planting sites for the project.">
+              </i>
+            </p>
+          <div class="input-row">
+          <button class="btn btn-secondary btn-square" title="Previous" data-bs-toggle="modal" data-bs-target="#featureComingSoonModal">
+            <i class="bi bi-chevron-left"></i>
+          </button>
+          <button class="btn btn-secondary btn-square" title="Next" data-bs-toggle="modal" data-bs-target="#featureComingSoonModal">
+            <i class="bi bi-chevron-right"></i>
+          </button>
+          {% if project.created_by == user or user.is_superuser or user.is_staff %}
+            <button class="btn btn-secondary btn-square" title="Add new" data-bs-toggle="modal" data-bs-target="#featureComingSoonModal">
+              <i class="bi bi-plus"></i>
+            </button>
+            <button class="btn btn-secondary btn-square" title="Add new" data-bs-toggle="modal" data-bs-target="#featureComingSoonModal">
+              <i class="bi bi-trash"></i>
+            </button>
+          {% endif %}
+
+        </div>
+          <span >Site name</span>
+          {% include 'components/sortable_table.html' with
+            table_id="sitesTable"
+            table_headers="#,Site, Area (ha), Co2"
+            table_rows=site_rows|default:None
+          %}
+
+          <p>
+            Site bounds
+            <i class="bi bi-info-circle"
+               data-bs-toggle="tooltip"
+               data-bs-placement="top"
+               data-bs-title="The total area covered by the site bounds.">
+            </i>
+          </p>
+            {% include 'components/sortable_table.html' with
+            table_id="siteBoundsTable"
+            table_headers="#,X,Y,Lock"
+            table_rows=site_bounds_rows
+          %}
+        </div>
+
+        <div class="tab-pane fade" id="zones" role="tabpanel" aria-labelledby="zones-tab">
+          <p>
+            Zones
+            <i class="bi bi-info-circle"
+               data-bs-toggle="tooltip"
+               data-bs-placement="top"
+               data-bs-title="Square boundary point for the overall available planting site.">
+            </i>
+          </p>
+
+          <div class="input-row">
+            <button class="btn btn-secondary btn-square" title="Previous" data-bs-toggle="modal" data-bs-target="#featureComingSoonModal">
+              <i class="bi bi-chevron-left"></i>
+            </button>
+            <button class="btn btn-secondary btn-square" title="Next" data-bs-toggle="modal" data-bs-target="#featureComingSoonModal">
+              <i class="bi bi-chevron-right"></i>
+            </button>
+
+            {% if project.created_by == user or user.is_superuser or user.is_staff %}
+              <button class="btn btn-secondary btn-square" title="Add new" data-bs-toggle="modal" data-bs-target="#featureComingSoonModal">
+                <i class="bi bi-plus"></i>
+              </button>
+            {% endif %}
+          </div>
+
+          <p>Selected zone: {{ zones.current|default:"None" }}</p>
+          {% include 'components/sortable_table.html' with
+            table_id="zonesTable"
+            table_headers="#,Zone name, Visibility"
+            table_rows=zones|default:None
+          %}
+        </div>
+
+        <div class="tab-pane fade" id="point-plotter" role="tabpanel" aria-labelledby="point-plotter-tab">
+          {# Replace with dynamic data from model #}
+          <p>Point plotter
+            <i class="bi bi-info-circle"
+               data-bs-toggle="tooltip"
+               data-bs-placement="top"
+               data-bs-title="Generate points using the selected algorithm.">
+            </i>
+          </p>
+          <div class="input-row">
+            <div class="flex-fill">
+              {% include 'components/dropdown.html' with
+                  dropdown_id="algorithmDropdown"
+                  dropdown_label="Poisson Disc sampling"
+                  dropdown_width="100%"
+                  list=plotting_algorithms|default:"Poisson Disc sampling"
+              %}
+            </div>
+            <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#featureComingSoonModal">
+              <i class="bi bi-bootstrap-reboot"></i> Regenerate
+            </button>
+          </div>
+          <div class="btn-group-equal">
+            <button class="btn btn-secondary" data-bs-toggle="modal" data-bs-target="#featureComingSoonModal">
+              <i class="bi bi-upload"></i> Upload (.CSV)
+            </button>
+            <button class="btn btn-secondary" data-bs-toggle="modal" data-bs-target="#featureComingSoonModal">
+              <i class="bi bi-download"></i> Download (.CSV)
+            </button>
+          </div>
+
+
+        <p>
+          Species Mix
+          <i class="bi bi-info-circle"
+              data-bs-toggle="tooltip"
+              data-bs-placement="top"
+              data-bs-title="The guideline species mix ratio and densities.">
+          </i>
+        </p>
+        {% include 'components/sortable_table.html' with
+          table_id="speciesMixTable"
+          table_headers="#,Species name, r, p"
+          table_rows=point_plotter_data|default:None
+        %}
+
+        <p>Plotted points: {{ plotted_points.total|default:'1500' }}
+          <i class="bi bi-info-circle"
+              data-bs-toggle="tooltip"
+              data-bs-placement="top"
+              data-bs-title="The final points after estimation.">
+          </i>
+        </p>
+
+        {% include 'components/sortable_table.html' with
+            table_id="plottedPointsTable"
+            table_headers="#,Species name, n"
+            table_rows=point_plotter_data|default:None
+        %}
+          {# endcomment #}
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Component JS -->
+<script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
+
+<!-- Apache ECharts -->
+<script src="https://cdn.jsdelivr.net/npm/echarts@5.5.1/dist/echarts.min.js"></script>
+
+<!-- ECharts GL for 3D charts -->
+<script src="https://cdn.jsdelivr.net/npm/echarts-gl@2.0.9/dist/echarts-gl.min.js"></script>
+
+{# Expose page globals before loading the interactive-map script so it
+   can read them synchronously on init. This prevents a race where the map
+   initializes before these variables are defined. #}
+{% if site_bounds_map_json %}
+<script>
+  window.siteBoundsMap = {{ site_bounds_map_json|safe }};
+</script>
+{% else %}
+<script>window.siteBoundsMap = {};</script>
+{% endif %}
+{% if project %}
+<script>window.currentProjectSlug = "{{ project.slug }}";</script>
+{% else %}
+<script>window.currentProjectSlug = "";</script>
+{% endif %}
+{% if project and project.coordinates %}
+<script>
+  // Expose project first coordinates to the map code as [lng, lat]
+  window.projectCoordinatesFirst = [{{ project.coordinates.longitude|default:0|floatformat:6 }}, {{ project.coordinates.latitude|default:0|floatformat:6 }}];
+</script>
+{% else %}
+<script>window.projectCoordinatesFirst = null;</script>
+{% endif %}
+
+<script src="{% static 'planting/js/interactive-map.js' %}"></script>
+
+{% include 'components/modals/modal.html' with
+  modal_id='featureComingSoonModal'
+  modal_icon='bi bi-cone-striped'
+  modal_title='Feature Coming Soon'
+  modal_body_content='<p>This feature is coming soon.</p>'
+  modal_footer_content='<button type="button" class="btn btn-primary" data-bs-dismiss="modal">Ok</button>'
+  modal_size='md'
+%}

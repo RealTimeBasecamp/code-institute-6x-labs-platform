@@ -1,0 +1,196 @@
+{
+  "menu_id": "file",
+  "label": "File",
+  "active": true,
+  "entries": [
+    {
+      "type": "submenu",
+      "id": "file_new",
+      "label": "New",
+      "icon": "bi-plus-lg",
+      "active": true,
+      "visible_to": ["authenticated"],
+      "entries": [
+        {
+          "type": "item",
+          "id": "file_new_project",
+          "label": "Project",
+          "icon": "bi-folder-plus",
+          "callback": "editorActions.newProject",
+          "shortcut": "Ctrl+N",
+          "active": true,
+          "visible_to": ["authenticated"]
+        },
+        {
+          "type": "item",
+          "id": "file_new_site",
+          "label": "Site",
+          "icon": "bi-map",
+          "callback": "editorActions.newSite",
+          "active": true,
+          "visible_to": ["authenticated"],
+          "enabled_when": "hasActiveProject"
+        }
+      ]
+    },
+    {
+      "type": "submenu",
+      "id": "file_open",
+      "label": "Open Project",
+      "icon": "bi-folder2-open",
+      "active": true,
+      "visible_to": ["authenticated"],
+      "entries": [
+        {
+          "type": "item",
+          "id": "file_open_browser",
+          "label": "From Library...",
+          "callback": "editorActions.openProjectBrowser",
+          "shortcut": "Ctrl+O",
+          "active": true,
+          "visible_to": ["authenticated"]
+        }
+      ]
+    },
+    {
+      "type": "separator",
+      "visible_to": ["authenticated"]
+    },
+    {
+      "type": "item",
+      "id": "file_save",
+      "label": "Save",
+      "icon": "bi-save",
+      "callback": "editorActions.save",
+      "shortcut": "Ctrl+S",
+      "active": true,
+      "visible_to": ["authenticated"],
+      "enabled_when": "hasUnsavedChanges"
+    },
+    {
+      "type": "item",
+      "id": "file_save_as",
+      "label": "Save As...",
+      "icon": "bi-save",
+      "callback": "editorActions.saveAs",
+      "shortcut": "Ctrl+Shift+S",
+      "active": true,
+      "visible_to": ["authenticated"]
+    },
+    {
+      "type": "item",
+      "id": "file_make_copy",
+      "label": "Make a Copy",
+      "icon": "bi-copy",
+      "callback": "editorActions.makeCopy",
+      "active": true,
+      "visible_to": ["authenticated"],
+      "enabled_when": "hasActiveProject"
+    },
+    {
+      "type": "separator",
+      "visible_to": ["authenticated"]
+    },
+    {
+      "type": "submenu",
+      "id": "file_export",
+      "label": "Export as",
+      "icon": "bi-download",
+      "active": true,
+      "visible_to": ["authenticated"],
+      "entries": [
+        {
+          "type": "item",
+          "id": "export_pdf",
+          "label": "PDF Report",
+          "icon": "bi-file-pdf",
+          "callback": "editorActions.exportPDF",
+          "active": true,
+          "visible_to": ["authenticated"],
+          "badge": "Pro"
+        },
+        {
+          "type": "item",
+          "id": "export_png",
+          "label": "PNG (720p)",
+          "icon": "bi-image",
+          "callback": "editorActions.exportPNG",
+          "active": true,
+          "visible_to": ["authenticated"],
+          "badge": "Pro"
+        },
+        {
+          "type": "separator",
+          "visible_to": ["authenticated"]
+        },
+        {
+          "type": "item",
+          "id": "export_qgis_project",
+          "label": "QGIS Project File",
+          "icon": "bi-geo",
+          "callback": "editorActions.exportQGISProject",
+          "active": false,
+          "visible_to": ["authenticated"],
+          "description": "Coming soon"
+        },
+        {
+          "type": "item",
+          "id": "export_qgis_layer",
+          "label": "QGIS Layer File",
+          "icon": "bi-layers",
+          "callback": "editorActions.exportQGISLayer",
+          "active": false,
+          "visible_to": ["authenticated"],
+          "description": "Coming soon"
+        }
+      ]
+    },
+    {
+      "type": "submenu",
+      "id": "file_import",
+      "label": "Import",
+      "icon": "bi-upload",
+      "active": false,
+      "visible_to": ["authenticated"],
+      "entries": [
+        {
+          "type": "item",
+          "id": "import_qgis",
+          "label": "From QGIS...",
+          "icon": "bi-geo",
+          "callback": "editorActions.importQGIS",
+          "active": false,
+          "visible_to": ["authenticated"],
+          "description": "Coming soon"
+        }
+      ]
+    },
+    {
+      "type": "separator",
+      "visible_to": ["staff", "superuser"]
+    },
+    {
+      "type": "item",
+      "id": "file_debug_state",
+      "label": "Debug Editor State",
+      "icon": "bi-bug",
+      "callback": "editorActions.debugState",
+      "active": true,
+      "visible_to": ["staff", "superuser"]
+    },
+    {
+      "type": "separator",
+      "visible_to": ["all"]
+    },
+    {
+      "type": "item",
+      "id": "file_exit",
+      "label": "Exit",
+      "icon": "bi-box-arrow-left",
+      "callback": "editorActions.exit",
+      "active": true,
+      "visible_to": ["all"],
+      "description": "Return to project page"
+    }
+  ]
+}

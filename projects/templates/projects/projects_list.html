@@ -70,7 +70,7 @@
           {% for project in projects %}
           <tr data-project-name="{{ project.name|lower }}">
             <th scope="row" data-row-number>{{ forloop.counter }}</th>
-            <td><a href="{% url 'projects:project_planner_detail' project.slug %}">{{ project.name }}</a></td>
+            <td><a href="{% url 'projects:project_detail' project.slug %}">{{ project.name }}</a></td>
             <td>{{ project.status }}</td>
             <td>{{ project.total_co2_sequestered_kg|default:"—" }}</td>
             <td>{{ project.area_hectares }}</td>
@@ -99,7 +99,7 @@
           <div class="card h-100">
             <div class="card-body">
               <div class="card-title">
-                <a href="{% url 'projects:project_planner_detail' project.slug %}" class="text-decoration-none">
+                <a href="{% url 'projects:project_detail' project.slug %}" class="text-decoration-none">
                   {{ project.name }}
                 </a>
               </div>

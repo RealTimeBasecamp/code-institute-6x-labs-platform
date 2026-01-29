@@ -1,0 +1,582 @@
+{#
+  Main Toolbar Component - Left Tool Palette
+  Photoshop/Unreal-style vertical tool buttons
+
+  Usage:
+  {% include 'planting/components/main_toolbar.html' %}
+
+  This component:
+  - Provides selection, transform, and drawing tools
+  - Supports active tool state
+  - Groups related tools together
+  - Each tool exposes options in the Details panel when selected
+  - Nested tools use long-press to show flyout (like Photoshop)
+#}
+
+<aside class="main-tool-palette" id="main-tool-palette" role="toolbar" aria-label="Tool palette">
+
+  {# ==========================================
+     Selection Tools
+     ========================================== #}
+  <div class="tool-palette-group">
+    <button class="tool-palette-btn is-active" data-tool="select" title="Select / Point to Click (V)">
+      <i class="bi bi-cursor"></i>
+    </button>
+  </div>
+
+
+  {# ==========================================
+     Transform Tools - Move/Rotate/Scale
+     ========================================== #}
+  <div class="tool-palette-group">
+    <button class="tool-palette-btn" data-tool="move" title="Move (G)">
+      <i class="bi bi-arrows-move"></i>
+    </button>
+    <button class="tool-palette-btn" data-tool="rotate" title="Rotate (R)">
+      <i class="bi bi-arrow-repeat"></i>
+    </button>
+    <button class="tool-palette-btn" data-tool="scale" title="Scale (S)">
+      <i class="bi bi-arrows-angle-expand"></i>
+    </button>
+  </div>
+
+
+  {# ==========================================
+     Mass Update
+     ========================================== #}
+  <div class="tool-palette-group">
+    <button class="tool-palette-btn" data-tool="mass-update" title="Mass Update - Batch edit selected objects">
+      <i class="bi bi-stack"></i>
+    </button>
+  </div>
+
+
+  {# ==========================================
+     Area Selection Tools (nested)
+     ========================================== #}
+  <div class="tool-palette-group">
+    <div class="tool-palette-nested">
+      <button class="tool-palette-btn tool-palette-trigger" data-trigger="area-select" title="Area Selection (M)">
+        <i class="bi bi-bounding-box"></i>
+        <span class="tool-trigger-indicator">▼</span>
+      </button>
+      <div class="tool-palette-flyout" data-flyout="area-select">
+        <button class="tool-palette-btn tool-palette-nested-item" data-tool="rect-select" title="Rectangle Select">
+          <i class="bi bi-bounding-box"></i>
+          <span>Rectangle</span>
+        </button>
+        <button class="tool-palette-btn tool-palette-nested-item" data-tool="ellipse-select" title="Ellipse Select">
+          <i class="bi bi-circle-square"></i>
+          <span>Ellipse</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+
+  {# ==========================================
+     Marquee Tools (nested)
+     ========================================== #}
+  <div class="tool-palette-group">
+    <div class="tool-palette-nested">
+      <button class="tool-palette-btn tool-palette-trigger" data-trigger="marquee" title="Marquee Selection (L)">
+        <i class="bi bi-dash-lg"></i>
+        <span class="tool-trigger-indicator">▼</span>
+      </button>
+      <div class="tool-palette-flyout" data-flyout="marquee">
+        <button class="tool-palette-btn tool-palette-nested-item" data-tool="marquee" title="Marquee Selection">
+          <i class="bi bi-dash-lg"></i>
+          <span>Marquee</span>
+        </button>
+        <button class="tool-palette-btn tool-palette-nested-item" data-tool="polygon-marquee" title="Polygon Marquee">
+          <i class="bi bi-pentagon"></i>
+          <span>Polygon</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+
+  {# ==========================================
+     Boolean Operations (nested)
+     ========================================== #}
+  <div class="tool-palette-group">
+    <div class="tool-palette-nested">
+      <button class="tool-palette-btn tool-palette-trigger" data-trigger="boolean" title="Boolean Operations">
+        <i class="bi bi-union"></i>
+        <span class="tool-trigger-indicator">▼</span>
+      </button>
+      <div class="tool-palette-flyout" data-flyout="boolean">
+        <button class="tool-palette-btn tool-palette-nested-item" data-tool="boolean-join" title="Boolean Join - Combine shapes">
+          <i class="bi bi-union"></i>
+          <span>Join</span>
+        </button>
+        <button class="tool-palette-btn tool-palette-nested-item" data-tool="boolean-weld" title="Weld Close Vertices">
+          <i class="bi bi-link-45deg"></i>
+          <span>Weld</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+
+  {# ==========================================
+     Shape Tools (nested)
+     Options exposed in Details panel:
+     - Circle: Radii
+     - Polygon: Number of sides
+     - All: Fill type, Fill colour, Fill icon
+     - Mode: Annotation/Inclusion/Exclusion
+     ========================================== #}
+  <div class="tool-palette-group">
+    <div class="tool-palette-nested">
+      <button class="tool-palette-btn tool-palette-trigger" data-trigger="shapes" title="Shapes (U)">
+        <i class="bi bi-square-fill"></i>
+        <span class="tool-trigger-indicator">▼</span>
+      </button>
+      <div class="tool-palette-flyout" data-flyout="shapes">
+        <button class="tool-palette-btn tool-palette-nested-item" data-tool="shape-square" title="Square">
+          <i class="bi bi-square-fill"></i>
+          <span>Square</span>
+        </button>
+        <button class="tool-palette-btn tool-palette-nested-item" data-tool="shape-rectangle" title="Rectangle">
+          <i class="bi bi-aspect-ratio"></i>
+          <span>Rectangle</span>
+        </button>
+        <button class="tool-palette-btn tool-palette-nested-item" data-tool="shape-ellipse" title="Ellipse / Circle">
+          <i class="bi bi-circle"></i>
+          <span>Ellipse</span>
+        </button>
+        <button class="tool-palette-btn tool-palette-nested-item" data-tool="shape-polygon" title="Polygon">
+          <i class="bi bi-hexagon"></i>
+          <span>Polygon</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+
+  {# ==========================================
+     Eraser Tool
+     ========================================== #}
+  <div class="tool-palette-group">
+    <button class="tool-palette-btn" data-tool="eraser" title="Eraser (E)">
+      <i class="bi bi-eraser"></i>
+    </button>
+  </div>
+
+
+  {# ==========================================
+     Fill Tool
+     Paints shapes a specific colour
+     ========================================== #}
+  <div class="tool-palette-group">
+    <button class="tool-palette-btn" data-tool="fill" title="Fill Tool - Paint shapes (F)">
+      <i class="bi bi-paint-bucket"></i>
+    </button>
+  </div>
+
+
+  {# ==========================================
+     Annotation / Text Tool
+     Options exposed in Details panel:
+     - Title
+     - Description
+     - Icon (dropdown list)
+     - Upload field (64x64 or 32x32)
+     ========================================== #}
+  <div class="tool-palette-group">
+    <button class="tool-palette-btn" data-tool="annotation" title="Annotation / Text (T)">
+      <i class="bi bi-chat-square-text"></i>
+    </button>
+  </div>
+
+
+  {# ==========================================
+     Picture Tool
+     Options exposed in Details panel:
+     - Upload file
+     - Size on map option
+     ========================================== #}
+  <div class="tool-palette-group">
+    <button class="tool-palette-btn" data-tool="picture" title="Picture - Place image on map">
+      <i class="bi bi-image"></i>
+    </button>
+  </div>
+
+
+  {# ==========================================
+     Line Tools (nested)
+     Options exposed in Details panel:
+     - Mode: Annotation/Inclusion/Exclusion
+     - Line spacing (checkbox for 100% solid)
+     - Line type: Straight/Curved
+     - Shape (Lofting)
+     - Fill type, Fill colour, Fill icon
+     ========================================== #}
+  <div class="tool-palette-group">
+    <div class="tool-palette-nested">
+      <button class="tool-palette-btn tool-palette-trigger" data-trigger="lines" title="Line Tools (P)">
+        <i class="bi bi-pencil"></i>
+        <span class="tool-trigger-indicator">▼</span>
+      </button>
+      <div class="tool-palette-flyout" data-flyout="lines">
+        <button class="tool-palette-btn tool-palette-nested-item" data-tool="line" title="Line Tool">
+          <i class="bi bi-pencil"></i>
+          <span>Straight</span>
+        </button>
+        <button class="tool-palette-btn tool-palette-nested-item" data-tool="line-curved" title="Curved Line / Bezier">
+          <i class="bi bi-bezier2"></i>
+          <span>Curved</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+
+  {# ==========================================
+     Navigation Tools
+     ========================================== #}
+  <div class="tool-palette-group">
+    <button class="tool-palette-btn" data-tool="hand" title="Hand / Pan (H)">
+      <i class="bi bi-hand-index"></i>
+    </button>
+  </div>
+
+
+  {# ==========================================
+     Magnification / Zoom
+     ========================================== #}
+  <div class="tool-palette-group" style="margin-top: auto;">
+    <button class="tool-palette-btn" data-tool="magnify" title="Magnification / Zoom (Z)">
+      <i class="bi bi-search"></i>
+    </button>
+    <button class="tool-palette-btn" data-tool="zoom-in" title="Zoom In (+)">
+      <i class="bi bi-zoom-in"></i>
+    </button>
+    <button class="tool-palette-btn" data-tool="zoom-out" title="Zoom Out (-)">
+      <i class="bi bi-zoom-out"></i>
+    </button>
+    <button class="tool-palette-btn" data-tool="zoom-fit" title="Fit to Screen (0)">
+      <i class="bi bi-fullscreen"></i>
+    </button>
+  </div>
+
+</aside>
+
+<script>
+  /**
+   * Main Tool Palette - Tool Selection Handler
+   *
+   * Each tool exposes specific options in the Details panel when selected.
+   * Tool options are defined in toolOptions object below.
+   */
+  (function() {
+    'use strict';
+
+    // Tool configuration - defines which options appear in Details panel
+    const toolOptions = {
+      'select': {
+        name: 'Select',
+        options: []
+      },
+      'move': {
+        name: 'Move',
+        options: ['snap-to-grid', 'constrain-axis']
+      },
+      'rotate': {
+        name: 'Rotate',
+        options: ['snap-angle', 'pivot-point']
+      },
+      'scale': {
+        name: 'Scale',
+        options: ['uniform-scale', 'snap-scale']
+      },
+      'mass-update': {
+        name: 'Mass Update',
+        options: ['filter-type', 'batch-properties']
+      },
+      'rect-select': {
+        name: 'Rectangle Select',
+        options: ['selection-mode']  // add, subtract, intersect
+      },
+      'ellipse-select': {
+        name: 'Ellipse Select',
+        options: ['selection-mode']
+      },
+      'marquee': {
+        name: 'Marquee',
+        options: ['selection-mode']
+      },
+      'polygon-marquee': {
+        name: 'Polygon Marquee',
+        options: ['selection-mode']
+      },
+      'boolean-join': {
+        name: 'Boolean Join',
+        options: ['join-mode']  // union, subtract, intersect
+      },
+      'boolean-weld': {
+        name: 'Weld Vertices',
+        options: ['weld-threshold']
+      },
+      'shape-square': {
+        name: 'Square',
+        options: ['shape-mode', 'fill-type', 'fill-colour', 'fill-icon']
+      },
+      'shape-rectangle': {
+        name: 'Rectangle',
+        options: ['shape-mode', 'fill-type', 'fill-colour', 'fill-icon']
+      },
+      'shape-ellipse': {
+        name: 'Ellipse / Circle',
+        options: ['shape-mode', 'circle-radii', 'fill-type', 'fill-colour', 'fill-icon']
+      },
+      'shape-polygon': {
+        name: 'Polygon',
+        options: ['shape-mode', 'polygon-sides', 'fill-type', 'fill-colour', 'fill-icon']
+      },
+      'eraser': {
+        name: 'Eraser',
+        options: ['eraser-size', 'eraser-mode']
+      },
+      'fill': {
+        name: 'Fill Tool',
+        options: ['fill-colour', 'fill-tolerance']
+      },
+      'annotation': {
+        name: 'Annotation / Text',
+        options: ['annotation-title', 'annotation-description', 'annotation-icon', 'annotation-upload']
+      },
+      'picture': {
+        name: 'Picture',
+        options: ['picture-upload', 'picture-size']
+      },
+      'line': {
+        name: 'Line Tool',
+        options: ['line-mode', 'line-spacing', 'line-type', 'line-shape', 'fill-type', 'fill-colour', 'fill-icon']
+      },
+      'line-curved': {
+        name: 'Curved Line',
+        options: ['line-mode', 'line-spacing', 'bezier-handles', 'line-shape', 'fill-type', 'fill-colour', 'fill-icon']
+      },
+      'hand': {
+        name: 'Hand / Pan',
+        options: []
+      },
+      'magnify': {
+        name: 'Magnification',
+        options: ['zoom-level']
+      }
+    };
+
+    // Shape modes for annotation/inclusion/exclusion
+    const shapeModes = [
+      { value: 'annotation', label: 'Annotation' },
+      { value: 'inclusion', label: 'Inclusion Zone' },
+      { value: 'exclusion', label: 'Exclusion Zone' }
+    ];
+
+    // Fill types
+    const fillTypes = [
+      { value: 'solid', label: 'Solid' },
+      { value: 'hatched', label: 'Hatched' },
+      { value: 'dotted', label: 'Dotted' },
+      { value: 'none', label: 'None / Outline Only' }
+    ];
+
+    // Line types
+    const lineTypes = [
+      { value: 'straight', label: 'Straight' },
+      { value: 'curved', label: 'Curved / Bezier' }
+    ];
+
+    document.addEventListener('DOMContentLoaded', function() {
+      const toolbar = document.getElementById('main-tool-palette');
+      if (!toolbar) return;
+
+      const LONG_PRESS_DURATION = 500; // milliseconds
+      let pressTimers = new Map();
+      let justOpenedFlyout = false; // Flag to prevent click from closing flyout immediately
+
+      // Handle tool button interactions
+      toolbar.addEventListener('mousedown', function(e) {
+        const trigger = e.target.closest('.tool-palette-trigger');
+        if (!trigger) return;
+
+        const nested = trigger.closest('.tool-palette-nested');
+        if (!nested) return;
+
+        e.preventDefault();
+
+        // Start long press timer
+        const timerId = setTimeout(() => {
+          // Close all other open flyouts
+          toolbar.querySelectorAll('.tool-palette-nested.is-open').forEach(n => {
+            if (n !== nested) {
+              n.classList.remove('is-open');
+            }
+          });
+
+          // Long press detected - show this flyout
+          nested.classList.add('is-open');
+          justOpenedFlyout = true; // Prevent the upcoming click from closing it
+          console.log('Long press detected - showing flyout');
+        }, LONG_PRESS_DURATION);
+
+        pressTimers.set(nested, timerId);
+      });
+
+      toolbar.addEventListener('mouseup', function(e) {
+        // If we just opened a flyout via long press, ignore this mouseup entirely
+        if (justOpenedFlyout) {
+          e.preventDefault();
+          e.stopPropagation();
+          return;
+        }
+
+        const trigger = e.target.closest('.tool-palette-trigger');
+        if (!trigger) return;
+
+        const nested = trigger.closest('.tool-palette-nested');
+        if (!nested) return;
+
+        // Clear the timer
+        const timerId = pressTimers.get(nested);
+        if (timerId) {
+          clearTimeout(timerId);
+          pressTimers.delete(nested);
+
+          // Timer was cleared = quick click (mouseup before long press duration)
+          // Activate the default tool for quick clicks
+          const defaultTool = nested.querySelector('[data-tool]');
+          if (defaultTool) {
+            activateTool(defaultTool, toolbar);
+          }
+        }
+        // If timer wasn't found, it means the long press fired and flyout is open
+        // Don't close it - just leave it open for the user to click a tool
+      });
+
+      toolbar.addEventListener('mouseleave', function(e) {
+        const trigger = e.target.closest('.tool-palette-trigger');
+        if (!trigger) return;
+
+        const nested = trigger.closest('.tool-palette-nested');
+        if (!nested) return;
+
+        // Clear timer if user moves away
+        const timerId = pressTimers.get(nested);
+        if (timerId) {
+          clearTimeout(timerId);
+          pressTimers.delete(nested);
+        }
+      });
+
+      // Handle nested item clicks
+      toolbar.addEventListener('click', function(e) {
+        const nestedItem = e.target.closest('.tool-palette-nested-item');
+        if (!nestedItem) return;
+
+        // Close all flyouts
+        toolbar.querySelectorAll('.tool-palette-nested.is-open').forEach(n => {
+          n.classList.remove('is-open');
+        });
+
+        // Activate the selected tool
+        activateTool(nestedItem, toolbar);
+      });
+
+      // Handle regular tool button clicks
+      toolbar.addEventListener('click', function(e) {
+        const btn = e.target.closest('.tool-palette-btn');
+        if (!btn) return;
+
+        // Skip if it's a trigger button or already handled by nested item handler
+        if (btn.classList.contains('tool-palette-trigger')) return;
+
+        const tool = btn.dataset.tool;
+        if (!tool) return;
+
+        // Close any open flyouts
+        toolbar.querySelectorAll('.tool-palette-nested.is-open').forEach(n => {
+          n.classList.remove('is-open');
+        });
+
+        activateTool(btn, toolbar);
+      });
+
+      // Close flyouts when clicking anywhere except inside the flyout itself
+      document.addEventListener('click', function(e) {
+        // Skip if we just opened a flyout via long press
+        if (justOpenedFlyout) {
+          justOpenedFlyout = false;
+          return;
+        }
+
+        const clickedInFlyout = e.target.closest('.tool-palette-flyout');
+
+        // Close all flyouts unless click was inside a flyout
+        if (!clickedInFlyout) {
+          toolbar.querySelectorAll('.tool-palette-nested.is-open').forEach(n => {
+            n.classList.remove('is-open');
+          });
+        }
+      });
+
+      function activateTool(btn, toolbar) {
+        const tool = btn.dataset.tool;
+        if (!tool) return;
+
+        // Handle zoom tools differently (no active state, immediate action)
+        if (tool === 'zoom-in' || tool === 'zoom-out' || tool === 'zoom-fit') {
+          console.log('Zoom action:', tool);
+          if (window.editorActions && window.editorActions[tool.replace('-', '')]) {
+            window.editorActions[tool.replace('-', '')]();
+          }
+          return;
+        }
+
+        // Remove active from all tool buttons (except zoom buttons)
+        toolbar.querySelectorAll('.tool-palette-btn:not(.tool-palette-trigger)').forEach(b => {
+          if (!['zoom-in', 'zoom-out', 'zoom-fit'].includes(b.dataset.tool)) {
+            b.classList.remove('is-active');
+          }
+        });
+
+        // Set this button as active
+        btn.classList.add('is-active');
+
+        // Update editor state
+        if (window.editorState) {
+          window.editorState.activeTool = tool;
+          window.editorState.toolOptions = toolOptions[tool] || { name: tool, options: [] };
+        }
+
+        // Dispatch tool change event for Details panel to update
+        const event = new CustomEvent('toolChange', {
+          detail: {
+            tool: tool,
+            config: toolOptions[tool],
+            shapeModes: shapeModes,
+            fillTypes: fillTypes,
+            lineTypes: lineTypes
+          },
+          bubbles: true
+        });
+        document.dispatchEvent(event);
+
+        console.log('Tool selected:', tool, toolOptions[tool]);
+      }
+    });
+
+    // Expose for external access
+    window.mainToolPalette = {
+      toolOptions: toolOptions,
+      shapeModes: shapeModes,
+      fillTypes: fillTypes,
+      lineTypes: lineTypes
+    };
+
+  })();
+</script>

@@ -1,0 +1,68 @@
+{
+  "menu_id": "window",
+  "label": "Window",
+  "active": true,
+  "entries": [
+    {
+      "type": "item",
+      "id": "window_outliner",
+      "label": "Outliner",
+      "icon": "bi-list-nested",
+      "callback": "editorActions.toggleWindow",
+      "callback_args": {"windowId": "outliner"},
+      "active": true,
+      "visible_to": ["authenticated"],
+      "description": "Show/hide Outliner panel"
+    },
+    {
+      "type": "item",
+      "id": "window_details",
+      "label": "Details",
+      "icon": "bi-sliders",
+      "callback": "editorActions.toggleWindow",
+      "callback_args": {"windowId": "details"},
+      "active": true,
+      "visible_to": ["authenticated"],
+      "description": "Show/hide Details panel"
+    },
+    {
+      "type": "item",
+      "id": "window_point_plotter",
+      "label": "Point Plotter",
+      "icon": "bi-pin-map",
+      "callback": "editorActions.toggleWindow",
+      "callback_args": {"windowId": "point_plotter"},
+      "active": true,
+      "visible_to": ["authenticated"],
+      "description": "Show/hide Point Plotter panel"
+    },
+    {
+      "type": "separator",
+      "visible_to": ["authenticated"]
+    },
+    {
+      "type": "item",
+      "id": "window_reset_layout",
+      "label": "Reset Layout",
+      "icon": "bi-layout-wtf",
+      "callback": "editorActions.resetLayout",
+      "active": true,
+      "visible_to": ["authenticated"],
+      "description": "Reset all panels to default positions"
+    },
+    {
+      "type": "separator",
+      "visible_to": ["authenticated"]
+    },
+    {
+      "type": "item",
+      "id": "window_fullscreen",
+      "label": "Toggle Fullscreen",
+      "icon": "bi-fullscreen",
+      "callback": "editorActions.toggleFullscreen",
+      "shortcut": "F11",
+      "active": true,
+      "visible_to": ["authenticated"]
+    }
+  ]
+}
