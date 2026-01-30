@@ -74,10 +74,11 @@ class PillNav {
     // Get the active link's position relative to the container
     const containerRect = this.container.getBoundingClientRect();
     const linkRect = activeLink.getBoundingClientRect();
-    const padding = parseFloat(getComputedStyle(this.container).getPropertyValue('--pill-padding')) || 4;
 
-    // Calculate offset from the left edge of the container (accounting for padding)
-    const offset = linkRect.left - containerRect.left - padding;
+    // The indicator starts at left: var(--pill-padding) in CSS
+    // So offset is just the distance from container left to link left
+    // No need to subtract padding since CSS already positions at padding
+    const offset = linkRect.left - containerRect.left;
     const width = linkRect.width;
 
     // Set CSS custom properties for the sliding indicator
