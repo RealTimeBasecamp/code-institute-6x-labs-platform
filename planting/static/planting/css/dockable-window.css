@@ -378,3 +378,166 @@
 .window-section.is-collapsed .window-section-content {
   display: none;
 }
+
+/* ============================================
+   Dock Preview Overlay
+   Shows where a panel will dock when released
+   ============================================ */
+.dock-preview {
+  position: fixed;
+  background: var(--primary-color, var(--bs-primary));
+  opacity: 0.4;
+  pointer-events: none;
+  z-index: 9999;
+  border-radius: 2px;
+  transition: all 0.1s ease;
+}
+
+.dock-preview[data-side="left"],
+.dock-preview[data-side="right"] {
+  width: 8px;
+}
+
+.dock-preview[data-side="top"],
+.dock-preview[data-side="bottom"] {
+  height: 8px;
+}
+
+/* ============================================
+   Floating Window State
+   Windows that are undocked and freely movable
+   ============================================ */
+.dockable-window.is-floating {
+  position: fixed;
+  z-index: 500;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.35),
+              0 0 0 1px var(--bs-border-color);
+  max-height: 80vh;
+  resize: both;
+  overflow: auto;
+}
+
+.dockable-window.is-floating .dockable-window-header {
+  cursor: move;
+}
+
+/* Floating window size constraints */
+.dockable-window.is-floating.window-side-panel {
+  min-width: 250px;
+  max-width: 500px;
+  min-height: 200px;
+}
+
+/* ============================================
+   Docked Window State
+   Windows snapped to the layout
+   ============================================ */
+.dockable-window.is-docked {
+  position: relative;
+}
+
+/* ============================================
+   Panel Toggle Toolbar - Right Side
+   Accordion-style buttons to toggle panels
+   ============================================ */
+.panel-toggle-toolbar {
+  display: flex;
+  flex-direction: column;
+  width: 36px;
+  min-width: 36px;
+  padding: 8px 2px;
+  background: linear-gradient(270deg,
+    color-mix(in srgb, var(--bs-tertiary-bg) 100%, transparent) 0%,
+    color-mix(in srgb, var(--bs-tertiary-bg) 90%, var(--bs-body-bg) 10%) 100%
+  );
+  border-left: 1px solid var(--bs-border-color);
+  gap: 2px;
+  user-select: none;
+  z-index: 99;
+  flex-shrink: 0;
+}
+
+/* Panel Toggle Button */
+.panel-toggle-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  min-height: 48px;
+  padding: 6px 2px;
+  border: none;
+  background: transparent;
+  color: var(--bs-secondary-color);
+  font-size: 14px;
+  cursor: pointer;
+  border-radius: 4px;
+  transition: all 0.15s ease;
+  gap: 4px;
+}
+
+.panel-toggle-btn:hover {
+  background: var(--bs-secondary-bg);
+  color: var(--bs-body-color);
+}
+
+.panel-toggle-btn.is-active {
+  background: color-mix(in srgb, var(--primary-color, var(--bs-primary)) 25%, transparent);
+  color: var(--primary-color, var(--bs-primary));
+}
+
+.panel-toggle-btn.is-active:hover {
+  background: color-mix(in srgb, var(--primary-color, var(--bs-primary)) 35%, transparent);
+}
+
+.panel-toggle-btn i {
+  font-size: 16px;
+}
+
+/* Vertical label text */
+.panel-toggle-label {
+  writing-mode: vertical-rl;
+  text-orientation: mixed;
+  transform: rotate(180deg);
+  font-size: 9px;
+  font-weight: 500;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  white-space: nowrap;
+  max-height: 60px;
+  overflow: hidden;
+}
+
+/* ============================================
+   Dragging State Enhancements
+   ============================================ */
+.dockable-window.is-dragging {
+  opacity: 0.85;
+  cursor: grabbing !important;
+  z-index: 1000 !important;
+  box-shadow: 0 12px 48px rgba(0, 0, 0, 0.4);
+}
+
+.dockable-window.is-dragging * {
+  cursor: grabbing !important;
+}
+
+/* ============================================
+   Dock Container - Groups docked panels
+   ============================================ */
+.dock-container {
+  display: flex;
+  flex-direction: row;
+}
+
+.dock-container.dock-vertical {
+  flex-direction: column;
+}
+
+/* ============================================
+   Window visibility when closed via toolbar
+   ============================================ */
+.dockable-window[style*="display: none"] + .dock-container,
+.dockable-window[style*="display:none"] + .dock-container {
+  /* Ensure layout adjusts when windows are hidden */
+}
