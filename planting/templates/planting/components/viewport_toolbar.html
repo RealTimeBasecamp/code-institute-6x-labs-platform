@@ -15,99 +15,40 @@
 
 <div class="viewport-settings-toolbar" id="viewport-settings-toolbar" role="toolbar" aria-label="Viewport settings">
 
-  {# ==========================================
-     Transform Tools
-     ========================================== #}
-  <div class="vp-toolbar-section">
-    <button class="vp-toolbar-btn" data-action="rotate" title="Rotate (R)">
-      <i class="bi bi-arrow-repeat"></i>
-    </button>
-    <button class="vp-toolbar-btn" data-action="scale" title="Scale (S)">
-      <i class="bi bi-arrows-angle-expand"></i>
-    </button>
+  {# =============================
+     Left-aligned: Transform Tools
+     ============================= #}
+  <div class="vp-toolbar-section vp-align-left">
+    <button class="vp-toolbar-btn" data-action="move" title="Move"><i class="bi bi-arrow-up-left"></i></button>
+    <button class="vp-toolbar-btn" data-action="rotate" title="Rotate"><i class="bi bi-arrow-repeat"></i></button>
+    <button class="vp-toolbar-btn" data-action="scale" title="Scale"><i class="bi bi-arrows-angle-expand"></i></button>
   </div>
 
-  <div class="vp-toolbar-divider"></div>
+  <div class="vp-toolbar-spacer vp-gap-big"></div>
 
-  {# ==========================================
-     Snapping Controls
-     ========================================== #}
-  <div class="vp-toolbar-section">
-    <button class="vp-toolbar-btn vp-toggle is-active" data-toggle="snap" title="Toggle Snapping (Shift+S)">
-      <i class="bi bi-magnet"></i>
-    </button>
+  <div class="vp-toolbar-section vp-align-center">
+    <button class="vp-toolbar-btn vp-toggle" data-toggle="location-snap" title="Location Snap"><i class="bi bi-magnet"></i></button>
     <div class="vp-toolbar-dropdown">
-      <button class="vp-toolbar-btn vp-dropdown-trigger" data-dropdown="snap-settings" title="Snap Settings">
-        <i class="bi bi-gear"></i>
-        <i class="bi bi-chevron-down vp-dropdown-arrow"></i>
-      </button>
-      <div class="vp-dropdown-menu" data-menu="snap-settings">
-        <label class="vp-dropdown-item vp-checkbox">
-          <input type="checkbox" data-setting="snap-to-grid" checked>
-          <span>Snap to Grid</span>
-        </label>
-        <label class="vp-dropdown-item vp-checkbox">
-          <input type="checkbox" data-setting="snap-to-objects">
-          <span>Snap to Objects</span>
-        </label>
-        <label class="vp-dropdown-item vp-checkbox">
-          <input type="checkbox" data-setting="snap-to-vertices">
-          <span>Snap to Vertices</span>
-        </label>
-        <label class="vp-dropdown-item vp-checkbox">
-          <input type="checkbox" data-setting="snap-to-edges">
-          <span>Snap to Edges</span>
-        </label>
+      <button class="vp-toolbar-btn vp-dropdown-trigger" data-dropdown="location-snap-settings" title="Location Snap Settings"><i class="bi bi-gear"></i></button>
+      <div class="vp-dropdown-menu" data-menu="location-snap-settings">
+        <label class="vp-dropdown-item vp-checkbox"><input type="checkbox" data-setting="snap-to-grid"><span>Grid</span></label>
+        <label class="vp-dropdown-item vp-checkbox"><input type="checkbox" data-setting="snap-to-objects"><span>Objects</span></label>
       </div>
     </div>
-  </div>
-
-  <div class="vp-toolbar-divider"></div>
-
-  {# ==========================================
-     Grid Controls
-     ========================================== #}
-  <div class="vp-toolbar-section">
-    <button class="vp-toolbar-btn vp-toggle is-active" data-toggle="grid-visible" title="Toggle Grid (G)">
-      <i class="bi bi-grid-3x3"></i>
-    </button>
+    <button class="vp-toolbar-btn vp-toggle" data-toggle="rotation-snap" title="Rotation Snap"><i class="bi bi-rulers"></i></button>
     <div class="vp-toolbar-dropdown">
-      <button class="vp-toolbar-btn vp-dropdown-trigger" data-dropdown="grid-size" title="Grid Size">
-        <span class="vp-btn-label">1m</span>
-        <i class="bi bi-chevron-down vp-dropdown-arrow"></i>
-      </button>
-      <div class="vp-dropdown-menu" data-menu="grid-size">
-        <button class="vp-dropdown-item" data-value="0.5">0.5m</button>
-        <button class="vp-dropdown-item is-selected" data-value="1">1m</button>
-        <button class="vp-dropdown-item" data-value="2">2m</button>
-        <button class="vp-dropdown-item" data-value="5">5m</button>
-        <button class="vp-dropdown-item" data-value="10">10m</button>
-        <button class="vp-dropdown-item" data-value="25">25m</button>
-        <button class="vp-dropdown-item" data-value="50">50m</button>
-        <button class="vp-dropdown-item" data-value="100">100m</button>
-      </div>
-    </div>
-    <div class="vp-toolbar-dropdown">
-      <button class="vp-toolbar-btn vp-dropdown-trigger" data-dropdown="snap-angle" title="Angle Snap">
-        <span class="vp-btn-label">15°</span>
-        <i class="bi bi-chevron-down vp-dropdown-arrow"></i>
-      </button>
-      <div class="vp-dropdown-menu" data-menu="snap-angle">
+      <button class="vp-toolbar-btn vp-dropdown-trigger" data-dropdown="rotation-snap-settings" title="Rotation Snap Settings"><span>10°</span></button>
+      <div class="vp-dropdown-menu" data-menu="rotation-snap-settings">
         <button class="vp-dropdown-item" data-value="5">5°</button>
-        <button class="vp-dropdown-item" data-value="10">10°</button>
-        <button class="vp-dropdown-item is-selected" data-value="15">15°</button>
+        <button class="vp-dropdown-item is-selected" data-value="10">10°</button>
+        <button class="vp-dropdown-item" data-value="15">15°</button>
         <button class="vp-dropdown-item" data-value="30">30°</button>
-        <button class="vp-dropdown-item" data-value="45">45°</button>
-        <button class="vp-dropdown-item" data-value="90">90°</button>
       </div>
     </div>
+    <button class="vp-toolbar-btn vp-toggle" data-toggle="scale-snap" title="Scale Snap"><i class="bi bi-aspect-ratio"></i></button>
     <div class="vp-toolbar-dropdown">
-      <button class="vp-toolbar-btn vp-dropdown-trigger" data-dropdown="snap-scale" title="Scale Snap">
-        <span class="vp-btn-label">0.25x</span>
-        <i class="bi bi-chevron-down vp-dropdown-arrow"></i>
-      </button>
-      <div class="vp-dropdown-menu" data-menu="snap-scale">
-        <button class="vp-dropdown-item" data-value="0.1">0.1x</button>
+      <button class="vp-toolbar-btn vp-dropdown-trigger" data-dropdown="scale-snap-settings" title="Scale Snap Settings"><span>0.25x</span></button>
+      <div class="vp-dropdown-menu" data-menu="scale-snap-settings">
         <button class="vp-dropdown-item is-selected" data-value="0.25">0.25x</button>
         <button class="vp-dropdown-item" data-value="0.5">0.5x</button>
         <button class="vp-dropdown-item" data-value="1">1x</button>
@@ -115,135 +56,38 @@
     </div>
   </div>
 
-  <div class="vp-toolbar-divider"></div>
-
-  {# ==========================================
-     Camera Controls
-     ========================================== #}
-  <div class="vp-toolbar-section">
+  <div class="vp-toolbar-section vp-align-right">
     <div class="vp-toolbar-dropdown">
-      <button class="vp-toolbar-btn vp-dropdown-trigger" data-dropdown="camera-mode" title="Camera Mode">
-        <i class="bi bi-box"></i>
-        <span class="vp-btn-label">Perspective</span>
-        <i class="bi bi-chevron-down vp-dropdown-arrow"></i>
-      </button>
+      <button class="vp-toolbar-btn vp-dropdown-trigger" data-dropdown="camera-mode" title="Camera Mode"><i class="bi bi-camera-video"></i><span class="vp-btn-label">Perspective</span></button>
       <div class="vp-dropdown-menu" data-menu="camera-mode">
-        <button class="vp-dropdown-item is-selected" data-value="perspective">
-          <i class="bi bi-box"></i>
-          <span>Perspective</span>
-        </button>
-        <button class="vp-dropdown-item" data-value="orthographic">
-          <i class="bi bi-square"></i>
-          <span>Orthographic</span>
-        </button>
-        <button class="vp-dropdown-item" data-value="top">
-          <i class="bi bi-arrow-down-square"></i>
-          <span>Top Down</span>
-        </button>
+        <button class="vp-dropdown-item is-selected" data-value="perspective"><i class="bi bi-camera-video"></i><span>Perspective</span></button>
+        <button class="vp-dropdown-item" data-value="orthographic"><i class="bi bi-square"></i><span>Orthographic</span></button>
       </div>
     </div>
-    <div class="vp-toolbar-slider">
-      <i class="bi bi-speedometer2" title="Camera Speed"></i>
-      <input type="range" min="1" max="10" value="5" data-setting="camera-speed" title="Camera Speed">
+    <div class="vp-toolbar-flyout">
+      <button class="vp-toolbar-btn vp-flyout-trigger" title="Camera Speed"><i class="bi bi-speedometer2"></i></button>
+      <div class="vp-flyout-menu"><input type="range" min="1" max="10" value="3.5" data-setting="camera-speed" title="Camera Speed"></div>
     </div>
-  </div>
-
-  <div class="vp-toolbar-divider"></div>
-
-  {# ==========================================
-     Render Mode Controls
-     ========================================== #}
-  <div class="vp-toolbar-section">
-    <div class="vp-toolbar-dropdown">
-      <button class="vp-toolbar-btn vp-dropdown-trigger" data-dropdown="render-mode" title="Render Mode">
-        <i class="bi bi-map"></i>
-        <span class="vp-btn-label">Default</span>
-        <i class="bi bi-chevron-down vp-dropdown-arrow"></i>
-      </button>
-      <div class="vp-dropdown-menu" data-menu="render-mode">
-        <button class="vp-dropdown-item is-selected" data-value="default">
-          <i class="bi bi-map"></i>
-          <span>Default</span>
-        </button>
-        <button class="vp-dropdown-item" data-value="satellite">
-          <i class="bi bi-globe"></i>
-          <span>Satellite</span>
-        </button>
-        <button class="vp-dropdown-item" data-value="terrain">
-          <i class="bi bi-mountains"></i>
-          <span>Terrain</span>
-        </button>
-        <button class="vp-dropdown-item" data-value="wireframe">
-          <i class="bi bi-grid-3x3-gap"></i>
-          <span>Wireframe</span>
-        </button>
-        <button class="vp-dropdown-item" data-value="zones-only">
-          <i class="bi bi-layers"></i>
-          <span>Zones Only</span>
-        </button>
+    <div class="vp-toolbar-spacer vp-gap-small"></div>
+    <div class="vp-toolbar-flyout">
+      <button class="vp-toolbar-btn vp-flyout-trigger" title="Render Mode"><i class="bi bi-circle"></i></button>
+      <div class="vp-flyout-menu vp-circles-inner-shading">
+        <button class="vp-flyout-item is-selected" data-value="lit"><i class="bi bi-circle"></i></button>
+        <button class="vp-flyout-item" data-value="wireframe"><i class="bi bi-grid-3x3-gap"></i></button>
       </div>
     </div>
-    <div class="vp-toolbar-dropdown">
-      <button class="vp-toolbar-btn vp-dropdown-trigger" data-dropdown="lighting-mode" title="Lighting Mode">
-        <i class="bi bi-sun"></i>
-        <i class="bi bi-chevron-down vp-dropdown-arrow"></i>
-      </button>
-      <div class="vp-dropdown-menu" data-menu="lighting-mode">
-        <button class="vp-dropdown-item is-selected" data-value="default">
-          <span>Default</span>
-        </button>
-        <button class="vp-dropdown-item" data-value="shadows">
-          <span>Show Shadows</span>
-        </button>
-        <button class="vp-dropdown-item" data-value="sun-path">
-          <span>Sun Path</span>
-        </button>
-        <button class="vp-dropdown-item" data-value="flat">
-          <span>Flat (No Lighting)</span>
-        </button>
+    <div class="vp-toolbar-flyout">
+      <button class="vp-toolbar-btn vp-flyout-trigger" title="Visibility"><i class="bi bi-eye"></i></button>
+      <div class="vp-flyout-menu">
+        <button class="vp-flyout-item vp-toggle" data-toggle="show-labels" title="Labels"><i class="bi bi-tag"></i></button>
+        <button class="vp-flyout-item vp-toggle" data-toggle="show-stats" title="Stats"><i class="bi bi-bar-chart"></i></button>
       </div>
     </div>
-  </div>
-
-  <div class="vp-toolbar-divider"></div>
-
-  {# ==========================================
-     View Options
-     ========================================== #}
-  <div class="vp-toolbar-section">
-    <button class="vp-toolbar-btn vp-toggle is-active" data-toggle="show-labels" title="Show Labels">
-      <i class="bi bi-tag"></i>
-    </button>
-    <button class="vp-toolbar-btn vp-toggle" data-toggle="show-stats" title="Show Statistics">
-      <i class="bi bi-bar-chart"></i>
-    </button>
-    <button class="vp-toolbar-btn vp-toggle is-active" data-toggle="show-coordinates" title="Show Coordinates">
-      <i class="bi bi-geo-alt"></i>
-    </button>
-  </div>
-
-  <div class="vp-toolbar-divider"></div>
-
-  {# ==========================================
-     Coordinate System
-     ========================================== #}
-  <div class="vp-toolbar-section">
-    <div class="vp-button-group">
-      <button class="vp-toolbar-btn vp-group-btn is-active" data-group="coord-system" data-value="world" title="World Coordinates">
-        <i class="bi bi-globe2"></i>
-      </button>
-      <button class="vp-toolbar-btn vp-group-btn" data-group="coord-system" data-value="local" title="Local Coordinates">
-        <i class="bi bi-bounding-box"></i>
-      </button>
+    <div class="vp-toolbar-flyout">
+      <button class="vp-toolbar-btn vp-flyout-trigger" title="Settings"><i class="bi bi-gear"></i></button>
+      <div class="vp-flyout-menu"><span>Settings</span></div>
     </div>
-    <div class="vp-button-group">
-      <button class="vp-toolbar-btn vp-group-btn is-active" data-group="pivot-mode" data-value="center" title="Center Pivot">
-        <i class="bi bi-bullseye"></i>
-      </button>
-      <button class="vp-toolbar-btn vp-group-btn" data-group="pivot-mode" data-value="origin" title="Origin Pivot">
-        <i class="bi bi-crosshair"></i>
-      </button>
-    </div>
+    <button class="vp-toolbar-btn" data-action="four-grid" title="4x Grid"><i class="bi bi-grid-4x4"></i></button>
   </div>
 
 </div>

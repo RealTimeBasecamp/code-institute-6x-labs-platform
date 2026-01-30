@@ -22,20 +22,6 @@
     {# Main workspace with dockable panels #}
     <div id="workspace-panels" class="editor-panels">
 
-      {# Center Panel - Viewport (always visible, no close button) #}
-      <div class="dockable-window window-viewport" id="window-viewport" data-window-id="viewport">
-        <div class="dockable-window-header" data-drag-handle>
-          <div class="window-header-left">
-            <i class="bi bi-display window-icon"></i>
-            <span class="window-title">Viewport</span>
-          </div>
-        </div>
-        {# Viewport Settings Toolbar - horizontal bar above the map #}
-        {% include 'planting/components/viewport_toolbar.html' %}
-        <div class="dockable-window-content">
-          {% include 'planting/interactive_map.html' %}
-        </div>
-      </div>
       {# Left Panel - Outliner (closeable, respawn via Window menu) #}
       <div class="dockable-window window-side-panel" id="window-outliner" data-window-id="outliner">
         <div class="dockable-window-header" data-drag-handle>
@@ -54,6 +40,21 @@
         </div>
         {# Resize handles #}
         <div class="resize-handle resize-handle-e" data-resize="e"></div>
+      </div>
+
+      {# Center Panel - Viewport (always visible, no close button) #}
+      <div class="dockable-window window-viewport" id="window-viewport" data-window-id="viewport">
+        <div class="dockable-window-header" data-drag-handle>
+          <div class="window-header-left">
+            <i class="bi bi-display window-icon"></i>
+            <span class="window-title">Viewport</span>
+          </div>
+        </div>
+        {# Viewport Settings Toolbar - horizontal bar above the map #}
+        {% include 'planting/components/viewport_toolbar.html' %}
+        <div class="dockable-window-content">
+          {% include 'planting/interactive_map.html' %}
+        </div>
       </div>
 
       {# Right Panel - Details (can be closed, reopen via Window menu) #}
@@ -80,7 +81,7 @@
       <div class="dockable-window window-side-panel" id="window-point-plotter" data-window-id="point-plotter">
         <div class="dockable-window-header" data-drag-handle>
           <div class="window-header-left">
-            <i class="bi bi-list-nested window-icon"></i>
+            <i class="bi bi-geo-alt window-icon"></i>
             <span class="window-title">Point Plotter</span>
           </div>
           <div class="window-header-controls">
@@ -96,7 +97,30 @@
         <div class="resize-handle resize-handle-e" data-resize="e"></div>
       </div>
 
+      
+      {# Final Panel - Species Mixer (closeable, respawn via Window menu) #}
+      <div class="dockable-window window-side-panel" id="window-species-mixer" data-window-id="species-mixer">
+        <div class="dockable-window-header" data-drag-handle>
+          <div class="window-header-left">
+            <i class="bi bi-shuffle window-icon"></i>
+            <span class="window-title">Species Mixer</span>
+          </div>
+          <div class="window-header-controls">
+            <button class="window-control-btn window-control-close" data-action="close" title="Close">
+              <i class="bi bi-x"></i>
+            </button>
+          </div>
+        </div>
+        <div class="dockable-window-content">
+          {% include 'planting/components/species_mixer.html' with project=project %}
+        </div>
+        {# Resize handles #}
+        <div class="resize-handle resize-handle-e" data-resize="e"></div>
+      </div>
     </div>
+
+    {# Panel Toggle Toolbar - RIGHT (quick access to panels) #}
+    {% include 'planting/components/panel_toolbar.html' %}
   </div>
 </div>
 

@@ -118,21 +118,16 @@
 
 
 <div class="card p-4">
-  {% include "planting/interactive_map.html" with site_rows=site_rows site_bounds_rows=site_bounds_rows %}
+  {% include "planting/interactive_map_minimal.html" with site_rows=site_rows site_bounds_rows=site_bounds_rows %}
 </div>
 
-<div class="container d-flex justify-content-center mt-4">
-<ul class="nav nav-pills" role="tablist">
-  <li class="nav-item" role="presentation">
-    <a class="nav-link active" id="project-info-tab" data-bs-toggle="tab" href="#project-info" role="tab" aria-controls="project-info" aria-selected="true">Project Information</a>
-  </li>
-  <li class="nav-item" role="presentation">
-    <a class="nav-link" id="project-breakdown-tab" data-bs-toggle="tab" href="#project-breakdown" role="tab" aria-controls="project-breakdown" aria-selected="false">Project Breakdown</a>
-  </li>
-</ul>
+{% load ui_tags %}
+<div class="container mt-4">
+  {% make_tabs 'project-info:Project Information,project-breakdown:Project Breakdown' as project_tabs %}
+  {% include 'components/nav_pills.html' with tabs=project_tabs id='project-nav' %}
 </div>
 <div class="tab-content mt-4">
-  <div class="tab-pane fade show active" id="project-info" role="tabpanel" aria-labelledby="project-info-tab">
+  <div class="tab-pane fade show active" id="tab-project-info" role="tabpanel" aria-labelledby="project-info-tab">
     <div class="d-flex flex-column gap-4">
       {% if project %}
           {% for group in card_groups %}
@@ -151,7 +146,7 @@
     </div>
   </div>
 
-  <div class="tab-pane fade" id="project-breakdown" role="tabpanel" aria-labelledby="project-breakdown-tab">
+  <div class="tab-pane fade" id="tab-project-breakdown" role="tabpanel" aria-labelledby="project-breakdown-tab">
     <div class="container-fluid dashboard-container">
       {# Data element for JavaScript #}
       <div id="project-breakdown-data"

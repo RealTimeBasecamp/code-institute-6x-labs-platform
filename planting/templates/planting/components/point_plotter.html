@@ -3,165 +3,297 @@
   Controls for the planting algorithm and point generation
 
   Usage:
-  {% include 'planting/components/panel_point_plotter.html' with project=project %}
+  {% include 'planting/components/point_plotter.html' with project=project %}
 
   This panel:
-  - Shows planting algorithm controls
+  - Shows planting algorithm controls (Simple and Advanced modes)
   - Allows configuration of point generation parameters
   - Displays generation progress and statistics
   - Provides manual point placement and editing tools
 #}
+{% load ui_tags %}
 
-<div class="window-section">
-  <div class="window-section-header" data-section="plotter-algorithm">
-    <i class="bi bi-chevron-down"></i>
-    <span>Algorithm</span>
-  </div>
-  <div class="window-section-content">
-    <div class="window-property-grid">
-      <div class="window-property-row">
-        <span class="window-property-label">Algorithm Type</span>
-        <div class="window-property-value">
-          <select id="plotter-algorithm-type">
-            <option value="uniform">Uniform Grid</option>
-            <option value="random">Random Distribution</option>
-            <option value="poisson">Poisson Disk Sampling</option>
-            <option value="cluster">Clustered</option>
-            <option value="manual">Manual Placement</option>
-          </select>
-        </div>
+{% make_tabs 'simple:Simple,advanced:Advanced' as plotter_tabs  %}
+{% include 'components/nav_pills.html' with tabs=plotter_tabs id='plotter-mode' %}
+
+<div class="tab-content plotter-tab-content">
+
+    {# ============================================
+       SIMPLE MODE
+       ============================================ #}
+    <div class="tab-pane fade show active" id="tab-simple" role="tabpanel" aria-labelledby="plotter-mode-simple-tab">
+      <div class="plotter-simple-empty" style="padding: 20px; text-align: center; color: var(--bs-secondary-color);">
+        <i class="bi bi-info-circle" style="font-size: 24px; margin-bottom: 8px; display: block;"></i>
+        <p style="margin: 0; font-size: 0.875rem;">Simple mode coming soon</p>
       </div>
-      <div class="window-property-row">
-        <span class="window-property-label">Point Spacing</span>
-        <div class="window-property-value">
-          <input type="number" id="plotter-point-spacing" value="5.00" min="0.5" step="0.5">
-          <span class="property-unit">m</span>
-        </div>
+    </div>
+
+    {# ============================================
+       ADVANCED MODE
+       ============================================ #}
+    <div class="tab-pane fade" id="tab-advanced" role="tabpanel" aria-labelledby="plotter-mode-advanced-tab">
+
+    {# Algorithm Section #}
+    <div class="window-section">
+      <div class="window-section-header" data-section="plotter-algorithm">
+        <i class="bi bi-chevron-down"></i>
+        <span>Algorithm</span>
       </div>
-      <div class="window-property-row">
-        <span class="window-property-label">Randomness</span>
-        <div class="window-property-value">
-          <input type="range" id="plotter-randomness" value="0" min="0" max="100" step="5">
-          <span id="plotter-randomness-value">0%</span>
+      <div class="window-section-content">
+        <div class="window-property-grid">
+          <div class="window-property-row">
+            <span class="window-property-label">Algorithm Type</span>
+            <div class="window-property-value">
+              <select id="plotter-algorithm-type">
+                <option value="uniform">Uniform Grid</option>
+                <option value="random">Random Distribution</option>
+                <option value="poisson">Poisson Disk Sampling</option>
+                <option value="cluster">Clustered</option>
+                <option value="manual">Manual Placement</option>
+              </select>
+            </div>
+          </div>
+          <div class="window-property-row">
+            <span class="window-property-label">Point Spacing</span>
+            <div class="window-property-value">
+              <input type="number" id="plotter-point-spacing" value="5.00" min="0.5" step="0.5">
+              <span class="property-unit">m</span>
+            </div>
+          </div>
+          <div class="window-property-row">
+            <span class="window-property-label">Randomness</span>
+            <div class="window-property-value">
+              <input type="range" id="plotter-randomness" value="0" min="0" max="100" step="5">
+              <span id="plotter-randomness-value">0%</span>
+            </div>
+          </div>
         </div>
       </div>
     </div>
-  </div>
-</div>
 
-<div class="window-section">
-  <div class="window-section-header" data-section="plotter-constraints">
-    <i class="bi bi-chevron-down"></i>
-    <span>Constraints</span>
-  </div>
-  <div class="window-section-content">
-    <div class="window-property-grid">
-      <div class="window-property-row">
-        <span class="window-property-label">Min Distance from Edge</span>
-        <div class="window-property-value">
-          <input type="number" id="plotter-edge-distance" value="1.00" min="0" step="0.5">
-          <span class="property-unit">m</span>
-        </div>
+    {# Macro Settings (Expandable) #}
+    <div class="window-section">
+      <div class="window-section-header" data-section="plotter-macro">
+        <i class="bi bi-chevron-down"></i>
+        <span>Macro Settings</span>
       </div>
-      <div class="window-property-row">
-        <span class="window-property-label">Respect Existing Points</span>
-        <div class="window-property-value">
-          <input type="checkbox" id="plotter-respect-existing" checked>
-        </div>
-      </div>
-      <div class="window-property-row">
-        <span class="window-property-label">Avoid Obstacles</span>
-        <div class="window-property-value">
-          <input type="checkbox" id="plotter-avoid-obstacles" checked>
+      <div class="window-section-content">
+        <div class="window-property-grid">
+          <div class="window-property-row">
+            <span class="window-property-label">Default Species</span>
+            <div class="window-property-value">
+              <select id="plotter-default-species">
+                <option value="">-- None --</option>
+                <option value="oak">Oak Tree</option>
+                <option value="maple">Maple Tree</option>
+                <option value="birch">Birch Tree</option>
+                <option value="pine">Pine Tree</option>
+                <option value="spruce">Spruce Tree</option>
+                <option value="ash">Ash Tree</option>
+              </select>
+            </div>
+          </div>
+          <div class="window-property-row">
+            <span class="window-property-label">Planting Year</span>
+            <div class="window-property-value">
+              <input type="number" id="plotter-planting-year" value="2026" min="2020" max="2100">
+            </div>
+          </div>
+          <div class="window-property-row">
+            <span class="window-property-label">Maintenance Cycle (years)</span>
+            <div class="window-property-value">
+              <input type="number" id="plotter-maintenance-cycle" value="5" min="1" max="50">
+            </div>
+          </div>
+
+          {# Glades Settings #}
+          <div class="window-property-row">
+            <span class="window-property-label">
+              Autogenerate Glades
+              <span class="property-badge" title="Recommended">Recommended</span>
+            </span>
+            <div class="window-property-value">
+              <input type="checkbox" id="plotter-autogenerate-glades" checked>
+            </div>
+          </div>
+          <div class="window-property-row">
+            <span class="window-property-label">Glades Priority Weight</span>
+            <div class="window-property-value">
+              <div class="property-slider-container">
+                <input type="range" id="plotter-glades-priority" value="0.5" min="0" max="1" step="0.1" class="property-slider">
+                <span id="plotter-glades-priority-value">0.5</span>
+              </div>
+            </div>
+          </div>
+
+          {# Rides Settings #}
+          <div class="window-property-row">
+            <span class="window-property-label">
+              Autogenerate Rides
+              <span class="property-badge" title="Recommended">Recommended</span>
+            </span>
+            <div class="window-property-value">
+              <input type="checkbox" id="plotter-autogenerate-rides" checked>
+            </div>
+          </div>
+          <div class="window-property-row">
+            <span class="window-property-label">Rides Priority Weight</span>
+            <div class="window-property-value">
+              <div class="property-slider-container">
+                <input type="range" id="plotter-rides-priority" value="0.5" min="0" max="1" step="0.1" class="property-slider">
+                <span id="plotter-rides-priority-value">0.5</span>
+              </div>
+            </div>
+          </div>
+
+          {# Wetness Index Settings #}
+          <div class="window-property-row">
+            <span class="window-property-label">
+              Prioritise Tree Species Matching Wetness Index
+              <span class="property-badge" title="Recommended">Recommended</span>
+            </span>
+            <div class="window-property-value">
+              <input type="checkbox" id="plotter-prioritise-wetness" checked>
+            </div>
+          </div>
+          <div class="window-property-row">
+            <span class="window-property-label">Wetness Index Cutoff</span>
+            <div class="window-property-value">
+              <div class="property-slider-container">
+                <input type="range" id="plotter-wetness-cutoff" value="0.3" min="0" max="1" step="0.1" class="property-slider">
+                <span id="plotter-wetness-cutoff-value">0.3</span>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </div>
-  </div>
-</div>
 
-<div class="window-section">
-  <div class="window-section-header" data-section="plotter-plant-options">
-    <i class="bi bi-chevron-down"></i>
-    <span>Plant Configuration</span>
-  </div>
-  <div class="window-section-content">
-    <div class="window-property-grid">
-      <div class="window-property-row">
-        <span class="window-property-label">Default Species</span>
-        <div class="window-property-value">
-          <select id="plotter-default-species">
-            <option value="">-- None --</option>
-            <option value="oak">Oak Tree</option>
-            <option value="maple">Maple Tree</option>
-            <option value="birch">Birch Tree</option>
-            <option value="pine">Pine Tree</option>
-            <option value="spruce">Spruce Tree</option>
-            <option value="ash">Ash Tree</option>
-          </select>
+    {# Micro Settings (Expandable) #}
+    <div class="window-section">
+      <div class="window-section-header" data-section="plotter-micro">
+        <i class="bi bi-chevron-down"></i>
+        <span>Micro Settings</span>
+      </div>
+      <div class="window-section-content">
+        <div class="window-property-grid">
+          <div class="window-property-row">
+            <span class="window-property-label">
+              Force Wildflowers to Grow Within Tree Radii
+              <span class="property-badge" title="Recommended">Recommended</span>
+            </span>
+            <div class="window-property-value">
+              <input type="checkbox" id="plotter-force-wildflowers" checked>
+            </div>
+          </div>
+          <div class="window-property-row">
+            <span class="window-property-label">
+              Force Grasses to Grow Within Tree Radii
+              <span class="property-badge" title="Recommended">Recommended</span>
+            </span>
+            <div class="window-property-value">
+              <input type="checkbox" id="plotter-force-grasses" checked>
+            </div>
+          </div>
+          <div class="window-property-row">
+            <span class="window-property-label">Allow Tree Radii to Slip Over Into Glades and Rides</span>
+            <div class="window-property-value">
+              <input type="checkbox" id="plotter-allow-radii-slip" checked>
+            </div>
+          </div>
         </div>
       </div>
-      <div class="window-property-row">
-        <span class="window-property-label">Planting Year</span>
-        <div class="window-property-value">
-          <input type="number" id="plotter-planting-year" value="2026" min="2020" max="2100">
+    </div>
+
+    {# Generation Controls #}
+    <div class="window-section">
+      <div class="window-section-header" data-section="plotter-generation">
+        <i class="bi bi-chevron-down"></i>
+        <span>Generation</span>
+      </div>
+      <div class="window-section-content">
+        <div class="plotter-controls">
+          <button class="plotter-btn plotter-btn-primary" id="plotter-generate-btn" title="Generate points">
+            <i class="bi bi-play-fill"></i>
+            Generate Points
+          </button>
+          <button class="plotter-btn plotter-btn-secondary" id="plotter-clear-btn" title="Clear all points">
+            <i class="bi bi-trash"></i>
+            Clear Points
+          </button>
+          <button class="plotter-btn plotter-btn-secondary" id="plotter-undo-btn" title="Undo last action">
+            <i class="bi bi-arrow-counterclockwise"></i>
+            Undo
+          </button>
+        </div>
+
+        <div class="plotter-progress" id="plotter-progress" style="display: none;">
+          <div class="plotter-progress-bar">
+            <div class="plotter-progress-fill" id="plotter-progress-fill"></div>
+          </div>
+          <span class="plotter-progress-text" id="plotter-progress-text">0%</span>
+        </div>
+
+        <div class="plotter-statistics" id="plotter-statistics" style="display: none;">
+          <div class="plotter-stat-row">
+            <span class="plotter-stat-label">Total Points:</span>
+            <span class="plotter-stat-value" id="plotter-stat-total">0</span>
+          </div>
+          <div class="plotter-stat-row">
+            <span class="plotter-stat-label">Estimated CO2:</span>
+            <span class="plotter-stat-value" id="plotter-stat-co2">0 kg</span>
+          </div>
+          <div class="plotter-stat-row">
+            <span class="plotter-stat-label">Coverage:</span>
+            <span class="plotter-stat-value" id="plotter-stat-coverage">0%</span>
+          </div>
         </div>
       </div>
-      <div class="window-property-row">
-        <span class="window-property-label">Maintenance Cycle (years)</span>
-        <div class="window-property-value">
-          <input type="number" id="plotter-maintenance-cycle" value="5" min="1" max="50">
-        </div>
-      </div>
-    </div>
-  </div>
-</div>
-
-<div class="window-section">
-  <div class="window-section-header" data-section="plotter-generation">
-    <i class="bi bi-chevron-down"></i>
-    <span>Generation</span>
-  </div>
-  <div class="window-section-content">
-    <div class="plotter-controls">
-      <button class="plotter-btn plotter-btn-primary" id="plotter-generate-btn" title="Generate points">
-        <i class="bi bi-play-fill"></i>
-        Generate Points
-      </button>
-      <button class="plotter-btn plotter-btn-secondary" id="plotter-clear-btn" title="Clear all points">
-        <i class="bi bi-trash"></i>
-        Clear Points
-      </button>
-      <button class="plotter-btn plotter-btn-secondary" id="plotter-undo-btn" title="Undo last action">
-        <i class="bi bi-arrow-counterclockwise"></i>
-        Undo
-      </button>
     </div>
 
-    <div class="plotter-progress" id="plotter-progress" style="display: none;">
-      <div class="plotter-progress-bar">
-        <div class="plotter-progress-fill" id="plotter-progress-fill"></div>
-      </div>
-      <span class="plotter-progress-text" id="plotter-progress-text">0%</span>
-    </div>
-
-    <div class="plotter-statistics" id="plotter-statistics" style="display: none;">
-      <div class="plotter-stat-row">
-        <span class="plotter-stat-label">Total Points:</span>
-        <span class="plotter-stat-value" id="plotter-stat-total">0</span>
-      </div>
-      <div class="plotter-stat-row">
-        <span class="plotter-stat-label">Estimated CO2:</span>
-        <span class="plotter-stat-value" id="plotter-stat-co2">0 kg</span>
-      </div>
-      <div class="plotter-stat-row">
-        <span class="plotter-stat-label">Coverage:</span>
-        <span class="plotter-stat-value" id="plotter-stat-coverage">0%</span>
-      </div>
-    </div>
   </div>
 </div>
 
 <style>
+  .plotter-mode-tabs {
+    margin-bottom: 12px;
+    background: var(--bs-secondary-bg);
+    padding: 4px;
+    border-radius: 4px;
+    gap: 4px;
+  }
+
+  .plotter-mode-tabs .nav-link {
+    color: var(--bs-body-color);
+    border: none;
+    padding: 6px 12px;
+    font-size: 0.875rem;
+    border-radius: 3px;
+    background: transparent;
+    transition: all 0.15s ease;
+  }
+
+  .plotter-mode-tabs .nav-link:hover {
+    background: var(--bs-tertiary-bg);
+  }
+
+  .plotter-mode-tabs .nav-link.active {
+    background: var(--bs-primary);
+    color: white;
+  }
+
+  .plotter-tab-content {
+    padding: 8px 0;
+  }
+
+  .plotter-simple-empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 120px;
+  }
+
   .plotter-controls {
     display: flex;
     flex-direction: column;
@@ -272,17 +404,80 @@
     color: var(--bs-secondary);
     margin-left: 4px;
   }
+
+  .property-badge {
+    display: inline-block;
+    padding: 2px 6px;
+    margin-left: 6px;
+    font-size: 0.65rem;
+    font-weight: 600;
+    background: color-mix(in srgb, var(--bs-primary) 25%, transparent);
+    color: var(--bs-primary);
+    border-radius: 3px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  .property-slider-container {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .property-slider {
+    flex: 1;
+    height: 6px;
+    -webkit-appearance: none;
+    appearance: none;
+    background: var(--bs-border-color);
+    border-radius: 3px;
+    outline: none;
+    cursor: pointer;
+  }
+
+  .property-slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 14px;
+    height: 14px;
+    background: var(--bs-primary);
+    border-radius: 50%;
+    cursor: pointer;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  }
+
+  .property-slider::-moz-range-thumb {
+    width: 14px;
+    height: 14px;
+    background: var(--bs-primary);
+    border-radius: 50%;
+    cursor: pointer;
+    border: none;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  }
+
+  .property-slider-container span {
+    min-width: 35px;
+    font-size: 0.875rem;
+    color: var(--bs-secondary);
+    text-align: right;
+  }
+
+  .window-section {
+    margin-bottom: 8px;
+  }
 </style>
 
 <script>
   /**
    * Point Plotter Panel - Planting Algorithm Controls
    *
-   * Manages point generation parameters and provides controls for:
+   * Manages point generation parameters with Simple and Advanced modes.
+   * Advanced mode provides controls for:
    * - Algorithm selection (uniform grid, random, Poisson disk, etc.)
    * - Point spacing and distribution parameters
-   * - Constraint configuration (edge distance, obstacles, etc.)
-   * - Plant species and timing configuration
+   * - Macro settings (species, planting year, maintenance)
+   * - Micro settings (constraints, edge distance, obstacles)
    * - Generation execution and statistics display
    */
   (function() {
@@ -294,7 +489,8 @@
         isGenerating: false,
         generatedPoints: [],
         algorithmType: 'uniform',
-        parameters: {}
+        parameters: {},
+        mode: 'advanced'
       };
 
       const sectionHeaders = document.querySelectorAll('[data-section^="plotter-"]');
@@ -313,35 +509,69 @@
       });
 
       // Update randomness percentage display
-      randomnessSlider.addEventListener('input', function() {
-        randomnessValue.textContent = this.value + '%';
-      });
+      if (randomnessSlider) {
+        randomnessSlider.addEventListener('input', function() {
+          randomnessValue.textContent = this.value + '%';
+        });
+      }
+
+      // Setup macro setting sliders
+      const gladesSlider = document.getElementById('plotter-glades-priority');
+      const gladesValue = document.getElementById('plotter-glades-priority-value');
+      if (gladesSlider) {
+        gladesSlider.addEventListener('input', function() {
+          gladesValue.textContent = parseFloat(this.value).toFixed(1);
+        });
+      }
+
+      const ridesSlider = document.getElementById('plotter-rides-priority');
+      const ridesValue = document.getElementById('plotter-rides-priority-value');
+      if (ridesSlider) {
+        ridesSlider.addEventListener('input', function() {
+          ridesValue.textContent = parseFloat(this.value).toFixed(1);
+        });
+      }
+
+      const wetnessSlider = document.getElementById('plotter-wetness-cutoff');
+      const wetnessValue = document.getElementById('plotter-wetness-cutoff-value');
+      if (wetnessSlider) {
+        wetnessSlider.addEventListener('input', function() {
+          wetnessValue.textContent = parseFloat(this.value).toFixed(1);
+        });
+      }
 
       // Generate points button
-      generateBtn.addEventListener('click', function() {
-        if (window.plotterState.isGenerating) return;
-
-        generatePoints();
-      });
+      if (generateBtn) {
+        generateBtn.addEventListener('click', function() {
+          if (window.plotterState.isGenerating) return;
+          generatePoints();
+        });
+      }
 
       // Clear points button
-      clearBtn.addEventListener('click', function() {
-        if (confirm('Clear all generated points?')) {
-          clearPoints();
-        }
-      });
+      if (clearBtn) {
+        clearBtn.addEventListener('click', function() {
+          if (confirm('Clear all generated points?')) {
+            clearPoints();
+          }
+        });
+      }
 
       // Undo button
-      undoBtn.addEventListener('click', function() {
-        undoLastAction();
-      });
+      if (undoBtn) {
+        undoBtn.addEventListener('click', function() {
+          undoLastAction();
+        });
+      }
 
       // Listen for outliner selection changes
       document.addEventListener('outlinerSelection', function(e) {
         const selectedItem = e.detail;
 
         // Could enable/disable generation based on selection
-        generateBtn.disabled = !selectedItem || selectedItem.type !== 'site';
+        if (generateBtn) {
+          generateBtn.disabled = !selectedItem || selectedItem.type !== 'site';
+        }
 
         console.log('Point Plotter: Selection changed to', selectedItem.type);
       });
@@ -351,14 +581,16 @@
         const selectedItem = e.detail;
 
         // Could enable/disable generation based on selection
-        generateBtn.disabled = !selectedItem || selectedItem.type !== 'site';
+        if (generateBtn) {
+          generateBtn.disabled = !selectedItem || selectedItem.type !== 'site';
+        }
 
         console.log('Point Plotter: Viewport selection changed to', selectedItem.type);
       });
 
       function generatePoints() {
         window.plotterState.isGenerating = true;
-        generateBtn.disabled = true;
+        if (generateBtn) generateBtn.disabled = true;
 
         const progressDiv = document.getElementById('plotter-progress');
         const progressFill = document.getElementById('plotter-progress-fill');
@@ -400,7 +632,7 @@
             progressText.textContent = '100%';
 
             window.plotterState.isGenerating = false;
-            generateBtn.disabled = false;
+            if (generateBtn) generateBtn.disabled = false;
 
             console.log('Point generation complete with algorithm:', algorithm);
           } else {

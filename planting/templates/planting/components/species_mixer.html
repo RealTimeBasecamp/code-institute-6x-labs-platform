@@ -1,0 +1,171 @@
+{#
+  Species Mixer Panel Component
+  Displays guideline species mix ratios and densities using sortable table
+
+  Usage:
+  {% include 'planting/components/species_mixer.html' with project=project point_plotter_data=point_plotter_data %}
+
+  This panel shows:
+  - Species mix table with sortable columns (species name, ratio, proportion)
+  - Plotted points statistics
+  - Results table with final point distribution
+#}
+
+<div class="window-section">
+  <div class="window-section-header" data-section="species-mix">
+    <i class="bi bi-chevron-down"></i>
+    <span>Species Mix</span>
+    <i class="bi bi-info-circle ms-2"
+       data-bs-toggle="tooltip"
+       data-bs-placement="top"
+       data-bs-title="The guideline species mix ratio and densities."
+       style="font-size: 0.875rem; color: var(--bs-secondary);"></i>
+  </div>
+  <div class="window-section-content">
+    {% include 'components/sortable_table.html' with
+      table_id="speciesMixTable"
+      table_headers="#,Species name, r, p"
+      table_rows=point_plotter_data|default:None
+    %}
+  </div>
+</div>
+
+<div class="window-section">
+  <div class="window-section-header" data-section="plotted-points">
+    <i class="bi bi-chevron-down"></i>
+    <span>Plotted Points</span>
+    <i class="bi bi-info-circle ms-2"
+       data-bs-toggle="tooltip"
+       data-bs-placement="top"
+       data-bs-title="The final points after estimation."
+       style="font-size: 0.875rem; color: var(--bs-secondary);"></i>
+  </div>
+  <div class="window-section-content">
+    <div class="window-property-grid" style="margin-bottom: 12px;">
+      <div class="window-property-row">
+        <span class="window-property-label">Total Plotted Points:</span>
+        <span class="window-property-value" style="font-weight: 600; color: var(--bs-primary);">
+          {{ plotted_points.total|default:'1500' }}
+        </span>
+      </div>
+    </div>
+    {% include 'components/sortable_table.html' with
+      table_id="plottedPointsTable"
+      table_headers="#,Species name, n"
+      table_rows=point_plotter_data|default:None
+    %}
+  </div>
+</div>
+
+<style>
+  .window-section {
+    border-bottom: 1px solid var(--bs-border-color);
+  }
+
+  .window-section:last-child {
+    border-bottom: none;
+  }
+
+  .window-section-header {
+    padding: 10px 12px;
+    background: var(--bs-tertiary-bg);
+    border: 1px solid var(--bs-border-color);
+    cursor: pointer;
+    user-select: none;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-weight: 600;
+    font-size: 0.9375rem;
+    transition: background 0.2s ease;
+  }
+
+  .window-section-header:hover {
+    background: color-mix(in srgb, var(--bs-tertiary-bg) 80%, var(--bs-border-color));
+  }
+
+  .window-section-header i:first-child {
+    flex-shrink: 0;
+    transition: transform 0.2s ease;
+  }
+
+  .window-section.is-collapsed .window-section-header i:first-child {
+    transform: rotate(-90deg);
+  }
+
+  .window-section-content {
+    padding: 12px;
+    background: var(--bs-body-bg);
+    max-height: 400px;
+    overflow-y: auto;
+  }
+
+  .window-section.is-collapsed .window-section-content {
+    display: none;
+  }
+
+  .window-property-grid {
+    display: grid;
+    gap: 8px;
+  }
+
+  .window-property-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 0;
+    border-bottom: 1px solid var(--bs-border-color);
+  }
+
+  .window-property-row:last-child {
+    border-bottom: none;
+  }
+
+  .window-property-label {
+    font-weight: 500;
+    color: var(--bs-secondary);
+    font-size: 0.875rem;
+  }
+
+  .window-property-value {
+    font-weight: 600;
+    color: var(--bs-body-color);
+    text-align: right;
+  }
+</style>
+
+<script>
+  /**
+   * Species Mixer Panel - Species Mix Display
+   *
+   * Shows sortable tables for:
+   * - Guideline species mix ratios and densities
+   * - Final plotted points distribution and counts
+   */
+  (function() {
+    'use strict';
+
+    document.addEventListener('DOMContentLoaded', function() {
+      // Handle section collapse/expand
+      const sectionHeaders = document.querySelectorAll('[data-section^="species-"], [data-section^="plotted-"]');
+      sectionHeaders.forEach(header => {
+        header.addEventListener('click', function() {
+          const section = this.closest('.window-section');
+          section.classList.toggle('is-collapsed');
+        });
+      });
+
+      // Listen for point generation events to update statistics
+      document.addEventListener('pointsGenerated', function(e) {
+        const { count, algorithm, parameters } = e.detail;
+        console.log('Species Mixer: Points generated -', { count, algorithm });
+        // Could update statistics display here if needed
+      });
+
+      document.addEventListener('pointsCleared', function(e) {
+        console.log('Species Mixer: Points cleared');
+        // Could reset display here if needed
+      });
+    });
+  })();
+</script>

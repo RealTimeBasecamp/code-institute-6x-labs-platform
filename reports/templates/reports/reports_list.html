@@ -29,20 +29,11 @@
 {% block content %}
 
   {# Toolbar: Nav pills (switch table/grid) and Search (search bar moved here by JS) #}
+  {% load ui_tags %}
   <div class="d-flex justify-content-between align-items-center mb-3" id="projects-toolbar">
     <div class="d-flex align-items-center">
-      <ul class="nav nav-pills" role="tablist">
-        <li class="nav-item" role="presentation">
-          <a class="nav-link active" id="table-view-tab" data-bs-toggle="tab" href="#table-view" role="tab" aria-controls="table-view" aria-selected="true" title="Table view">
-            <i class="bi bi-list me-1"></i>Table
-          </a>
-        </li>
-        <li class="nav-item" role="presentation">
-          <a class="nav-link" id="grid-view-tab" data-bs-toggle="tab" href="#grid-view" role="tab" aria-controls="grid-view" aria-selected="false" title="Grid view">
-            <i class="bi bi-grid-3x3-gap-fill me-1"></i>Grid
-          </a>
-        </li>
-      </ul>
+      {% make_tabs 'table:Table:bi-list:Table view,grid:Grid:bi-grid-3x3-gap-fill:Grid view' as view_tabs %}
+      {% include 'components/nav_pills.html' with tabs=view_tabs id='view-toggle' variant='text' %}
     </div>
 
     {# Search bar will be injected here by sortable-table.js (data-search-toolbar) #}
@@ -51,7 +42,7 @@
   {# Tab content #}
   <div class="tab-content">
     {# Table view #}
-    <div class="tab-pane fade show active" id="table-view" role="tabpanel">
+    <div class="tab-pane fade show active" id="tab-table" role="tabpanel">
       {# TODO Update with sortable table component #}
       <table class="table sortable-table" data-search-toolbar="projects-toolbar">
         <thead>
@@ -92,7 +83,7 @@
     </div>
 
     {# Grid view #}
-    <div class="tab-pane fade" id="grid-view" role="tabpanel">
+    <div class="tab-pane fade" id="tab-grid" role="tabpanel">
       <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 row-cols-xl-4 g-4">
         {% for project in projects %}
         <div class="col" data-project-name="{{ project.name|lower }}">

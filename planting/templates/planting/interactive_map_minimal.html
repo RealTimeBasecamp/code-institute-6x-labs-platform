@@ -22,22 +22,12 @@
     </div>
 
     <div class="map-sidebar">
-      <div class="d-flex justify-content-center">
-        <ul class="nav nav-pills nav-pills--icons" role="tablist">
-          <li class="nav-item" role="presentation">
-            <a class="nav-link active bi-bounding-box-circles" id="sites-tab" data-bs-toggle="tab" href="#sites" role="tab" aria-controls="sites" aria-selected="true" aria-label="Sites" title="Sites"></a>
-          </li>
-          <li class="nav-item" role="presentation">
-            <a class="nav-link bi-hexagon-half" id="zones-tab" data-bs-toggle="tab" href="#zones" role="tab" aria-controls="zones" aria-selected="false" aria-label="Zones" title="Zones"></a>
-          </li>
-          <li class="nav-item" role="presentation">
-            <a class="nav-link bi-flower1" id="point-plotter-tab" data-bs-toggle="tab" href="#point-plotter" role="tab" aria-controls="point-plotter" aria-selected="false" aria-label="Point plotter" title="Point plotter"></a>
-          </li>
-        </ul>
-      </div>
+      {% load ui_tags %}
+      {% make_tabs 'sites:Sites:bi-bounding-box-circles:Sites,zones:Zones:bi-hexagon-half:Zones,point-plotter:Point plotter:bi-flower1:Point plotter' as sidebar_tabs %}
+      {% include 'components/nav_pills.html' with tabs=sidebar_tabs id='map-sidebar-nav' variant='icons' %}
 
       <div class="tab-content">
-        <div class="tab-pane fade show active" id="sites" role="tabpanel" aria-labelledby="sites-tab">
+        <div class="tab-pane fade show active" id="tab-sites" role="tabpanel" aria-labelledby="sites-tab">
             <p>Sites
               <i class="bi bi-info-circle"
                 data-bs-toggle="tooltip"
@@ -84,7 +74,7 @@
           %}
         </div>
 
-        <div class="tab-pane fade" id="zones" role="tabpanel" aria-labelledby="zones-tab">
+        <div class="tab-pane fade" id="tab-zones" role="tabpanel" aria-labelledby="zones-tab">
           <p>
             Zones
             <i class="bi bi-info-circle"
@@ -117,7 +107,7 @@
           %}
         </div>
 
-        <div class="tab-pane fade" id="point-plotter" role="tabpanel" aria-labelledby="point-plotter-tab">
+        <div class="tab-pane fade" id="tab-point-plotter" role="tabpanel" aria-labelledby="point-plotter-tab">
           {# Replace with dynamic data from model #}
           <p>Point plotter
             <i class="bi bi-info-circle"
