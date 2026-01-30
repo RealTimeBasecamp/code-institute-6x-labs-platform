@@ -37,18 +37,55 @@
       "description": "Show/hide Point Plotter panel"
     },
     {
+      "type": "item",
+      "id": "window_species_mixer",
+      "label": "Species Mixer",
+      "icon": "bi-flower1",
+      "callback": "editorActions.toggleWindow",
+      "callback_args": {"windowId": "species_mixer"},
+      "active": true,
+      "visible_to": ["authenticated"],
+      "description": "Show/hide Species Mixer panel"
+    },
+    {
       "type": "separator",
       "visible_to": ["authenticated"]
     },
     {
-      "type": "item",
-      "id": "window_reset_layout",
-      "label": "Reset Layout",
-      "icon": "bi-layout-wtf",
-      "callback": "editorActions.resetLayout",
+      "type": "submenu",
+      "id": "window_layout_load",
+      "label": "Load Layout",
+      "icon": "bi-upload",
       "active": true,
       "visible_to": ["authenticated"],
-      "description": "Reset all panels to default positions"
+      "entries": [
+        { "type": "item", "id": "window_layout_load_default", "label": "Default Layout", "icon": "bi-layout-text-window-reverse", "callback": "windowActions.loadDefaultLayout", "active": true, "visible_to": ["authenticated"] },
+        { "type": "item", "id": "window_layout_load_custom", "label": "Custom Layout...", "icon": "bi-layout-sidebar-inset", "callback": "windowActions.loadCustomLayout", "active": true, "visible_to": ["authenticated"] }
+      ]
+    },
+    {
+      "type": "submenu",
+      "id": "window_layout_save",
+      "label": "Save Layout",
+      "icon": "bi-download",
+      "active": true,
+      "visible_to": ["authenticated"],
+      "entries": [
+        { "type": "item", "id": "window_layout_save_new", "label": "Save as New...", "icon": "bi-plus-square", "callback": "windowActions.saveLayoutAsNew", "active": true, "visible_to": ["authenticated"] },
+        { "type": "item", "id": "window_layout_save_overwrite", "label": "Overwrite Current", "icon": "bi-arrow-repeat", "callback": "windowActions.saveLayoutOverwrite", "active": true, "visible_to": ["authenticated"] }
+      ]
+    },
+    {
+      "type": "submenu",
+      "id": "window_layout_remove",
+      "label": "Remove Layout",
+      "icon": "bi-trash",
+      "active": true,
+      "visible_to": ["authenticated"],
+      "entries": [
+        { "type": "item", "id": "window_layout_remove_current", "label": "Remove Current", "icon": "bi-x-square", "callback": "windowActions.removeCurrentLayout", "active": true, "visible_to": ["authenticated"] },
+        { "type": "item", "id": "window_layout_remove_select", "label": "Remove Other...", "icon": "bi-x-octagon", "callback": "windowActions.removeOtherLayout", "active": true, "visible_to": ["authenticated"] }
+      ]
     },
     {
       "type": "separator",
