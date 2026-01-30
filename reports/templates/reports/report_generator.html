@@ -1,0 +1,90 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block meta_title %}Report Generator{% endblock %}
+{% block page_title %}Report Generator{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/components/sortable-table.css' %}">
+{% endblock %}
+
+{% block header_contents %}
+    <button
+        type="button"
+        class="btn btn-primary"
+        data-bs-toggle="modal"
+        data-bs-target="#reportCreationWizard">
+        <i class="bi bi-plus-lg me-1"></i>Create New Report
+    </button>
+
+{% include "components/modals/wizard_modal.html" with
+  modal_id="reportCreationWizard"
+  wizard_name="report_creation"
+  modal_title="Create New Report"
+  modal_icon="bi bi-folder-plus"
+%}
+{% endblock %}
+
+{% block content %}
+    {# Expandable options tabs per section #}
+
+Report generator settings:
+    Use recommended settings ☑️
+    Splashscreen
+        (Optional cover image, portrait/landscape) ☑️
+        Select image from site images or upload new ⬆️
+        Report name field auto-populated with the current project
+    Table of contents (recommended) checkbox ☑️ 
+    Project overall info (recommended) checkbox ☑️
+    Overview section (recommended)
+        Zoomed out location view of sites checkbox ☑️
+    Details section
+        Goals ☑️
+        estimated time plan ☑️
+        completion date ☑️
+        description ☑️
+        address ☑️
+    Gallery section
+        Folder of images from all sites with toggle on/off per image ☑️
+    -
+
+    Site population table:
+        Table of sites under current project ☑️ per site and version
+
+    For loop of all selected project sites from table above
+        Project/Site V1 map (Site PNG export Snapshot of map)
+        Project/Site V1 Ratios mix table
+        Project/Site V1 breakdown graphs
+        Project/Site V1 forecast graphs
+        - 
+        Project/Site V2 map
+        Project/Site V2 etc…
+        -
+    Comparison table
+    nature-friendly score
+    biodiversity score
+    projected sequestered CO02 over 30 years
+    no of plants
+    cost
+    Overall candle red/green icon ⬆️⬇️📈📉 
+    -
+    Advantages/Outcome
+    Disadvantages/Risks
+    Summary/Conclusion
+    Recommended project
+{# endcomment #}
+
+    <div>This is where a folder of all images found in every site that is in the site list is populated.
+        Any duplicate file paths will be removed.
+        The user can toggle them on/off to include them from the report.
+        The images will be displayed in a grid view with checkboxes to select/deselect them.
+        The final images will be nicely spaced in the report using a uneven grid layout. within the info section.
+    </div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'js/components/sortable-table.js' %}" defer></script>
+{% endblock %}
+
+
