@@ -191,6 +191,16 @@
       "active": true,
       "visible_to": ["all"],
       "description": "Return to project page"
+    },
+    {
+      "type": "item",
+      "id": "file_exit_dashboard",
+      "label": "Exit to dashboard",
+      "icon": "bi-box-arrow-left",
+      "callback": "editorActions.exit_dashboard",
+      "active": true,
+      "visible_to": ["all"],
+      "description": "Return to the dashboard"
     }
   ]
 }
