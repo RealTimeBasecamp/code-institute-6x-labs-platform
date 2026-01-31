@@ -124,7 +124,7 @@
     }
 
     /**
-     * Create a menu entry (item, submenu, or separator)
+     * Create a menu entry (item, submenu, separator, or group)
      */
     createEntry(entry) {
       if (!this.isVisible(entry)) return null;
@@ -136,6 +136,8 @@
           return this.createSubmenuEntry(entry);
         case 'separator':
           return this.createSeparator();
+        case 'group':
+          return this.createGroupHeader(entry);
         default:
           return null;
       }
@@ -259,6 +261,17 @@
       separator.className = 'toolbar-dropdown-separator';
       separator.setAttribute('role', 'separator');
       return separator;
+    }
+
+    /**
+     * Create a group header (non-interactive label)
+     */
+    createGroupHeader(entry) {
+      const group = document.createElement('div');
+      group.className = 'toolbar-dropdown-group';
+      group.setAttribute('role', 'presentation');
+      group.textContent = entry.label;
+      return group;
     }
 
     /**

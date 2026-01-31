@@ -141,95 +141,6 @@
     }
 
     // ============================================
-    // Layer Settings Control
-    // ============================================
-    
-    class LayerSettingsControl {
-        constructor(config) {
-            this._config = config;
-        }
-
-        onAdd(map) {
-            this._map = map;
-            this._container = document.createElement('div');
-            this._container.className = 'maplibregl-ctrl maplibregl-ctrl-group map-settings-control';
-            
-            this._createButton();
-            this._createPanel();
-            this._setupEventListeners();
-            
-            return this._container;
-        }
-
-        _createButton() {
-            const btn = document.createElement('button');
-            btn.className = 'map-settings-btn';
-            btn.type = 'button';
-            btn.title = 'Layer Settings';
-            btn.innerHTML = `
-                <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M19.14 12.94c.04-.31.06-.63.06-.94 0-.31-.02-.63-.06-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.04.31-.06.63-.06.94s.02.63.06.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z"/>
-                </svg>
-            `;
-            this._btn = btn;
-            this._container.appendChild(btn);
-        }
-
-        _createPanel() {
-            const { layers, terrain } = this._config;
-            const panel = document.createElement('div');
-            panel.className = 'map-settings-panel';
-            panel.innerHTML = `
-                <h4>Layer Settings</h4>
-                <div class="map-settings-option">
-                    <input type="checkbox" id="toggle-echarts" ${layers.echarts ? 'checked' : ''}>
-                    <label for="toggle-echarts">Show ECharts Data</label>
-                </div>
-                <div class="map-settings-option">
-                    <input type="checkbox" id="toggle-extrusion" ${layers.extrusion ? 'checked' : ''}>
-                    <label for="toggle-extrusion">Show 3D Extrusions</label>
-                </div>
-                <div class="map-settings-divider"></div>
-                <div class="map-settings-option">
-                    <input type="checkbox" id="toggle-hillshade" ${layers.hillshade ? 'checked' : ''}>
-                    <label for="toggle-hillshade">Show Map Shadows</label>
-                </div>
-                <div class="map-settings-divider"></div>
-                <div class="map-settings-input-group">
-                    <label for="terrain-exaggeration">Terrain Scale</label>
-                    <input type="number" id="terrain-exaggeration" value="${terrain.exaggeration}" min="0" max="10" step="0.5">
-                </div>
-            `;
-            this._panel = panel;
-            this._container.appendChild(panel);
-        }
-
-        _setupEventListeners() {
-            // Toggle panel visibility
-            this._btn.addEventListener('click', (e) => {
-                e.stopPropagation();
-                this._panel.classList.toggle('open');
-            });
-
-            // Close panel when clicking outside
-            document.addEventListener('click', (e) => {
-                if (!this._container.contains(e.target)) {
-                    this._panel.classList.remove('open');
-                }
-            });
-        }
-
-        onRemove() {
-            this._container.parentNode.removeChild(this._container);
-            this._map = undefined;
-        }
-
-        getPanel() {
-            return this._panel;
-        }
-    }
-
-    // ============================================
     // Interactive Map Controller
     // ============================================
     
@@ -285,9 +196,6 @@
             this.map.addControl(new maplibregl.NavigationControl({ visualizePitch: true }), 'top-right');
             this.map.addControl(new maplibregl.TerrainControl({ source: 'terrainSource', exaggeration: 1.5 }), 'top-right');
             this.map.addControl(new maplibregl.ScaleControl(), 'bottom-left');
-            
-            const settingsControl = new LayerSettingsControl(this.config);
-            this.map.addControl(settingsControl, 'top-right');
         }
 
         /**
@@ -395,7 +303,6 @@
         _onMapLoad() {
             this._addExtrusionLayers();
             this._updateECharts();
-            this._setupSettingsListeners();
             console.log('MapLibre 3D extrusion layer ready!');
         }
 
@@ -446,42 +353,6 @@
             console.log('Terrain toggled:', terrainEnabled ? '3D ON' : '2D ON');
         }
 
-        /**
-         * Setup settings panel event listeners
-         */
-        _setupSettingsListeners() {
-            this._bindCheckbox('toggle-echarts', (checked) => this.toggleECharts(checked));
-            this._bindCheckbox('toggle-extrusion', (checked) => this.toggleExtrusion(checked));
-            this._bindCheckbox('toggle-hillshade', (checked) => this.toggleHillshade(checked));
-            this._bindTerrainInput();
-        }
-
-        _bindCheckbox(id, callback) {
-            const checkbox = document.getElementById(id);
-            if (checkbox) {
-                checkbox.addEventListener('change', (e) => callback(e.target.checked));
-            }
-        }
-
-        _bindTerrainInput() {
-            const input = document.getElementById('terrain-exaggeration');
-            if (!input) return;
-
-            input.addEventListener('input', (e) => {
-                const value = parseFloat(e.target.value);
-                if (!isNaN(value) && value >= 0 && value <= 10) {
-                    this.setTerrainExaggeration(value);
-                }
-            });
-
-            input.addEventListener('blur', (e) => {
-                let value = parseFloat(e.target.value);
-                value = Math.max(0, Math.min(10, isNaN(value) ? 0 : value));
-                e.target.value = value;
-                this.setTerrainExaggeration(value);
-            });
-        }
-
         // ============================================
         // Layer Toggle Methods
         // ============================================
@@ -489,7 +360,6 @@
         toggleECharts(show) {
             this.echartsVisible = typeof show === 'boolean' ? show : !this.echartsVisible;
             this.echartsLayer.style.display = this.echartsVisible ? 'block' : 'none';
-            this._syncCheckbox('toggle-echarts', this.echartsVisible);
             console.log('ECharts Layer:', this.echartsVisible ? 'ON' : 'OFF');
             return this.echartsVisible;
         }
@@ -504,7 +374,6 @@
                 }
             });
 
-            this._syncCheckbox('toggle-extrusion', this.extrusionVisible);
             console.log('3D Extrusion:', this.extrusionVisible ? 'ON' : 'OFF');
             return this.extrusionVisible;
         }
@@ -514,16 +383,8 @@
             if (this.map.getLayer('hillshade-layer')) {
                 this.map.setLayoutProperty('hillshade-layer', 'visibility', visibility);
             }
-            this._syncCheckbox('toggle-hillshade', show);
             console.log('Hillshade:', show ? 'ON' : 'OFF');
             return show;
-        }
-
-        _syncCheckbox(id, checked) {
-            const checkbox = document.getElementById(id);
-            if (checkbox && checkbox.checked !== checked) {
-                checkbox.checked = checked;
-            }
         }
 
         // ============================================

@@ -312,6 +312,7 @@
   align-items: center;
   gap: 8px;
   padding: 4px 0;
+  position: relative;
 }
 
 .window-property-label {
@@ -323,39 +324,109 @@
 
 .window-property-value {
   flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 4px;
 }
 
-.window-property-value input {
-  width: 100%;
+.window-property-value input,
+.window-property-value select {
+  flex: 1;
   padding: 3px 6px;
   font-size: 12px;
   background: var(--bs-body-bg);
   border: 1px solid var(--bs-border-color);
   border-radius: 3px;
   color: var(--bs-body-color);
+  order: 1; /* Ensure input/select is always first */
 }
 
-.window-property-value input:focus {
+.window-property-value input[type="range"] {
+  order: 1; /* Slider first */
+}
+
+.window-property-value input[type="checkbox"] {
+  width: auto;
+  flex: 0;
+  padding: 0;
+}
+
+.window-property-value input:focus,
+.window-property-value select:focus {
   outline: none;
   border-color: var(--primary-color, var(--bs-primary));
 }
 
+/* Value display for range sliders */
+.range-value-display {
+  font-size: 11px;
+  color: var(--bs-body-color);
+  min-width: 40px;
+  text-align: right;
+  flex-shrink: 0;
+  order: 2; /* Value display after slider */
+}
+
+/* Reset to default button for property rows - always visible, outside field */
+.property-reset-btn {
+  flex-shrink: 0;
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: none;
+  color: var(--bs-secondary-color);
+  cursor: pointer;
+  transition: color 0.15s ease, background-color 0.15s ease;
+  font-size: 13px;
+  border-radius: 3px;
+  order: 3; /* Reset button after value display */
+}
+
+.property-reset-btn:hover {
+  color: var(--bs-body-color);
+  background: var(--bs-secondary-bg);
+}
+
+.property-reset-btn:active {
+  transform: scale(0.95);
+}
+
+/* Unit labels (like 'm' for meters) */
+.property-unit {
+  font-size: 11px;
+  color: var(--bs-secondary-color);
+  flex-shrink: 0;
+  order: 4; /* Unit label at the very end */
+}
+
 /* Section headers (for collapsible sections) */
 .window-section {
-  margin-bottom: 8px;
+  margin-bottom: 0;
 }
 
 .window-section-header {
   display: flex;
   align-items: center;
   gap: 6px;
-  padding: 6px 8px;
+  padding: 3px 8px;
   background: var(--bs-tertiary-bg);
-  border-radius: 3px;
+  border-bottom: 1px solid var(--bs-border-color);
   cursor: pointer;
   user-select: none;
   font-size: 12px;
   font-weight: 500;
+  margin-left: -8px;
+  margin-right: -8px;
+  margin-top: -8px;
+  margin-bottom: 8px;
+}
+
+.window-section:first-child .window-section-header {
+  margin-top: -8px;
 }
 
 .window-section-header:hover {
@@ -372,7 +443,7 @@
 }
 
 .window-section-content {
-  padding: 8px;
+  padding: 8px 0;
 }
 
 .window-section.is-collapsed .window-section-content {

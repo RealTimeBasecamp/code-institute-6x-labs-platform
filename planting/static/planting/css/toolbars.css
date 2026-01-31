@@ -339,6 +339,17 @@
   background: var(--bs-border-color);
 }
 
+.toolbar-dropdown-group {
+  padding: 6px 12px 4px 12px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--bs-secondary-color);
+  user-select: none;
+  pointer-events: none;
+}
+
 .toolbar-dropdown-submenu {
   position: relative;
 }
@@ -638,9 +649,9 @@
 /* Dropdown menu */
 .vp-dropdown-menu {
   display: none;
-  position: absolute;
-  top: 100%;
-  left: 0;
+  position: fixed;
+  top: auto;
+  left: auto;
   margin-top: 2px;
   min-width: 140px;
   padding: 4px 0;
@@ -648,7 +659,9 @@
   border: 1px solid var(--bs-border-color);
   border-radius: 4px;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
-  z-index: 1000;
+  z-index: 10000;
+  max-height: 80vh;
+  overflow-y: auto;
 }
 
 .vp-dropdown-menu.is-open {
@@ -757,4 +770,171 @@
   border-radius: 50%;
   border: none;
   cursor: pointer;
+}
+
+/* ============================================
+   Additional Viewport Toolbar Styles
+   Value buttons, sliders in dropdowns, spacers
+   ============================================ */
+
+/* Value button - shows current value like "10°" or "0.25" */
+.vp-value-btn {
+  min-width: auto;
+  padding: 0 4px;
+  font-size: 11px;
+  font-weight: 500;
+}
+
+.vp-value-btn span {
+  font-size: 11px;
+}
+
+/* Small spacer between related items */
+.vp-toolbar-spacer-small {
+  width: 8px;
+}
+
+/* Wide dropdown for sliders */
+.vp-dropdown-wide {
+  min-width: 200px;
+  padding: 8px;
+}
+
+/* Slider row inside dropdown */
+.vp-dropdown-slider-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 0;
+}
+
+.vp-slider-label {
+  font-size: 11px;
+  color: var(--bs-secondary-color);
+  min-width: 40px;
+  flex-shrink: 0;
+}
+
+.vp-slider {
+  flex: 1;
+  height: 4px;
+  -webkit-appearance: none;
+  appearance: none;
+  background: var(--bs-border-color);
+  border-radius: 2px;
+  cursor: pointer;
+}
+
+.vp-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 14px;
+  height: 14px;
+  background: var(--primary-color, var(--bs-primary));
+  border-radius: 50%;
+  cursor: pointer;
+}
+
+.vp-slider::-moz-range-thumb {
+  width: 14px;
+  height: 14px;
+  background: var(--primary-color, var(--bs-primary));
+  border-radius: 50%;
+  border: none;
+  cursor: pointer;
+}
+
+.vp-slider-value {
+  font-size: 11px;
+  font-weight: 500;
+  min-width: 30px;
+  text-align: right;
+  color: var(--bs-body-color);
+}
+
+/* Dropdown separator */
+.vp-dropdown-separator {
+  height: 1px;
+  margin: 4px 8px;
+  background: var(--bs-border-color);
+}
+
+/* Dropdown group header */
+.vp-dropdown-group {
+  padding: 6px 12px 4px 12px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--bs-secondary-color);
+  user-select: none;
+  pointer-events: none;
+}
+
+/* Toggle button active state in toolbar */
+.vp-toggle.is-active {
+  background: color-mix(in srgb, var(--primary-color, var(--bs-primary)) 25%, transparent);
+  color: var(--primary-color, var(--bs-primary));
+}
+
+.vp-toggle.is-active:hover {
+  background: color-mix(in srgb, var(--primary-color, var(--bs-primary)) 35%, transparent);
+}
+
+/* Dropdown input row (for number inputs, text inputs, etc.) */
+.vp-dropdown-input-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+}
+
+.vp-input-label {
+  font-size: 11px;
+  color: var(--bs-secondary-color);
+  min-width: 80px;
+  flex-shrink: 0;
+}
+
+.vp-input-number {
+  flex: 1;
+  padding: 4px 8px;
+  font-size: 11px;
+  background: var(--bs-body-bg);
+  border: 1px solid var(--bs-border-color);
+  border-radius: 3px;
+  color: var(--bs-body-color);
+  min-width: 0;
+}
+
+.vp-input-number:focus {
+  outline: none;
+  border-color: var(--primary-color, var(--bs-primary));
+}
+
+/* Reset to default button - always visible, outside field */
+.vp-reset-btn {
+  flex-shrink: 0;
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: none;
+  color: var(--bs-secondary-color);
+  cursor: pointer;
+  transition: color 0.15s ease, background-color 0.15s ease;
+  font-size: 13px;
+  border-radius: 3px;
+}
+
+.vp-reset-btn:hover {
+  color: var(--bs-body-color);
+  background: var(--bs-secondary-bg);
+}
+
+.vp-reset-btn:active {
+  transform: scale(0.95);
 }
