@@ -4,6 +4,11 @@
   "active": true,
   "entries": [
     {
+      "type": "group",
+      "label": "Create",
+      "visible_to": ["authenticated"]
+    },
+    {
       "type": "submenu",
       "id": "object_add",
       "label": "Add",
@@ -48,6 +53,11 @@
       "visible_to": ["authenticated"]
     },
     {
+      "type": "group",
+      "label": "Edit",
+      "visible_to": ["authenticated"]
+    },
+    {
       "type": "item",
       "id": "object_duplicate",
       "label": "Duplicate",
@@ -71,6 +81,11 @@
     },
     {
       "type": "separator",
+      "visible_to": ["authenticated"]
+    },
+    {
+      "type": "group",
+      "label": "Organize",
       "visible_to": ["authenticated"]
     },
     {

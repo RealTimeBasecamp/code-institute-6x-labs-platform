@@ -4,6 +4,11 @@
   "active": true,
   "entries": [
     {
+      "type": "group",
+      "label": "Resources",
+      "visible_to": ["all"]
+    },
+    {
       "type": "item",
       "id": "help_docs",
       "label": "Documentation",
@@ -28,6 +33,11 @@
       "visible_to": ["all"]
     },
     {
+      "type": "group",
+      "label": "Tools",
+      "visible_to": ["all"]
+    },
+    {
       "type": "item",
       "id": "help_keyboard_shortcuts",
       "label": "Keyboard Shortcuts",
@@ -39,6 +49,11 @@
     },
     {
       "type": "separator",
+      "visible_to": ["all"]
+    },
+    {
+      "type": "group",
+      "label": "Information",
       "visible_to": ["all"]
     },
     {

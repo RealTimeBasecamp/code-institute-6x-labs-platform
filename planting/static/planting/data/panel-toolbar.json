@@ -1,0 +1,41 @@
+{
+  "toolbar_id": "panel-toggle-toolbar",
+  "label": "Panel Toggles",
+  "description": "Right-side vertical toolbar for toggling panel visibility",
+  "state": {
+    "outliner": true,
+    "details": true,
+    "point-plotter": true,
+    "species-mixer": true
+  },
+  "panels": [
+    {
+      "id": "outliner",
+      "label": "Outliner",
+      "icon": "bi-list-nested",
+      "tooltip": "Outliner - Scene hierarchy",
+      "default": true
+    },
+    {
+      "id": "details",
+      "label": "Details",
+      "icon": "bi-sliders",
+      "tooltip": "Details - Properties inspector",
+      "default": true
+    },
+    {
+      "id": "point-plotter",
+      "label": "Point Plotter",
+      "icon": "bi-geo-alt",
+      "tooltip": "Point Plotter - Generate points",
+      "default": true
+    },
+    {
+      "id": "species-mixer",
+      "label": "Species Mixer",
+      "icon": "bi-shuffle",
+      "tooltip": "Species Mixer - Mix species ratios",
+      "default": true
+    }
+  ]
+}

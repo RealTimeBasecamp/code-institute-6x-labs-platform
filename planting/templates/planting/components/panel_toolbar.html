@@ -1,10 +1,8 @@
+{% load static %}
 {#
   Panel Toggle Toolbar Component - Right Side
-  Accordion-style buttons to toggle panel visibility
-  Similar to Photopea's right toolbar
-
-  Usage:
-  {% include 'planting/components/panel_toolbar.html' %}
+  Content is dynamically rendered from planting/static/planting/data/panel-toolbar.json
+  by the PanelToolbar class in panel-toolbar.js
 
   This component:
   - Provides quick access to toggle panels on/off
@@ -13,126 +11,7 @@
 #}
 
 <aside class="panel-toggle-toolbar" id="panel-toggle-toolbar" role="toolbar" aria-label="Panel toggles">
-
-  {# Outliner Panel Toggle #}
-  <button
-    class="panel-toggle-btn is-active"
-    data-panel="outliner"
-    title="Outliner - Scene hierarchy"
-    aria-pressed="true"
-  >
-    <i class="bi bi-list-nested"></i>
-  </button>
-
-  {# Details Panel Toggle #}
-  <button
-    class="panel-toggle-btn is-active"
-    data-panel="details"
-    title="Details - Properties inspector"
-    aria-pressed="true"
-  >
-    <i class="bi bi-sliders"></i>
-  </button>
-
-  {# Point Plotter Panel Toggle #}
-  <button
-    class="panel-toggle-btn is-active"
-    data-panel="point-plotter"
-    title="Point Plotter - Generate points"
-    aria-pressed="true"
-  >
-    <i class="bi bi-geo-alt"></i>
-  </button>
-
-  {# Species Mixer Panel Toggle #}
-  <button
-    class="panel-toggle-btn is-active"
-    data-panel="species-mixer"
-    title="Species Mixer - Mix species ratios"
-    aria-pressed="true"
-  >
-    <i class="bi bi-shuffle"></i>
-  </button>
-
+  {# Content rendered dynamically by PanelToolbar #}
 </aside>
 
-<script>
-  /**
-   * Panel Toggle Toolbar Handler
-   * Syncs with dockable window visibility state
-   */
-  (function() {
-    'use strict';
-
-    document.addEventListener('DOMContentLoaded', function() {
-      const toolbar = document.getElementById('panel-toggle-toolbar');
-      if (!toolbar) return;
-
-      const buttons = toolbar.querySelectorAll('.panel-toggle-btn');
-
-      // Handle toggle button clicks
-      buttons.forEach(btn => {
-        btn.addEventListener('click', function() {
-          const panelId = this.dataset.panel;
-          const windowEl = document.getElementById(`window-${panelId}`);
-
-          if (!windowEl) {
-            console.warn(`Panel not found: window-${panelId}`);
-            return;
-          }
-
-          // Get the dockable window instance
-          const windowInstance = window.dockableWindows?.get(panelId);
-
-          if (windowInstance) {
-            windowInstance.toggle();
-          } else {
-            // Fallback: toggle display directly
-            const isHidden = windowEl.style.display === 'none';
-            windowEl.style.display = isHidden ? 'flex' : 'none';
-          }
-
-          // Update button state
-          this.classList.toggle('is-active');
-          this.setAttribute('aria-pressed', this.classList.contains('is-active'));
-        });
-      });
-
-      // Listen for window close/show events to sync button state
-      document.addEventListener('windowClose', function(e) {
-        const panelId = e.detail.windowId;
-        const btn = toolbar.querySelector(`[data-panel="${panelId}"]`);
-        if (btn) {
-          btn.classList.remove('is-active');
-          btn.setAttribute('aria-pressed', 'false');
-        }
-      });
-
-      document.addEventListener('windowShow', function(e) {
-        const panelId = e.detail.windowId;
-        const btn = toolbar.querySelector(`[data-panel="${panelId}"]`);
-        if (btn) {
-          btn.classList.add('is-active');
-          btn.setAttribute('aria-pressed', 'true');
-        }
-      });
-
-      // Initialize button states based on current window visibility
-      function syncButtonStates() {
-        buttons.forEach(btn => {
-          const panelId = btn.dataset.panel;
-          const windowEl = document.getElementById(`window-${panelId}`);
-
-          if (windowEl) {
-            const isVisible = windowEl.style.display !== 'none';
-            btn.classList.toggle('is-active', isVisible);
-            btn.setAttribute('aria-pressed', isVisible);
-          }
-        });
-      }
-
-      // Sync on load
-      syncButtonStates();
-    });
-  })();
-</script>
+<script src="{% static 'planting/js/components/panel-toolbar.js' %}"></script>

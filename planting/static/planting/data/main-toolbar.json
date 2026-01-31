@@ -2,42 +2,110 @@
   "toolbar_id": "main-toolbar-settings",
   "label": "Main Toolbar Settings",
   "description": "Horizontal toolbar below the editor menu with save, site selection tools, state management (Undo, Redo)",
+  "state": {
+    "currentSite": "site-1"
+  },
   "sections": [
     {
       "group": "save-tool",
       "align": "left",
       "label": "Save",
       "items": [
-        { "id": "save", "type": "button", "label": "Save", "icon": "bi-floppy", "shortcut": "Ctrl+S", "tooltip": "Save the current changes" }
+        {
+          "id": "save",
+          "type": "button",
+          "label": "",
+          "icon": "bi-floppy",
+          "shortcut": "Ctrl+S",
+          "tooltip": "Save the current changes"
+        }
       ]
     },
-    { "group": "big-gap", "type": "spacer", "size": "small" },
     {
       "group": "site-selection",
       "align": "center",
       "label": "Site Selection",
       "items": [
-        { "id": "site-dropdown", "type": "dropdown", "label": "Select Site", "icon": "bi-map", "tooltip": "Select the active site" },
-        { "id": "previous-site", "type": "button", "label": "Previous Site", "icon": "bi-arrow-left-circle", "tooltip": "Switch to the previous site" },
-        { "id": "next-site", "type": "button", "label": "Next Site", "icon": "bi-arrow-right-circle", "tooltip": "Switch to the next site" }
+        {
+          "id": "site-dropdown",
+          "type": "dropdown",
+          "label": "Select Site",
+          "defaultLabel": "Select Site",
+          "icon": "bi-map",
+          "tooltip": "Select the active site",
+          "options": [
+            { "value": "site-1", "label": "Site 1", "isSelected": true },
+            { "value": "site-2", "label": "Site 2" },
+            { "value": "site-3", "label": "Site 3" }
+          ]
+        },
+        {
+          "id": "previous-site",
+          "type": "button",
+          "label": "",
+          "icon": "bi-arrow-left-circle",
+          "tooltip": "Switch to the previous site"
+        },
+        {
+          "id": "next-site",
+          "type": "button",
+          "label": "",
+          "icon": "bi-arrow-right-circle",
+          "tooltip": "Switch to the next site"
+        }
       ]
     },
-    { "group": "big-gap", "type": "spacer", "size": "small" },
     {
       "group": "add-components",
       "align": "center",
       "label": "Add components",
       "items": [
-        { "id": "add-components", "type": "dropdown", "label": "Add Components", "icon": "bi-box-fill", "tooltip": "Add components to the map"}
+        {
+          "id": "add-components",
+          "type": "dropdown",
+          "label": "",
+          "defaultLabel": "Add Components",
+          "icon": "bi-box-fill",
+          "tooltip": "Add components to the map",
+          "options": [
+            { "action": "add-square", "label": "Add square", "icon": "bi-square" },
+            { "action": "add-rectangle", "label": "Add rectangle", "icon": "bi-bounding-box" },
+            { "action": "add-circle", "label": "Add circle", "icon": "bi-circle" },
+            { "type": "separator" },
+            { "action": "add-icon", "label": "Add Icon", "icon": "bi-geo-alt" },
+            { "action": "add-image", "label": "Add Image", "icon": "bi-image" }
+          ]
+        }
       ]
+    },
+    {
+      "type": "spacer",
+      "size": "flex",
+      "align": "right"
     },
     {
       "group": "state-management",
       "align": "right",
       "label": "State Management",
       "items": [
-        { "id": "undo", "type": "button", "label": "Undo", "icon": "bi-arrow-counterclockwise", "shortcut": "Ctrl+Z", "tooltip": "Undo the last action" },
-        { "id": "redo", "type": "button", "label": "Redo", "icon": "bi-arrow-clockwise", "shortcut": "Ctrl+Y", "tooltip": "Redo the last undone action" }
+        {
+          "id": "undo",
+          "type": "button",
+          "label": "Undo",
+          "icon": "bi-arrow-counterclockwise",
+          "shortcut": "Ctrl+Z",
+          "tooltip": "Undo the last action",
+          "enabled_when": "canUndo"
+        },
+        {
+          "id": "redo",
+          "type": "button",
+          "label": "Redo",
+          "icon": "bi-arrow-clockwise",
+          "shortcut": "Ctrl+Y",
+          "tooltip": "Redo the last undone action",
+          "enabled_when": "canRedo"
+        }
       ]
     }
   ]
