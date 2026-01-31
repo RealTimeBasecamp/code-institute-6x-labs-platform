@@ -84,18 +84,18 @@
       "item_type": "parent",
       "label": "Reports",
       "icon": "bi-download",
-      "url_name": "",
-      "is_active": false,
+      "url_name": "reports:reports_list",
+      "is_active": true,
       "staff_only": false,
       "allowed_tiers": ["growth", "thrive", "enterprise"],
       "children": [
         {
-          "item_id": "reports-overview",
+          "item_id": "report-generator",
           "item_type": "link",
-          "label": "Overview",
+          "label": "Report Generator",
           "icon": "bi-bar-chart",
-          "url_name": "",
-          "is_active": false,
+          "url_name": "reports:report_generator",
+          "is_active": true,
           "staff_only": false,
           "allowed_tiers": ["sapling","growth", "thrive", "enterprise"]
         },
@@ -104,8 +104,8 @@
           "item_type": "link",
           "label": "Analytics",
           "icon": "bi-graph-up",
-          "url_name": "",
-          "is_active": false,
+          "url_name": "reports:reports_analytics",
+          "is_active": true,
           "staff_only": false,
           "allowed_tiers": ["thrive", "enterprise"]
         },
@@ -114,8 +114,8 @@
           "item_type": "link",
           "label": "Request Compliance",
           "icon": "bi-envelope-check",
-          "url_name": "",
-          "is_active": false,
+          "url_name": "reports:reports_compliance",
+          "is_active": true,
           "staff_only": false,
           "allowed_tiers": ["enterprise"]
         }

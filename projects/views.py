@@ -71,31 +71,6 @@ def project_planner(request):
     context['plotting_algorithms'] = ['Poisson Disc sampling']
     return render(request, 'planting/project_planner.html', context)
 
-
-
-# @login_required
-# def project_planner(request):
-#     """
-#     Redirect to project planner page without a specific project selected.
-#     """
-#     projects = Project.objects.all().order_by(Lower('name'))
-#     context = {
-#         'project': None,
-#         'projects': projects,
-#         'breadcrumbs': [
-#             {
-#                 'label': 'Projects',
-#                 'url': reverse('projects:projects_list'),
-#                 'is_current': False,
-#                 'is_ellipsis': False,
-#             },
-#         ],
-#     }
-#     # Provide default plotting algorithms list for templates
-#     context['plotting_algorithms'] = ['Poisson Disc sampling']
-#     return render(request, 'projects/project_planner.html', context)
-
-
 @login_required
 @require_POST
 def publish_sites(request, slug):

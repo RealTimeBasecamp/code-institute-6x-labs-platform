@@ -25,61 +25,87 @@
 %}
 {% endblock %}
 
+{# TODO UPDATE WITH CARD COMPONENT AND FIX LAYOUT #}
+
 {% block content %}
-    {# Expandable options tabs per section #}
+<div class="container">
+    <div class="row gx-4">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header">Report Preview</div>
+                <div class="card-body d-flex flex-column" style="min-height:60vh;">
+                    <div id="pdf-preview" class="border rounded bg-light flex-grow-1 d-flex align-items-center justify-content-center">
+                        <span class="text-muted">PDF preview will appear here</span>
+                    </div>
+                    <div class="mt-3">
+                        <button class="btn btn-outline-primary">Refresh Preview</button>
+                        <button class="btn btn-outline-secondary ms-2">Download Preview</button>
+                    </div>
+                </div>
+            </div>
+        </div>
 
-Report generator settings:
-    Use recommended settings ☑️
-    Splashscreen
-        (Optional cover image, portrait/landscape) ☑️
-        Select image from site images or upload new ⬆️
-        Report name field auto-populated with the current project
-    Table of contents (recommended) checkbox ☑️ 
-    Project overall info (recommended) checkbox ☑️
-    Overview section (recommended)
-        Zoomed out location view of sites checkbox ☑️
-    Details section
-        Goals ☑️
-        estimated time plan ☑️
-        completion date ☑️
-        description ☑️
-        address ☑️
-    Gallery section
-        Folder of images from all sites with toggle on/off per image ☑️
-    -
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-header">Table of Site versions here.</div>
+            </div>
+            <div class="card">
+                <div class="card-header">Report Settings</div>
+                <div class="card-body">
+                    <form id="report-settings-form">
+                        <div class="form-check mb-2">
+                            <input class="form-check-input" type="checkbox" id="recommendedSettings" checked>
+                            <label class="form-check-label" for="recommendedSettings">Use recommended settings</label>
+                        </div>
 
-    Site population table:
-        Table of sites under current project ☑️ per site and version
+                        {# TODO This should be an image of a portrait and landscape icon not a dropdown #}
+                        <div class="mb-2">
+                            <label class="form-check-label" for="orientation">Orientation</label>
+                            <select class="form-select form-select-sm w-auto" id="orientation">
+                                    <option>Portrait</option>
+                                    <option>Landscape</option>
+                            </select>
+                        </div>
 
-    For loop of all selected project sites from table above
-        Project/Site V1 map (Site PNG export Snapshot of map)
-        Project/Site V1 Ratios mix table
-        Project/Site V1 breakdown graphs
-        Project/Site V1 forecast graphs
-        - 
-        Project/Site V2 map
-        Project/Site V2 etc…
-        -
-    Comparison table
-    nature-friendly score
-    biodiversity score
-    projected sequestered CO02 over 30 years
-    no of plants
-    cost
-    Overall candle red/green icon ⬆️⬇️📈📉 
-    -
-    Advantages/Outcome
-    Disadvantages/Risks
-    Summary/Conclusion
-    Recommended project
-{# endcomment #}
+                        <div class="form-check mb-2">
+                            <label class="form-check-label" for="toc">Splashscreen (Optional)</label>
+                            <input class="form-check-input" type="checkbox" id="toc" checked>
+                            <input type="file" class="form-control form-control-sm" accept="image/*">
+                        </div>
 
-    <div>This is where a folder of all images found in every site that is in the site list is populated.
-        Any duplicate file paths will be removed.
-        The user can toggle them on/off to include them from the report.
-        The images will be displayed in a grid view with checkboxes to select/deselect them.
-        The final images will be nicely spaced in the report using a uneven grid layout. within the info section.
+                        <div class="form-check mb-2">
+                            <label class="form-check-label" for="toc">Table of contents (recommended)</label>
+                            <input class="form-check-input" type="checkbox" id="toc" checked>
+                        </div>
+
+                        <div class="form-check mb-2">
+                            <label class="form-check-label" for="projectInfo">Project overall info (recommended)</label>
+                            <input class="form-check-input" type="checkbox" id="projectInfo" checked>
+                        </div>
+
+                        <div class="mb-2">
+                            <label class="form-label">Gallery images</label>
+                            <div class="border rounded p-2" style="max-height:120px; overflow:auto;">
+                                <small class="text-muted">  Images from selected sites will appear here for selection.
+                                                            This is where a folder of all images found in every site that is in the site list is populated.
+                                                            Any duplicate file paths will be removed.
+                                                            The user can toggle them on/off to include them from the report.
+                                                            The images will be displayed in a grid view with checkboxes to select/deselect them.
+                                                            The final images will be nicely spaced in the report using a uneven grid layout within the info section.
+                                                        </small>
+                            </div>
+                        </div>
+
+                        <div class="d-grid">
+                            <button class="btn btn-primary" type="button">Generate Report</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+        </div>
     </div>
+</div>
 
 {% endblock %}
 
