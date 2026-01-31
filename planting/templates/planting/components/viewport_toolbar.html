@@ -1,294 +1,280 @@
 {#
   Viewport Toolbar Component - Horizontal Settings Bar
   Appears above the map viewport with grid, snapping, camera, and render settings
+  Styled like Unreal Engine 5's viewport toolbar
 
   Usage:
   {% include 'planting/components/viewport_toolbar.html' %}
 
-  This component:
-  - Provides grid visibility and spacing controls
-  - Snapping settings (grid, objects, vertices)
-  - Camera mode (perspective/orthographic)
-  - Render/lighting mode dropdowns
-  - Coordinate system toggles
+  Layout (left to right):
+  - Transform tools (Move, Rotate, Scale)
+  - [gap]
+  - Snapping settings (Location, Rotation, Scale with value dropdowns)
+  - [gap]
+  - Camera mode dropdown
+  - [gap]
+  - Rendering mode, Visibility, Settings, Multi-viewport
 #}
 
 <div class="viewport-settings-toolbar" id="viewport-settings-toolbar" role="toolbar" aria-label="Viewport settings">
 
   {# =============================
-     Left-aligned: Transform Tools
+     Section 1: Transform Tools (far left)
      ============================= #}
-  <div class="vp-toolbar-section vp-align-left">
-    <button class="vp-toolbar-btn" data-action="move" title="Move"><i class="bi bi-arrow-up-left"></i></button>
-    <button class="vp-toolbar-btn" data-action="rotate" title="Rotate"><i class="bi bi-arrow-repeat"></i></button>
-    <button class="vp-toolbar-btn" data-action="scale" title="Scale"><i class="bi bi-arrows-angle-expand"></i></button>
+  <div class="vp-toolbar-section">
+    <button class="vp-toolbar-btn" data-action="select" title="Select (Q)">
+      <i class="bi bi-cursor"></i>
+    </button>
+    <button class="vp-toolbar-btn" data-action="move" title="Move (W)">
+      <i class="bi bi-arrows-move"></i>
+    </button>
+    <button class="vp-toolbar-btn" data-action="rotate" title="Rotate (E)">
+      <i class="bi bi-arrow-repeat"></i>
+    </button>
+    <button class="vp-toolbar-btn" data-action="scale" title="Scale (R)">
+      <i class="bi bi-arrows-angle-expand"></i>
+    </button>
   </div>
 
-  <div class="vp-toolbar-spacer vp-gap-big"></div>
+  <div class="vp-toolbar-divider"></div>
 
-  <div class="vp-toolbar-section vp-align-center">
-    <button class="vp-toolbar-btn vp-toggle" data-toggle="location-snap" title="Location Snap"><i class="bi bi-magnet"></i></button>
+  {# =============================
+     Section 2: Coordinate System
+     ============================= #}
+  <div class="vp-toolbar-section">
     <div class="vp-toolbar-dropdown">
-      <button class="vp-toolbar-btn vp-dropdown-trigger" data-dropdown="location-snap-settings" title="Location Snap Settings"><i class="bi bi-gear"></i></button>
-      <div class="vp-dropdown-menu" data-menu="location-snap-settings">
-        <label class="vp-dropdown-item vp-checkbox"><input type="checkbox" data-setting="snap-to-grid"><span>Grid</span></label>
-        <label class="vp-dropdown-item vp-checkbox"><input type="checkbox" data-setting="snap-to-objects"><span>Objects</span></label>
+      <button class="vp-toolbar-btn vp-dropdown-trigger" data-dropdown="coord-system" title="Coordinate System">
+        <i class="bi bi-globe"></i>
+      </button>
+      <div class="vp-dropdown-menu" data-menu="coord-system">
+        <button class="vp-dropdown-item is-selected" data-value="world"><i class="bi bi-globe"></i><span>World</span></button>
+        <button class="vp-dropdown-item" data-value="local"><i class="bi bi-box"></i><span>Local</span></button>
       </div>
     </div>
-    <button class="vp-toolbar-btn vp-toggle" data-toggle="rotation-snap" title="Rotation Snap"><i class="bi bi-rulers"></i></button>
+  </div>
+
+  <div class="vp-toolbar-divider"></div>
+
+  {# =============================
+     Section 3: Snapping Settings (center-ish)
+     ============================= #}
+  <div class="vp-toolbar-section">
+    {# Location Snap Toggle + Value #}
+    <button class="vp-toolbar-btn vp-toggle is-active" data-toggle="location-snap" title="Toggle Location Snapping">
+      <i class="bi bi-magnet"></i>
+    </button>
     <div class="vp-toolbar-dropdown">
-      <button class="vp-toolbar-btn vp-dropdown-trigger" data-dropdown="rotation-snap-settings" title="Rotation Snap Settings"><span>10°</span></button>
-      <div class="vp-dropdown-menu" data-menu="rotation-snap-settings">
+      <button class="vp-toolbar-btn vp-dropdown-trigger vp-value-btn" data-dropdown="location-snap-value" title="Location Snap Value">
+        <span>0</span>
+        <i class="bi bi-chevron-down vp-dropdown-arrow"></i>
+      </button>
+      <div class="vp-dropdown-menu" data-menu="location-snap-value">
+        <button class="vp-dropdown-item is-selected" data-value="0">0 (Off)</button>
+        <button class="vp-dropdown-item" data-value="1">1</button>
+        <button class="vp-dropdown-item" data-value="5">5</button>
+        <button class="vp-dropdown-item" data-value="10">10</button>
+        <button class="vp-dropdown-item" data-value="25">25</button>
+        <button class="vp-dropdown-item" data-value="50">50</button>
+        <button class="vp-dropdown-item" data-value="100">100</button>
+      </div>
+    </div>
+
+    <div class="vp-toolbar-spacer-small"></div>
+
+    {# Rotation Snap Toggle + Value #}
+    <button class="vp-toolbar-btn vp-toggle is-active" data-toggle="rotation-snap" title="Toggle Rotation Snapping">
+      <i class="bi bi-arrow-repeat"></i>
+    </button>
+    <div class="vp-toolbar-dropdown">
+      <button class="vp-toolbar-btn vp-dropdown-trigger vp-value-btn" data-dropdown="rotation-snap-value" title="Rotation Snap Value">
+        <span>10°</span>
+        <i class="bi bi-chevron-down vp-dropdown-arrow"></i>
+      </button>
+      <div class="vp-dropdown-menu" data-menu="rotation-snap-value">
         <button class="vp-dropdown-item" data-value="5">5°</button>
         <button class="vp-dropdown-item is-selected" data-value="10">10°</button>
         <button class="vp-dropdown-item" data-value="15">15°</button>
         <button class="vp-dropdown-item" data-value="30">30°</button>
+        <button class="vp-dropdown-item" data-value="45">45°</button>
+        <button class="vp-dropdown-item" data-value="90">90°</button>
       </div>
     </div>
-    <button class="vp-toolbar-btn vp-toggle" data-toggle="scale-snap" title="Scale Snap"><i class="bi bi-aspect-ratio"></i></button>
+
+    <div class="vp-toolbar-spacer-small"></div>
+
+    {# Scale Snap Toggle + Value #}
+    <button class="vp-toolbar-btn vp-toggle is-active" data-toggle="scale-snap" title="Toggle Scale Snapping">
+      <i class="bi bi-aspect-ratio"></i>
+    </button>
     <div class="vp-toolbar-dropdown">
-      <button class="vp-toolbar-btn vp-dropdown-trigger" data-dropdown="scale-snap-settings" title="Scale Snap Settings"><span>0.25x</span></button>
-      <div class="vp-dropdown-menu" data-menu="scale-snap-settings">
-        <button class="vp-dropdown-item is-selected" data-value="0.25">0.25x</button>
-        <button class="vp-dropdown-item" data-value="0.5">0.5x</button>
-        <button class="vp-dropdown-item" data-value="1">1x</button>
+      <button class="vp-toolbar-btn vp-dropdown-trigger vp-value-btn" data-dropdown="scale-snap-value" title="Scale Snap Value">
+        <span>0.25</span>
+        <i class="bi bi-chevron-down vp-dropdown-arrow"></i>
+      </button>
+      <div class="vp-dropdown-menu" data-menu="scale-snap-value">
+        <button class="vp-dropdown-item" data-value="0.1">0.1</button>
+        <button class="vp-dropdown-item is-selected" data-value="0.25">0.25</button>
+        <button class="vp-dropdown-item" data-value="0.5">0.5</button>
+        <button class="vp-dropdown-item" data-value="1">1</button>
       </div>
     </div>
   </div>
 
-  <div class="vp-toolbar-section vp-align-right">
+  <div class="vp-toolbar-divider"></div>
+
+  {# Spacer to push remaining items to the right #}
+  <div style="flex: 1;"></div>
+
+  {# =============================
+     Section 4: Camera Settings (right-aligned from here)
+     ============================= #}
+  <div class="vp-toolbar-section">
     <div class="vp-toolbar-dropdown">
-      <button class="vp-toolbar-btn vp-dropdown-trigger" data-dropdown="camera-mode" title="Camera Mode"><i class="bi bi-camera-video"></i><span class="vp-btn-label">Perspective</span></button>
+      <button class="vp-toolbar-btn vp-dropdown-trigger" data-dropdown="camera-mode" title="Camera Mode">
+        <i class="bi bi-box"></i>
+        <span class="vp-btn-label">Perspective</span>
+        <i class="bi bi-chevron-down vp-dropdown-arrow"></i>
+      </button>
       <div class="vp-dropdown-menu" data-menu="camera-mode">
-        <button class="vp-dropdown-item is-selected" data-value="perspective"><i class="bi bi-camera-video"></i><span>Perspective</span></button>
+        <div class="vp-dropdown-group">Projection Mode</div>
+        <button class="vp-dropdown-item is-selected" data-value="perspective"><i class="bi bi-box"></i><span>Perspective</span></button>
         <button class="vp-dropdown-item" data-value="orthographic"><i class="bi bi-square"></i><span>Orthographic</span></button>
+        <button class="vp-dropdown-item" data-value="top"><i class="bi bi-arrow-down-square"></i><span>Top</span></button>
+        <button class="vp-dropdown-item" data-value="front"><i class="bi bi-arrow-right-square"></i><span>Front</span></button>
+        <button class="vp-dropdown-item" data-value="side"><i class="bi bi-arrow-up-square"></i><span>Side</span></button>
       </div>
     </div>
-    <div class="vp-toolbar-flyout">
-      <button class="vp-toolbar-btn vp-flyout-trigger" title="Camera Speed"><i class="bi bi-speedometer2"></i></button>
-      <div class="vp-flyout-menu"><input type="range" min="1" max="10" value="3.5" data-setting="camera-speed" title="Camera Speed"></div>
-    </div>
-    <div class="vp-toolbar-spacer vp-gap-small"></div>
-    <div class="vp-toolbar-flyout">
-      <button class="vp-toolbar-btn vp-flyout-trigger" title="Render Mode"><i class="bi bi-circle"></i></button>
-      <div class="vp-flyout-menu vp-circles-inner-shading">
-        <button class="vp-flyout-item is-selected" data-value="lit"><i class="bi bi-circle"></i></button>
-        <button class="vp-flyout-item" data-value="wireframe"><i class="bi bi-grid-3x3-gap"></i></button>
+
+    {# Camera Speed (flyout with slider inside) #}
+    <div class="vp-toolbar-dropdown">
+      <button class="vp-toolbar-btn vp-dropdown-trigger vp-value-btn" data-dropdown="camera-speed" title="Camera Speed">
+        <i class="bi bi-speedometer2"></i>
+        <span>3.5</span>
+        <i class="bi bi-chevron-down vp-dropdown-arrow"></i>
+      </button>
+      <div class="vp-dropdown-menu vp-dropdown-wide" data-menu="camera-speed">
+        <div class="vp-dropdown-slider-row">
+          <span class="vp-slider-label">Speed</span>
+          <input type="range" min="0.1" max="10" step="0.1" value="3.5" data-setting="camera-speed" data-default="3.5" class="vp-slider">
+          <span class="vp-slider-value" data-value-for="camera-speed">3.5</span>
+          <button class="vp-reset-btn" data-reset-for="camera-speed" title="Reset to default (3.5)">
+            <i class="bi bi-arrow-counterclockwise"></i>
+          </button>
+        </div>
       </div>
     </div>
-    <div class="vp-toolbar-flyout">
-      <button class="vp-toolbar-btn vp-flyout-trigger" title="Visibility"><i class="bi bi-eye"></i></button>
-      <div class="vp-flyout-menu">
-        <button class="vp-flyout-item vp-toggle" data-toggle="show-labels" title="Labels"><i class="bi bi-tag"></i></button>
-        <button class="vp-flyout-item vp-toggle" data-toggle="show-stats" title="Stats"><i class="bi bi-bar-chart"></i></button>
+  </div>
+
+  <div class="vp-toolbar-divider"></div>
+
+  {# =============================
+     Section 5: Rendering & Visibility (right side)
+     ============================= #}
+  <div class="vp-toolbar-section">
+    {# Render Mode Dropdown #}
+    <div class="vp-toolbar-dropdown">
+      <button class="vp-toolbar-btn vp-dropdown-trigger" data-dropdown="render-mode" title="Render Mode">
+        <i class="bi bi-circle-half"></i>
+        <span class="vp-btn-label">Lit</span>
+        <i class="bi bi-chevron-down vp-dropdown-arrow"></i>
+      </button>
+      <div class="vp-dropdown-menu" data-menu="render-mode">
+        <div class="vp-dropdown-group">Map Style</div>
+        <button class="vp-dropdown-item is-selected" data-value="lit"><i class="bi bi-circle-half"></i><span>Lit</span></button>
+        <button class="vp-dropdown-item" data-value="unlit"><i class="bi bi-circle"></i><span>Unlit</span></button>
+        <div class="vp-dropdown-group">Debugging</div>
+        <button class="vp-dropdown-item" data-value="wireframe"><i class="bi bi-grid-3x3-gap"></i><span>Wireframe</span></button>
+        <button class="vp-dropdown-item" data-value="zones"><i class="bi bi-layers"></i><span>Zones Only</span></button>
       </div>
     </div>
-    <div class="vp-toolbar-flyout">
-      <button class="vp-toolbar-btn vp-flyout-trigger" title="Settings"><i class="bi bi-gear"></i></button>
-      <div class="vp-flyout-menu"><span>Settings</span></div>
+
+    {# Visibility/Show Dropdown #}
+    <div class="vp-toolbar-dropdown">
+      <button class="vp-toolbar-btn vp-dropdown-trigger" data-dropdown="show-menu" title="Show">
+        <i class="bi bi-eye"></i>
+        <i class="bi bi-chevron-down vp-dropdown-arrow"></i>
+      </button>
+      <div class="vp-dropdown-menu vp-dropdown-wide" data-menu="show-menu">
+        <div class="vp-dropdown-group">Map Overlays</div>
+        <label class="vp-dropdown-item vp-checkbox">
+          <input type="checkbox" data-setting="show-grid" checked>
+          <span>Grid</span>
+        </label>
+        <label class="vp-dropdown-item vp-checkbox">
+          <input type="checkbox" data-setting="show-labels" checked>
+          <span>Labels</span>
+        </label>
+        <label class="vp-dropdown-item vp-checkbox">
+          <input type="checkbox" data-setting="show-coordinates" checked>
+          <span>Coordinates</span>
+        </label>
+        <label class="vp-dropdown-item vp-checkbox">
+          <input type="checkbox" data-setting="show-stats">
+          <span>Statistics</span>
+        </label>
+        <label class="vp-dropdown-item vp-checkbox">
+          <input type="checkbox" data-setting="show-bounds">
+          <span>Bounds</span>
+        </label>
+
+        <div class="vp-dropdown-separator"></div>
+
+        {# Layer Settings Group #}
+        <div class="vp-dropdown-group">Map Layers</div>
+        <label class="vp-dropdown-item vp-checkbox">
+          <input type="checkbox" data-setting="show-echarts-data" checked>
+          <span>Show ECharts Data</span>
+        </label>
+        <label class="vp-dropdown-item vp-checkbox">
+          <input type="checkbox" data-setting="show-3d-extrusions" checked>
+          <span>Show 3D Extrusions</span>
+        </label>
+        <label class="vp-dropdown-item vp-checkbox">
+          <input type="checkbox" data-setting="show-map-shadows" checked>
+          <span>Show Map Shadows</span>
+        </label>
+
+        <div class="vp-dropdown-input-row">
+          <label class="vp-input-label">Terrain Scale</label>
+          <input type="number" class="vp-input-number" data-setting="terrain-scale" value="3.0" min="0" max="10" step="0.5" data-default="3.0">
+          <button class="vp-reset-btn" data-reset-for="terrain-scale" title="Reset to default (3.0)">
+            <i class="bi bi-arrow-counterclockwise"></i>
+          </button>
+        </div>
+      </div>
     </div>
-    <button class="vp-toolbar-btn" data-action="four-grid" title="4x Grid"><i class="bi bi-grid-4x4"></i></button>
+
+    {# Settings Dropdown #}
+    <div class="vp-toolbar-dropdown">
+      <button class="vp-toolbar-btn vp-dropdown-trigger" data-dropdown="viewport-settings" title="Viewport Settings">
+        <i class="bi bi-gear"></i>
+        <i class="bi bi-chevron-down vp-dropdown-arrow"></i>
+      </button>
+      <div class="vp-dropdown-menu" data-menu="viewport-settings">
+        <button class="vp-dropdown-item" data-action="reset-camera"><i class="bi bi-house"></i><span>Reset Camera</span></button>
+        <button class="vp-dropdown-item" data-action="frame-selected"><i class="bi bi-fullscreen"></i><span>Frame Selected</span></button>
+        <div class="vp-dropdown-separator"></div>
+        <label class="vp-dropdown-item vp-checkbox">
+          <input type="checkbox" data-setting="realtime-preview" checked>
+          <span>Realtime Preview</span>
+        </label>
+        <label class="vp-dropdown-item vp-checkbox">
+          <input type="checkbox" data-setting="show-fps">
+          <span>Show FPS</span>
+        </label>
+      </div>
+    </div>
+  </div>
+
+  <div class="vp-toolbar-divider"></div>
+
+  {# =============================
+     Section 6: Multi-Viewport (far right)
+     ============================= #}
+  <div class="vp-toolbar-section">
+    <button class="vp-toolbar-btn" data-action="toggle-split" title="Toggle Split View">
+      <i class="bi bi-layout-split"></i>
+    </button>
   </div>
 
 </div>
-
-<script>
-  /**
-   * Viewport Settings Toolbar - Settings Handler
-   * Manages grid, snapping, camera, and render settings
-   */
-  (function() {
-    'use strict';
-
-    document.addEventListener('DOMContentLoaded', function() {
-      const toolbar = document.getElementById('viewport-settings-toolbar');
-      if (!toolbar) return;
-
-      // Initialize viewport settings state
-      window.viewportSettings = {
-        snap: true,
-        snapToGrid: true,
-        snapToObjects: false,
-        snapToVertices: false,
-        snapToEdges: false,
-        gridVisible: true,
-        gridSize: 1,
-        snapAngle: 15,
-        snapScale: 0.25,
-        cameraMode: 'perspective',
-        cameraSpeed: 5,
-        renderMode: 'default',
-        lightingMode: 'default',
-        showLabels: true,
-        showStats: false,
-        showCoordinates: true,
-        coordSystem: 'world',
-        pivotMode: 'center'
-      };
-
-      // Toggle buttons
-      toolbar.querySelectorAll('.vp-toggle').forEach(btn => {
-        btn.addEventListener('click', function() {
-          this.classList.toggle('is-active');
-          const setting = this.dataset.toggle;
-          const isActive = this.classList.contains('is-active');
-
-          // Update state
-          const camelCase = setting.replace(/-([a-z])/g, (g) => g[1].toUpperCase());
-          window.viewportSettings[camelCase] = isActive;
-
-          // Dispatch event
-          document.dispatchEvent(new CustomEvent('viewportSettingChange', {
-            detail: { setting, value: isActive }
-          }));
-
-          console.log('Toggle:', setting, isActive);
-        });
-      });
-
-      // Dropdown triggers
-      toolbar.querySelectorAll('.vp-dropdown-trigger').forEach(trigger => {
-        trigger.addEventListener('click', function(e) {
-          e.stopPropagation();
-          const dropdownId = this.dataset.dropdown;
-          const menu = toolbar.querySelector(`[data-menu="${dropdownId}"]`);
-
-          // Close other dropdowns
-          toolbar.querySelectorAll('.vp-dropdown-menu.is-open').forEach(m => {
-            if (m !== menu) m.classList.remove('is-open');
-          });
-
-          // Toggle this dropdown
-          menu.classList.toggle('is-open');
-        });
-      });
-
-      // Dropdown item selection
-      toolbar.querySelectorAll('.vp-dropdown-item:not(.vp-checkbox)').forEach(item => {
-        item.addEventListener('click', function() {
-          const menu = this.closest('.vp-dropdown-menu');
-          const menuId = menu.dataset.menu;
-          const value = this.dataset.value;
-          const trigger = toolbar.querySelector(`[data-dropdown="${menuId}"]`);
-
-          // Update selection
-          menu.querySelectorAll('.vp-dropdown-item').forEach(i => i.classList.remove('is-selected'));
-          this.classList.add('is-selected');
-
-          // Update trigger label
-          const label = trigger.querySelector('.vp-btn-label');
-          if (label) {
-            label.textContent = this.textContent.trim();
-          }
-
-          // Update icon if present
-          const itemIcon = this.querySelector('i');
-          const triggerIcon = trigger.querySelector('i:not(.vp-dropdown-arrow)');
-          if (itemIcon && triggerIcon) {
-            triggerIcon.className = itemIcon.className;
-          }
-
-          // Close dropdown
-          menu.classList.remove('is-open');
-
-          // Update state
-          const camelCase = menuId.replace(/-([a-z])/g, (g) => g[1].toUpperCase());
-          window.viewportSettings[camelCase] = value;
-
-          // Dispatch event
-          document.dispatchEvent(new CustomEvent('viewportSettingChange', {
-            detail: { setting: menuId, value }
-          }));
-
-          console.log('Dropdown:', menuId, value);
-        });
-      });
-
-      // Checkbox items in dropdowns
-      toolbar.querySelectorAll('.vp-checkbox input').forEach(checkbox => {
-        checkbox.addEventListener('change', function() {
-          const setting = this.dataset.setting;
-          const value = this.checked;
-
-          // Update state
-          const camelCase = setting.replace(/-([a-z])/g, (g) => g[1].toUpperCase());
-          window.viewportSettings[camelCase] = value;
-
-          // Dispatch event
-          document.dispatchEvent(new CustomEvent('viewportSettingChange', {
-            detail: { setting, value }
-          }));
-
-          console.log('Checkbox:', setting, value);
-        });
-      });
-
-      // Slider inputs
-      toolbar.querySelectorAll('input[type="range"]').forEach(slider => {
-        slider.addEventListener('input', function() {
-          const setting = this.dataset.setting;
-          const value = parseFloat(this.value);
-
-          // Update state
-          const camelCase = setting.replace(/-([a-z])/g, (g) => g[1].toUpperCase());
-          window.viewportSettings[camelCase] = value;
-
-          // Dispatch event
-          document.dispatchEvent(new CustomEvent('viewportSettingChange', {
-            detail: { setting, value }
-          }));
-
-          console.log('Slider:', setting, value);
-        });
-      });
-
-      // Button groups (radio-style)
-      toolbar.querySelectorAll('.vp-group-btn').forEach(btn => {
-        btn.addEventListener('click', function() {
-          const group = this.dataset.group;
-          const value = this.dataset.value;
-
-          // Update selection within group
-          toolbar.querySelectorAll(`[data-group="${group}"]`).forEach(b => {
-            b.classList.remove('is-active');
-          });
-          this.classList.add('is-active');
-
-          // Update state
-          const camelCase = group.replace(/-([a-z])/g, (g) => g[1].toUpperCase());
-          window.viewportSettings[camelCase] = value;
-
-          // Dispatch event
-          document.dispatchEvent(new CustomEvent('viewportSettingChange', {
-            detail: { setting: group, value }
-          }));
-
-          console.log('Button group:', group, value);
-        });
-      });
-
-      // Action buttons (rotate, scale)
-      toolbar.querySelectorAll('[data-action]').forEach(btn => {
-        btn.addEventListener('click', function() {
-          const action = this.dataset.action;
-
-          // Dispatch action event
-          document.dispatchEvent(new CustomEvent('viewportAction', {
-            detail: { action }
-          }));
-
-          console.log('Action:', action);
-        });
-      });
-
-      // Close dropdowns when clicking outside
-      document.addEventListener('click', function(e) {
-        if (!e.target.closest('.vp-toolbar-dropdown')) {
-          toolbar.querySelectorAll('.vp-dropdown-menu.is-open').forEach(menu => {
-            menu.classList.remove('is-open');
-          });
-        }
-      });
-    });
-  })();
-</script>

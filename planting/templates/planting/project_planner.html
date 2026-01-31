@@ -15,9 +15,12 @@
   {# Main Toolbar - TOP (File, Edit, Window, Help menus) #}
   {% include 'planting/components/editor_menu.html' %}
 
+  {# Main Settings Toolbar - TOP (Save, Site Selection, Add Components) #}
+  {% include 'planting/components/main_toolbar.html' %}
+
   <div class="editor-workspace">
     {# Main Toolbar - LEFT (Photoshop-style tools) #}
-    {% include 'planting/components/main_toolbar.html' %}
+    {% include 'planting/components/components_toolbar.html' %}
 
     {# Main workspace with dockable panels #}
     <div id="workspace-panels" class="editor-panels">
@@ -137,6 +140,8 @@
     }
   };
 </script>
+<script src="{% static 'js/core/field-generator.js' %}" defer></script>
+<script src="{% static 'js/core/reset-button-handler.js' %}" defer></script>
 <script src="{% static 'planting/js/dockable-window.js' %}" defer></script>
 <script src="{% static 'planting/js/editor-actions.js' %}" defer></script>
 <script src="{% static 'planting/js/menu-renderer.js' %}" defer></script>

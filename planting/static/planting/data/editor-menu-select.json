@@ -4,6 +4,11 @@
   "active": true,
   "entries": [
     {
+      "type": "group",
+      "label": "Selection",
+      "visible_to": ["authenticated"]
+    },
+    {
       "type": "item",
       "id": "select_all",
       "label": "Select All",
@@ -35,6 +40,11 @@
     },
     {
       "type": "separator",
+      "visible_to": ["authenticated"]
+    },
+    {
+      "type": "group",
+      "label": "Filter",
       "visible_to": ["authenticated"]
     },
     {

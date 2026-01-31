@@ -4,6 +4,11 @@
   "active": true,
   "entries": [
     {
+      "type": "group",
+      "label": "Project Management",
+      "visible_to": ["authenticated"]
+    },
+    {
       "type": "submenu",
       "id": "file_new",
       "label": "New",
@@ -89,6 +94,11 @@
     },
     {
       "type": "separator",
+      "visible_to": ["authenticated"]
+    },
+    {
+      "type": "group",
+      "label": "Import & Export",
       "visible_to": ["authenticated"]
     },
     {
@@ -180,6 +190,11 @@
     },
     {
       "type": "separator",
+      "visible_to": ["all"]
+    },
+    {
+      "type": "group",
+      "label": "Navigation",
       "visible_to": ["all"]
     },
     {

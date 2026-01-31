@@ -20,7 +20,7 @@
       "label": "Snapping",
       "items": [
         { "id": "location-snap-toggle", "type": "toggle", "label": "Location Snap", "icon": "bi-magnet", "tooltip": "Toggle location snapping", "default": true },
-        { "id": "location-snap-dropdown", "type": "dropdown", "label": "Location Snap Settings", "icon": "bi-gear", "tooltip": "Configure location snapping", "options": [ { "id": "snap-to-grid", "type": "toggle", "label": "Snap to Grid", "default": true }, { "id": "snap-to-objects", "type": "toggle", "label": "Snap to Objects", "default": false } ] },
+        { "id": "location-snap-dropdown", "type": "dropdown", "label": "Location Snap Settings", "icon": "bi-gear", "tooltip": "Configure location snapping", "options": [ { "type": "group", "label": "Location Snapping" }, { "id": "snap-to-grid", "type": "toggle", "label": "Snap to Grid", "default": true }, { "id": "snap-to-objects", "type": "toggle", "label": "Snap to Objects", "default": false } ] },
         { "id": "rotation-snap-toggle", "type": "toggle", "label": "Rotation Snap", "icon": "bi-rulers", "tooltip": "Toggle rotation snapping", "default": true },
         { "id": "rotation-snap-dropdown", "type": "dropdown", "label": "Rotation Snap Settings", "icon": "bi-gear", "tooltip": "Configure rotation snapping", "options": [ { "value": "5", "label": "5°" }, { "value": "10", "label": "10°" }, { "value": "15", "label": "15°", "default": true }, { "value": "30", "label": "30°" }, { "value": "45", "label": "45°" }, { "value": "90", "label": "90°" } ] },
         { "id": "scale-snap-toggle", "type": "toggle", "label": "Scale Snap", "icon": "bi-aspect-ratio", "tooltip": "Toggle scale snapping", "default": true },
@@ -32,7 +32,7 @@
       "align": "right",
       "label": "Camera",
       "items": [
-        { "id": "camera-mode", "type": "dropdown", "label": "Camera Mode", "icon": "bi-camera", "tooltip": "Switch camera projection", "options": [ { "value": "perspective", "label": "Perspective", "icon": "bi-box", "default": true }, { "value": "orthographic", "label": "Orthographic", "icon": "bi-square" }, { "value": "top", "label": "Top Down", "icon": "bi-arrow-down-square" } ] },
+        { "id": "camera-mode", "type": "dropdown", "label": "Camera Mode", "icon": "bi-camera", "tooltip": "Switch camera projection", "options": [ { "type": "group", "label": "Projection Mode" }, { "value": "perspective", "label": "Perspective", "icon": "bi-box", "default": true }, { "value": "orthographic", "label": "Orthographic", "icon": "bi-square" }, { "value": "top", "label": "Top Down", "icon": "bi-arrow-down-square" } ] },
         { "id": "camera-speed-flyout", "type": "flyout", "label": "Camera Speed", "icon": "bi-speedometer2", "tooltip": "Adjust camera movement speed", "items": [ { "id": "camera-speed-slider", "type": "slider", "label": "Speed", "min": 1, "max": 10, "default": 5, "step": 1 } ] }
       ]
     },
@@ -42,7 +42,7 @@
       "align": "right",
       "label": "Rendering",
       "items": [
-        { "id": "rendering-modes-flyout", "type": "flyout", "label": "Render Mode", "icon": "bi-eye", "tooltip": "Change viewport rendering style", "style": "circles-inner-shading", "options": [ { "value": "default", "label": "Default", "icon": "bi-map", "default": true }, { "value": "satellite", "label": "Satellite", "icon": "bi-globe" }, { "value": "terrain", "label": "Terrain", "icon": "bi-mountains" }, { "value": "wireframe", "label": "Wireframe", "icon": "bi-grid-3x3-gap" }, { "value": "zones-only", "label": "Zones Only", "icon": "bi-layers" } ] }
+        { "id": "rendering-modes-flyout", "type": "flyout", "label": "Render Mode", "icon": "bi-eye", "tooltip": "Change viewport rendering style", "style": "circles-inner-shading", "options": [ { "type": "group", "label": "Map Style" }, { "value": "default", "label": "Default", "icon": "bi-map", "default": true }, { "value": "satellite", "label": "Satellite", "icon": "bi-globe" }, { "value": "terrain", "label": "Terrain", "icon": "bi-mountains" }, { "type": "group", "label": "Debugging" }, { "value": "wireframe", "label": "Wireframe", "icon": "bi-grid-3x3-gap" }, { "value": "zones-only", "label": "Zones Only", "icon": "bi-layers" } ] }
       ]
     },
     {
@@ -50,7 +50,7 @@
       "align": "right",
       "label": "Visibility",
       "items": [
-        { "id": "visibility-flyout", "type": "flyout", "label": "Layers", "icon": "bi-layers", "tooltip": "Toggle layers on/off", "options": [ { "id": "show-labels", "type": "toggle", "label": "Labels", "icon": "bi-tag", "default": true }, { "id": "show-stats", "type": "toggle", "label": "Statistics", "icon": "bi-bar-chart", "default": false }, { "id": "show-coordinates", "type": "toggle", "label": "Coordinates", "icon": "bi-geo-alt", "default": true } ] }
+        { "id": "visibility-flyout", "type": "flyout", "label": "Layers", "icon": "bi-layers", "tooltip": "Toggle layers on/off", "options": [ { "type": "group", "label": "Map Overlays" }, { "id": "show-labels", "type": "toggle", "label": "Labels", "icon": "bi-tag", "default": true }, { "id": "show-stats", "type": "toggle", "label": "Statistics", "icon": "bi-bar-chart", "default": false }, { "id": "show-coordinates", "type": "toggle", "label": "Coordinates", "icon": "bi-geo-alt", "default": true } ] }
       ]
     },
     {

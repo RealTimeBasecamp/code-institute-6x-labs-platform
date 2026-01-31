@@ -4,6 +4,11 @@
   "active": true,
   "entries": [
     {
+      "type": "group",
+      "label": "History",
+      "visible_to": ["authenticated"]
+    },
+    {
       "type": "item",
       "id": "edit_undo",
       "label": "Undo",
@@ -27,6 +32,11 @@
     },
     {
       "type": "separator",
+      "visible_to": ["authenticated"]
+    },
+    {
+      "type": "group",
+      "label": "Clipboard",
       "visible_to": ["authenticated"]
     },
     {
@@ -64,6 +74,11 @@
     },
     {
       "type": "separator",
+      "visible_to": ["authenticated"]
+    },
+    {
+      "type": "group",
+      "label": "Settings",
       "visible_to": ["authenticated"]
     },
     {
