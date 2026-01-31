@@ -1,12 +1,20 @@
 from django.urls import path
 from . import views
 from . import wizard_api
+from . import state_api
 
 app_name = 'core'
 
 urlpatterns = [
     path('', views.login_view, name='login'),
     path('dashboard/', views.dashboard, name='dashboard'),
+
+    # State Management API
+    path(
+        'api/state/publish/',
+        state_api.publish_changes,
+        name='state_publish'
+    ),
 
     # Wizard API endpoints
     path(
