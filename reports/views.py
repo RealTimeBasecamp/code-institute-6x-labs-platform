@@ -12,14 +12,7 @@ from django.db.models.functions import Lower
 # Should only show users reports they have created
 # class ReportsListView(LoginRequiredMixin, ListView):
 #     """
-#     Display list of all projects with table and grid views.
-
-#     Data comes from: Project model queryset ordered by name
-#     Data returned to: projects_list.html template
-
-#     Context:
-#         projects: All Project objects ordered by name (lowercase)
-#         user_has_own_projects: Boolean indicating if user created any projects
+#     
 #     """
 
 #     model = Report
