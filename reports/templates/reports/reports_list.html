@@ -48,30 +48,28 @@
         <thead>
           <tr>
             <th scope="col">#</th>
-            <th scope="col" data-sortable>Name</th>
-            <th scope="col" data-sortable>Status</th>
-            <th scope="col" data-sortable>Total CO₂ (kg)</th>
-            <th scope="col" data-sortable>Area (ha)</th>
+            <th scope="col" data-sortable>Title</th>
+            <th scope="col" data-sortable>Created at</th>
+            <th scope="col" data-sortable>Authored by</th>
             {% if user_has_own_projects or user.is_superuser or user.is_staff %}
               <th scope="col">Actions</th>
             {% endif %}
           </tr>
         </thead>
         <tbody>
-          {% for project in projects %}
-          <tr data-project-name="{{ project.name|lower }}">
+          {% for report in reports %}
+          <tr data-report-title="{{ report.title|lower }}">
             <th scope="row" data-row-number>{{ forloop.counter }}</th>
-            <td><a href="{% url 'projects:project_detail' project.slug %}">{{ project.name }}</a></td>
-            <td>{{ project.status }}</td>
-            <td>{{ project.total_co2_sequestered_kg|default:"—" }}</td>
-            <td>{{ project.area_hectares }}</td>
-            {% if user_has_own_projects or user.is_superuser or user.is_staff %}
+            <td><a href="{% url ':report_detail' report.slug %}">{{ report.title }}</a></td>
+            <td>{{ report.created_at }}</td>
+            <td>{{ report.authored_by }}</td>
+            {% if user_has_own_reports or user.is_superuser %}
               <td>
-                {% if project.created_by == user or user.is_superuser or user.is_staff %}
+                {% if report.authored_by == user or user.is_superuser %}
                   <a role="button"
                     class="bi bi-trash text-danger"
                     data-bs-toggle="modal"
-                    data-bs-target="#deleteModal{{ project.slug }}">
+                    data-bs-target="#deleteModal{{ report.slug }}">
                   </a>
                 {% endif %}
               </td>
@@ -85,29 +83,29 @@
     {# Grid view #}
     <div class="tab-pane fade" id="tab-grid" role="tabpanel">
       <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 row-cols-xl-4 g-4">
-        {% for project in projects %}
-        <div class="col" data-project-name="{{ project.name|lower }}">
+        {% for report in reports %}
+        <div class="col" data-report-title="{{ report.title|lower }}">
           <div class="card h-100">
             <div class="card-body">
               <div class="card-title">
-                <a href="{% url 'projects:project_detail' project.slug %}" class="text-decoration-none">
-                  {{ project.name }}
+                <a href="{% url ':report_detail' report.slug %}" class="text-decoration-none">
+                  {{ report.title }}
                 </a>
               </div>
               <p class="card-text">
-                <span class="badge bg-secondary">{{ project.status }}</span>
+                <span class="badge bg-secondary">{{ report.status }}</span>
               </p>
               <ul class="list-unstyled small text-muted">
-                <li><i class="bi bi-cloud me-1"></i>CO₂: {{ project.total_co2_sequestered_kg|default:"—" }} kg</li>
-                <li><i class="bi bi-map me-1"></i>Area: {{ project.area_hectares }} ha</li>
+                <li><i class="bi bi-cloud me-1"></i>CO₂: {{ report.total_co2_sequestered_kg|default:"—" }} kg</li>
+                <li><i class="bi bi-map me-1"></i>Area: {{ report.area_hectares }} ha</li>
               </ul>
             </div>
-            {% if project.created_by == user or user.is_superuser or user.is_staff %}
+            {% if report.authored_by == user or user.is_superuser %}
             <div class="card-footer bg-transparent border-0">
               <a role="button"
                 class="btn btn-sm btn-outline-danger"
                 data-bs-toggle="modal"
-                data-bs-target="#deleteModal{{ project.slug }}">
+                data-bs-target="#deleteModal{{ report.slug }}">
                 <i class="bi bi-trash"></i> Delete
               </a>
             </div>
@@ -119,15 +117,15 @@
     </div>
   </div>
 
-  {# Delete modals for each project - pass project context for wizard #}
-  {% for project in projects %}
+  {# Delete modals for each report - pass report context for wizard #}
+  {% for report in reports %}
     {% include "components/modals/wizard_modal.html" with
-      modal_id="deleteModal"|add:project.slug
-      wizard_name="project_delete"
-      modal_title="Delete Project"
+      modal_id="deleteModal"|add:report.slug
+      wizard_name="report_delete"
+      modal_title="Delete Report"
       modal_icon="bi bi-trash"
       wizard_mode="delete"
-      wizard_context='{"project_slug":"'|add:project.slug|add:'"}'
+      wizard_context='{"report_slug":"'|add:report.slug|add:'"}'
     %}
   {% endfor %}
 
