@@ -1,0 +1,89 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block meta_title %}Customer {{ customer.first_name }} {{ customer.last_name|default:customer.username }}{% endblock %}
+{% block page_title %}Customer {{ customer.first_name }} {{ customer.last_name|default:customer.username }}{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/components/sortable-table.css' %}">
+{% endblock %}
+
+{% block header_contents %}
+    <button
+      type="button"
+      class="btn btn-primary"
+      id="copy-email-btn"
+      data-email="{{ customer.email }}">
+      <i class="bi bi-plus-lg me-1"></i>Copy Customer email address
+    </button>
+{% endblock %}
+
+{% block content %}
+
+  {# Toolbar: Nav pills (switch table/grid) and Search (search bar moved here by JS) #}
+  {% load ui_tags %}
+  <div class="d-flex justify-content-between align-items-center mb-3" id="customers-toolbar">
+    <div class="d-flex align-items-center">
+      {% make_tabs 'table:Table:bi-list:Table view,grid:Grid:bi-grid-3x3-gap-fill:Grid view' as view_tabs %}
+      {% include 'components/nav_pills.html' with tabs=view_tabs id='view-toggle' variant='text' %}
+    </div>
+
+    {# Search bar will be injected here by sortable-table.js (data-search-toolbar) #}
+  </div>
+
+  {# Tab content #}
+  <div class="tab-content">
+    {# Table view #}
+    <div class="tab-pane fade show active" id="tab-table" role="tabpanel">
+      {{ customer.username }}
+      {{ customer.first_name }}
+      {{customer.last_name}}
+      {{customer.email}}
+      {{customer.subscription_tier}}
+    </div>
+
+    {# Grid view #}
+    <div class="tab-pane fade" id="tab-grid" role="tabpanel">
+
+    </div>
+  </div>
+
+{% if user.is_superuser %}
+  {# Delete user button for superusers #}
+{% endif %}
+
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'js/components/sortable-table.js' %}" defer></script>
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    var copyBtn = document.getElementById('copy-email-btn');
+    if (copyBtn) {
+      copyBtn.addEventListener('click', function() {
+        var email = copyBtn.getAttribute('data-email');
+        if (navigator.clipboard) {
+          navigator.clipboard.writeText(email).then(function() {
+            copyBtn.innerHTML = '<i class="bi bi-check-lg me-1"></i>Copied!';
+            setTimeout(function() {
+              copyBtn.innerHTML = '<i class="bi bi-plus-lg me-1"></i>Copy Customer email address';
+            }, 1500);
+          });
+        } else {
+          // Fallback for older browsers
+          var tempInput = document.createElement('input');
+          tempInput.value = email;
+          document.body.appendChild(tempInput);
+          tempInput.select();
+          document.execCommand('copy');
+          document.body.removeChild(tempInput);
+          copyBtn.innerHTML = '<i class="bi bi-check-lg me-1"></i>Copied!';
+          setTimeout(function() {
+            copyBtn.innerHTML = '<i class="bi bi-plus-lg me-1"></i>Copy Customer email address';
+          }, 1500);
+        }
+      });
+    }
+  });
+</script>
+{% endblock %}
