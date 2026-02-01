@@ -58,6 +58,7 @@ INSTALLED_APPS = [
     'drones',
     'projects',
     'reports',
+    'customers',
 ]
 
 MIDDLEWARE = [
