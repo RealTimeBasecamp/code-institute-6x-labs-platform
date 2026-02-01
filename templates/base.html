@@ -67,6 +67,10 @@
             <hr class="header-line" />
 
             <div class="container main-content">
+                {% block instructions%}
+                    <!-- Instructional content goes here -->
+                {% endblock instructions %}
+
                 {% block content %}
                     <!-- Your page content goes here -->
                 {% endblock %}
