@@ -32,12 +32,11 @@
           <div class="window-header-left">
             <i class="bi bi-list-nested window-icon"></i>
             <span class="window-title">Outliner</span>
-          </div>
-          <div class="window-header-controls">
             <button class="window-control-btn window-control-close" data-action="close" title="Close">
               <i class="bi bi-x"></i>
             </button>
           </div>
+          <div class="window-header-controls"></div>
         </div>
         <div class="dockable-window-content">
           {% include 'planting/components/outliner.html' with sites=sites project=project %}
@@ -67,12 +66,11 @@
           <div class="window-header-left">
             <i class="bi bi-sliders window-icon"></i>
             <span class="window-title">Details</span>
-          </div>
-          <div class="window-header-controls">
             <button class="window-control-btn window-control-close" data-action="close" title="Close">
               <i class="bi bi-x"></i>
             </button>
           </div>
+          <div class="window-header-controls"></div>
         </div>
         <div class="dockable-window-content">
           {% include 'planting/components/details.html' with project=project %}
@@ -81,45 +79,48 @@
         <div class="resize-handle resize-handle-w" data-resize="w"></div>
       </div>
 
+      {# Panel Divider - between Details and Point Plotter #}
+      <div class="panel-divider" data-left-panel="details" data-right-panel="point-plotter"></div>
+
       {# Final Panel - Point Plotter (closeable, respawn via Window menu) #}
       <div class="dockable-window window-side-panel" id="window-point-plotter" data-window-id="point-plotter">
         <div class="dockable-window-header" data-drag-handle>
           <div class="window-header-left">
             <i class="bi bi-geo-alt window-icon"></i>
             <span class="window-title">Point Plotter</span>
-          </div>
-          <div class="window-header-controls">
             <button class="window-control-btn window-control-close" data-action="close" title="Close">
               <i class="bi bi-x"></i>
             </button>
           </div>
+          <div class="window-header-controls"></div>
         </div>
         <div class="dockable-window-content">
           {% include 'planting/components/point_plotter.html' with project=project %}
         </div>
-        {# Resize handles #}
-        <div class="resize-handle resize-handle-e" data-resize="e"></div>
+        {# Resize handles - west edge for left-side resizing #}
+        <div class="resize-handle resize-handle-w" data-resize="w"></div>
       </div>
 
-      
+      {# Panel Divider - between Point Plotter and Species Mixer #}
+      <div class="panel-divider" data-left-panel="point-plotter" data-right-panel="species-mixer"></div>
+
       {# Final Panel - Species Mixer (closeable, respawn via Window menu) #}
       <div class="dockable-window window-side-panel" id="window-species-mixer" data-window-id="species-mixer">
         <div class="dockable-window-header" data-drag-handle>
           <div class="window-header-left">
             <i class="bi bi-shuffle window-icon"></i>
             <span class="window-title">Species Mixer</span>
-          </div>
-          <div class="window-header-controls">
             <button class="window-control-btn window-control-close" data-action="close" title="Close">
               <i class="bi bi-x"></i>
             </button>
           </div>
+          <div class="window-header-controls"></div>
         </div>
         <div class="dockable-window-content">
           {% include 'planting/components/species_mixer.html' with project=project %}
         </div>
-        {# Resize handles #}
-        <div class="resize-handle resize-handle-e" data-resize="e"></div>
+        {# Resize handles - west edge for left-side resizing #}
+        <div class="resize-handle resize-handle-w" data-resize="w"></div>
       </div>
     </div>
 

@@ -3,8 +3,6 @@
   "label": "Viewport Settings",
   "description": "Horizontal toolbar above the map viewport with grid, snapping, camera and render settings",
   "state": {
-    "activeTool": "select",
-    "coordSystem": "world",
     "locationSnap": true,
     "locationSnapValue": 0,
     "rotationSnap": true,
@@ -22,27 +20,9 @@
       "label": "Transform",
       "exclusive": true,
       "items": [
-        { "id": "select", "type": "button", "icon": "bi-cursor", "shortcut": "Q", "tooltip": "Select", "isActive": true },
         { "id": "move", "type": "button", "icon": "bi-arrows-move", "shortcut": "W", "tooltip": "Move" },
         { "id": "rotate", "type": "button", "icon": "bi-arrow-repeat", "shortcut": "E", "tooltip": "Rotate" },
         { "id": "scale", "type": "button", "icon": "bi-arrows-angle-expand", "shortcut": "R", "tooltip": "Scale" }
-      ]
-    },
-    {
-      "group": "coord-system",
-      "label": "Coordinate System",
-      "items": [
-        {
-          "id": "coord-system",
-          "type": "dropdown",
-          "icon": "bi-globe",
-          "tooltip": "Coordinate System",
-          "showLabel": false,
-          "options": [
-            { "value": "world", "label": "World", "icon": "bi-globe", "isSelected": true },
-            { "value": "local", "label": "Local", "icon": "bi-box" }
-          ]
-        }
       ]
     },
     {
@@ -171,20 +151,6 @@
             { "type": "checkbox", "id": "show-map-shadows", "label": "Show Map Shadows", "default": true },
             { "type": "separator" },
             { "type": "number", "id": "terrain-scale", "label": "Terrain Scale", "min": 0, "max": 10, "step": 0.5, "default": 3.0 }
-          ]
-        },
-        {
-          "id": "viewport-settings",
-          "type": "dropdown",
-          "icon": "bi-gear",
-          "tooltip": "Viewport Settings",
-          "showLabel": false,
-          "options": [
-            { "action": "reset-camera", "label": "Reset Camera", "icon": "bi-house" },
-            { "action": "frame-selected", "label": "Frame Selected", "icon": "bi-fullscreen" },
-            { "type": "separator" },
-            { "type": "checkbox", "id": "realtime-preview", "label": "Realtime Preview", "default": true },
-            { "type": "checkbox", "id": "show-fps", "label": "Show FPS", "default": false }
           ]
         }
       ]

@@ -54,8 +54,8 @@
       // Create overflow button
       this.overflowBtn = document.createElement('button');
       this.overflowBtn.className = 'toolbar-overflow-btn vp-toolbar-btn';
-      this.overflowBtn.innerHTML = '<i class="bi bi-three-dots-vertical"></i>';
-      this.overflowBtn.title = 'More options';
+      this.overflowBtn.innerHTML = '<i class="bi bi-gear-fill"></i>';
+      this.overflowBtn.title = 'More tools';
       this.overflowBtn.style.display = 'none';
       this.overflowBtn.setAttribute('aria-haspopup', 'true');
       this.overflowBtn.setAttribute('aria-expanded', 'false');

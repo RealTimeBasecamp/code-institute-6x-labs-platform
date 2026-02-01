@@ -3,8 +3,7 @@
  * Initializes the toolbar from JSON config and handles events
  *
  * Manages:
- * - Tool selection (Select, Move, Rotate, Scale)
- * - Coordinate system selection
+ * - Tool selection (Move, Rotate, Scale)
  * - Snapping controls (Location, Rotation, Scale)
  * - Camera and render mode controls
  * - Visibility and viewport settings
@@ -18,8 +17,7 @@
 
     // Initialize application state
     window.viewportToolbarState = window.viewportToolbarState || {
-      activeTool: 'select',
-      coordSystem: 'world',
+      activeTool: 'move',
       locationSnap: true,
       locationSnapValue: 0,
       rotationSnap: true,
@@ -46,7 +44,7 @@
       const { action } = e.detail;
 
       // Transform tool selection
-      if (['select', 'move', 'rotate', 'scale'].includes(action)) {
+      if (['move', 'rotate', 'scale'].includes(action)) {
         window.viewportToolbarState.activeTool = action;
         document.dispatchEvent(new CustomEvent('viewportToolbar.toolChange', {
           detail: { tool: action }
@@ -56,20 +54,6 @@
 
       // Other actions
       switch (action) {
-        case 'reset-camera':
-          console.log('Reset camera action');
-          if (window.editorActions?.resetCamera) {
-            window.editorActions.resetCamera();
-          }
-          break;
-
-        case 'frame-selected':
-          console.log('Frame selected action');
-          if (window.editorActions?.frameSelected) {
-            window.editorActions.frameSelected();
-          }
-          break;
-
         case 'toggle-split':
           console.log('Toggle split view action');
           document.dispatchEvent(new CustomEvent('viewportToolbar.toggleSplit'));
@@ -85,13 +69,6 @@
       const { dropdownId, value } = e.detail;
 
       switch (dropdownId) {
-        case 'coord-system':
-          window.viewportToolbarState.coordSystem = value;
-          document.dispatchEvent(new CustomEvent('viewportToolbar.coordSystemChange', {
-            detail: { coordSystem: value }
-          }));
-          break;
-
         case 'location-snap-value':
           window.viewportToolbarState.locationSnapValue = parseFloat(value);
           document.dispatchEvent(new CustomEvent('viewportToolbar.locationSnapValueChange', {

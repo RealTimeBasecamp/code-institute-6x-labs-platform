@@ -105,6 +105,42 @@
           }
         });
       }
+
+      // Refresh toolbar overflow handler if available
+      this.initOverflow();
+
+      // Dispatch render complete event
+      this.container.dispatchEvent(new CustomEvent('toolbarRendered', {
+        bubbles: true,
+        detail: { toolbar: this }
+      }));
+    }
+
+    /**
+     * Initialize or refresh toolbar overflow handling
+     */
+    initOverflow() {
+      if (!this.container.classList.contains('toolbar-overflow')) return;
+
+      // Try immediately if ToolbarOverflow is available
+      if (window.ToolbarOverflow) {
+        const existingInstance = window.ToolbarOverflow.get(this.container);
+        if (existingInstance) {
+          existingInstance.refresh();
+        } else {
+          window.ToolbarOverflow.init(this.container);
+        }
+      } else {
+        // Wait for ToolbarOverflow to be available
+        const checkOverflow = () => {
+          if (window.ToolbarOverflow) {
+            window.ToolbarOverflow.init(this.container);
+          } else {
+            requestAnimationFrame(checkOverflow);
+          }
+        };
+        requestAnimationFrame(checkOverflow);
+      }
     }
 
     /**

@@ -177,19 +177,6 @@
     },
     {
       "type": "separator",
-      "visible_to": ["staff", "superuser"]
-    },
-    {
-      "type": "item",
-      "id": "file_debug_state",
-      "label": "Debug Editor State",
-      "icon": "bi-bug",
-      "callback": "editorActions.debugState",
-      "active": true,
-      "visible_to": ["staff", "superuser"]
-    },
-    {
-      "type": "separator",
       "visible_to": ["all"]
     },
     {
