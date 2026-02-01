@@ -1,8 +1,18 @@
 {% extends 'base.html' %}
 {% load static %}
 
-{% block meta_title %}Customer {{ customer.first_name }} {{ customer.last_name|default:customer.username }}{% endblock %}
-{% block page_title %}Customer {{ customer.first_name }} {{ customer.last_name|default:customer.username }}{% endblock %}
+
+
+{% block meta_title %}Customer{% endblock %}
+# if customer first name and/or last name, show 'First Last (username)', else just username
+{% block page_title %}
+Customer:
+{% if customer.first_name or customer.last_name %}
+  {{ customer.first_name }}{% if customer.first_name and customer.last_name %} {% endif %}{{ customer.last_name }} ({{ customer.username }})
+{% else %}
+  {{ customer.username }}
+{% endif %}
+{% endblock %}
 
 {% block extra_css %}
 <link rel="stylesheet" href="{% static 'css/components/sortable-table.css' %}">
