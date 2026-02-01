@@ -1,26 +1,125 @@
 /**
  * Toolbar Styles
- * Editor menu bar (top), Main tool palette (left), and Viewport settings (above map)
- * Styled like Unreal Engine 5.7
+ * All toolbar components for the editor UI
+ *
+ * Includes:
+ * - Shared vertical toolbar base styles
+ * - Editor menu bar (top horizontal)
+ * - Main tool palette (left vertical)
+ * - Panel toggle toolbar (right vertical)
+ * - Viewport settings toolbar (horizontal above map)
  */
 
 /* ============================================
-   Editor Menu Bar - Top Menu Bar
-   File, Edit, Window, Help menus
+   SHARED BASE STYLES
+   Reusable patterns for all toolbars
    ============================================ */
-.editor-menu-bar {
+
+/* Vertical Toolbar Base - shared by tool palette and panel toolbar */
+.vertical-toolbar {
+  display: flex;
+  flex-direction: column;
+  width: 40px;
+  min-width: 40px;
+  padding: 8px 4px;
+  gap: 4px;
+  user-select: none;
+  z-index: 99;
+  flex-shrink: 0;
+}
+
+/* Vertical Toolbar Button Base - shared by all vertical toolbar buttons */
+.vertical-toolbar-btn {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border: none;
+  background: transparent;
+  color: var(--bs-secondary-color);
+  font-size: var(--editor-icon-base);
+  cursor: pointer;
+  border-radius: 4px;
+  transition: all 0.15s ease;
+}
+
+.vertical-toolbar-btn:hover {
+  background: var(--bs-secondary-bg);
+  color: var(--bs-body-color);
+}
+
+.vertical-toolbar-btn.is-active {
+  background: color-mix(in srgb, var(--primary-color, var(--bs-primary)) 25%, transparent);
+  color: var(--primary-color, var(--bs-primary));
+}
+
+.vertical-toolbar-btn.is-active:hover {
+  background: color-mix(in srgb, var(--primary-color, var(--bs-primary)) 35%, transparent);
+}
+
+/* Horizontal Toolbar Base - shared by menu bar and viewport toolbar */
+.horizontal-toolbar {
+  display: flex;
+  align-items: center;
   height: 32px;
   min-height: 32px;
   padding: 0 8px;
+  user-select: none;
+  flex-shrink: 0;
+  position: relative;
+}
+
+/* Toolbar Overflow System - handles responsive overflow to dropdown */
+.toolbar-overflow {
+  overflow: hidden;
+  flex-wrap: nowrap;
+}
+
+.toolbar-overflow-item.is-overflowing {
+  display: none !important;
+}
+
+.toolbar-overflow-btn {
+  flex-shrink: 0;
+  margin-left: auto;
+}
+
+.toolbar-overflow-menu {
+  min-width: 160px;
+  max-height: 70vh;
+  overflow-y: auto;
+}
+
+/* Toolbar gradient backgrounds */
+.toolbar-gradient-horizontal {
   background: linear-gradient(180deg,
     color-mix(in srgb, var(--bs-tertiary-bg) 100%, transparent) 0%,
     color-mix(in srgb, var(--bs-tertiary-bg) 90%, var(--bs-body-bg) 10%) 100%
   );
+}
+
+.toolbar-gradient-left {
+  background: linear-gradient(90deg,
+    color-mix(in srgb, var(--bs-tertiary-bg) 100%, transparent) 0%,
+    color-mix(in srgb, var(--bs-tertiary-bg) 90%, var(--bs-body-bg) 10%) 100%
+  );
+}
+
+.toolbar-gradient-right {
+  background: linear-gradient(270deg,
+    color-mix(in srgb, var(--bs-tertiary-bg) 100%, transparent) 0%,
+    color-mix(in srgb, var(--bs-tertiary-bg) 90%, var(--bs-body-bg) 10%) 100%
+  );
+}
+
+/* ============================================
+   EDITOR MENU BAR - Top Horizontal Menu
+   File, Edit, Window, Help menus
+   ============================================ */
+.editor-menu-bar {
+  justify-content: space-between;
   border-bottom: 1px solid var(--bs-border-color);
-  user-select: none;
   z-index: 100;
 }
 
@@ -31,7 +130,7 @@
 }
 
 .editor-menu-loading {
-  font-size: 12px;
+  font-size: var(--editor-font-base);
   padding: 0 8px;
 }
 
@@ -48,7 +147,7 @@
   border: none;
   background: transparent;
   color: var(--bs-body-color);
-  font-size: 13px;
+  font-size: var(--editor-font-md);
   cursor: pointer;
   border-radius: 3px;
   transition: background-color 0.1s ease;
@@ -81,7 +180,7 @@
   border: none;
   background: transparent;
   color: var(--bs-body-color);
-  font-size: 13px;
+  font-size: var(--editor-font-md);
   text-align: left;
   cursor: pointer;
   gap: 8px;
@@ -92,12 +191,7 @@
   background: var(--bs-secondary-bg);
 }
 
-.editor-menu-item-btn:disabled {
-  color: var(--bs-secondary-color);
-  cursor: not-allowed;
-  opacity: 0.6;
-}
-
+.editor-menu-item-btn:disabled,
 .editor-menu-item-btn.is-disabled {
   color: var(--bs-secondary-color);
   cursor: not-allowed;
@@ -106,8 +200,8 @@
 
 /* Menu Item Components */
 .editor-menu-item-icon {
-  width: 16px;
-  font-size: 14px;
+  width: var(--editor-icon-sm);
+  font-size: var(--editor-icon-sm);
   color: var(--bs-secondary-color);
   flex-shrink: 0;
 }
@@ -118,7 +212,7 @@
 
 .editor-menu-item-badge {
   padding: 1px 6px;
-  font-size: 10px;
+  font-size: var(--editor-font-xs);
   font-weight: 600;
   background: var(--primary-color, var(--bs-primary));
   color: white;
@@ -127,7 +221,7 @@
 }
 
 .editor-menu-item-shortcut {
-  font-size: 11px;
+  font-size: var(--editor-font-sm);
   color: var(--bs-secondary-color);
   margin-left: auto;
 }
@@ -152,7 +246,7 @@
   border: none;
   background: transparent;
   color: var(--bs-body-color);
-  font-size: 13px;
+  font-size: var(--editor-font-md);
   text-align: left;
   cursor: pointer;
   gap: 8px;
@@ -164,7 +258,7 @@
 }
 
 .editor-menu-submenu-arrow {
-  font-size: 10px;
+  font-size: var(--editor-font-xs);
   color: var(--bs-secondary-color);
   margin-left: auto;
 }
@@ -195,28 +289,18 @@
   display: flex;
   align-items: center;
   gap: 6px;
-  font-size: 12px;
+  font-size: var(--editor-font-base);
   color: var(--bs-body-color);
 }
 
 .editor-project-name i {
-  font-size: 14px;
+  font-size: var(--editor-icon-sm);
 }
 
-/* Backwards compatibility - alias old names to new ones */
+/* Legacy aliases for backwards compatibility */
 .main-toolbar {
-  display: flex;
-  align-items: center;
   justify-content: space-between;
-  height: 32px;
-  min-height: 32px;
-  padding: 0 8px;
-  background: linear-gradient(180deg,
-    color-mix(in srgb, var(--bs-tertiary-bg) 100%, transparent) 0%,
-    color-mix(in srgb, var(--bs-tertiary-bg) 90%, var(--bs-body-bg) 10%) 100%
-  );
   border-bottom: 1px solid var(--bs-border-color);
-  user-select: none;
   z-index: 100;
 }
 
@@ -232,7 +316,7 @@
 }
 
 .toolbar-loading {
-  font-size: 12px;
+  font-size: var(--editor-font-base);
   padding: 0 8px;
 }
 
@@ -248,7 +332,7 @@
   border: none;
   background: transparent;
   color: var(--bs-body-color);
-  font-size: 13px;
+  font-size: var(--editor-font-md);
   cursor: pointer;
   border-radius: 3px;
   transition: background-color 0.1s ease;
@@ -283,7 +367,7 @@
   border: none;
   background: transparent;
   color: var(--bs-body-color);
-  font-size: 13px;
+  font-size: var(--editor-font-md);
   text-align: left;
   cursor: pointer;
   gap: 8px;
@@ -301,8 +385,8 @@
 }
 
 .dropdown-item-icon {
-  width: 16px;
-  font-size: 14px;
+  width: var(--editor-icon-sm);
+  font-size: var(--editor-icon-sm);
   color: var(--bs-secondary-color);
   flex-shrink: 0;
 }
@@ -313,7 +397,7 @@
 
 .dropdown-item-badge {
   padding: 1px 6px;
-  font-size: 10px;
+  font-size: var(--editor-font-xs);
   font-weight: 600;
   background: var(--primary-color, var(--bs-primary));
   color: white;
@@ -322,13 +406,13 @@
 }
 
 .dropdown-item-shortcut {
-  font-size: 11px;
+  font-size: var(--editor-font-sm);
   color: var(--bs-secondary-color);
   margin-left: auto;
 }
 
 .dropdown-item-arrow {
-  font-size: 10px;
+  font-size: var(--editor-font-xs);
   color: var(--bs-secondary-color);
   margin-left: auto;
 }
@@ -341,7 +425,7 @@
 
 .toolbar-dropdown-group {
   padding: 6px 12px 4px 12px;
-  font-size: 11px;
+  font-size: var(--editor-font-sm);
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.5px;
@@ -375,63 +459,25 @@
   display: flex;
   align-items: center;
   gap: 6px;
-  font-size: 12px;
+  font-size: var(--editor-font-base);
   color: var(--bs-body-color);
 }
 
 .toolbar-project-name i {
-  font-size: 14px;
+  font-size: var(--editor-icon-sm);
 }
 
 /* ============================================
-   Main Tool Palette - Left Vertical Toolbar
+   MAIN TOOL PALETTE - Left Vertical Toolbar
    Photoshop-style tool buttons with nested flyouts
    ============================================ */
 .main-tool-palette {
-  display: flex;
-  flex-direction: column;
-  width: 40px;
-  min-width: 40px;
-  padding: 8px 4px;
-  background: linear-gradient(90deg,
-    color-mix(in srgb, var(--bs-tertiary-bg) 100%, transparent) 0%,
-    color-mix(in srgb, var(--bs-tertiary-bg) 90%, var(--bs-body-bg) 10%) 100%
-  );
   border-right: 1px solid var(--bs-border-color);
-  gap: 2px;
-  user-select: none;
-  z-index: 99;
-  flex-shrink: 0;
 }
 
-/* Tool Button */
+/* Tool Button - extends vertical-toolbar-btn */
 .tool-palette-btn {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 32px;
-  height: 32px;
-  border: none;
-  background: transparent;
-  color: var(--bs-secondary-color);
-  font-size: 16px;
-  cursor: pointer;
-  border-radius: 4px;
-  transition: all 0.15s ease;
-}
-
-.tool-palette-btn:hover {
-  background: var(--bs-secondary-bg);
-  color: var(--bs-body-color);
-}
-
-.tool-palette-btn.is-active {
-  background: color-mix(in srgb, var(--primary-color, var(--bs-primary)) 25%, transparent);
-  color: var(--primary-color, var(--bs-primary));
-}
-
-.tool-palette-btn.is-active:hover {
-  background: color-mix(in srgb, var(--primary-color, var(--bs-primary)) 35%, transparent);
+  /* Inherits from vertical-toolbar-btn via extending */
 }
 
 /* Tool Group */
@@ -443,9 +489,7 @@
   margin-top: 0;
 }
 
-/* ============================================
-   Nested Tool Flyouts (like Photoshop)
-   ============================================ */
+/* Nested Tool Flyouts (like Photoshop) */
 .tool-palette-nested {
   position: relative;
   display: flex;
@@ -467,7 +511,7 @@
   position: absolute;
   bottom: 1px;
   right: 1px;
-  font-size: 7px;
+  font-size: calc(7px * var(--ui-scale));
   color: var(--bs-body-color);
   pointer-events: none;
   opacity: 0.6;
@@ -502,7 +546,7 @@
   border-radius: 0;
   height: auto;
   color: var(--bs-body-color);
-  font-size: 12px;
+  font-size: var(--editor-font-base);
   white-space: nowrap;
 }
 
@@ -516,41 +560,35 @@
 }
 
 /* ============================================
-   Editor Main Toolbar Placeholder Styles
-   (for the template's inline placeholder)
+   PANEL TOGGLE TOOLBAR - Right Vertical Toolbar
+   Buttons to show/hide editor panels
+   ============================================ */
+.panel-toggle-toolbar {
+  border-left: 1px solid var(--bs-border-color);
+}
+
+/* Panel Toggle Button - extends vertical-toolbar-btn */
+.panel-toggle-btn {
+  /* Inherits from vertical-toolbar-btn via extending */
+}
+
+/* ============================================
+   EDITOR VIEWPORT TOOLBAR - Placeholder styles
+   For the template's inline placeholder
    ============================================ */
 .editor-main-toolbar {
-  display: flex;
-  align-items: center;
-  height: 32px;
-  min-height: 32px;
-  padding: 0 8px;
-  background: linear-gradient(180deg,
-    color-mix(in srgb, var(--bs-tertiary-bg) 100%, transparent) 0%,
-    color-mix(in srgb, var(--bs-tertiary-bg) 90%, var(--bs-body-bg) 10%) 100%
-  );
   border-bottom: 1px solid var(--bs-border-color);
 }
 
 .editor-viewport-toolbar {
-  display: flex;
-  flex-direction: column;
-  width: 40px;
-  min-width: 40px;
-  padding: 8px 4px;
-  background: linear-gradient(90deg,
-    color-mix(in srgb, var(--bs-tertiary-bg) 100%, transparent) 0%,
-    color-mix(in srgb, var(--bs-tertiary-bg) 90%, var(--bs-body-bg) 10%) 100%
-  );
   border-right: 1px solid var(--bs-border-color);
-  gap: 4px;
 }
 
 .toolbar-placeholder {
   display: flex;
   align-items: center;
   gap: 8px;
-  font-size: 12px;
+  font-size: var(--editor-font-base);
 }
 
 .editor-viewport-toolbar .toolbar-placeholder {
@@ -558,35 +596,28 @@
 }
 
 .editor-viewport-toolbar .toolbar-placeholder i {
-  font-size: 16px;
+  font-size: var(--editor-icon-base);
   color: var(--bs-secondary-color);
 }
 
 /* ============================================
-   Viewport Settings Toolbar - Horizontal bar above map
+   VIEWPORT SETTINGS TOOLBAR - Horizontal above map
    Grid, snapping, camera, render settings
    ============================================ */
 .viewport-settings-toolbar {
-  display: flex;
-  align-items: center;
-  height: 32px;
-  min-height: 32px;
-  padding: 0 8px;
-  background: linear-gradient(180deg,
-    color-mix(in srgb, var(--bs-tertiary-bg) 100%, transparent) 0%,
-    color-mix(in srgb, var(--bs-tertiary-bg) 90%, var(--bs-body-bg) 10%) 100%
-  );
-  border-bottom: 1px solid var(--bs-border-color);
   gap: 4px;
-  user-select: none;
-  flex-shrink: 0;
+  border-bottom: 1px solid var(--bs-border-color);
+  overflow: hidden;
+  flex-wrap: nowrap;
 }
 
-/* Section grouping */
+/* Section grouping - allow shrinking */
 .vp-toolbar-section {
   display: flex;
   align-items: center;
   gap: 2px;
+  flex-shrink: 1;
+  min-width: 0;
 }
 
 /* Divider between sections */
@@ -603,16 +634,19 @@
   align-items: center;
   justify-content: center;
   height: 24px;
-  min-width: 24px;
+  min-width: 0;
   padding: 0 6px;
   border: none;
   background: transparent;
   color: var(--bs-secondary-color);
-  font-size: 14px;
+  font-size: var(--editor-icon-sm);
   cursor: pointer;
   border-radius: 3px;
   transition: all 0.1s ease;
   gap: 4px;
+  flex-shrink: 1;
+  overflow: hidden;
+  white-space: nowrap;
 }
 
 .vp-toolbar-btn:hover {
@@ -631,13 +665,13 @@
 
 /* Button label text */
 .vp-btn-label {
-  font-size: 11px;
+  font-size: var(--editor-font-sm);
   font-weight: 500;
 }
 
 /* Dropdown arrow */
 .vp-dropdown-arrow {
-  font-size: 8px;
+  font-size: var(--editor-icon-xs);
   opacity: 0.7;
 }
 
@@ -677,7 +711,7 @@
   border: none;
   background: transparent;
   color: var(--bs-body-color);
-  font-size: 12px;
+  font-size: var(--editor-font-base);
   text-align: left;
   cursor: pointer;
   gap: 8px;
@@ -694,8 +728,8 @@
 }
 
 .vp-dropdown-item i {
-  width: 16px;
-  font-size: 14px;
+  width: var(--editor-icon-sm);
+  font-size: var(--editor-icon-sm);
   flex-shrink: 0;
 }
 
@@ -739,7 +773,7 @@
 }
 
 .vp-toolbar-slider i {
-  font-size: 12px;
+  font-size: var(--editor-font-base);
   color: var(--bs-secondary-color);
 }
 
@@ -772,21 +806,16 @@
   cursor: pointer;
 }
 
-/* ============================================
-   Additional Viewport Toolbar Styles
-   Value buttons, sliders in dropdowns, spacers
-   ============================================ */
-
 /* Value button - shows current value like "10°" or "0.25" */
 .vp-value-btn {
   min-width: auto;
   padding: 0 4px;
-  font-size: 11px;
+  font-size: var(--editor-font-sm);
   font-weight: 500;
 }
 
 .vp-value-btn span {
-  font-size: 11px;
+  font-size: var(--editor-font-sm);
 }
 
 /* Small spacer between related items */
@@ -809,7 +838,7 @@
 }
 
 .vp-slider-label {
-  font-size: 11px;
+  font-size: var(--editor-font-sm);
   color: var(--bs-secondary-color);
   min-width: 40px;
   flex-shrink: 0;
@@ -845,7 +874,7 @@
 }
 
 .vp-slider-value {
-  font-size: 11px;
+  font-size: var(--editor-font-sm);
   font-weight: 500;
   min-width: 30px;
   text-align: right;
@@ -862,7 +891,7 @@
 /* Dropdown group header */
 .vp-dropdown-group {
   padding: 6px 12px 4px 12px;
-  font-size: 11px;
+  font-size: var(--editor-font-sm);
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.5px;
@@ -890,7 +919,7 @@
 }
 
 .vp-input-label {
-  font-size: 11px;
+  font-size: var(--editor-font-sm);
   color: var(--bs-secondary-color);
   min-width: 80px;
   flex-shrink: 0;
@@ -899,7 +928,7 @@
 .vp-input-number {
   flex: 1;
   padding: 4px 8px;
-  font-size: 11px;
+  font-size: var(--editor-font-sm);
   background: var(--bs-body-bg);
   border: 1px solid var(--bs-border-color);
   border-radius: 3px;
@@ -926,7 +955,7 @@
   color: var(--bs-secondary-color);
   cursor: pointer;
   transition: color 0.15s ease, background-color 0.15s ease;
-  font-size: 13px;
+  font-size: var(--editor-font-md);
   border-radius: 3px;
 }
 

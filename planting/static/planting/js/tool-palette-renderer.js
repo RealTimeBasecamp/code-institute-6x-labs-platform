@@ -126,7 +126,7 @@
      */
     renderTool(tool) {
       const btn = document.createElement('button');
-      btn.className = 'tool-palette-btn';
+      btn.className = 'vertical-toolbar-btn tool-palette-btn';
       btn.dataset.tool = tool.id;
 
       // Build tooltip with shortcut
@@ -173,7 +173,7 @@
       // Primary tool (first tool shown, triggers flyout on long press)
       const primaryTool = group.tools[0];
       const trigger = document.createElement('button');
-      trigger.className = 'tool-palette-btn tool-palette-trigger';
+      trigger.className = 'vertical-toolbar-btn tool-palette-btn tool-palette-trigger';
       trigger.dataset.trigger = group.group;
       trigger.dataset.tool = primaryTool.id;
 
@@ -203,7 +203,7 @@
       // Render all tools in flyout
       group.tools.forEach(tool => {
         const toolBtn = document.createElement('button');
-        toolBtn.className = 'tool-palette-btn tool-palette-nested-item';
+        toolBtn.className = 'vertical-toolbar-btn tool-palette-btn tool-palette-nested-item';
         toolBtn.dataset.tool = tool.id;
         toolBtn.title = tool.label;
 

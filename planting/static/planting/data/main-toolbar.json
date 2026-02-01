@@ -7,9 +7,9 @@
   },
   "sections": [
     {
-      "group": "save-tool",
+      "group": "state-management",
       "align": "left",
-      "label": "Save",
+      "label": "State Management",
       "items": [
         {
           "id": "save",
@@ -18,6 +18,24 @@
           "icon": "bi-floppy",
           "shortcut": "Ctrl+S",
           "tooltip": "Save the current changes"
+        },
+                {
+          "id": "undo",
+          "type": "button",
+          "label": "Undo",
+          "icon": "bi-arrow-counterclockwise",
+          "shortcut": "Ctrl+Z",
+          "tooltip": "Undo the last action",
+          "enabled_when": "canUndo"
+        },
+        {
+          "id": "redo",
+          "type": "button",
+          "label": "Redo",
+          "icon": "bi-arrow-clockwise",
+          "shortcut": "Ctrl+Y",
+          "tooltip": "Redo the last undone action",
+          "enabled_when": "canRedo"
         }
       ]
     },
@@ -75,36 +93,6 @@
             { "action": "add-icon", "label": "Add Icon", "icon": "bi-geo-alt" },
             { "action": "add-image", "label": "Add Image", "icon": "bi-image" }
           ]
-        }
-      ]
-    },
-    {
-      "type": "spacer",
-      "size": "flex",
-      "align": "right"
-    },
-    {
-      "group": "state-management",
-      "align": "right",
-      "label": "State Management",
-      "items": [
-        {
-          "id": "undo",
-          "type": "button",
-          "label": "Undo",
-          "icon": "bi-arrow-counterclockwise",
-          "shortcut": "Ctrl+Z",
-          "tooltip": "Undo the last action",
-          "enabled_when": "canUndo"
-        },
-        {
-          "id": "redo",
-          "type": "button",
-          "label": "Redo",
-          "icon": "bi-arrow-clockwise",
-          "shortcut": "Ctrl+Y",
-          "tooltip": "Redo the last undone action",
-          "enabled_when": "canRedo"
         }
       ]
     }

@@ -1,6 +1,9 @@
 /**
  * Dockable Window Component Styles
  * Inspired by Unreal Engine 5.7 panel design
+ *
+ * This file contains ONLY window-related styles.
+ * All toolbar styles are in toolbars.css
  */
 
 /* ============================================
@@ -67,13 +70,13 @@
 }
 
 .window-icon {
-  font-size: 12px;
+  font-size: var(--editor-font-base, 12px);
   color: var(--bs-secondary-color);
   flex-shrink: 0;
 }
 
 .window-title {
-  font-size: 12px;
+  font-size: var(--editor-font-base, 12px);
   font-weight: 500;
   color: var(--bs-body-color);
   white-space: nowrap;
@@ -112,7 +115,7 @@
 }
 
 .window-control-btn i {
-  font-size: 12px;
+  font-size: var(--editor-font-base, 12px);
 }
 
 .window-control-close:hover {
@@ -127,7 +130,7 @@
   flex: 1;
   overflow: auto;
   padding: 8px;
-  font-size: 13px;
+  font-size: var(--editor-font-md, 13px);
   display: flex;
   flex-direction: column;
 }
@@ -244,10 +247,6 @@
 }
 
 /* ============================================
-   Window States
-   ============================================ */
-
-/* ============================================
    Window Variants
    ============================================ */
 
@@ -292,12 +291,12 @@
 }
 
 .window-tree-item i {
-  font-size: 12px;
+  font-size: var(--editor-font-base, 12px);
   color: var(--bs-secondary-color);
 }
 
 .window-tree-item span {
-  font-size: 12px;
+  font-size: var(--editor-font-base, 12px);
 }
 
 /* Property grid (for Details panel) */
@@ -317,7 +316,7 @@
 
 .window-property-label {
   flex: 0 0 100px;
-  font-size: 11px;
+  font-size: var(--editor-font-sm, 11px);
   color: var(--bs-secondary-color);
   text-align: right;
 }
@@ -333,16 +332,16 @@
 .window-property-value select {
   flex: 1;
   padding: 3px 6px;
-  font-size: 12px;
+  font-size: var(--editor-font-base, 12px);
   background: var(--bs-body-bg);
   border: 1px solid var(--bs-border-color);
   border-radius: 3px;
   color: var(--bs-body-color);
-  order: 1; /* Ensure input/select is always first */
+  order: 1;
 }
 
 .window-property-value input[type="range"] {
-  order: 1; /* Slider first */
+  order: 1;
 }
 
 .window-property-value input[type="checkbox"] {
@@ -359,15 +358,15 @@
 
 /* Value display for range sliders */
 .range-value-display {
-  font-size: 11px;
+  font-size: var(--editor-font-sm, 11px);
   color: var(--bs-body-color);
   min-width: 40px;
   text-align: right;
   flex-shrink: 0;
-  order: 2; /* Value display after slider */
+  order: 2;
 }
 
-/* Reset to default button for property rows - always visible, outside field */
+/* Reset to default button for property rows */
 .property-reset-btn {
   flex-shrink: 0;
   width: 20px;
@@ -381,9 +380,9 @@
   color: var(--bs-secondary-color);
   cursor: pointer;
   transition: color 0.15s ease, background-color 0.15s ease;
-  font-size: 13px;
+  font-size: var(--editor-font-md, 13px);
   border-radius: 3px;
-  order: 3; /* Reset button after value display */
+  order: 3;
 }
 
 .property-reset-btn:hover {
@@ -397,10 +396,10 @@
 
 /* Unit labels (like 'm' for meters) */
 .property-unit {
-  font-size: 11px;
+  font-size: var(--editor-font-sm, 11px);
   color: var(--bs-secondary-color);
   flex-shrink: 0;
-  order: 4; /* Unit label at the very end */
+  order: 4;
 }
 
 /* Section headers (for collapsible sections) */
@@ -417,7 +416,7 @@
   border-bottom: 1px solid var(--bs-border-color);
   cursor: pointer;
   user-select: none;
-  font-size: 12px;
+  font-size: var(--editor-font-base, 12px);
   font-weight: 500;
   margin-left: -8px;
   margin-right: -8px;
@@ -434,7 +433,7 @@
 }
 
 .window-section-header i {
-  font-size: 10px;
+  font-size: var(--editor-font-xs, 10px);
   transition: transform 0.2s;
 }
 
@@ -508,78 +507,6 @@
 }
 
 /* ============================================
-   Panel Toggle Toolbar - Right Side
-   Accordion-style buttons to toggle panels
-   ============================================ */
-.panel-toggle-toolbar {
-  display: flex;
-  flex-direction: column;
-  width: 36px;
-  min-width: 36px;
-  padding: 8px 2px;
-  background: linear-gradient(270deg,
-    color-mix(in srgb, var(--bs-tertiary-bg) 100%, transparent) 0%,
-    color-mix(in srgb, var(--bs-tertiary-bg) 90%, var(--bs-body-bg) 10%) 100%
-  );
-  border-left: 1px solid var(--bs-border-color);
-  gap: 2px;
-  user-select: none;
-  z-index: 99;
-  flex-shrink: 0;
-}
-
-/* Panel Toggle Button */
-.panel-toggle-btn {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  width: 32px;
-  min-height: 48px;
-  padding: 6px 2px;
-  border: none;
-  background: transparent;
-  color: var(--bs-secondary-color);
-  font-size: 14px;
-  cursor: pointer;
-  border-radius: 4px;
-  transition: all 0.15s ease;
-  gap: 4px;
-}
-
-.panel-toggle-btn:hover {
-  background: var(--bs-secondary-bg);
-  color: var(--bs-body-color);
-}
-
-.panel-toggle-btn.is-active {
-  background: color-mix(in srgb, var(--primary-color, var(--bs-primary)) 25%, transparent);
-  color: var(--primary-color, var(--bs-primary));
-}
-
-.panel-toggle-btn.is-active:hover {
-  background: color-mix(in srgb, var(--primary-color, var(--bs-primary)) 35%, transparent);
-}
-
-.panel-toggle-btn i {
-  font-size: 16px;
-}
-
-/* Vertical label text */
-.panel-toggle-label {
-  writing-mode: vertical-rl;
-  text-orientation: mixed;
-  transform: rotate(180deg);
-  font-size: 9px;
-  font-weight: 500;
-  letter-spacing: 0.5px;
-  text-transform: uppercase;
-  white-space: nowrap;
-  max-height: 60px;
-  overflow: hidden;
-}
-
-/* ============================================
    Dragging State Enhancements
    ============================================ */
 .dockable-window.is-dragging {
@@ -603,12 +530,4 @@
 
 .dock-container.dock-vertical {
   flex-direction: column;
-}
-
-/* ============================================
-   Window visibility when closed via toolbar
-   ============================================ */
-.dockable-window[style*="display: none"] + .dock-container,
-.dockable-window[style*="display:none"] + .dock-container {
-  /* Ensure layout adjusts when windows are hidden */
 }

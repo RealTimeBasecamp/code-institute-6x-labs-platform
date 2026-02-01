@@ -76,7 +76,7 @@
      */
     renderPanelButton(panel) {
       const btn = document.createElement('button');
-      btn.className = 'panel-toggle-btn';
+      btn.className = 'vertical-toolbar-btn panel-toggle-btn';
       btn.dataset.panel = panel.id;
       btn.title = panel.tooltip || panel.label;
       btn.setAttribute('aria-pressed', panel.default ? 'true' : 'false');

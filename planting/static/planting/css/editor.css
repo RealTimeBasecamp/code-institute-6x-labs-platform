@@ -35,7 +35,7 @@
   display: flex;
   align-items: center;
   gap: 16px;
-  font-size: 14px;
+  font-size: var(--editor-font-lg);
 }
 
 /* ============================================
@@ -71,7 +71,7 @@
 }
 
 .editor-viewport-toolbar .toolbar-placeholder i {
-  font-size: 18px;
+  font-size: var(--editor-icon-lg);
   padding: 8px;
   border-radius: 4px;
   cursor: pointer;
@@ -118,7 +118,7 @@
   padding: 0 12px;
   background: var(--bs-tertiary-bg);
   border-bottom: 1px solid var(--bs-border-color);
-  font-size: 13px;
+  font-size: var(--editor-font-md);
   font-weight: 500;
   user-select: none;
 }
@@ -127,7 +127,7 @@
   flex: 1;
   padding: 12px;
   overflow: auto;
-  font-size: 13px;
+  font-size: var(--editor-font-md);
 }
 
 .panel-placeholder .panel-content .text-muted {
