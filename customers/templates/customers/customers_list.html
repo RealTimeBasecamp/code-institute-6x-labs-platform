@@ -34,8 +34,11 @@
         <thead>
           <tr>
             <th scope="col">#</th>
-            <th scope="col" data-sortable>Name</th>
-            <th scope="col" data-sortable>Status</th>
+            <th scope="col" data-sortable>First Name</th>
+            <th scope="col" data-sortable>Last Name</th>
+            <th scope="col" data-sortable>Tier</th>
+            <th scope="col">Username</th>
+            <th scope="col">Email</th>
             {% if user.is_superuser %}
               <th scope="col">Actions</th>
             {% endif %}
@@ -45,8 +48,12 @@
           {% for customer in customers %}
           <tr data-customer-name="{{ customer.name }}">
             <th scope="row" data-row-number>{{ forloop.counter }}</th>
-            <td><a href="{% url 'customers:customer_detail' customer.username %}">{{ customer.first_name }}</a></td>
+            <td>{{ customer.first_name }}</a></td>
+            <td>{{ customer.last_name }}</td>
             <td>{{ customer.subscription_tier }}</td>
+            <td><a href="{% url 'customers:customer_detail' customer.username %}">{{ customer.username }}</a></td>
+            <td><a href="mailto:{{ customer.email }}">{{ customer.email }}</a></td>
+
             {% if user.is_superuser %}
             <td>
               <a role="button"
