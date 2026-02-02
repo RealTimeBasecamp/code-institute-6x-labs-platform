@@ -362,3 +362,7 @@ svg {
 .modal-no-backdrop .modal-content.p-0 .modal-footer {
   padding-top: 0 !important;
 }
+
+.home-btn{
+  color: var(--primary-color);
+}

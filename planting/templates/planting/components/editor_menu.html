@@ -16,16 +16,17 @@
 
 
 <nav class="horizontal-toolbar toolbar-gradient-horizontal editor-menu-bar" id="editor-menu-bar" role="menubar" aria-label="Editor menu">
-  <a class="editor-menu-items m-0 p-0" href="{% url 'core:dashboard' %}" aria-label="Home button" title="Home">
-    {% include 'components/dynamic_icons/6x_Labs_Circle_Green_Small.svg' %}
-  </a>
+  <div class="d-flex justify-content-center gap-1">
+    <a class="editor-menu-items home-btn m-0 p-0" href="{% url 'core:dashboard' %}" aria-label="Home button" title="Home">
+      {% include 'components/dynamic_icons/6x_Labs_Circle_Green_Small.svg' %}
+    </a>
 
-  {# Menu items will be rendered by JavaScript from config files #}
-  <div class="editor-menu-items" id="editor-menu-items">
-    {# Placeholder shown until JS loads menus #}
-    <span class="editor-menu-loading text-muted">Loading menus...</span>
+    {# Menu items will be rendered by JavaScript from config files #}
+    <div class="editor-menu-items" id="editor-menu-items">
+      {# Placeholder shown until JS loads menus #}
+      <span class="editor-menu-loading text-muted">Loading menus...</span>
+    </div>
   </div>
-
   {# Right side: project name and status indicators #}
   <div class="editor-menu-status">
     {% if project %}
