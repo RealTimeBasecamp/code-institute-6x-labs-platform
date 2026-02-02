@@ -47,17 +47,17 @@
             <!-- header component -->
             <div class="container">
                 <header class="d-flex justify-content-between align-items-center ps-2 mb-4">
-                        <!-- Mobile Menu Button -->
+                    <!-- Mobile Menu Button -->
                     <span class="d-flex align-items-center gap-2">
-                    <button
-                    class="mobile-menu-btn"
-                    data-bs-toggle="offcanvas"
-                    data-bs-target="#sidebar"
-                    aria-label="Open menu"
-                    >
-                    <i class="bi bi-chevron-left"></i>
-                    </button>
-                    <h1 class="mb-0">{% block page_title %}Title{% endblock %}</h1>
+                        <button
+                        class="mobile-menu-btn"
+                        data-bs-toggle="offcanvas"
+                        data-bs-target="#sidebar"
+                        aria-label="Open menu"
+                        >
+                        <i class="bi bi-chevron-left"></i>
+                        </button>
+                        <h1 class="mb-0">{% block page_title %}Title{% endblock %}</h1>
                 </span>
                     {% block header_contents %}
                         <!-- Default content (or leave empty) -->
