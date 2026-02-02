@@ -364,5 +364,5 @@ svg {
 }
 
 .home-btn{
-  color: var(--primary-color);
+  color: var(--bs-body-color);
 }
