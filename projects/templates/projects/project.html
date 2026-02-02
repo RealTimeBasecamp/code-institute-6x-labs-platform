@@ -116,164 +116,183 @@
     {% endif %}
 </section>
 
+<section>
+  <div class="card p-4">
+    {% include "planting/interactive_map_minimal.html" with site_rows=site_rows site_bounds_rows=site_bounds_rows %}
+  </div>
+</section>
 
-<div class="card p-4">
-  {% include "planting/interactive_map_minimal.html" with site_rows=site_rows site_bounds_rows=site_bounds_rows %}
-</div>
+<section>
+  {% card
+    card_title="Project Images"
+    card_icon="bi bi-image"
+    card_body='<p>Images go here</p>'
+  %}
+</section>
 
-{% load ui_tags %}
-<div class="container mt-4">
-  {% make_tabs 'project-info:Project Information,project-breakdown:Project Breakdown' as project_tabs %}
-  {% include 'components/nav_pills.html' with tabs=project_tabs id='project-nav' %}
-</div>
-<div class="tab-content mt-4">
-  <div class="tab-pane fade show active" id="tab-project-info" role="tabpanel" aria-labelledby="project-info-tab">
-    <div class="d-flex flex-column gap-4">
-      {% if project %}
-          {% for group in card_groups %}
-            {% if user.is_authenticated %}
-              {% if project.created_by == user or user.is_superuser or user.is_staff %}
-                {% card card_title=group.title card_icon=group.icon card_body=group.body_html edit_modal_id='projectEditWizard' edit_form=group.edit_form %}
+<section>
+  {% card
+    card_title="Project Description"
+    card_icon="bi bi-card-text"
+    card_body=project.description
+  %}
+</section>
+
+<section>
+  {% load ui_tags %}
+  <div class="container mt-4">
+    {% make_tabs 'project-info:Project Information,project-breakdown:Project Breakdown' as project_tabs %}
+    {% include 'components/nav_pills.html' with tabs=project_tabs id='project-nav' %}
+  </div>
+  <div class="tab-content mt-4">
+    <div class="tab-pane fade show active" id="tab-project-info" role="tabpanel" aria-labelledby="project-info-tab">
+      <div class="d-flex flex-column gap-4">
+        {% if project %}
+            {% for group in card_groups %}
+              {% if user.is_authenticated %}
+                {% if project.created_by == user or user.is_superuser or user.is_staff %}
+                  {% card card_title=group.title card_icon=group.icon card_body=group.body_html edit_modal_id='projectEditWizard' edit_form=group.edit_form %}
+                {% else %}
+                  {% card card_title=group.title card_icon=group.icon card_body=group.body_html %}
+                {% endif %}
               {% else %}
                 {% card card_title=group.title card_icon=group.icon card_body=group.body_html %}
               {% endif %}
-            {% else %}
-              {% card card_title=group.title card_icon=group.icon card_body=group.body_html %}
-            {% endif %}
-          {% endfor %}
-          {% card card_title='Contributor Information' card_icon='bi bi-person-plus' card_body='<p class="text-muted mb-0">No contributors added yet.</p>' %}
-      {% endif %}
-    </div>
-  </div>
-
-  <div class="tab-pane fade" id="tab-project-breakdown" role="tabpanel" aria-labelledby="project-breakdown-tab">
-    <div class="container-fluid dashboard-container">
-      {# Data element for JavaScript #}
-      <div id="project-breakdown-data"
-           data-project-name="{{ project.name|default:'' }}"
-           data-total-co2="{{ project.total_co2_sequestered_kg|default:0 }}"
-           data-area-hectares="{{ project.area_hectares|default:0 }}"
-           data-total-plants="{{ project.total_plants|default:0 }}"
-           style="display:none;"></div>
-
-      {# Controls row - Carbon Regulatory Body dropdown and View Scope toggle #}
-      <div class="row mb-4">
-        <div class="col-lg-6 col-12 mb-3 mb-lg-0">
-          <div class="d-flex align-items-center gap-2 mb-2">
-            <span class="fw-medium">Carbon Regulatory Body</span>
-            <i class="bi bi-info-circle text-muted"
-               data-bs-toggle="tooltip"
-               data-bs-placement="top"
-               data-bs-title="Select the carbon standard used for calculations."></i>
-          </div>
-          {% include 'components/dropdown.html' with
-              dropdown_id="carbonRegulatoryBody"
-              dropdown_label="Woodland Carbon Code (UK)"
-              dropdown_width="100%"
-          %}
-        </div>
-
-        <div class="col-lg-6 col-12">
-          <div class="d-flex align-items-center gap-2 mb-2">
-            <span class="fw-medium">View Scope</span>
-            <i class="bi bi-info-circle text-muted"
-               data-bs-toggle="tooltip"
-               data-bs-placement="top"
-               data-bs-title="Toggle between viewing data for the current site or the entire project."></i>
-          </div>
-          <div class="view-scope-toggle d-inline-flex align-items-center gap-2 px-3 py-2 rounded border bg-body-tertiary">
-            <span class="view-scope-label" data-scope="site">Current Site</span>
-            <label class="toggle-switch m-0">
-              <input type="checkbox" id="viewScopeToggle" aria-label="Toggle view scope between current site and entire project">
-              <span class="slider"></span>
-            </label>
-            <span class="view-scope-label text-muted" data-scope="project">Entire Project</span>
-          </div>
-        </div>
+            {% endfor %}
+            {% card card_title='Contributor Information' card_icon='bi bi-person-plus' card_body='<p class="text-muted mb-0">No contributors added yet.</p>' %}
+        {% endif %}
       </div>
+    </div>
 
-      {# Three metric cards in a row - matching dashboard layout #}
-      <div class="row dash-metrics-row">
-        <div class="col-lg-4 col-md-6 col-12">
-          <div class="dash-card">
-            <div class="dash-card-header">
-              <h4>CO₂ Sequestered</h4>
-              <span class="dash-card-subtitle">Total carbon captured</span>
+    <div class="tab-pane fade" id="tab-project-breakdown" role="tabpanel" aria-labelledby="project-breakdown-tab">
+      <div class="container-fluid dashboard-container">
+        {# Data element for JavaScript #}
+        <div id="project-breakdown-data"
+            data-project-name="{{ project.name|default:'' }}"
+            data-total-co2="{{ project.total_co2_sequestered_kg|default:0 }}"
+            data-area-hectares="{{ project.area_hectares|default:0 }}"
+            data-total-plants="{{ project.total_plants|default:0 }}"
+            style="display:none;"></div>
+
+        {# Controls row - Carbon Regulatory Body dropdown and View Scope toggle #}
+        <div class="row mb-4">
+          <div class="col-lg-6 col-12 mb-3 mb-lg-0">
+            <div class="d-flex align-items-center gap-2 mb-2">
+              <span class="fw-medium">Carbon Regulatory Body</span>
+              <i class="bi bi-info-circle text-muted"
+                data-bs-toggle="tooltip"
+                data-bs-placement="top"
+                data-bs-title="Select the carbon standard used for calculations."></i>
             </div>
-            <div class="chart-container loading">
-              <div id="pbCo2Chart" class="chart-wrap"></div>
-              <div class="chart-loading">
-                <div class="spinner-border spinner-border-sm text-primary" role="status">
-                  <span class="visually-hidden">Loading...</span>
-                </div>
-              </div>
+            {% include 'components/dropdown.html' with
+                dropdown_id="carbonRegulatoryBody"
+                dropdown_label="Woodland Carbon Code (UK)"
+                dropdown_width="100%"
+            %}
+          </div>
+
+          <div class="col-lg-6 col-12">
+            <div class="d-flex align-items-center gap-2 mb-2">
+              <span class="fw-medium">View Scope</span>
+              <i class="bi bi-info-circle text-muted"
+                data-bs-toggle="tooltip"
+                data-bs-placement="top"
+                data-bs-title="Toggle between viewing data for the current site or the entire project."></i>
+            </div>
+            <div class="view-scope-toggle d-inline-flex align-items-center gap-2 px-3 py-2 rounded border bg-body-tertiary">
+              <span class="view-scope-label" data-scope="site">Current Site</span>
+              <label class="toggle-switch m-0">
+                <input type="checkbox" id="viewScopeToggle" aria-label="Toggle view scope between current site and entire project">
+                <span class="slider"></span>
+              </label>
+              <span class="view-scope-label text-muted" data-scope="project">Entire Project</span>
             </div>
           </div>
         </div>
 
-        <div class="col-lg-4 col-md-6 col-12">
-          <div class="dash-card">
-            <div class="dash-card-header">
-              <h4>Project Area</h4>
-              <span class="dash-card-subtitle">Total site coverage</span>
-            </div>
-            <div class="chart-container loading">
-              <div id="pbAreaChart" class="chart-wrap"></div>
-              <div class="chart-loading">
-                <div class="spinner-border spinner-border-sm text-primary" role="status">
-                  <span class="visually-hidden">Loading...</span>
+        {# Three metric cards in a row - matching dashboard layout #}
+        <div class="row dash-metrics-row">
+          <div class="col-lg-4 col-md-6 col-12">
+            <div class="dash-card">
+              <div class="dash-card-header">
+                <h4>CO₂ Sequestered</h4>
+                <span class="dash-card-subtitle">Total carbon captured</span>
+              </div>
+              <div class="chart-container loading">
+                <div id="pbCo2Chart" class="chart-wrap"></div>
+                <div class="chart-loading">
+                  <div class="spinner-border spinner-border-sm text-primary" role="status">
+                    <span class="visually-hidden">Loading...</span>
+                  </div>
                 </div>
               </div>
             </div>
           </div>
-        </div>
 
-        <div class="col-lg-4 col-md-6 col-12">
-          <div class="dash-card">
-            <div class="dash-card-header">
-              <h4>Total Plants</h4>
-              <span class="dash-card-subtitle">Plants in this project</span>
-            </div>
-            <div class="chart-container loading">
-              <div id="pbPlantsChart" class="chart-wrap"></div>
-              <div class="chart-loading">
-                <div class="spinner-border spinner-border-sm text-primary" role="status">
-                  <span class="visually-hidden">Loading...</span>
+          <div class="col-lg-4 col-md-6 col-12">
+            <div class="dash-card">
+              <div class="dash-card-header">
+                <h4>Project Area</h4>
+                <span class="dash-card-subtitle">Total site coverage</span>
+              </div>
+              <div class="chart-container loading">
+                <div id="pbAreaChart" class="chart-wrap"></div>
+                <div class="chart-loading">
+                  <div class="spinner-border spinner-border-sm text-primary" role="status">
+                    <span class="visually-hidden">Loading...</span>
+                  </div>
                 </div>
               </div>
             </div>
           </div>
+
+          <div class="col-lg-4 col-md-6 col-12">
+            <div class="dash-card">
+              <div class="dash-card-header">
+                <h4>Total Plants</h4>
+                <span class="dash-card-subtitle">Plants in this project</span>
+              </div>
+              <div class="chart-container loading">
+                <div id="pbPlantsChart" class="chart-wrap"></div>
+                <div class="chart-loading">
+                  <div class="spinner-border spinner-border-sm text-primary" role="status">
+                    <span class="visually-hidden">Loading...</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {% comment %}
+            <div>
+              <p>Specific data missing?</p>
+                <button
+                  type="button"
+                  class="btn btn-primary"
+                  data-bs-toggle="modal"
+                  data-bs-target="#">
+                  <i class="bi bi-plus-lg me-1"></i>Put in a request
+                </button>
+            </div>
+
+            
+            <div>
+              <p>Need to filter by a different carbon regulatory type?</p>
+                <button
+                  type="button"
+                  class="btn btn-primary"
+                  data-bs-toggle="modal"
+                  data-bs-target="#">
+                  <i class="bi bi-plus-lg me-1"></i>Put in a request
+                </button>
+            </div>
+          {% endcomment %}
+
         </div>
-
-        {% comment %}
-          <div>
-            <p>Specific data missing?</p>
-              <button
-                type="button"
-                class="btn btn-primary"
-                data-bs-toggle="modal"
-                data-bs-target="#">
-                <i class="bi bi-plus-lg me-1"></i>Put in a request
-              </button>
-          </div>
-
-          
-          <div>
-            <p>Need to filter by a different carbon regulatory type?</p>
-              <button
-                type="button"
-                class="btn btn-primary"
-                data-bs-toggle="modal"
-                data-bs-target="#">
-                <i class="bi bi-plus-lg me-1"></i>Put in a request
-              </button>
-          </div>
-        {% endcomment %}
-
       </div>
     </div>
   </div>
-</div>
+</section>
 
 <script src="https://cdn.jsdelivr.net/npm/echarts@5/dist/echarts.min.js"></script>
 <script src="{% static 'projects/js/project_breakdown.js' %}" defer></script>
