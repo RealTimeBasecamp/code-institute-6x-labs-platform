@@ -2,7 +2,7 @@ from django.db import models
 
 from users.models import User
 from planting.models import Species
-from seed_catalogue.models import SeedBatch, FungiBatch
+from species.models import SeedBatch, FungiBatch
 
 
 # =============================================================================

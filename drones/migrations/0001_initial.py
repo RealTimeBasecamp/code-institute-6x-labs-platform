@@ -9,7 +9,7 @@ class Migration(migrations.Migration):
     initial = True
 
     dependencies = [
-        ('seed_catalogue', '0001_initial'),
+        ('species', '0001_initial'),
     ]
 
     operations = [
@@ -52,8 +52,8 @@ class Migration(migrations.Migration):
                 ('plants_planted', models.IntegerField(default=0)),
                 ('notes', models.TextField(blank=True, null=True)),
                 ('drone', models.ForeignKey(on_delete=django.db.models.deletion.PROTECT, related_name='flight_logs', to='drones.drone')),
-                ('fungi_batch', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.PROTECT, related_name='flight_logs', to='seed_catalogue.fungibatch')),
-                ('seed_batch', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.PROTECT, related_name='flight_logs', to='seed_catalogue.seedbatch')),
+                ('fungi_batch', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.PROTECT, related_name='flight_logs', to='species.fungibatch')),
+                ('seed_batch', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.PROTECT, related_name='flight_logs', to='species.seedbatch')),
             ],
         ),
     ]

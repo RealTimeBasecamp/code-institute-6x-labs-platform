@@ -11,7 +11,7 @@ class Migration(migrations.Migration):
     dependencies = [
         ('core', '0001_initial'),
         ('planting', '0001_initial'),
-        ('seed_catalogue', '0001_initial'),
+        ('species', '0001_initial'),
     ]
 
     operations = [
@@ -95,7 +95,7 @@ class Migration(migrations.Migration):
                 ('queue_order', models.IntegerField(blank=True, db_index=True, null=True)),
                 ('current_status', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.PROTECT, related_name='plants', to='planting.plantstatus')),
                 ('original_plant', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='replants', to='projects.plant')),
-                ('seed_batch', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.PROTECT, related_name='plants', to='seed_catalogue.seedbatch')),
+                ('seed_batch', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.PROTECT, related_name='plants', to='species.seedbatch')),
                 ('species', models.ForeignKey(on_delete=django.db.models.deletion.PROTECT, related_name='plants', to='planting.species')),
                 ('planting_zone', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.PROTECT, related_name='plants', to='projects.plantingzone')),
             ],
@@ -105,7 +105,7 @@ class Migration(migrations.Migration):
             fields=[
                 ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
                 ('quantity_ml', models.DecimalField(blank=True, decimal_places=2, max_digits=6, null=True)),
-                ('fungi_batch', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.PROTECT, related_name='fungi_visits', to='seed_catalogue.fungibatch')),
+                ('fungi_batch', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.PROTECT, related_name='fungi_visits', to='species.fungibatch')),
                 ('fungi_species', models.ForeignKey(on_delete=django.db.models.deletion.PROTECT, to='planting.species')),
                 ('plant', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='fungi_visits', to='projects.plant')),
             ],
@@ -191,7 +191,7 @@ class Migration(migrations.Migration):
                 ('seeds_planted_estimate', models.IntegerField(blank=True, null=True)),
                 ('timestamp', models.DateTimeField(auto_now_add=True)),
                 ('notes', models.TextField(blank=True, null=True)),
-                ('seed_batch', models.ForeignKey(on_delete=django.db.models.deletion.PROTECT, related_name='usages', to='seed_catalogue.seedbatch')),
+                ('seed_batch', models.ForeignKey(on_delete=django.db.models.deletion.PROTECT, related_name='usages', to='species.seedbatch')),
                 ('site', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='seed_usages', to='projects.site')),
             ],
         ),
@@ -213,7 +213,7 @@ class Migration(migrations.Migration):
                 ('quantity_used_ml', models.DecimalField(blank=True, decimal_places=2, max_digits=10, null=True)),
                 ('timestamp', models.DateTimeField(auto_now_add=True)),
                 ('notes', models.TextField(blank=True, null=True)),
-                ('fungi_batch', models.ForeignKey(on_delete=django.db.models.deletion.PROTECT, related_name='usages', to='seed_catalogue.fungibatch')),
+                ('fungi_batch', models.ForeignKey(on_delete=django.db.models.deletion.PROTECT, related_name='usages', to='species.fungibatch')),
                 ('site', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='fungi_usages', to='projects.site')),
             ],
         ),

@@ -54,7 +54,7 @@ INSTALLED_APPS = [
     'core',
     'users',
     'planting',
-    'seed_catalogue',
+    'species',
     'drones',
     'projects',
     'reports',

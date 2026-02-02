@@ -39,10 +39,16 @@
 
 {% block content %}
 
-  {# Toolbar: View toggle and search (search bar moved here by JS) #}
-  <div class="d-flex justify-content-between align-items-center mb-3" id="seeds-toolbar">
-    {% include "components/view_toggle.html" %}
-  </div>
+  {# Toolbar: Nav pills (switch table/grid) and Search (search bar moved here by JS) #}
+  {% load ui_tags %}
+  <div class="d-flex justify-content-between align-items-center mb-3" id="customers-toolbar">
+    <div class="d-flex align-items-center">
+      {% make_tabs 'table:Table:bi-list:Table view,grid:Grid:bi-grid-3x3-gap-fill:Grid view' as view_tabs %}
+      {% include 'components/nav_pills.html' with tabs=view_tabs id='view-toggle' variant='text' %}
+    </div>
+
+    {# Search bar will be injected here by sortable-table.js (data-search-toolbar) #}
+
 
   {# Tab content #}
   <div class="tab-content">

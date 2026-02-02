@@ -1,0 +1,92 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block meta_title %}Seed database{% endblock %}
+{% block page_title %}Seed database{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/components/sortable-table.css' %}">
+{% endblock %}
+
+{# TODO: #}
+- Create Species creation wizard modal
+- Hook up Species view/url
+- Get Species data into context
+- Update table to match Species fields
+- Add delete functionality
+
+{# endcoment #}
+
+{% block header_contents %}
+  <button
+      type="button"
+      class="btn btn-primary"
+      data-bs-toggle="modal"
+      data-bs-target="#speciesCreationWizard">
+      <i class="bi bi-tree-fill me-1"></i>Add new species
+  </button>
+
+  {# Include the Species creation wizard modal TODO #}
+  {% include "components/modals/wizard_modal.html" with
+    modal_id="speciesCreationWizard"
+    wizard_name="species_creation"
+    modal_title="Create New Species"
+    modal_icon="bi bi-funnel-fill"
+  %}
+  {# end Species creation wizard modal #}
+
+{% endblock %}
+
+{% block content %}
+  {# Toolbar: Nav pills (switch table/grid) and Search (search bar moved here by JS) #}
+  {% load ui_tags %}
+  <div class="d-flex justify-content-between align-items-center mb-3" id="species-mixer-toolbar">
+    <div class="d-flex align-items-center">
+      {% make_tabs 'table:Table:bi-list:Table view,grid:Grid:bi-grid-3x3-gap-fill:Grid view' as view_tabs %}
+      {% include 'components/nav_pills.html' with tabs=view_tabs id='view-toggle' variant='text' %}
+    </div>
+    {# Search bar will be injected here by sortable-table.js (data-search-toolbar) #}
+  </div>
+
+  {# Tab content #}
+  <div class="tab-content">
+    {# Table view #}
+    <div class="tab-pane fade show active" id="tab-table" role="tabpanel">
+      {# TODO Update with sortable table component #}
+      <table class="table sortable-table" data-search-toolbar="species-mixer-toolbar">
+        <thead>
+          <tr>
+            <th scope="col">#</th>
+            <th scope="col" data-sortable>Name</th>
+            <th scope="col" data-sortable>Description</th>
+            <th scope="col" data-sortable>Number of Species</th>
+            <th scope="col" data-sortable>Created At</th>
+            <th scope="col" data-sortable>Updated At</th>
+            <th scope="col">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {# Species mix rows will be dynamically populated here #}
+        </tbody>
+      </table>
+    </div>
+
+    {# Grid view #}
+    <div class="tab-pane fade" id="tab-grid" role="tabpanel">
+
+    </div>
+  </div>
+
+  {% if user.is_superuser %}
+    {# Delete user button for superusers #}
+  {% endif %}
+
+
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'js/components/sortable-table.js' %}" defer></script>
+<script src="{% static 'js/components/view-toggle.js' %}" defer></script>
+{% endblock %}
+
+

@@ -9,7 +9,7 @@ from django.utils.text import slugify
 from core.models import Address, Contact, Coordinate
 from planting.models import PlantStatus, Species
 from users.models import User
-from seed_catalogue.models import SeedBatch, FungiBatch
+from species.models import SeedBatch, FungiBatch
 from drones.models import Drone
 
 
