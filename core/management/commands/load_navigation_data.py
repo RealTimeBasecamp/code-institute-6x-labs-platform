@@ -26,6 +26,17 @@ class Command(BaseCommand):
 
         self.stdout.write('Loading navigation data from JSON...\n')
 
+        # Collect all item_ids from JSON to track which items should exist
+        def collect_item_ids(items):
+            """Recursively collect all item_ids from navigation items."""
+            ids = set()
+            for item in items:
+                ids.add(item['item_id'])
+                ids.update(collect_item_ids(item.get('children', [])))
+            return ids
+
+        json_item_ids = collect_item_ids(data.get('navigation', []))
+
         # Create subscription tiers
         tiers = {}
         for tier_data in data.get('tiers', []):
@@ -79,6 +90,15 @@ class Command(BaseCommand):
         # Process top-level navigation items
         for order, item_data in enumerate(data.get('navigation', [])):
             create_nav_item(item_data, parent=None, order=order)
+
+        # Remove navigation items that are no longer in the JSON
+        stale_items = NavigationItem.objects.exclude(item_id__in=json_item_ids)
+        stale_count = stale_items.count()
+        if stale_count > 0:
+            for item in stale_items:
+                self.stdout.write(f"  Removed stale nav item: {item.label} ({item.item_id})")
+            stale_items.delete()
+            self.stdout.write(self.style.WARNING(f'\n{stale_count} stale navigation items removed'))
 
         total_items = NavigationItem.objects.count()
         self.stdout.write(self.style.SUCCESS(f'\n{total_items} navigation items loaded'))

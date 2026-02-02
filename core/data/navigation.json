@@ -58,6 +58,58 @@
       "allowed_tiers": ["sapling", "growth", "thrive", "enterprise"]
     },
     {
+      "item_id": "customers",
+      "item_type": "parent",
+      "label": "Customers",
+      "icon": "bi-people-fill",
+      "url_name": "customers:customers_dashboard",
+      "is_active": true,
+      "staff_only": true,
+      "allowed_tiers": [],
+      "children": [
+        {
+          "item_id": "customer-search",
+          "item_type": "link",
+          "label": "Customer Search",
+          "icon": "bi-person-lines-fill",
+          "url_name": "customers:customers_list",
+          "is_active": true,
+          "staff_only": true,
+          "allowed_tiers": []
+        },
+        {
+          "item_id": "customer-usage",
+          "item_type": "link",
+          "label": "Usage",
+          "icon": "bi-person-fill-down",
+          "url_name": "customers:customers_usage",
+          "is_active": true,
+          "staff_only": true,
+          "allowed_tiers": []
+        },
+        {
+          "item_id": "customer-retention",
+          "item_type": "link",
+          "label": "Retention",
+          "icon": "bi-person-fill-lock",
+          "url_name": "customers:customers_retention",
+          "is_active": true,
+          "staff_only": true,
+          "allowed_tiers": []
+        },
+        {
+          "item_id": "customer-revenue",
+          "item_type": "link",
+          "label": "Revenue",
+          "icon": "bi-person-fill-check",
+          "url_name": "customers:customers_revenue",
+          "is_active": true,
+          "staff_only": true,
+          "allowed_tiers": []
+        }
+      ]
+    },
+    {
       "item_id": "projects",
       "item_type": "parent",
       "label": "Projects",
@@ -118,6 +170,28 @@
           "is_active": true,
           "staff_only": false,
           "allowed_tiers": ["enterprise"]
+        }
+      ]
+    },
+        {
+      "item_id": "species_database",
+      "item_type": "parent",
+      "label": "Species Database",
+      "icon": "bi-flower1",
+      "url_name": "species:species_list",
+      "is_active": true,
+      "staff_only": false,
+      "allowed_tiers": ["sapling","growth", "thrive", "enterprise"],
+      "children": [
+        {
+          "item_id": "species-mixer",
+          "item_type": "link",
+          "label": "Species Mixer",
+          "icon": "bi-shuffle",
+          "url_name": "species:species_mixer",
+          "is_active": true,
+          "staff_only": false,
+          "allowed_tiers": ["sapling","growth", "thrive", "enterprise"]
         }
       ]
     },
