@@ -94,6 +94,12 @@
   background: var(--bs-body-bg);
 }
 
+/* Allow children to shrink below content size */
+.editor-panels > * {
+  min-width: 0;
+  overflow: hidden;
+}
+
 /* ============================================
    Panel Placeholder - Temporary styling
    Will be replaced by dockable_window component

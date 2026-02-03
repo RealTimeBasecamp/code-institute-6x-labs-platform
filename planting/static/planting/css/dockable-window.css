@@ -23,14 +23,10 @@
   transition: box-shadow 0.2s ease;
 }
 
-/* Docked windows share borders - remove duplicate borders between adjacent panels */
+/* Docked windows - no borders, dividers are the separators */
 .dockable-window.is-docked {
   border-radius: 0;
-}
-
-/* Remove right border from docked windows (shared with next panel or divider) */
-.dockable-window.is-docked:not(:last-child) {
-  border-right: none;
+  border: none;
 }
 
 .dockable-window:hover {
@@ -196,93 +192,6 @@
 
 .dockable-window-content::-webkit-scrollbar-thumb:hover {
   background: var(--bs-secondary-color);
-}
-
-/* ============================================
-   Resize Handles
-   Enlarged hit areas for easier interaction
-   ============================================ */
-.resize-handle {
-  position: absolute;
-  background: transparent;
-  z-index: 10;
-  transition: background-color 0.15s ease;
-}
-
-/* Edge handles - larger hit area (8px) */
-.resize-handle-n {
-  top: -2px;
-  left: 10px;
-  right: 10px;
-  height: 8px;
-  cursor: n-resize;
-}
-
-.resize-handle-s {
-  bottom: -2px;
-  left: 10px;
-  right: 10px;
-  height: 8px;
-  cursor: s-resize;
-}
-
-.resize-handle-e {
-  top: 10px;
-  right: -2px;
-  bottom: 10px;
-  width: 8px;
-  cursor: e-resize;
-}
-
-.resize-handle-w {
-  top: 10px;
-  left: -2px;
-  bottom: 10px;
-  width: 8px;
-  cursor: w-resize;
-}
-
-/* Corner handles - larger hit area (12px) */
-.resize-handle-ne {
-  top: -2px;
-  right: -2px;
-  width: 12px;
-  height: 12px;
-  cursor: ne-resize;
-}
-
-.resize-handle-nw {
-  top: -2px;
-  left: -2px;
-  width: 12px;
-  height: 12px;
-  cursor: nw-resize;
-}
-
-.resize-handle-se {
-  bottom: -2px;
-  right: -2px;
-  width: 12px;
-  height: 12px;
-  cursor: se-resize;
-}
-
-.resize-handle-sw {
-  bottom: -2px;
-  left: -2px;
-  width: 12px;
-  height: 12px;
-  cursor: sw-resize;
-}
-
-/* Show resize indicator on hover */
-.resize-handle:hover {
-  background: color-mix(in srgb, var(--primary-color, var(--bs-primary)) 30%, transparent);
-}
-
-/* Active resize state */
-.resize-handle:active {
-  background: color-mix(in srgb, var(--primary-color, var(--bs-primary)) 50%, transparent);
 }
 
 /* ============================================
@@ -572,7 +481,7 @@
   min-height: 150px;
   position: relative;
   background: var(--bs-body-bg);
-  border: 1px solid var(--bs-border-color);
+  /* No border - dividers are the ONLY visual separators between docked panels */
 }
 
 /* Tab strip - horizontal row of tabs at top */
@@ -704,6 +613,10 @@
   pointer-events: none;
   z-index: 9999;
   display: none;
+  /* Ensure overlay is not clipped by any parent */
+  overflow: visible;
+  /* Ensure proper box model */
+  box-sizing: border-box;
 }
 
 .dock-overlay.is-visible {
@@ -711,11 +624,18 @@
 }
 
 .dock-overlay-svg {
-  width: 100%;
-  height: 100%;
+  /* Use absolute dimensions to ensure full coverage */
   position: absolute;
   top: 0;
   left: 0;
+  width: 100%;
+  height: 100%;
+  /* Ensure SVG fills the overlay container completely */
+  display: block;
+  overflow: visible;
+  /* Prevent any default SVG margins/padding */
+  margin: 0;
+  padding: 0;
 }
 
 /* Dock zones - SVG polygons */
@@ -775,7 +695,8 @@
 .dockable-window.is-dragging {
   opacity: 0.9;
   cursor: grabbing !important;
-  z-index: 10000 !important;
+  /* Z-index below dock overlay (9999) so overlay zones are visible */
+  z-index: 9990 !important;
   box-shadow: 0 12px 48px rgba(0, 0, 0, 0.5);
   border: 1px solid var(--primary-color, var(--bs-primary));
   border-radius: 4px;
@@ -814,66 +735,66 @@
 .dock-vertical-container {
   display: flex;
   flex-direction: column;
-  min-width: 200px;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.dock-vertical-container > .dockable-window,
+.dock-vertical-container > .dock-horizontal-container {
+  flex: 1 1 0;
+  min-height: 0;
+  min-width: 0;
+  overflow: hidden;
+}
+
+/* Vertical container dividers use the horizontal divider class - styling handled by .panel-divider-horizontal */
+
+/* Horizontal dock container for left/right docking */
+.dock-horizontal-container {
+  display: flex;
+  flex-direction: row;
+  min-width: 0;
   min-height: 150px;
+  overflow: hidden;
 }
 
-.dock-vertical-container > .dockable-window {
-  flex: 1 1 auto;
-  min-height: 100px;
+.dock-horizontal-container > .dockable-window,
+.dock-horizontal-container > .dock-vertical-container {
+  flex: 1 1 0;
+  min-width: 0;
+  overflow: hidden;
 }
 
-.dock-vertical-container > .panel-divider {
-  flex: 0 0 1px;
-  height: 1px;
-  width: 100%;
-  margin: -3px 0;
-  padding: 3px 0;
-}
+/* Horizontal container dividers use the default vertical divider styling - handled by .panel-divider */
 
 /* ============================================
-   Panel Dividers - Single resize border between panels
-   Unreal Engine style - one clean line that handles resize
+   Panel Dividers - Simple resize handle between panels
    ============================================ */
 
-/* Panel resize divider - single line between panels */
+/* Vertical divider (between side-by-side panels) */
 .panel-divider {
-  flex: 0 0 1px;
-  width: 1px;
+  flex: 0 0 4px;
+  width: 4px;
+  cursor: col-resize;
   background: var(--bs-border-color);
-  cursor: ew-resize;
-  position: relative;
-  z-index: 10;
-  /* Expand hit area without visual change */
-  margin: 0 -3px;
-  padding: 0 3px;
-  background-clip: content-box;
 }
 
 .panel-divider:hover {
   background: var(--primary-color, var(--bs-primary));
-  background-clip: content-box;
 }
 
-.panel-divider:active,
-.panel-divider.is-dragging {
-  background: var(--primary-color, var(--bs-primary));
-  background-clip: content-box;
-}
-
-/* Horizontal divider for vertical layouts */
+/* Horizontal divider (between stacked panels) */
 .panel-divider.panel-divider-horizontal {
-  flex: 0 0 1px;
-  height: 1px;
+  flex: 0 0 4px;
+  height: 4px;
   width: 100%;
-  cursor: ns-resize;
-  margin: -3px 0;
-  padding: 3px 0;
+  cursor: row-resize;
+  background: var(--bs-border-color);
 }
 
-/* No visual grab indicator - keep it minimal like UE */
-.panel-divider::after {
-  display: none;
+.panel-divider.panel-divider-horizontal:hover {
+  background: var(--primary-color, var(--bs-primary));
 }
 
 /* ============================================
@@ -886,16 +807,6 @@
     width: 100% !important;
     max-width: 100%;
     min-height: 200px;
-  }
-
-  /* Hide left/right resize handles on mobile - only allow vertical resize */
-  .dockable-window.window-side-panel .resize-handle-e,
-  .dockable-window.window-side-panel .resize-handle-w,
-  .dockable-window.window-side-panel .resize-handle-ne,
-  .dockable-window.window-side-panel .resize-handle-nw,
-  .dockable-window.window-side-panel .resize-handle-se,
-  .dockable-window.window-side-panel .resize-handle-sw {
-    display: none;
   }
 
   /* Viewport takes remaining space */
@@ -939,16 +850,5 @@
   .dockable-window.window-viewport {
     min-width: 200px;
     min-height: 250px;
-  }
-
-  /* Larger resize handles for touch */
-  .resize-handle-n,
-  .resize-handle-s {
-    height: 12px;
-  }
-
-  .resize-handle-e,
-  .resize-handle-w {
-    width: 12px;
   }
 }
