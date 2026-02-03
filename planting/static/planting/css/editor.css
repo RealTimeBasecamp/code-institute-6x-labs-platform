@@ -97,7 +97,6 @@
 /* Allow children to shrink below content size */
 .editor-panels > * {
   min-width: 0;
-  overflow: hidden;
 }
 
 /* ============================================

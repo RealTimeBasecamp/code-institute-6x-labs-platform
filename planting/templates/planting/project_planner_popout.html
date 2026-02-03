@@ -1,0 +1,62 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en" data-bs-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{{ window_title|default:"Panel" }} - Project Planner</title>
+
+  {# Bootstrap #}
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
+
+  {# Golden Layout v2 #}
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/golden-layout@2.6.0/dist/css/goldenlayout-base.css">
+  <link rel="stylesheet" href="{% static 'planting/css/goldenlayout-theme.css' %}">
+  <link rel="stylesheet" href="{% static 'planting/css/editor-ui-scale.css' %}">
+
+  <style>
+    html, body {
+      margin: 0;
+      padding: 0;
+      height: 100%;
+      width: 100%;
+      overflow: hidden;
+      background: var(--bs-body-bg);
+    }
+    #workspace-panels {
+      position: fixed;
+      inset: 0;
+      width: 100vw;
+      height: 100vh;
+    }
+  </style>
+</head>
+<body>
+  {# Golden Layout Container - takes full window #}
+  <div id="workspace-panels"></div>
+
+  {# Hidden Panel Content Templates #}
+  <div id="panel-templates" style="display: none;">
+    <div id="template-outliner">
+      {% include 'planting/components/outliner.html' with sites=sites project=project %}
+    </div>
+    <div id="template-viewport">
+      {% include 'planting/components/viewport_toolbar.html' %}
+      {% include 'planting/interactive_map.html' %}
+    </div>
+    <div id="template-details">
+      {% include 'planting/components/details.html' with project=project %}
+    </div>
+    <div id="template-point-plotter">
+      {% include 'planting/components/point_plotter.html' with project=project %}
+    </div>
+    <div id="template-species-mixer">
+      {% include 'planting/components/species_mixer.html' with project=project %}
+    </div>
+  </div>
+
+  {# Golden Layout v2 #}
+  <script type="module" src="{% static 'planting/js/layout.js' %}"></script>
+</body>
+</html>

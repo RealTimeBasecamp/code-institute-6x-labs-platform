@@ -7,8 +7,10 @@
 {% block extra_css %}
 <link rel="stylesheet" href="{% static 'planting/css/editor-ui-scale.css' %}">
 <link rel="stylesheet" href="{% static 'planting/css/editor.css' %}">
-<link rel="stylesheet" href="{% static 'planting/css/dockable-window.css' %}">
 <link rel="stylesheet" href="{% static 'planting/css/toolbars.css' %}">
+{# Golden Layout v2 #}
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/golden-layout@2.6.0/dist/css/goldenlayout-base.css">
+<link rel="stylesheet" href="{% static 'planting/css/goldenlayout-theme.css' %}">
 {% endblock %}
 
 {% block content %}
@@ -23,104 +25,35 @@
     {# Main Toolbar - LEFT (Photoshop-style tools) #}
     {% include 'planting/components/components_toolbar.html' %}
 
-    {# Main workspace with dockable panels #}
-    <div id="workspace-panels" class="editor-panels">
+    {# Golden Layout Container #}
+    <div id="workspace-panels" class="editor-panels"></div>
 
-      {# Left Panel - Outliner (closeable, respawn via Window menu) #}
-      <div class="dockable-window window-side-panel" id="window-outliner" data-window-id="outliner">
-        <div class="dockable-window-header" data-drag-handle>
-          <div class="window-header-left">
-            <i class="bi bi-list-nested window-icon"></i>
-            <span class="window-title">Outliner</span>
-            <button class="window-control-btn window-control-close" data-action="close" title="Close">
-              <i class="bi bi-x"></i>
-            </button>
-          </div>
-          <div class="window-header-controls"></div>
-        </div>
-        <div class="dockable-window-content">
-          {% include 'planting/components/outliner.html' with sites=sites project=project %}
-        </div>
-        {# Resize handles #}
-        <div class="resize-handle resize-handle-e" data-resize="e"></div>
+    {# Hidden Panel Content Templates - Golden Layout moves these into its containers #}
+    <div id="panel-templates" style="display: none;">
+      {# Outliner Panel Content #}
+      <div id="template-outliner" data-panel-id="outliner" data-panel-title="Outliner" data-panel-icon="bi-list-nested">
+        {% include 'planting/components/outliner.html' with sites=sites project=project %}
       </div>
 
-      {# Center Panel - Viewport (always visible, no close button) #}
-      <div class="dockable-window window-viewport" id="window-viewport" data-window-id="viewport">
-        <div class="dockable-window-header" data-drag-handle>
-          <div class="window-header-left">
-            <i class="bi bi-display window-icon"></i>
-            <span class="window-title">Viewport</span>
-          </div>
-        </div>
-        {# Viewport Settings Toolbar - horizontal bar above the map #}
+      {# Viewport Panel Content #}
+      <div id="template-viewport" data-panel-id="viewport" data-panel-title="Viewport" data-panel-icon="bi-display">
         {% include 'planting/components/viewport_toolbar.html' %}
-        <div class="dockable-window-content">
-          {% include 'planting/interactive_map.html' %}
-        </div>
+        {% include 'planting/interactive_map.html' %}
       </div>
 
-      {# Right Panel - Details (can be closed, reopen via Window menu) #}
-      <div class="dockable-window window-side-panel" id="window-details" data-window-id="details">
-        <div class="dockable-window-header" data-drag-handle>
-          <div class="window-header-left">
-            <i class="bi bi-sliders window-icon"></i>
-            <span class="window-title">Details</span>
-            <button class="window-control-btn window-control-close" data-action="close" title="Close">
-              <i class="bi bi-x"></i>
-            </button>
-          </div>
-          <div class="window-header-controls"></div>
-        </div>
-        <div class="dockable-window-content">
-          {% include 'planting/components/details.html' with project=project %}
-        </div>
-        {# Resize handles #}
-        <div class="resize-handle resize-handle-w" data-resize="w"></div>
+      {# Details Panel Content #}
+      <div id="template-details" data-panel-id="details" data-panel-title="Details" data-panel-icon="bi-sliders">
+        {% include 'planting/components/details.html' with project=project %}
       </div>
 
-      {# Panel Divider - between Details and Point Plotter #}
-      <div class="panel-divider" data-left-panel="details" data-right-panel="point-plotter"></div>
-
-      {# Final Panel - Point Plotter (closeable, respawn via Window menu) #}
-      <div class="dockable-window window-side-panel" id="window-point-plotter" data-window-id="point-plotter">
-        <div class="dockable-window-header" data-drag-handle>
-          <div class="window-header-left">
-            <i class="bi bi-geo-alt window-icon"></i>
-            <span class="window-title">Point Plotter</span>
-            <button class="window-control-btn window-control-close" data-action="close" title="Close">
-              <i class="bi bi-x"></i>
-            </button>
-          </div>
-          <div class="window-header-controls"></div>
-        </div>
-        <div class="dockable-window-content">
-          {% include 'planting/components/point_plotter.html' with project=project %}
-        </div>
-        {# Resize handles - west edge for left-side resizing #}
-        <div class="resize-handle resize-handle-w" data-resize="w"></div>
+      {# Point Plotter Panel Content #}
+      <div id="template-point-plotter" data-panel-id="point-plotter" data-panel-title="Point Plotter" data-panel-icon="bi-geo-alt">
+        {% include 'planting/components/point_plotter.html' with project=project %}
       </div>
 
-      {# Panel Divider - between Point Plotter and Species Mixer #}
-      <div class="panel-divider" data-left-panel="point-plotter" data-right-panel="species-mixer"></div>
-
-      {# Final Panel - Species Mixer (closeable, respawn via Window menu) #}
-      <div class="dockable-window window-side-panel" id="window-species-mixer" data-window-id="species-mixer">
-        <div class="dockable-window-header" data-drag-handle>
-          <div class="window-header-left">
-            <i class="bi bi-shuffle window-icon"></i>
-            <span class="window-title">Species Mixer</span>
-            <button class="window-control-btn window-control-close" data-action="close" title="Close">
-              <i class="bi bi-x"></i>
-            </button>
-          </div>
-          <div class="window-header-controls"></div>
-        </div>
-        <div class="dockable-window-content">
-          {% include 'planting/components/species_mixer.html' with project=project %}
-        </div>
-        {# Resize handles - west edge for left-side resizing #}
-        <div class="resize-handle resize-handle-w" data-resize="w"></div>
+      {# Species Mixer Panel Content #}
+      <div id="template-species-mixer" data-panel-id="species-mixer" data-panel-title="Species Mixer" data-panel-icon="bi-shuffle">
+        {% include 'planting/components/species_mixer.html' with project=project %}
       </div>
     </div>
 
@@ -145,7 +78,8 @@
 <script src="{% static 'js/core/field-generator.js' %}" defer></script>
 <script src="{% static 'js/core/reset-button-handler.js' %}" defer></script>
 <script src="{% static 'planting/js/toolbar-overflow.js' %}" defer></script>
-<script src="{% static 'planting/js/dockable-window.js' %}" defer></script>
+{# Golden Layout v2 #}
+<script type="module" src="{% static 'planting/js/layout.js' %}"></script>
 <script src="{% static 'planting/js/editor-actions.js' %}" defer></script>
 <script src="{% static 'planting/js/menu-renderer.js' %}" defer></script>
 {% endblock %}

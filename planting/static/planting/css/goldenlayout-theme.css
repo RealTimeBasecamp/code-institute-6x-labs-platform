@@ -1,0 +1,405 @@
+/**
+ * Golden Layout v2 Dark Theme
+ * Minimal theming - colors only, no functionality overrides
+ * Let Golden Layout handle all interactions with defaults
+ */
+
+/* ============================================
+   Root Layout Container
+   ============================================ */
+.lm_goldenlayout {
+  background: var(--bs-body-bg);
+}
+
+/* ============================================
+   Content Area
+   ============================================ */
+.lm_content {
+  background: var(--bs-body-bg);
+}
+
+.lm_row,
+.lm_column {
+  background: var(--bs-body-bg);
+}
+
+/* ============================================
+   Splitters - visual only
+   ============================================ */
+.lm_splitter {
+  background: var(--bs-border-color);
+}
+
+.lm_splitter:hover {
+  background: var(--primary-color, var(--bs-primary));
+}
+
+/* ============================================
+   Header / Tab Strip
+   ============================================ */
+.lm_header {
+  background: var(--bs-tertiary-bg);
+  border-bottom: 1px solid var(--bs-border-color);
+}
+
+/* ============================================
+   Tabs
+   ============================================ */
+.lm_tab {
+  background: transparent;
+  border-right: 1px solid var(--bs-border-color);
+  color: var(--bs-body-color);
+}
+
+.lm_tab:hover {
+  background: var(--bs-secondary-bg);
+}
+
+.lm_tab.lm_active {
+  background: var(--bs-body-bg);
+  color: var(--bs-emphasis-color);
+}
+
+.lm_title {
+  color: inherit;
+}
+
+/* ============================================
+   Tab Close Button (X in tab)
+   ============================================ */
+.lm_tab .lm_close_tab {
+  position: relative;
+  width: 16px;
+  height: 16px;
+  margin-left: 6px;
+  background: transparent;
+  background-image: none;
+  border: none;
+  border-radius: 3px;
+  opacity: 0.6;
+  cursor: pointer;
+}
+
+.lm_tab .lm_close_tab:hover {
+  opacity: 1;
+  background: rgba(220, 53, 69, 0.3);
+}
+
+/* X icon using pseudo-element */
+.lm_tab .lm_close_tab::after {
+  content: '×';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 16px;
+  font-weight: normal;
+  line-height: 1;
+  color: var(--bs-body-color);
+}
+
+.lm_tab .lm_close_tab:hover::after {
+  color: #dc3545;
+}
+
+/* ============================================
+   Header Controls (popout, maximise, close)
+   ============================================ */
+.lm_controls {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.lm_controls > li {
+  width: 18px;
+  height: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  background-image: none;
+  border: none;
+  border-radius: 3px;
+  cursor: pointer;
+  opacity: 0.7;
+}
+
+.lm_controls > li:hover {
+  opacity: 1;
+  background: var(--bs-secondary-bg);
+}
+
+/* Hide close button in controls - we use tab close instead */
+.lm_controls .lm_close {
+  display: none;
+}
+
+/* Popout button icon */
+.lm_controls .lm_popout::after {
+  content: '⧉';
+  font-size: 12px;
+  color: var(--bs-body-color);
+}
+
+.lm_controls .lm_popout:hover::after {
+  color: var(--primary-color, var(--bs-primary));
+}
+
+/* Maximise button icon */
+.lm_controls .lm_maximise::after {
+  content: '□';
+  font-size: 14px;
+  color: var(--bs-body-color);
+}
+
+.lm_controls .lm_maximise:hover::after {
+  color: var(--primary-color, var(--bs-primary));
+}
+
+/* ============================================
+   Stack (tabbed container)
+   ============================================ */
+.lm_stack {
+  background: var(--bs-body-bg);
+  border: 1px solid var(--bs-border-color);
+}
+
+.lm_items {
+  background: var(--bs-body-bg);
+}
+
+.lm_item {
+  background: var(--bs-body-bg);
+}
+
+/* ============================================
+   Drag Proxy
+   ============================================ */
+.lm_dragProxy {
+  background: var(--bs-body-bg);
+  border: 1px solid var(--primary-color, var(--bs-primary));
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+}
+
+/* ============================================
+   Drop Target Indicator
+   ============================================ */
+.lm_dropTargetIndicator {
+  background: color-mix(in srgb, var(--primary-color, var(--bs-primary)) 25%, transparent);
+  border: 2px solid var(--primary-color, var(--bs-primary));
+}
+
+/* ============================================
+   Panel Content Styling
+   ============================================ */
+
+.gl-component {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  width: 100%;
+  min-width: 0;
+  min-height: 0;
+  overflow: auto;
+  padding: 8px;
+  font-size: var(--editor-font-md, 13px);
+  background: var(--bs-body-bg);
+}
+
+/* Ensure direct children of .gl-component can shrink */
+.gl-component > * {
+  min-width: 0;
+  min-height: 0;
+  flex-shrink: 1;
+}
+
+/* Viewport panel - no padding, fill space */
+.gl-component[data-panel-id="viewport"] {
+  padding: 0;
+}
+
+/* Ensure map container fills the viewport */
+.gl-component[data-panel-id="viewport"] #interactive-map,
+.gl-component[data-panel-id="viewport"] .leaflet-container {
+  flex: 1;
+  width: 100%;
+  height: 100%;
+  min-height: 200px;
+}
+
+/* Placeholder for missing panels */
+.panel-placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  color: var(--bs-secondary-color);
+  font-style: italic;
+}
+
+/* ============================================
+   Panel Content Styles - Tree View (Outliner)
+   ============================================ */
+.window-tree-view {
+  padding: 0;
+}
+
+.window-tree-item {
+  display: flex;
+  align-items: center;
+  padding: 4px 8px;
+  gap: 6px;
+  cursor: pointer;
+  border-radius: 3px;
+  transition: background-color 0.1s;
+}
+
+.window-tree-item:hover {
+  background: var(--bs-tertiary-bg);
+}
+
+.window-tree-item.is-selected {
+  background: color-mix(in srgb, var(--primary-color, var(--bs-primary)) 20%, transparent);
+}
+
+.window-tree-item i {
+  font-size: var(--editor-font-base, 12px);
+  color: var(--bs-secondary-color);
+}
+
+.window-tree-item span {
+  font-size: var(--editor-font-base, 12px);
+}
+
+/* ============================================
+   Panel Content Styles - Property Grid (Details)
+   ============================================ */
+.window-property-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.window-property-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 0;
+  min-width: 0;
+  flex-shrink: 1;
+}
+
+.window-property-label {
+  /* min-width removed to allow full shrinking */
+  font-size: var(--editor-font-sm, 11px);
+  color: var(--bs-secondary-color);
+  text-align: right;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  min-width: 0;
+  flex-shrink: 1;
+}
+
+.window-property-value {
+  flex: 1 1 auto;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+  flex-shrink: 1;
+  overflow: hidden;
+}
+
+.window-property-value input,
+.window-property-value select {
+  flex: 1;
+  min-width: 0;
+  padding: 3px 6px;
+  font-size: var(--editor-font-base, 12px);
+  background: var(--bs-body-bg);
+  border: 1px solid var(--bs-border-color);
+  border-radius: 3px;
+  color: var(--bs-body-color);
+}
+
+.window-property-value input:focus,
+.window-property-value select:focus {
+  outline: none;
+  border-color: var(--primary-color, var(--bs-primary));
+}
+
+.range-value-display {
+  font-size: var(--editor-font-sm, 11px);
+  color: var(--bs-body-color);
+  min-width: 40px;
+  text-align: right;
+}
+
+.property-reset-btn {
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: none;
+  color: var(--bs-secondary-color);
+  cursor: pointer;
+  border-radius: 3px;
+  min-width: 0;
+  flex-shrink: 1;
+}
+
+.property-reset-btn:hover {
+  color: var(--bs-body-color);
+  background: var(--bs-secondary-bg);
+}
+
+.property-unit {
+  font-size: var(--editor-font-sm, 11px);
+  color: var(--bs-secondary-color);
+}
+
+/* ============================================
+   Panel Content Styles - Sections (Collapsible)
+   ============================================ */
+.window-section {
+  margin-bottom: 0;
+}
+
+.window-section-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 8px;
+  background: var(--bs-tertiary-bg);
+  border-bottom: 1px solid var(--bs-border-color);
+  cursor: pointer;
+  user-select: none;
+  font-size: var(--editor-font-base, 12px);
+  font-weight: 500;
+  margin: -8px -8px 8px -8px;
+}
+
+.window-section-header:hover {
+  background: var(--bs-secondary-bg);
+}
+
+.window-section-header i {
+  font-size: var(--editor-font-xs, 10px);
+  transition: transform 0.2s;
+}
+
+.window-section.is-collapsed .window-section-header i {
+  transform: rotate(-90deg);
+}
+
+.window-section-content {
+  padding: 8px 0;
+}
+
+.window-section.is-collapsed .window-section-content {
+  display: none;
+}
