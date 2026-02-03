@@ -286,7 +286,6 @@
 /* Submenu Dropdowns */
 .editor-menu-submenu-trigger,
 .toolbar-dropdown-submenu {
-  padding: var(--editor-dropdown-item-padding-v) var(--editor-dropdown-item-padding-h);
   font-size: var(--editor-font-md) !important;
   gap: var(--editor-spacing-md);
 }
