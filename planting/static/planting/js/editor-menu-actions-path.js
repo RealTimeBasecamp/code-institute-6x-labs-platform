@@ -12,7 +12,8 @@
    * Editor Actions namespace
    * All menu callbacks reference this object (e.g., "editorActions.save")
    */
-  window.editorActions = {
+  window.editorActions = window.editorActions || {};
+  Object.assign(window.editorActions, {
     // ========================================
     // Path Menu Actions
     // ========================================
@@ -40,7 +41,7 @@
     pathIntersect: function() {
       console.log('Action: Path Intersect');
     },
-  };
+  });
 
   /**
    * Helper to update editor state

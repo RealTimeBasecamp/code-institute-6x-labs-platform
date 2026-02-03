@@ -12,30 +12,37 @@
    * Editor Actions namespace
    * All menu callbacks reference this object (e.g., "editorActions.save")
    */
-  window.editorActions = {
+  window.editorActions = window.editorActions || {};
+  Object.assign(window.editorActions, {
     // ========================================
-    // Select Menu Actions
+    // Help Menu Actions
     // ========================================
 
-    selectAll: function() {
-      console.log('Action: Select All');
-      // TODO: Select all objects
+    openDocs: function() {
+      console.log('Action: Open Documentation');
+      window.open('/docs/', '_blank');
     },
 
-    deselectAll: function() {
-      console.log('Action: Deselect All');
-      // TODO: Clear selection
+    openSupport: function() {
+      console.log('Action: Open Support');
+      window.open('/support/', '_blank');
     },
 
-    invertSelection: function() {
-      console.log('Action: Invert Selection');
-      // TODO: Invert selection
+    showKeyboardShortcuts: function() {
+      console.log('Action: Show Keyboard Shortcuts');
+      // TODO: Open keyboard shortcuts modal
     },
 
-    selectByType: function(args) {
-      console.log('Action: Select by Type', args?.type);
-      // TODO: Select all objects of specified type
+    openBlog: function() {
+      console.log('Action: Open Blog');
+      window.open('/blog/', '_blank');
     },
+
+    showAbout: function() {
+      console.log('Action: Show About');
+      // TODO: Open about modal
+    }
+  });
 
   /**
    * Helper to update editor state
@@ -47,6 +54,6 @@
     if (window.menuRenderer) {
       window.menuRenderer.updateState(updates);
     }
-    },
   };
+
 })();

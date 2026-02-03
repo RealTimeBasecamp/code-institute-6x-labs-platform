@@ -12,21 +12,50 @@
    * Editor Actions namespace
    * All menu callbacks reference this object (e.g., "editorActions.save")
    */
-  window.editorActions = {
+  window.editorActions = window.editorActions || {};
+  Object.assign(window.editorActions, {
     // ========================================
     // Window Menu Actions
     // ========================================
 
     toggleWindow: function(args) {
-      const windowId = args?.windowId;
+      const windowId = (args && args.windowId) || null;
       console.log('Action: Toggle Window', windowId);
 
-      if (windowId && window.dockableWindows) {
-        const windowInstance = window.dockableWindows.get(windowId);
-        if (windowInstance) {
-          windowInstance.toggle();
-        }
+      const dockable = window.dockableWindows;
+      if (!dockable) {
+        console.warn('toggleWindow: window.dockableWindows is not defined');
+        return;
       }
+
+      // Support both Map-like API (get) and plain object
+      let windowInstance;
+      try {
+        windowInstance = typeof dockable.get === 'function' ? dockable.get(windowId) : dockable[windowId];
+      } catch (err) {
+        console.error('toggleWindow: error getting window instance', err);
+        return;
+      }
+
+      if (!windowInstance) {
+        console.warn('toggleWindow: window instance not found for id', windowId, dockable);
+        return;
+      }
+
+      // Prefer a toggle method if provided
+      if (typeof windowInstance.toggle === 'function') {
+        windowInstance.toggle();
+        return;
+      }
+
+      // Fallback to show/hide based on common flags
+      const isVisible = windowInstance.isVisible ?? windowInstance.isShown ?? false;
+      if (typeof windowInstance.show === 'function' && typeof windowInstance.hide === 'function') {
+        if (isVisible) windowInstance.hide(); else windowInstance.show();
+        return;
+      }
+
+      console.warn('toggleWindow: no toggle/show/hide methods for window instance', windowInstance);
     },
 
     resetLayout: function() {
@@ -54,7 +83,7 @@
         document.exitFullscreen();
       }
     },
-  };
+  });
   /**
    * Helper to update editor state
    */

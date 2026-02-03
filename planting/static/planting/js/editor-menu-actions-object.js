@@ -12,7 +12,8 @@
    * Editor Actions namespace
    * All menu callbacks reference this object (e.g., "editorActions.save")
    */
-  window.editorActions = {
+  window.editorActions = window.editorActions || {};
+  Object.assign(window.editorActions, {
     // ========================================
     // Object Menu Actions
     // ========================================
@@ -51,7 +52,7 @@
       console.log('Action: Ungroup Objects');
       // TODO: Ungroup selected group
     },
-  };
+  });
 
   /**
    * Helper to update editor state

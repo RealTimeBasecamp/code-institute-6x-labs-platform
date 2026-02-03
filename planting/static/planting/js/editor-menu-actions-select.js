@@ -12,7 +12,8 @@
    * Editor Actions namespace
    * All menu callbacks reference this object (e.g., "editorActions.save")
    */
-  window.editorActions = {
+  window.editorActions = window.editorActions || {};
+  Object.assign(window.editorActions, {
     // ========================================
     // Select Menu Actions
     // ========================================
@@ -36,7 +37,7 @@
       console.log('Action: Select by Type', args?.type);
       // TODO: Select all objects of specified type
       }
-  };
+  });
 
   /**
    * Helper to update editor state

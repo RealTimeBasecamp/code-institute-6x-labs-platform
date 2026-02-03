@@ -12,7 +12,8 @@
    * Editor Actions namespace
    * All menu callbacks reference this object (e.g., "editorActions.save")
    */
-  window.editorActions = {
+  window.editorActions = window.editorActions || {};
+  Object.assign(window.editorActions, {
     // ========================================
     // File Menu Actions
     // ========================================
@@ -69,13 +70,6 @@
       console.log('Action: Import from QGIS (Coming Soon)');
     },
 
-    debugState: function() {
-      console.log('=== Editor State Debug ===');
-      console.log('Editor Context:', window.editorContext);
-      console.log('Editor State:', window.editorState);
-      console.log('Dockable Windows:', window.dockableWindows);
-    },
-
     exit: function() {
       // TODO: Prompt to save if there are unsaved changes
       // Activate state managment unsaved changes modal here
@@ -95,7 +89,7 @@
       // TODO: Prompt to save if there are unsaved changes
       // Activate state managment unsaved changes modal here
     },
-  };
+  });
 
   /**
    * Helper to update editor state

@@ -19,8 +19,9 @@
    */
   class MenuRenderer {
     constructor(options = {}) {
-      this.container = options.container || document.getElementById('toolbar-menu-items');
-      this.user = window.editorContext?.user || { isAuthenticated: false, isStaff: false, isSuperuser: false };
+      // support both new and legacy container IDs
+      this.container = options.container || document.getElementById('toolbar-menu-items') || document.getElementById('editor-menu-items');
+      this.user = (window.editorContext && window.editorContext.user) || { isAuthenticated: false, isStaff: false, isSuperuser: false };
       this.editorState = window.editorState || {};
       this.menuConfigs = [];
       this.activeMenu = null;
@@ -306,14 +307,52 @@
     executeCallback(callbackPath, args = {}) {
       try {
         const parts = callbackPath.split('.');
-        let fn = window;
 
-        for (const part of parts) {
-          fn = fn[part];
-          if (!fn) {
-            console.warn(`Callback not found: ${callbackPath}`);
-            return;
+        const tryResolve = (partsArr) => {
+          let ctx = window;
+          for (const part of partsArr) {
+            if (ctx && Object.prototype.hasOwnProperty.call(ctx, part)) {
+              ctx = ctx[part];
+            } else {
+              return undefined;
+            }
           }
+          return ctx;
+        };
+
+        // 1) Direct dotted resolution
+        let fn = tryResolve(parts);
+
+        // 2) Fallback: final segment on window.editorActions
+        if (!fn) {
+          const method = parts[parts.length - 1];
+          if (window.editorActions && typeof window.editorActions[method] === 'function') {
+            fn = window.editorActions[method];
+          }
+        }
+
+        // 3) Fallback: try variations of module name (replace/remove hyphens)
+        if (!fn) {
+          const moduleName = parts[0];
+          const altNames = [moduleName.replace(/-/g, '_'), moduleName.replace(/-/g, '')];
+          for (const name of altNames) {
+            const mod = window[name];
+            if (mod && typeof mod[parts[parts.length - 1]] === 'function') {
+              fn = mod[parts[parts.length - 1]];
+              break;
+            }
+          }
+        }
+
+        // 4) Last resort: global function by method name
+        if (!fn) {
+          const method = parts[parts.length - 1];
+          if (typeof window[method] === 'function') fn = window[method];
+        }
+
+        if (!fn) {
+          console.warn(`Callback not found: ${callbackPath}`);
+          return;
         }
 
         if (typeof fn === 'function') {

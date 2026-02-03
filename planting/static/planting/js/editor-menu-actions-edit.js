@@ -12,7 +12,8 @@
    * Editor Actions namespace
    * All menu callbacks reference this object (e.g., "editorActions.save")
    */
-  window.editorActions = {
+  window.editorActions = window.editorActions || {};
+  Object.assign(window.editorActions, {
     // ========================================
     // Edit Menu Actions
     // ========================================
@@ -46,7 +47,7 @@
       console.log('Action: Open Preferences');
       // TODO: Open preferences modal
     },
-  };
+  });
 
   /**
    * Helper to update editor state
