@@ -4,6 +4,74 @@
    * Loads menu configurations from JSON files and renders the menu bar.
    * Dispatches action events when menu items are clicked.
    */
+
+    // Listen for dispatched editorAction events and execute callback paths
+    document.addEventListener('editorAction', function(e) {
+      const detail = e.detail || {};
+      const callbackPath = detail.callback;
+      if (!callbackPath) return;
+
+      try {
+        console.log('Handling editorAction callback:', callbackPath);
+
+        const tryResolve = (pathParts) => {
+          let ctx = window;
+          for (const part of pathParts) {
+            if (ctx && Object.prototype.hasOwnProperty.call(ctx, part)) {
+              ctx = ctx[part];
+            } else {
+              return undefined;
+            }
+          }
+          return ctx;
+        };
+
+        // 1) Try direct dotted resolution (works for names without hyphens)
+        const parts = callbackPath.split('.');
+        let fn = tryResolve(parts);
+
+        // 2) Fallback: many callbacks use filenames like "editor-menu-actions-file.exit".
+        // These modules typically attach functions to `window.editorActions`, so
+        // try resolving by treating the final segment as a method name on that object.
+        if (!fn) {
+          const method = parts[parts.length - 1];
+          if (window.editorActions && typeof window.editorActions[method] === 'function') {
+            fn = window.editorActions[method];
+          }
+        }
+
+        // 3) Fallback: try common alt module keys (replace hyphens with underscores or remove them)
+        if (!fn) {
+          const moduleName = parts[0];
+          const altNames = [moduleName.replace(/-/g, '_'), moduleName.replace(/-/g, '')];
+          for (const name of altNames) {
+            const mod = window[name];
+            if (mod && typeof mod[parts[parts.length - 1]] === 'function') {
+              fn = mod[parts[parts.length - 1]];
+              break;
+            }
+          }
+        }
+
+        // 4) Last resort: look for a global function with the method name
+        if (!fn) {
+          const method = parts[parts.length - 1];
+          if (typeof window[method] === 'function') fn = window[method];
+        }
+
+        if (!fn) {
+          console.warn(`Callback not found: ${callbackPath}`);
+          return;
+        }
+
+        if (typeof fn === 'function') {
+          // pass the event detail so handlers can use args if needed
+          fn(detail);
+        }
+      } catch (err) {
+        console.error('Error executing editorAction callback', err);
+      }
+    });
   (function() {
     'use strict';
 

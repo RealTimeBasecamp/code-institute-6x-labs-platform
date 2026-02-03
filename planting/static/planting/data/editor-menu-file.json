@@ -21,7 +21,7 @@
           "id": "file_new_project",
           "label": "Project",
           "icon": "bi-folder-plus",
-          "callback": "editorActions.newProject",
+          "callback": "editor-menu-actions-file.newProject",
           "shortcut": "Ctrl+N",
           "active": true,
           "visible_to": ["authenticated"]
@@ -31,7 +31,7 @@
           "id": "file_new_site",
           "label": "Site",
           "icon": "bi-map",
-          "callback": "editorActions.newSite",
+          "callback": "editor-menu-actions-file.newSite",
           "active": true,
           "visible_to": ["authenticated"],
           "enabled_when": "hasActiveProject"
@@ -50,7 +50,7 @@
           "type": "item",
           "id": "file_open_browser",
           "label": "From Library...",
-          "callback": "editorActions.openProjectBrowser",
+          "callback": "editor-menu-actions-file.openProjectBrowser",
           "shortcut": "Ctrl+O",
           "active": true,
           "visible_to": ["authenticated"]
@@ -66,7 +66,7 @@
       "id": "file_save",
       "label": "Save",
       "icon": "bi-save",
-      "callback": "editorActions.save",
+      "callback": "editor-menu-actions-file.save",
       "shortcut": "Ctrl+S",
       "active": true,
       "visible_to": ["authenticated"],
@@ -77,7 +77,7 @@
       "id": "file_save_as",
       "label": "Save As...",
       "icon": "bi-save",
-      "callback": "editorActions.saveAs",
+      "callback": "editor-menu-actions-file.saveAs",
       "shortcut": "Ctrl+Shift+S",
       "active": true,
       "visible_to": ["authenticated"]
@@ -87,7 +87,7 @@
       "id": "file_make_copy",
       "label": "Make a Copy",
       "icon": "bi-copy",
-      "callback": "editorActions.makeCopy",
+      "callback": "editor-menu-actions-file.makeCopy",
       "active": true,
       "visible_to": ["authenticated"],
       "enabled_when": "hasActiveProject"
@@ -114,7 +114,7 @@
           "id": "export_pdf",
           "label": "PDF Report",
           "icon": "bi-file-pdf",
-          "callback": "editorActions.exportPDF",
+          "callback": "editor-menu-actions-file.exportPDF",
           "active": true,
           "visible_to": ["authenticated"],
           "badge": "Pro"
@@ -124,7 +124,7 @@
           "id": "export_png",
           "label": "PNG (720p)",
           "icon": "bi-image",
-          "callback": "editorActions.exportPNG",
+          "callback": "editor-menu-actions-file.exportPNG",
           "active": true,
           "visible_to": ["authenticated"],
           "badge": "Pro"
@@ -138,7 +138,7 @@
           "id": "export_qgis_project",
           "label": "QGIS Project File",
           "icon": "bi-geo",
-          "callback": "editorActions.exportQGISProject",
+          "callback": "editor-menu-actions-file.exportQGISProject",
           "active": false,
           "visible_to": ["authenticated"],
           "description": "Coming soon"
@@ -148,7 +148,7 @@
           "id": "export_qgis_layer",
           "label": "QGIS Layer File",
           "icon": "bi-layers",
-          "callback": "editorActions.exportQGISLayer",
+          "callback": "editor-menu-actions-file.exportQGISLayer",
           "active": false,
           "visible_to": ["authenticated"],
           "description": "Coming soon"
@@ -168,7 +168,7 @@
           "id": "import_qgis",
           "label": "From QGIS...",
           "icon": "bi-geo",
-          "callback": "editorActions.importQGIS",
+          "callback": "editor-menu-actions-file.importQGIS",
           "active": false,
           "visible_to": ["authenticated"],
           "description": "Coming soon"
@@ -189,7 +189,7 @@
       "id": "file_exit",
       "label": "Exit",
       "icon": "bi-box-arrow-left",
-      "callback": "editorActions.exit",
+      "callback": "editor-menu-actions-file.exit",
       "active": true,
       "visible_to": ["all"],
       "description": "Return to project page"
@@ -199,7 +199,7 @@
       "id": "file_exit_dashboard",
       "label": "Exit to dashboard",
       "icon": "bi-box-arrow-left",
-      "callback": "editorActions.exit_dashboard",
+      "callback": "editor-menu-actions-file.exit_dashboard",
       "active": true,
       "visible_to": ["all"],
       "description": "Return to the dashboard"
