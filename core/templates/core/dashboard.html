@@ -9,101 +9,125 @@
 {% endblock %}
 
 {% block content %}
-<div class="container-fluid dashboard-container">
-  {# Full-width overview chart - shows plants planted over time #}
-  <div class="row">
-    <div class="col-12">
-      <div class="dash-card dash-card-wide">
-        <div class="dash-card-header">
-          <h4>Plants Planted Over Time</h4>
-          <span class="dash-card-subtitle">Annual planting activity</span>
-        </div>
-        <div class="chart-container">
-          <div id="overviewChart" class="chart-wrap chart-wrap-wide"></div>
-          <div class="chart-loading">
-            <div class="spinner-border spinner-border-sm text-primary" role="status">
-              <span class="visually-hidden">Loading...</span>
-            </div>
-          </div>
-        </div>
-      </div>
+  {# Toolbar: Nav pills (switch table/grid) and Search (search bar moved here by JS) #}
+  {% load ui_tags %}
+  <div class="d-flex justify-content-between align-items-center mb-3" id="dashboard-toolbar">
+    <div class="d-flex align-items-center">
+      <!-- Remove icons from tabs -->
+      {% make_tabs 'simple:Simple,advanced:Advanced' as view_tabs %}
+      {% include 'components/nav_pills.html' with tabs=view_tabs id='view-toggle' variant='text' %}
     </div>
+    {# Search bar will be injected here by sortable-table.js (data-search-toolbar) #}
   </div>
 
-  {# Three metric cards in a row #}
-  <div class="row dash-metrics-row">
-    <div class="col-lg-4 col-md-6 col-12">
-      <div class="dash-card">
-        <div class="dash-card-header">
-          <h4>Projects</h4>
-          <span class="dash-card-subtitle">Active initiatives</span>
-        </div>
-        <div class="chart-container">
-          <div id="projectsChart" class="chart-wrap"></div>
-          <div class="chart-loading">
-            <div class="spinner-border spinner-border-sm text-primary" role="status">
-              <span class="visually-hidden">Loading...</span>
+  {# Tab content #}
+  <div class="tab-content">
+    {# Table view #}
+    <div class="tab-pane fade show active" id="tab-simple" role="tabpanel">
+        <div class="container-fluid dashboard-container">
+          {# Full-width overview chart - shows plants planted over time #}
+          <div class="row">
+            <div class="col-12">
+              <div class="dash-card dash-card-wide">
+                <div class="dash-card-header">
+                  <h4>Plants Planted Over Time</h4>
+                  <span class="dash-card-subtitle">Annual planting activity</span>
+                </div>
+                <div class="chart-container">
+                  <div id="overviewChart" class="chart-wrap chart-wrap-wide"></div>
+                  <div class="chart-loading">
+                    <div class="spinner-border spinner-border-sm text-primary" role="status">
+                      <span class="visually-hidden">Loading...</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {# Three metric cards in a row #}
+          <div class="row dash-metrics-row">
+            <div class="col-lg-4 col-md-6 col-12">
+              <div class="dash-card">
+                <div class="dash-card-header">
+                  <h4>Projects</h4>
+                  <span class="dash-card-subtitle">Active initiatives</span>
+                </div>
+                <div class="chart-container">
+                  <div id="projectsChart" class="chart-wrap"></div>
+                  <div class="chart-loading">
+                    <div class="spinner-border spinner-border-sm text-primary" role="status">
+                      <span class="visually-hidden">Loading...</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="col-lg-4 col-md-6 col-12">
+              <div class="dash-card">
+                <div class="dash-card-header">
+                  <h4>CO₂ Sequestered</h4>
+                  <span class="dash-card-subtitle">Total carbon captured</span>
+                </div>
+                <div class="chart-container">
+                  <div id="co2Chart" class="chart-wrap"></div>
+                  <div class="chart-loading">
+                    <div class="spinner-border spinner-border-sm text-primary" role="status">
+                      <span class="visually-hidden">Loading...</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="col-lg-4 col-md-12 col-12">
+              <div class="dash-card">
+                <div class="dash-card-header">
+                  <h4>Growth Duration</h4>
+                  <span class="dash-card-subtitle">Time since first project</span>
+                </div>
+                <div class="chart-container">
+                  <div id="yearsChart" class="chart-wrap"></div>
+                  <div class="chart-loading">
+                    <div class="spinner-border spinner-border-sm text-primary" role="status">
+                      <span class="visually-hidden">Loading...</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {# Additional metric - total plants #}
+          <div class="row">
+            <div class="col-lg-4 col-md-6 col-12">
+              <div class="dash-card">
+                <div class="dash-card-header">
+                  <h4>Total Plants</h4>
+                  <span class="dash-card-subtitle">Cumulative planting</span>
+                </div>
+                <div class="chart-container">
+                  <div id="plantsChart" class="chart-wrap"></div>
+                  <div class="chart-loading">
+                    <div class="spinner-border spinner-border-sm text-primary" role="status">
+                      <span class="visually-hidden">Loading...</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         </div>
       </div>
+
+      <div class="tab-pane fade" id="tab-advanced" role="tabpanel">
+      ...
+    </div>
     </div>
 
-    <div class="col-lg-4 col-md-6 col-12">
-      <div class="dash-card">
-        <div class="dash-card-header">
-          <h4>CO₂ Sequestered</h4>
-          <span class="dash-card-subtitle">Total carbon captured</span>
-        </div>
-        <div class="chart-container">
-          <div id="co2Chart" class="chart-wrap"></div>
-          <div class="chart-loading">
-            <div class="spinner-border spinner-border-sm text-primary" role="status">
-              <span class="visually-hidden">Loading...</span>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <div class="col-lg-4 col-md-12 col-12">
-      <div class="dash-card">
-        <div class="dash-card-header">
-          <h4>Growth Duration</h4>
-          <span class="dash-card-subtitle">Time since first project</span>
-        </div>
-        <div class="chart-container">
-          <div id="yearsChart" class="chart-wrap"></div>
-          <div class="chart-loading">
-            <div class="spinner-border spinner-border-sm text-primary" role="status">
-              <span class="visually-hidden">Loading...</span>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  {# Additional metric - total plants #}
-  <div class="row">
-    <div class="col-lg-4 col-md-6 col-12">
-      <div class="dash-card">
-        <div class="dash-card-header">
-          <h4>Total Plants</h4>
-          <span class="dash-card-subtitle">Cumulative planting</span>
-        </div>
-        <div class="chart-container">
-          <div id="plantsChart" class="chart-wrap"></div>
-          <div class="chart-loading">
-            <div class="spinner-border spinner-border-sm text-primary" role="status">
-              <span class="visually-hidden">Loading...</span>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
 </div>
+
 {% endblock %}
 
 {% block extra_js %}
