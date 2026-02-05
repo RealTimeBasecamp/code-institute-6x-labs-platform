@@ -53,6 +53,17 @@
       "description": "Show/hide Species Mixer panel"
     },
     {
+      "type": "item",
+      "id": "window-sites",
+      "label": "Sites",
+      "icon": "bi-geo",
+      "callback": "editor-menu-actions-window.toggleWindow",
+      "callback_args": {"windowId": "sites"},
+      "active": true,
+      "visible_to": ["authenticated"],
+      "description": "Show/hide Sites panel"
+    },
+    {
       "type": "separator",
       "visible_to": ["authenticated"]
     },

@@ -6,7 +6,8 @@
     "outliner": true,
     "details": true,
     "point-plotter": true,
-    "species-mixer": true
+    "species-mixer": true,
+    "sites": true
   },
   "panels": [
     {
@@ -23,10 +24,11 @@
       "tooltip": "Details - Properties inspector",
       "default": true
     },
+    
     {
       "id": "point-plotter",
       "label": "Point Plotter",
-      "icon": "bi-geo-alt",
+      "icon": "bi-geo",
       "tooltip": "Point Plotter - Generate points",
       "default": true
     },
@@ -36,6 +38,13 @@
       "icon": "bi-shuffle",
       "tooltip": "Species Mixer - Mix species ratios",
       "default": true
+    },
+    {
+      "id": "sites",
+      "label": "Sites",
+      "icon": "bi-diagram-3-fill",
+      "tooltip": "Sites - Manage project sites",
+      "default": false
     }
   ]
 }
