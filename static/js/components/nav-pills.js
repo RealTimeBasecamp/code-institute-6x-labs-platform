@@ -15,7 +15,13 @@
  *   </ul>
  */
 
-class PillNav {
+(function() {
+  'use strict';
+
+  // Guard against multiple declarations
+  if (window.PillNav) return;
+
+  class PillNav {
   /**
    * Initialize a pill navigation component.
    *
@@ -110,10 +116,11 @@ if (document.readyState === 'loading') {
   initPillNavs();
 }
 
-// Re-initialize on page navigation (for SPAs or Turbo-like navigation)
-document.addEventListener('turbo:load', initPillNavs);
+  // Re-initialize on page navigation (for SPAs or Turbo-like navigation)
+  document.addEventListener('turbo:load', initPillNavs);
 
-// Export for module usage
-if (typeof module !== 'undefined' && module.exports) {
-  module.exports = { PillNav, initPillNavs };
-}
+  // Expose globally
+  window.PillNav = PillNav;
+  window.initPillNavs = initPillNavs;
+
+})();
