@@ -50,3 +50,113 @@
   overflow-y: auto;
   padding: 0.5rem;
 }
+
+/* ==========================================================================
+   MapLibre Controls - Styled to match editor theme
+   ========================================================================== */
+
+/* Control group container */
+.maplibregl-ctrl-group {
+  background: var(--bs-body-bg) !important;
+  border: 1px solid var(--bs-border-color) !important;
+  border-radius: 4px !important;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15) !important;
+  overflow: hidden;
+}
+
+/* Individual control buttons */
+.maplibregl-ctrl-group button {
+  width: 32px !important;
+  height: 32px !important;
+  background: var(--bs-body-bg) !important;
+  border: none !important;
+  border-bottom: 1px solid var(--bs-border-color) !important;
+  cursor: pointer;
+  display: flex !important;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.maplibregl-ctrl-group button:last-child {
+  border-bottom: none !important;
+}
+
+.maplibregl-ctrl-group button:hover {
+  background: var(--bs-secondary-bg) !important;
+}
+
+.maplibregl-ctrl-group button:active {
+  background: color-mix(in srgb, var(--primary-color, var(--bs-primary)) 25%, transparent) !important;
+}
+
+/* Icon styling - lighter icons for light theme */
+.maplibregl-ctrl-group button .maplibregl-ctrl-icon {
+  opacity: 0.35;
+}
+
+.maplibregl-ctrl-group button:hover .maplibregl-ctrl-icon {
+  opacity: 0.6;
+}
+
+/* Dark mode icon filter - invert for visibility */
+[data-bs-theme="dark"] .maplibregl-ctrl-group button .maplibregl-ctrl-icon {
+  filter: invert(1);
+  opacity: 0.6;
+}
+
+[data-bs-theme="dark"] .maplibregl-ctrl-group button:hover .maplibregl-ctrl-icon {
+  opacity: 0.9;
+}
+
+/* Compass control - has different structure */
+.maplibregl-ctrl-compass {
+  background: var(--bs-body-bg) !important;
+}
+
+/* Scale control */
+.maplibregl-ctrl-scale {
+  background: color-mix(in srgb, var(--bs-body-bg) 80%, transparent) !important;
+  border: 1px solid var(--bs-border-color) !important;
+  border-radius: 3px !important;
+  color: var(--bs-body-color) !important;
+  font-size: 11px !important;
+  padding: 2px 6px !important;
+  line-height: 1.2;
+}
+
+/* Attribution control */
+.maplibregl-ctrl-attrib {
+  background: color-mix(in srgb, var(--bs-body-bg) 85%, transparent) !important;
+  border-radius: 3px !important;
+  font-size: 10px !important;
+  padding: 2px 5px !important;
+}
+
+.maplibregl-ctrl-attrib a {
+  color: var(--bs-secondary-color) !important;
+}
+
+.maplibregl-ctrl-attrib a:hover {
+  color: var(--bs-body-color) !important;
+}
+
+/* Attribution collapse button (i) */
+.maplibregl-ctrl-attrib-button {
+  background: var(--bs-body-bg) !important;
+  border: 1px solid var(--bs-border-color) !important;
+  border-radius: 50% !important;
+  width: 24px !important;
+  height: 24px !important;
+  opacity: 0.8;
+}
+
+.maplibregl-ctrl-attrib-button:hover {
+  opacity: 1;
+  background: var(--bs-secondary-bg) !important;
+}
+
+/* Dark mode attribution button */
+[data-bs-theme="dark"] .maplibregl-ctrl-attrib-button {
+  filter: invert(1);
+}

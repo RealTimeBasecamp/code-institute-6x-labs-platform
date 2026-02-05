@@ -46,18 +46,24 @@ function bindComponent(container) {
   const template = document.getElementById(`template-${componentType}`);
 
   if (template) {
-    // Move template content into container (not clone) to preserve map initialization
-    template.style.display = '';
-    template.removeAttribute('id');
-    template.className = 'gl-component';
-    container.element.appendChild(template);
-
-    // Viewport needs map resize handling
+    // Viewport: move template to preserve map initialization (map can't be cloned)
+    // Other components: clone template so it can be reused when window is reopened
     if (componentType === 'viewport') {
+      template.style.display = '';
+      template.removeAttribute('id');
+      template.className = 'gl-component';
+      container.element.appendChild(template);
+
       const resizeMap = () => window.map?.resize?.();
       container.on('resize', resizeMap);
       container.on('show', resizeMap);
       setTimeout(resizeMap, 100);
+    } else {
+      const clone = template.cloneNode(true);
+      clone.style.display = '';
+      clone.removeAttribute('id');
+      clone.className = 'gl-component';
+      container.element.appendChild(clone);
     }
   } else {
     container.element.innerHTML = `<div class="gl-component-placeholder">Component not found: ${componentType}</div>`;

@@ -194,7 +194,6 @@
 
             // Add controls
             this.map.addControl(new maplibregl.NavigationControl({ visualizePitch: true }), 'top-right');
-            this.map.addControl(new maplibregl.TerrainControl({ source: 'terrainSource', exaggeration: 1.5 }), 'top-right');
             this.map.addControl(new maplibregl.ScaleControl(), 'bottom-left');
         }
 
