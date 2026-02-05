@@ -46,15 +46,15 @@ function bindComponent(container) {
   const template = document.getElementById(`template-${componentType}`);
 
   if (template) {
-    const content = template.cloneNode(true);
-    content.style.display = '';
-    content.removeAttribute('id');
-    content.className = 'gl-component';
-    container.element.appendChild(content);
+    // Move template content into container (not clone) to preserve map initialization
+    template.style.display = '';
+    template.removeAttribute('id');
+    template.className = 'gl-component';
+    container.element.appendChild(template);
 
     // Viewport needs map resize handling
     if (componentType === 'viewport') {
-      const resizeMap = () => window.map?.invalidateSize?.();
+      const resizeMap = () => window.map?.resize?.();
       container.on('resize', resizeMap);
       container.on('show', resizeMap);
       setTimeout(resizeMap, 100);
