@@ -117,7 +117,7 @@
 .panel-toggle-btn {
   width: var(--editor-tool-button-size);
   height: var(--editor-tool-button-size);
-  font-size: var(--editor-icon-base) !important;
+  font-size: var(--editor-icon-sm) !important;
   border-radius: var(--editor-radius-sm);
 }
 

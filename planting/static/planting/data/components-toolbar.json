@@ -112,12 +112,8 @@
     {
       "group": "magnification",
       "label": "Magnification",
-      "pushToBottom": true,
       "tools": [
-        { "id": "magnify", "label": "Magnification / Zoom", "icon": "bi-search", "shortcut": "Z", "options": ["zoom-level"] },
-        { "id": "zoom-in", "label": "Zoom In", "icon": "bi-zoom-in", "shortcut": "+", "action": true },
-        { "id": "zoom-out", "label": "Zoom Out", "icon": "bi-zoom-out", "shortcut": "-", "action": true },
-        { "id": "zoom-fit", "label": "Fit to Screen", "icon": "bi-fullscreen", "shortcut": "0", "action": true }
+        { "id": "magnify", "label": "Magnification / Zoom", "icon": "bi-search", "shortcut": "Z" }
       ]
     }
   ],
