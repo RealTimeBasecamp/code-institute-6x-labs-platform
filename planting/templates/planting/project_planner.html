@@ -77,8 +77,12 @@
 </script>
 <script src="{% static 'js/core/field-generator.js' %}" defer></script>
 <script src="{% static 'js/core/reset-button-handler.js' %}" defer></script>
-<script src="{% static 'planting/js/toolbar-overflow.js' %}" defer></script>
+{# Utils - renderers and managers #}
+<script src="{% static 'planting/js/utils/toolbar-overflow.js' %}" defer></script>
+<script src="{% static 'planting/js/utils/window-manager.js' %}" defer></script>
+<script src="{% static 'planting/js/utils/menu-renderer.js' %}" defer></script>
 {# Golden Layout v2 #}
 <script type="module" src="{% static 'planting/js/layout.js' %}"></script>
-<script src="{% static 'planting/js/menu-renderer.js' %}" defer></script>
+{# Actions - menu callbacks #}
+<script src="{% static 'planting/js/actions/menu-window-actions.js' %}" defer></script>
 {% endblock %}

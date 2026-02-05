@@ -108,23 +108,35 @@
      * @param {HTMLElement} btn - Button element
      */
     togglePanel(panelId, btn) {
-      const windowEl = document.getElementById(`window-${panelId}`);
+      // Use WindowManager if available
+      if (window.windowManager) {
+        window.windowManager.toggle(panelId);
+        
+        // Update button state
+        const isOpen = window.windowManager.isOpen(panelId);
+        btn.classList.toggle('is-active', isOpen);
+        btn.setAttribute('aria-pressed', isOpen);
+        this.state[panelId] = isOpen;
+        
+        // Dispatch event
+        this.dispatchEvent('toggle', {
+          panelId,
+          isVisible: isOpen
+        });
+        
+        return;
+      }
 
+      // Fallback: legacy window element approach
+      const windowEl = document.getElementById(`window-${panelId}`);
       if (!windowEl) {
         console.warn(`Panel not found: window-${panelId}`);
         return;
       }
 
-      // Get the dockable window instance
-      const windowInstance = window.dockableWindows?.get(panelId);
-
-      if (windowInstance) {
-        windowInstance.toggle();
-      } else {
-        // Fallback: toggle display directly
-        const isHidden = windowEl.style.display === 'none';
-        windowEl.style.display = isHidden ? 'flex' : 'none';
-      }
+      // Fallback: toggle display directly
+      const isHidden = windowEl.style.display === 'none';
+      windowEl.style.display = isHidden ? 'flex' : 'none';
 
       // Update button state
       const isActive = btn.classList.toggle('is-active');
@@ -142,8 +154,8 @@
      * Bind global events for window state sync
      */
     bindEvents() {
-      // Listen for window close events
-      document.addEventListener('windowClose', (e) => {
+      // Listen for windowClosed events from WindowManager
+      document.addEventListener('windowClosed', (e) => {
         const panelId = e.detail.windowId;
         const btn = this.container.querySelector(`[data-panel="${panelId}"]`);
         if (btn) {
@@ -153,8 +165,8 @@
         }
       });
 
-      // Listen for window show events
-      document.addEventListener('windowShow', (e) => {
+      // Listen for windowOpened events from WindowManager
+      document.addEventListener('windowOpened', (e) => {
         const panelId = e.detail.windowId;
         const btn = this.container.querySelector(`[data-panel="${panelId}"]`);
         if (btn) {
@@ -172,8 +184,18 @@
       const buttons = this.container.querySelectorAll('.panel-toggle-btn');
       buttons.forEach(btn => {
         const panelId = btn.dataset.panel;
-        const windowEl = document.getElementById(`window-${panelId}`);
+        
+        // Use WindowManager if available
+        if (window.windowManager) {
+          const isOpen = window.windowManager.isOpen(panelId);
+          btn.classList.toggle('is-active', isOpen);
+          btn.setAttribute('aria-pressed', isOpen);
+          this.state[panelId] = isOpen;
+          return;
+        }
 
+        // Fallback: check DOM element
+        const windowEl = document.getElementById(`window-${panelId}`);
         if (windowEl) {
           const isVisible = windowEl.style.display !== 'none';
           btn.classList.toggle('is-active', isVisible);

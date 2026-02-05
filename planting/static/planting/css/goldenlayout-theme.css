@@ -4,7 +4,7 @@
  * Let Golden Layout handle all interactions with defaults
  */
 
-/* ============================================
+
    Root Layout Container
    ============================================ */
 .lm_goldenlayout {
@@ -40,24 +40,42 @@
 .lm_header {
   background: var(--bs-tertiary-bg);
   border-bottom: 1px solid var(--bs-border-color);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 1rem;
 }
 
 /* ============================================
    Tabs
    ============================================ */
 .lm_tab {
-  background: transparent;
+  display: flex;
+  align-items: center;
+  background: var(--bs-tertiary-bg);
+  border-top-left-radius: 6px;
+  border-top-right-radius: 6px;
+  overflow: hidden;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  border-left: 1px solid var(--bs-border-color);
+  border-top: 1px solid var(--bs-border-color);
   border-right: 1px solid var(--bs-border-color);
   color: var(--bs-body-color);
 }
 
 .lm_tab:hover {
-  background: var(--bs-secondary-bg);
-}
-
-.lm_tab.lm_active {
-  background: var(--bs-body-bg);
-  color: var(--bs-emphasis-color);
+  height: 100%;
+  display: flex;
+  align-items: center;
+  border-top-left-radius: 6px;
+  border-top-right-radius: 6px;
+  background: transparent;
+  border-left: 1px solid var(--bs-border-color);
+  border-top: 1px solid var(--bs-border-color);
+  border-right: 1px solid var(--bs-border-color);
+  color: var(--bs-body-color);
 }
 
 .lm_title {

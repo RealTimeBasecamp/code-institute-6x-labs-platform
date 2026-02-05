@@ -53,6 +53,9 @@ class ProjectListView(LoginRequiredMixin, ListView):
 def project_planner(request):
     """
     Redirect to project planner page without a specific project selected.
+
+    Detects Golden Layout popout windows via 'gl-window' parameter and renders
+    a minimal template for popout panels.
     """
     projects = Project.objects.all().order_by(Lower('name'))
     context = {
@@ -69,7 +72,12 @@ def project_planner(request):
     }
     # Provide default plotting algorithms list for templates
     context['plotting_algorithms'] = ['Poisson Disc sampling']
-    return render(request, 'planting/project_planner.html', context)
+
+    # Detect Golden Layout popout window and render minimal template
+    is_popout = request.GET.get('gl-window')
+    template = 'planting/project_planner_popout.html' if is_popout else 'planting/project_planner.html'
+    return render(request, template, context)
+
 
 @login_required
 @require_POST
@@ -264,8 +272,11 @@ def project_planner_detail(request, slug):
     - View/modify the interactive map
     - Access planting algorithms
 
+    Detects Golden Layout popout windows via 'gl-window' parameter and renders
+    a minimal template for popout panels.
+
     Data comes from: Project model, Site model
-    Data returned to: planting/project_planner.html template
+    Data returned to: planting/project_planner.html or project_planner_popout.html
 
     Args:
         request: HTTP request object
@@ -303,7 +314,11 @@ def project_planner_detail(request, slug):
         'site_rows': site_rows,
         'site_bounds_rows': site_bounds_rows,
     }
-    return render(request, 'planting/project_planner.html', context)
+
+    # Detect Golden Layout popout window and render minimal template
+    is_popout = request.GET.get('gl-window')
+    template = 'planting/project_planner_popout.html' if is_popout else 'planting/project_planner.html'
+    return render(request, template, context)
 
 
 @require_POST

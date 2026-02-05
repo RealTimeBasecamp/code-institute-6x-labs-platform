@@ -10,7 +10,7 @@
     },
     {
       "type": "item",
-      "id": "window_outliner",
+      "id": "window-outliner",
       "label": "Outliner",
       "icon": "bi-list-nested",
       "callback": "editor-menu-actions-window.toggleWindow",
@@ -21,7 +21,7 @@
     },
     {
       "type": "item",
-      "id": "window_details",
+      "id": "window-details",
       "label": "Details",
       "icon": "bi-sliders",
       "callback": "editor-menu-actions-window.toggleWindow",
@@ -32,22 +32,22 @@
     },
     {
       "type": "item",
-      "id": "window_point_plotter",
+      "id": "window-point-plotter",
       "label": "Point Plotter",
       "icon": "bi-pin-map",
       "callback": "editor-menu-actions-window.toggleWindow",
-      "callback_args": {"windowId": "point_plotter"},
+      "callback_args": {"windowId": "point-plotter"},
       "active": true,
       "visible_to": ["authenticated"],
       "description": "Show/hide Point Plotter panel"
     },
     {
       "type": "item",
-      "id": "window_species_mixer",
+      "id": "window-species-mixer",
       "label": "Species Mixer",
       "icon": "bi-flower1",
       "callback": "editor-menu-actions-window.toggleWindow",
-      "callback_args": {"windowId": "species_mixer"},
+      "callback_args": {"windowId": "species-mixer"},
       "active": true,
       "visible_to": ["authenticated"],
       "description": "Show/hide Species Mixer panel"

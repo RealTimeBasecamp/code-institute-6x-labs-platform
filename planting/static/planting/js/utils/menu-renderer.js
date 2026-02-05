@@ -42,7 +42,7 @@
      * Load all menu configuration files
      */
     async loadMenuConfigs() {
-      const menuFiles = this.menuOrder.map(id => `/static/planting/data/editor-menu-${id}.json`);
+      const menuFiles = this.menuOrder.map(id => `/static/planting/data/menu-${id}.json`);
 
       try {
         const responses = await Promise.all(
