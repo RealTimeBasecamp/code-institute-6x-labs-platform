@@ -159,6 +159,15 @@
         item.disabled = true;
       }
 
+      // Checkmark (for togglable items like window visibility)
+      if (entry.checked !== undefined) {
+        const checkmark = document.createElement('i');
+        checkmark.className = 'bi bi-check2 dropdown-item-check';
+        checkmark.style.marginRight = '4px';
+        checkmark.style.visibility = entry.checked ? 'visible' : 'hidden';
+        item.appendChild(checkmark);
+      }
+
       // Icon
       if (entry.icon) {
         const icon = document.createElement('i');
@@ -425,9 +434,39 @@
       this.editorState = { ...this.editorState, ...newState };
       window.editorState = this.editorState;
 
-      // Update disabled states
-      document.querySelectorAll('.toolbar-dropdown-item[data-entry-id]').forEach(item => {
-        // Re-render would be more robust but this is faster for state updates
+      console.log('[MenuRenderer] updateState called with:', newState);
+
+      // Update menu items based on new state
+      Object.keys(newState).forEach(key => {
+        const updates = newState[key];
+        const item = document.querySelector(`.toolbar-dropdown-item[data-entry-id="${key}"]`);
+        
+        console.log(`[MenuRenderer] Looking for item: ${key}, found:`, item);
+        
+        if (item && updates) {
+          // Update checked state
+          if (updates.checked !== undefined) {
+            let checkmark = item.querySelector('.dropdown-item-check');
+            
+            // Create checkmark if it doesn't exist
+            if (!checkmark) {
+              checkmark = document.createElement('i');
+              checkmark.className = 'bi bi-check2 dropdown-item-check';
+              checkmark.style.marginRight = '4px';
+              item.insertBefore(checkmark, item.firstChild);
+              console.log(`[MenuRenderer] Created checkmark for ${key}`);
+            }
+            
+            console.log(`[MenuRenderer] ${key} checkmark:`, checkmark, 'checked:', updates.checked);
+            checkmark.style.visibility = updates.checked ? 'visible' : 'hidden';
+          }
+          
+          // Update disabled state
+          if (updates.disabled !== undefined) {
+            item.classList.toggle('is-disabled', updates.disabled);
+            item.disabled = updates.disabled;
+          }
+        }
       });
     }
   }

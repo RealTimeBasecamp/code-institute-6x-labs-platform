@@ -27,8 +27,9 @@
       const checkLayout = () => {
         if (window.goldenLayout) {
           this.layout = window.goldenLayout;
-          this.buildRegistry();
           this.setupEventListeners();
+          this.buildRegistry();
+          this.dispatchInitialState();
         } else {
           setTimeout(checkLayout, 100);
         }
@@ -56,44 +57,16 @@
       };
 
       traverse(this.layout.rootItem);
-      
-      // Debug: Log current layout structure
-      this.logLayoutStructure();
     }
 
     /**
-     * Log the current layout structure for debugging
+     * Dispatch windowOpened events for all initially loaded windows
      */
-    logLayoutStructure() {
-      if (!this.layout || !this.layout.rootItem) return;
-      
-      const buildTree = (item, depth = 0) => {
-        const indent = '  '.repeat(depth);
-        const info = [];
-        
-        if (item.type === 'component') {
-          info.push(`${indent}📦 Component: ${item.componentType || 'unknown'} (${item.title || 'untitled'})`);
-          if (item.parent) {
-            info.push(`${indent}   └─ Parent: ${item.parent.type} (${item.parent.contentItems?.length || 0} children)`);
-          }
-        } else {
-          const childCount = item.contentItems?.length || 0;
-          info.push(`${indent}📁 ${item.type.toUpperCase()} (${childCount} children)`);
-        }
-        
-        if (item.contentItems && item.contentItems.length > 0) {
-          item.contentItems.forEach(child => {
-            info.push(...buildTree(child, depth + 1));
-          });
-        }
-        
-        return info;
-      };
-      
-      console.log('=== Layout Structure ===');
-      console.log(buildTree(this.layout.rootItem).join('\n'));
-      console.log(`Total components in registry: ${this.windowRegistry.size}`);
-      console.log('========================');
+    dispatchInitialState() {
+      this.windowRegistry.forEach((component, windowId) => {
+        this.dispatchEvent('windowOpened', { windowId });
+        console.log('WindowManager: initial window state', windowId);
+      });
     }
 
     /**
@@ -102,39 +75,24 @@
     setupEventListeners() {
       if (!this.layout) return;
 
-      // Listen for items being added/removed
-      this.layout.on('itemDestroyed', (item) => {
-        console.log(`🗑️ Item destroyed: ${item.type} ${item.componentType || ''}`);
-        if (item.type === 'component' && item.componentType) {
+      // Listen for items being destroyed
+      this.layout.on('itemDestroyed', (event) => {
+        const item = event._target || event.target;
+        console.log('WindowManager: itemDestroyed', item?.type, item?.componentType);
+        if (item && item.type === 'component' && item.componentType) {
           this.windowRegistry.delete(item.componentType);
           this.dispatchEvent('windowClosed', { windowId: item.componentType });
         }
       });
-
-      this.layout.on('stateChanged', () => {
-        console.log('🔄 Layout state changed');
-        this.buildRegistry();
-      });
       
-      // Debug: Log when items are added
-      this.layout.on('itemCreated', (item) => {
-        console.log(`➕ Item created: ${item.type} ${item.componentType || 'undefined'}`);
-        console.log(`   Details:`, {
-          type: item.type,
-          componentType: item.componentType,
-          title: item.title,
-          hasParent: !!item.parent,
-          parentType: item.parent?.type,
-          parentChildCount: item.parent?.contentItems?.length
-        });
-        if (item.parent) {
-          console.log(`   └─ Added to parent: ${item.parent.type} (now has ${item.parent.contentItems?.length || 0} children)`);
+      // Listen for items being created
+      this.layout.on('itemCreated', (event) => {
+        const item = event._target || event.target;
+        console.log('WindowManager: itemCreated', item?.type, item?.componentType);
+        if (item && item.type === 'component' && item.componentType) {
+          this.windowRegistry.set(item.componentType, item);
+          this.dispatchEvent('windowOpened', { windowId: item.componentType });
         }
-      });
-      
-      // Debug: Log drag operations
-      this.layout.on('beforeItemDestroyed', (item) => {
-        console.log(`⚠️ About to destroy: ${item.type} ${item.componentType || ''}`);
       });
     }
 
@@ -172,20 +130,23 @@
         return false;
       }
 
+      // Rebuild registry to ensure we have current state
+      this.buildRegistry();
+
       if (this.isOpen(id)) {
         console.log('WindowManager.open: window already open', id);
         return true;
       }
 
-      // Get metadata from template element if it exists
+      // Get metadata from template element
       const template = document.getElementById(`template-${id}`);
-      const title = template?.dataset.panelTitle || id.split('-').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+      const titleText = template?.dataset.panelTitle || id.split('-').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
       const closable = template?.dataset.closable !== 'false';
 
       const config = {
         type: 'component',
         componentType: id,
-        title: title,
+        title: titleText,
         isClosable: closable
       };
 
@@ -198,9 +159,8 @@
 
         console.log(`WindowManager.open: adding ${id} to container type: ${container.type}`);
         container.addItem(config);
-        this.buildRegistry();
-        this.dispatchEvent('windowOpened', { windowId: id });
-        console.log('WindowManager.open: opened', id);
+        // Event will be dispatched via itemCreated listener
+        
         return true;
       } catch (err) {
         console.error('WindowManager.open: error', err);
@@ -221,7 +181,14 @@
       }
 
       try {
-        component.remove();
+        // Find the parent stack and remove from there
+        const parent = component.parent;
+        if (parent && typeof parent.removeChild === 'function') {
+          parent.removeChild(component);
+        } else {
+          // Fallback: try close method
+          component.close();
+        }
         console.log('WindowManager.close: closed', id);
         return true;
       } catch (err) {
@@ -235,6 +202,9 @@
      */
     toggle(windowId) {
       const id = this.normalizeId(windowId);
+      
+      // Rebuild registry to ensure we have current state
+      this.buildRegistry();
       
       if (this.isOpen(id)) {
         return this.close(id);
@@ -254,19 +224,6 @@
       // This will create a new stack/window rather than adding to an existing one
       console.log(`🎯 Using root container: ${this.layout.rootItem.type}`);
       return this.layout.rootItem;
-    }
-
-    /**
-     * Get depth of an item in the tree
-     */
-    getDepth(item) {
-      let depth = 0;
-      let current = item;
-      while (current.parent) {
-        depth++;
-        current = current.parent;
-      }
-      return depth;
     }
 
     /**

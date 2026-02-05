@@ -1,7 +1,7 @@
 /**
  * Window Actions - Menu callbacks for Window menu
  * 
- * Corresponds to: data/editor-menu-window.json
+ * Corresponds to: data/menu-window.json
  */
 
 (function() {
@@ -25,18 +25,12 @@
     },
 
     resetLayout: function() {
-      console.log('Action: Reset Layout');
-      // TODO: Reset all panels to default positions
-      
-      // For now, reload the page
       if (confirm('Reset layout to default? This will reload the page.')) {
         window.location.reload();
       }
     },
 
     toggleFullscreen: function() {
-      console.log('Action: Toggle Fullscreen');
-
       if (!document.fullscreenElement) {
         document.documentElement.requestFullscreen().catch(err => {
           console.warn('Fullscreen request failed:', err);
@@ -48,15 +42,32 @@
   });
 
   /**
-   * Helper to update editor state
+   * Update menu checkmark for a specific window
    */
-  window.updateEditorState = function(updates) {
-    window.editorState = { ...window.editorState, ...updates };
-
-    // Notify menu renderer if it exists
-    if (window.menuRenderer) {
-      window.menuRenderer.updateState(updates);
+  function setMenuCheckmark(windowId, isOpen) {
+    console.log(`[Menu] setMenuCheckmark: ${windowId} = ${isOpen}`);
+    console.log('[Menu] menuRenderer:', window.menuRenderer);
+    
+    if (!window.menuRenderer) {
+      console.log('[Menu] menuRenderer not available yet');
+      return;
     }
-  };
+    
+    const menuItemId = `window-${windowId}`;
+    window.menuRenderer.updateState({
+      [menuItemId]: { checked: isOpen }
+    });
+  }
+
+  // Single source of truth: WindowManager events
+  document.addEventListener('windowOpened', (e) => {
+    console.log('[Menu] windowOpened event received:', e.detail);
+    setMenuCheckmark(e.detail.windowId, true);
+  });
+
+  document.addEventListener('windowClosed', (e) => {
+    console.log('[Menu] windowClosed event received:', e.detail);
+    setMenuCheckmark(e.detail.windowId, false);
+  });
 
 })();

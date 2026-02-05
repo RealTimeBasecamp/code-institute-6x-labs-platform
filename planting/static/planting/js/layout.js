@@ -19,8 +19,7 @@ const layoutConfig = {
         type: 'component',
         title: 'Viewport',
         componentType: 'viewport',
-        width: 60,
-        isClosable: false
+        width: 60
       },
       {
         type: 'component',
@@ -104,6 +103,24 @@ function init() {
 
   const layout = new GoldenLayout(containerEl, bindComponent, unbindComponent);
   layout.resizeWithContainerAutomatically = true;
+
+  // Add icons to tabs when items are created
+  layout.on('itemCreated', (item) => {
+    if (item.type === 'component' && item.componentType && item.tab) {
+      const template = document.getElementById(`template-${item.componentType}`);
+      const icon = template?.dataset.panelIcon;
+      if (icon && item.tab.element) {
+        const titleElement = item.tab.element.querySelector('.lm_title');
+        if (titleElement && !titleElement.querySelector('i')) {
+          const iconEl = document.createElement('i');
+          iconEl.className = `bi ${icon}`;
+          iconEl.style.marginRight = '8px';
+          iconEl.style.display = 'inline-block';
+          titleElement.insertBefore(iconEl, titleElement.firstChild);
+        }
+      }
+    }
+  });
 
   // Only load default layout in main window, not in popouts
   if (!isPopout) {

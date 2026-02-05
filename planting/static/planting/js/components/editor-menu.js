@@ -77,13 +77,13 @@
 
     // Menu configuration file paths
     const menuConfigs = [
-      '/static/planting/data/editor-menu-file.json',
-      '/static/planting/data/editor-menu-edit.json',
-      '/static/planting/data/editor-menu-object.json',
-      '/static/planting/data/editor-menu-path.json',
-      '/static/planting/data/editor-menu-select.json',
-      '/static/planting/data/editor-menu-window.json',
-      '/static/planting/data/editor-menu-help.json'
+      '/static/planting/data/menu-file.json',
+      '/static/planting/data/menu-edit.json',
+      '/static/planting/data/menu-object.json',
+      '/static/planting/data/menu-path.json',
+      '/static/planting/data/menu-select.json',
+      '/static/planting/data/menu-window.json',
+      '/static/planting/data/menu-help.json'
     ];
 
     document.addEventListener('DOMContentLoaded', function() {
