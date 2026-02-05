@@ -308,12 +308,76 @@
     }
   }
 
+  // ===== NESTED MENU STATE PERSISTENCE =====
+
+  const NAV_STATE_KEY = 'nav-expanded-items';
+
+  /**
+   * Get expanded nav item IDs from localStorage
+   */
+  function getExpandedNavItems() {
+    try {
+      const stored = localStorage.getItem(NAV_STATE_KEY);
+      return stored ? JSON.parse(stored) : [];
+    } catch (e) {
+      return [];
+    }
+  }
+
+  /**
+   * Save expanded nav item IDs to localStorage
+   */
+  function saveExpandedNavItems(ids) {
+    try {
+      localStorage.setItem(NAV_STATE_KEY, JSON.stringify(ids));
+    } catch (e) {
+      console.warn('Failed to save nav state:', e);
+    }
+  }
+
+  /**
+   * Toggle a nav item's expanded state in localStorage
+   */
+  function toggleNavItemState(itemId, isOpen) {
+    const expanded = getExpandedNavItems();
+    const index = expanded.indexOf(itemId);
+
+    if (isOpen && index === -1) {
+      expanded.push(itemId);
+    } else if (!isOpen && index !== -1) {
+      expanded.splice(index, 1);
+    }
+
+    saveExpandedNavItems(expanded);
+  }
+
+  /**
+   * Restore expanded state for all parent nav items from localStorage
+   */
+  function restoreExpandedNavItems() {
+    const expanded = getExpandedNavItems();
+    const parentItems = document.querySelectorAll('.sidebar-item.has-children');
+
+    parentItems.forEach(item => {
+      const link = item.querySelector('.sidebar-link[data-page-id]');
+      if (link) {
+        const pageId = link.getAttribute('data-page-id');
+        if (expanded.includes(pageId)) {
+          item.classList.add('open');
+        }
+      }
+    });
+  }
+
   // ===== NESTED MENU TOGGLES =====
 
   /**
    * Setup nested menu expansion/collapse functionality
    */
   function setupNestedMenuToggles() {
+    // Restore expanded state from localStorage
+    restoreExpandedNavItems();
+
     const toggleButtons = document.querySelectorAll('.sidebar-icon-toggle');
 
     toggleButtons.forEach(button => {
@@ -323,6 +387,13 @@
 
         const parentItem = this.closest('.sidebar-item');
         parentItem.classList.toggle('open');
+
+        // Persist state to localStorage
+        const link = parentItem.querySelector('.sidebar-link[data-page-id]');
+        if (link) {
+          const pageId = link.getAttribute('data-page-id');
+          toggleNavItemState(pageId, parentItem.classList.contains('open'));
+        }
 
         return false;
       });
@@ -413,10 +484,14 @@
           link.style.backgroundColor = hoverBg;
         }
 
-        // Expand parent menu if this is a child item
+        // Expand parent menu if this is a child item and persist state
         const parentItem = link.closest('.sidebar-submenu')?.closest('.sidebar-item.has-children');
-        if (parentItem) {
+        if (parentItem && !parentItem.classList.contains('open')) {
           parentItem.classList.add('open');
+          const parentLink = parentItem.querySelector('.sidebar-link[data-page-id]');
+          if (parentLink) {
+            toggleNavItemState(parentLink.getAttribute('data-page-id'), true);
+          }
         }
       }
     });
