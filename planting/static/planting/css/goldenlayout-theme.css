@@ -9,6 +9,15 @@
    ============================================ */
 .lm_goldenlayout {
   background: var(--bs-body-bg);
+  margin: 0;
+  padding: 0;
+}
+
+.lm_goldenlayout.lm_root {
+  width: 100% !important;
+  height: 100% !important;
+  box-sizing: border-box !important;
+  overflow: hidden !important;
 }
 
 /* ============================================
@@ -21,6 +30,7 @@
 .lm_row,
 .lm_column {
   background: var(--bs-body-bg);
+  box-sizing: border-box !important;
 }
 
 /* ============================================
@@ -28,6 +38,7 @@
    ============================================ */
 .lm_splitter {
   background: var(--bs-border-color);
+  width: 1px !important;
 }
 
 .lm_splitter:hover {
@@ -60,26 +71,20 @@
   display: flex;
   align-items: center;
   border-left: 1px solid var(--bs-border-color);
-  border-top: 1px solid var(--bs-border-color);
   border-right: 1px solid var(--bs-border-color);
   color: var(--bs-body-color);
 }
 
 .lm_tab:hover {
-  height: 100%;
-  display: flex;
-  align-items: center;
-  border-top-left-radius: 6px;
-  border-top-right-radius: 6px;
-  background: transparent;
-  border-left: 1px solid var(--bs-border-color);
-  border-top: 1px solid var(--bs-border-color);
-  border-right: 1px solid var(--bs-border-color);
+  background: var(--bs-tertiary-bg);
   color: var(--bs-body-color);
 }
 
 .lm_title {
   color: inherit;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 /* ============================================
@@ -90,6 +95,7 @@
   width: 16px;
   height: 16px;
   margin-left: 6px;
+  margin-right: 6px;
   background: transparent;
   background-image: none;
   border: none;
@@ -125,11 +131,13 @@
    ============================================ */
 .lm_controls {
   display: flex;
+  flex-direction: row;
   align-items: center;
   gap: 2px;
 }
 
 .lm_controls > li {
+  position: relative;
   width: 18px;
   height: 18px;
   display: flex;
@@ -141,6 +149,7 @@
   border-radius: 3px;
   cursor: pointer;
   opacity: 0.7;
+  margin-bottom: 5px;
 }
 
 .lm_controls > li:hover {
@@ -157,6 +166,7 @@
 .lm_controls .lm_popout::after {
   content: '⧉';
   font-size: 12px;
+  line-height: 1;
   color: var(--bs-body-color);
 }
 
@@ -168,6 +178,7 @@
 .lm_controls .lm_maximise::after {
   content: '□';
   font-size: 14px;
+  line-height: 1;
   color: var(--bs-body-color);
 }
 
@@ -181,14 +192,17 @@
 .lm_stack {
   background: var(--bs-body-bg);
   border: 1px solid var(--bs-border-color);
+  box-sizing: border-box !important;
 }
 
 .lm_items {
   background: var(--bs-body-bg);
+  box-sizing: border-box !important;
 }
 
 .lm_item {
   background: var(--bs-body-bg);
+  box-sizing: border-box !important;
 }
 
 /* ============================================
@@ -420,4 +434,17 @@
 
 .window-section.is-collapsed .window-section-content {
   display: none;
+}
+
+.lm_header .lm_controls > * {
+  margin-bottom: 0.5rem !important;
+}
+
+.lm_controls .lm_maximise {
+  margin-bottom: 0.75rem !important;
+}
+
+
+.lm_drag_handle:hover {
+  background: var(--primary-color, var(--bs-primary)) !important;
 }
