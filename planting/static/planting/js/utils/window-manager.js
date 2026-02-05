@@ -245,47 +245,15 @@
 
     /**
      * Find best container to add new components to
+     * Uses GoldenLayout's default logic: add to root container
      */
     findBestContainer() {
       if (!this.layout || !this.layout.rootItem) return null;
-
-      const findByType = (item, types) => {
-        if (!item) return null;
-        
-        // Check if this item matches one of the desired types
-        if (types.includes(item.type)) {
-          // Prefer containers that already have content
-          if (item.contentItems && item.contentItems.length > 0) {
-            console.log(`🎯 Found container: ${item.type} with ${item.contentItems.length} children`);
-            return item;
-          }
-        }
-        
-        // Recursively search children
-        if (item.contentItems && item.contentItems.length > 0) {
-          for (const child of item.contentItems) {
-            const found = findByType(child, types);
-            if (found) return found;
-          }
-        }
-        
-        // If no container with content found, return this one if it matches type
-        if (types.includes(item.type)) {
-          console.log(`🎯 Found empty container: ${item.type}`);
-          return item;
-        }
-        
-        return null;
-      };
-
-      // Prefer stack first (tabs), then row, then column
-      const result = findByType(this.layout.rootItem, ['stack']) || 
-                     findByType(this.layout.rootItem, ['row']) || 
-                     findByType(this.layout.rootItem, ['column']) || 
-                     this.layout.rootItem;
       
-      console.log(`🎯 Best container selected: ${result.type} at depth ${this.getDepth(result)}`);
-      return result;
+      // GoldenLayout's default: add to the root container
+      // This will create a new stack/window rather than adding to an existing one
+      console.log(`🎯 Using root container: ${this.layout.rootItem.type}`);
+      return this.layout.rootItem;
     }
 
     /**
