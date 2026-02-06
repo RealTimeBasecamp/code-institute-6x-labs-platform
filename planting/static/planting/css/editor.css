@@ -71,7 +71,7 @@
 }
 
 .editor-viewport-toolbar .toolbar-placeholder i {
-  font-size: var(--editor-icon-lg);
+  font-size: var(--editor-icon-sm);
   padding: 8px;
   border-radius: 4px;
   cursor: pointer;
