@@ -205,6 +205,32 @@
     }
 
     /**
+     * Create an icon element from an icon string.
+     * Supports Bootstrap Icons ("bi-cursor") and custom SVGs ("svg:select").
+     * @param {string} iconStr - Icon identifier
+     * @param {string} [extraClass] - Additional CSS class(es)
+     * @returns {HTMLElement|null}
+     */
+    createIcon(iconStr, extraClass) {
+      if (!iconStr) return null;
+
+      if (iconStr.startsWith('svg:')) {
+        const name = iconStr.slice(4);
+        const icon = document.createElement('span');
+        icon.className = 'custom-tool-icon' + (extraClass ? ' ' + extraClass : '');
+        const url = `/static/planting/images/icons/${name}.svg`;
+        icon.style.maskImage = `url('${url}')`;
+        icon.style.webkitMaskImage = `url('${url}')`;
+        return icon;
+      }
+
+      // Default: Bootstrap Icon
+      const icon = document.createElement('i');
+      icon.className = `bi ${iconStr}` + (extraClass ? ' ' + extraClass : '');
+      return icon;
+    }
+
+    /**
      * Render a toolbar item (button, dropdown, toggle)
      * @param {Object} item - Item configuration
      * @param {Object} section - Parent section configuration
@@ -257,10 +283,9 @@
       }
 
       // Icon
-      if (item.icon) {
-        const icon = document.createElement('i');
-        icon.className = `bi ${item.icon}`;
-        btn.appendChild(icon);
+      const btnIcon = this.createIcon(item.icon);
+      if (btnIcon) {
+        btn.appendChild(btnIcon);
       }
 
       // Label (optional)
@@ -309,10 +334,9 @@
       trigger.title = item.tooltip || item.label;
 
       // Icon
-      if (item.icon) {
-        const icon = document.createElement('i');
-        icon.className = `bi ${item.icon}`;
-        trigger.appendChild(icon);
+      const triggerIcon = this.createIcon(item.icon);
+      if (triggerIcon) {
+        trigger.appendChild(triggerIcon);
       }
 
       // Label
@@ -481,10 +505,9 @@
       }
 
       // Icon (optional)
-      if (option.icon) {
-        const icon = document.createElement('i');
-        icon.className = `bi ${option.icon}`;
-        btn.appendChild(icon);
+      const optIcon = this.createIcon(option.icon);
+      if (optIcon) {
+        btn.appendChild(optIcon);
       }
 
       // Label
@@ -676,10 +699,9 @@
       btn.title = tooltip;
 
       // Icon
-      if (item.icon) {
-        const icon = document.createElement('i');
-        icon.className = `bi ${item.icon}`;
-        btn.appendChild(icon);
+      const btnIcon = this.createIcon(item.icon);
+      if (btnIcon) {
+        btn.appendChild(btnIcon);
       }
 
       // Set initial active state

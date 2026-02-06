@@ -103,7 +103,7 @@
         {
           "id": "camera-speed",
           "type": "dropdown",
-          "icon": "bi-speedometer2",
+          "icon": "bi-camera-video-fill",
           "label": "3.5",
           "tooltip": "Camera Speed",
           "wide": true,

@@ -76,10 +76,34 @@
       }
     });
 
+    // Handle mode change events - update the Window menu label
+    document.addEventListener('toolPalette.modeChange', function(e) {
+      const { mode } = e.detail;
+      const newLabel = mode === 'simple'
+        ? 'Show Advanced Components Toolbar'
+        : 'Show Simple Components Toolbar';
+
+      if (window.menuRenderer) {
+        window.menuRenderer.updateState({
+          'window-toolbar-mode': { label: newLabel }
+        });
+      }
+    });
+
+    // Expose toggle function for the Window menu callback
+    window.toolPaletteActions = {
+      toggleMode: function() {
+        const current = toolPalette.getMode();
+        toolPalette.setMode(current === 'simple' ? 'advanced' : 'simple');
+      }
+    };
+
     // Expose for external access (backwards compatibility)
     window.mainToolPalette = {
       getActiveTool: () => toolPalette.getActiveTool(),
-      setActiveTool: (toolId) => toolPalette.setActiveTool(toolId)
+      setActiveTool: (toolId) => toolPalette.setActiveTool(toolId),
+      setMode: (mode) => toolPalette.setMode(mode),
+      getMode: () => toolPalette.getMode()
     };
   });
 

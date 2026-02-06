@@ -145,6 +145,32 @@
     }
 
     /**
+     * Create an icon element from an icon string.
+     * Supports Bootstrap Icons ("bi-cursor") and custom SVGs ("svg:select").
+     * @param {string} iconStr - Icon identifier
+     * @param {string} [extraClass] - Additional CSS class(es)
+     * @returns {HTMLElement|null}
+     */
+    createIcon(iconStr, extraClass) {
+      if (!iconStr) return null;
+
+      if (iconStr.startsWith('svg:')) {
+        const name = iconStr.slice(4);
+        const icon = document.createElement('span');
+        icon.className = 'custom-tool-icon' + (extraClass ? ' ' + extraClass : '');
+        const url = `/static/planting/images/icons/${name}.svg`;
+        icon.style.maskImage = `url('${url}')`;
+        icon.style.webkitMaskImage = `url('${url}')`;
+        return icon;
+      }
+
+      // Default: Bootstrap Icon
+      const icon = document.createElement('i');
+      icon.className = `${iconStr}` + (extraClass ? ' ' + extraClass : '');
+      return icon;
+    }
+
+    /**
      * Create a clickable menu item
      */
     createItemEntry(entry) {
@@ -169,10 +195,9 @@
       }
 
       // Icon
-      if (entry.icon) {
-        const icon = document.createElement('i');
-        icon.className = `${entry.icon} dropdown-item-icon`;
-        item.appendChild(icon);
+      const itemIcon = this.createIcon(entry.icon, 'dropdown-item-icon');
+      if (itemIcon) {
+        item.appendChild(itemIcon);
       }
 
       // Label
@@ -229,10 +254,9 @@
       trigger.setAttribute('aria-haspopup', 'true');
 
       // Icon
-      if (entry.icon) {
-        const icon = document.createElement('i');
-        icon.className = `${entry.icon} dropdown-item-icon`;
-        trigger.appendChild(icon);
+      const submenuIcon = this.createIcon(entry.icon, 'dropdown-item-icon');
+      if (submenuIcon) {
+        trigger.appendChild(submenuIcon);
       }
 
       // Label
@@ -465,6 +489,14 @@
           if (updates.disabled !== undefined) {
             item.classList.toggle('is-disabled', updates.disabled);
             item.disabled = updates.disabled;
+          }
+
+          // Update label text
+          if (updates.label !== undefined) {
+            const labelEl = item.querySelector('.dropdown-item-label');
+            if (labelEl) {
+              labelEl.textContent = updates.label;
+            }
           }
         }
       });

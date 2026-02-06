@@ -15,7 +15,7 @@
           "id": "save",
           "type": "button",
           "label": "",
-          "icon": "bi-floppy",
+          "icon": "bi-floppy-fill",
           "shortcut": "Ctrl+S",
           "tooltip": "Save the current changes"
         },
@@ -23,7 +23,7 @@
           "id": "undo",
           "type": "button",
           "label": "Undo",
-          "icon": "bi-arrow-counterclockwise",
+          "icon": "svg:undo",
           "shortcut": "Ctrl+Z",
           "tooltip": "Undo the last action",
           "enabled_when": "canUndo"
@@ -32,7 +32,7 @@
           "id": "redo",
           "type": "button",
           "label": "Redo",
-          "icon": "bi-arrow-clockwise",
+          "icon": "svg:redo",
           "shortcut": "Ctrl+Y",
           "tooltip": "Redo the last undone action",
           "enabled_when": "canRedo"
@@ -83,16 +83,10 @@
           "type": "dropdown",
           "label": "",
           "defaultLabel": "Add Components",
-          "icon": "bi-box-fill",
+          "icon": "svg:add-component",
           "tooltip": "Add components to the map",
-          "options": [
-            { "action": "add-square", "label": "Add square", "icon": "bi-square" },
-            { "action": "add-rectangle", "label": "Add rectangle", "icon": "bi-bounding-box" },
-            { "action": "add-circle", "label": "Add circle", "icon": "bi-circle" },
-            { "type": "separator" },
-            { "action": "add-icon", "label": "Add Icon", "icon": "bi-geo-alt" },
-            { "action": "add-image", "label": "Add Image", "icon": "bi-image" }
-          ]
+          "source": "/static/planting/data/components-toolbar.json",
+          "options": []
         }
       ]
     }

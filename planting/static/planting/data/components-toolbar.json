@@ -2,6 +2,7 @@
   "toolbar_id": "main-tool-palette",
   "label": "Tool Palette",
   "description": "Left-side vertical tool palette for the editor viewport",
+  "defaultMode": "simple",
   "tools": [
     {
       "group": "selection",
@@ -10,95 +11,87 @@
         {
           "id": "select",
           "label": "Select / Point to Click",
-          "icon": "bi-cursor",
+          "icon": "svg:select",
           "shortcut": "V",
+          "modes": ["simple", "advanced"],
           "options": []
         }
-      ]
-    },
-    {
-      "group": "transform",
-      "label": "Transform",
-      "tools": [
-        { "id": "move", "label": "Move", "icon": "bi-arrows-move", "shortcut": "G", "options": ["snap-to-grid", "constrain-axis"] },
-        { "id": "rotate", "label": "Rotate", "icon": "bi-arrow-repeat", "shortcut": "R", "options": ["snap-angle", "pivot-point"] },
-        { "id": "scale", "label": "Scale", "icon": "bi-arrows-angle-expand", "shortcut": "S", "options": ["uniform-scale", "snap-scale"] }
-      ]
-    },
-    {
-      "group": "mass-update",
-      "label": "Mass Update",
-      "tools": [
-        { "id": "mass-update", "label": "Mass Update - Batch edit selected objects", "icon": "bi-stack", "options": ["filter-type", "batch-properties"] }
       ]
     },
     {
       "group": "area-selection",
       "label": "Area Selection",
       "tools": [
-        { "id": "rect-select", "label": "Rectangle Select", "icon": "bi-bounding-box", "shortcut": "M", "options": ["selection-mode"] },
-        { "id": "ellipse-select", "label": "Ellipse Select", "icon": "bi-circle-square", "options": ["selection-mode"] }
+        { "id": "rect-select", "label": "Rectangle Select", "icon": "svg:rect-select", "shortcut": "M", "options": ["selection-mode"] },
+        { "id": "circular-select", "label": "Circular Select", "icon": "svg:circular-select", "options": ["selection-mode"] }
       ]
     },
     {
       "group": "marquee",
       "label": "Marquee",
       "tools": [
-        { "id": "marquee", "label": "Marquee Selection", "icon": "bi-dash-lg", "shortcut": "L", "options": ["selection-mode"] },
-        { "id": "polygon-marquee", "label": "Polygon Marquee", "icon": "bi-pentagon", "options": ["selection-mode"] }
+        { "id": "marquee", "label": "Marquee Selection", "icon": "svg:marquee", "shortcut": "L", "options": ["selection-mode"] },
+        { "id": "polygon-marquee", "label": "Polygon Selection", "icon": "bi-pentagon", "options": ["selection-mode"] }
       ]
     },
     {
       "group": "boolean",
       "label": "Boolean Operations",
       "tools": [
-        { "id": "boolean-join", "label": "Boolean Join - Combine Shapes", "icon": "bi-union", "options": ["join-mode"] },
-        { "id": "boolean-weld", "label": "Weld Close Vertices", "icon": "bi-link-45deg", "options": ["weld-threshold"] }
+        { "id": "merge-shapes", "label": "Merge Shapes - Combine Shapes", "icon": "svg:join", "options": ["join-mode"] },
+        { "id": "weld-vertices", "label": "Weld Vertices", "icon": "svg:weld-vertices", "options": ["weld-threshold"] }
       ]
     },
     {
       "group": "shapes",
       "label": "Shapes",
       "tools": [
-        { "id": "shape-square", "label": "Square", "icon": "bi-square-fill", "shortcut": "U", "options": ["shape-mode", "fill-type", "fill-colour", "fill-icon"] },
-        { "id": "shape-rectangle", "label": "Rectangle", "icon": "bi-aspect-ratio", "options": ["shape-mode", "fill-type", "fill-colour", "fill-icon"] },
-        { "id": "shape-ellipse", "label": "Ellipse / Circle", "icon": "bi-circle", "options": ["shape-mode", "circle-radii", "fill-type", "fill-colour", "fill-icon"] },
-        { "id": "shape-polygon", "label": "Polygon", "icon": "bi-hexagon", "options": ["shape-mode", "polygon-sides", "fill-type", "fill-colour", "fill-icon"] }
+        { "id": "shape-square", "label": "Square", "icon": "svg:square", "shortcut": "U", "addComponent": { "action": "add-square", "label": "Add Square", "group": "shapes", "order": 1 }, "options": ["shape-mode", "fill-type", "fill-colour", "fill-icon"] },
+        { "id": "shape-rectangle", "label": "Rectangle", "icon": "svg:rectangle", "addComponent": { "action": "add-rectangle", "label": "Add Rectangle", "group": "shapes", "order": 2 }, "options": ["shape-mode", "fill-type", "fill-colour", "fill-icon"] },
+        { "id": "shape-circle", "label": "Circle", "icon": "svg:circle", "addComponent": { "action": "add-circle", "label": "Add Circle", "group": "shapes", "order": 3 }, "options": ["shape-mode", "circle-radii", "fill-type", "fill-colour", "fill-icon"] },
+        { "id": "shape-polygon", "label": "Polygon", "icon": "svg:polygon", "options": ["shape-mode", "polygon-sides", "fill-type", "fill-colour", "fill-icon"] }
       ]
     },
     {
       "group": "eraser",
       "label": "Eraser",
       "tools": [
-        { "id": "eraser", "label": "Eraser", "icon": "bi-eraser", "shortcut": "E", "options": ["eraser-size", "eraser-mode"] }
+        { "id": "eraser", "label": "Eraser", "icon": "bi-eraser", "modes": ["simple", "advanced"], "options": ["eraser-size", "eraser-mode"] }
       ]
     },
     {
       "group": "fill",
       "label": "Fill",
       "tools": [
-        { "id": "fill", "label": "Fill Tool - Paint shapes", "icon": "bi-paint-bucket", "shortcut": "F", "options": ["fill-colour", "fill-tolerance"] }
+        { "id": "fill", "label": "Fill Tool - Paint shapes", "icon": "bi-paint-bucket", "shortcut": "G", "options": ["fill-colour", "fill-tolerance"] }
       ]
     },
     {
       "group": "annotation",
       "label": "Annotation / Text",
       "tools": [
-        { "id": "annotation", "label": "Annotation / Text", "icon": "bi-chat-square-text", "shortcut": "T", "options": ["annotation-title", "annotation-description", "annotation-icon", "annotation-upload"] }
+        { "id": "annotation", "label": "Annotation / Text", "icon": "bi-chat-square-text-fill", "shortcut": "T", "addComponent": { "action": "add-annotation", "label": "Add Annotation", "group": "objects", "order": 3 }, "options": ["annotation-title", "annotation-description", "annotation-icon", "annotation-upload"] }
       ]
     },
     {
       "group": "picture",
       "label": "Picture",
       "tools": [
-        { "id": "picture", "label": "Picture - Place image on map", "icon": "bi-image", "options": ["picture-upload", "picture-size"] }
+        { "id": "picture", "label": "Picture - Place image on map", "icon": "bi-image", "addComponent": { "action": "add-image", "label": "Add Image", "group": "objects", "order": 2 }, "options": ["picture-upload", "picture-size"] }
+      ]
+    },
+    {
+      "group": "icon",
+      "label": "Icon",
+      "tools": [
+        { "id": "icon", "label": "Icon - Place icon on map", "icon": "bi-info-circle", "addComponent": { "action": "add-icon", "label": "Add Icon", "group": "objects", "order": 1 }, "options": ["icon-type", "icon-size"] }
       ]
     },
     {
       "group": "line",
       "label": "Line Tools",
       "tools": [
-        { "id": "line", "label": "Straight Line", "icon": "bi-pencil", "shortcut": "P", "options": ["line-mode", "line-spacing", "line-type", "line-shape", "fill-type", "fill-colour", "fill-icon"] },
+        { "id": "line", "label": "Straight Line", "icon": "bi-pencil", "shortcut": "P", "modes": ["simple", "advanced"], "options": ["line-mode", "line-spacing", "line-type", "line-shape", "fill-type", "fill-colour", "fill-icon"] },
         { "id": "line-curved", "label": "Curved Line / Bezier", "icon": "bi-bezier2", "options": ["line-mode", "line-spacing", "bezier-handles", "line-shape", "fill-type", "fill-colour", "fill-icon"] }
       ]
     },

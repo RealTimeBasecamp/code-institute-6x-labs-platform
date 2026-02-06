@@ -24,6 +24,11 @@
     // Store reference for external access
     window.mainToolbar = toolbar;
 
+    // Populate add-components dropdown after toolbar config is loaded and rendered
+    container.addEventListener('toolbarRendered', function() {
+      populateAddComponents(toolbar);
+    });
+
     // Handle action events from toolbar
     document.addEventListener('mainToolbar.action', function(e) {
       const { action } = e.detail;
@@ -31,7 +36,6 @@
       switch (action) {
         case 'save':
           console.log('Save action triggered');
-          // Dispatch to editor actions if available
           if (window.editorActions?.save) {
             window.editorActions.save();
           }
@@ -59,20 +63,16 @@
           }
           break;
 
-        // Add components actions
-        case 'add-square':
-        case 'add-rectangle':
-        case 'add-circle':
-        case 'add-icon':
-        case 'add-image':
-          console.log('Add component action:', action);
-          document.dispatchEvent(new CustomEvent('editor.addComponent', {
-            detail: { type: action.replace('add-', '') }
-          }));
-          break;
-
         default:
-          console.log('Main toolbar action:', action);
+          // Handle add-component actions dynamically
+          if (action.startsWith('add-')) {
+            console.log('Add component action:', action);
+            document.dispatchEvent(new CustomEvent('editor.addComponent', {
+              detail: { type: action.replace('add-', '') }
+            }));
+          } else {
+            console.log('Main toolbar action:', action);
+          }
       }
     });
 
@@ -90,6 +90,71 @@
         }));
       }
     });
+
+    /**
+     * Populate the add-components dropdown from components toolbar config.
+     * Reads addComponent metadata from each tool, groups them with separators.
+     * @param {Object} toolbar - ToolbarRenderer instance
+     */
+    async function populateAddComponents(toolbar) {
+      // Find the source URL from the toolbar config
+      const addComponentsConfig = toolbar.config?.sections
+        ?.flatMap(s => s.items || [])
+        ?.find(i => i.id === 'add-components');
+
+      const sourceUrl = addComponentsConfig?.source;
+      if (!sourceUrl) return;
+
+      try {
+        const response = await fetch(sourceUrl);
+        if (!response.ok) return;
+        const config = await response.json();
+
+        // Collect all tools with addComponent metadata
+        const addableTools = [];
+        if (config.tools) {
+          config.tools.forEach(group => {
+            if (group.tools) {
+              group.tools.forEach(tool => {
+                if (tool.addComponent) {
+                  addableTools.push({
+                    icon: tool.icon,
+                    ...tool.addComponent
+                  });
+                }
+              });
+            }
+          });
+        }
+
+        if (addableTools.length === 0) return;
+
+        // Sort by group then order
+        addableTools.sort((a, b) => {
+          if (a.group !== b.group) return a.group.localeCompare(b.group);
+          return (a.order || 0) - (b.order || 0);
+        });
+
+        // Build dropdown options with separators between groups
+        const options = [];
+        let lastGroup = null;
+        addableTools.forEach(tool => {
+          if (lastGroup && tool.group !== lastGroup) {
+            options.push({ type: 'separator' });
+          }
+          options.push({
+            action: tool.action,
+            label: tool.label,
+            icon: tool.icon
+          });
+          lastGroup = tool.group;
+        });
+
+        toolbar.updateDropdownOptions('add-components', options);
+      } catch (error) {
+        console.error('Error populating add-components dropdown:', error);
+      }
+    }
 
     /**
      * Navigate to previous or next site

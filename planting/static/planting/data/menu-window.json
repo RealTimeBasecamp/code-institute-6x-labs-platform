@@ -119,6 +119,16 @@
     },
     {
       "type": "item",
+      "id": "window-toolbar-mode",
+      "label": "Show Advanced Components Toolbar",
+      "icon": "bi-tools",
+      "callback": "toolPaletteActions.toggleMode",
+      "active": true,
+      "visible_to": ["authenticated"],
+      "description": "Toggle between simple and advanced tool palette"
+    },
+    {
+      "type": "item",
       "id": "window_fullscreen",
       "label": "Toggle Fullscreen",
       "icon": "bi-fullscreen",

@@ -33,6 +33,7 @@
       this.eventPrefix = options.eventPrefix || 'toolPalette';
       this.config = null;
       this.activeTool = null;
+      this.mode = options.mode || 'advanced';
       this.pressTimers = new Map();
       this.justOpenedFlyout = false;
       this.LONG_PRESS_DURATION = 500;
@@ -47,6 +48,9 @@
      */
     async init() {
       await this.loadConfig();
+      if (this.config?.defaultMode) {
+        this.mode = this.config.defaultMode;
+      }
       this.render();
       this.bindGlobalEvents();
     }
@@ -74,8 +78,16 @@
       this.container.innerHTML = '';
 
       if (this.config.tools) {
-        this.config.tools.forEach((group, index) => {
-          const groupEl = this.renderToolGroup(group);
+        this.config.tools.forEach((group) => {
+          // Filter tools by current mode
+          const filteredTools = group.tools
+            ? group.tools.filter(t => this.isToolInMode(t))
+            : [];
+
+          if (filteredTools.length === 0) return;
+
+          const filteredGroup = { ...group, tools: filteredTools };
+          const groupEl = this.renderToolGroup(filteredGroup);
           if (groupEl) {
             this.container.appendChild(groupEl);
           }
@@ -87,6 +99,17 @@
       if (firstTool) {
         this.activateTool(firstTool.dataset.tool, firstTool);
       }
+    }
+
+    /**
+     * Check if a tool should be visible in the current mode
+     * Tools without a modes field default to advanced-only
+     * @param {Object} tool - Tool configuration
+     * @returns {boolean}
+     */
+    isToolInMode(tool) {
+      const modes = tool.modes || ['advanced'];
+      return modes.includes(this.mode);
     }
 
     /**
@@ -120,6 +143,32 @@
     }
 
     /**
+     * Create an icon element from an icon string.
+     * Supports Bootstrap Icons ("bi-cursor") and custom SVGs ("svg:select").
+     * @param {string} iconStr - Icon identifier
+     * @param {string} [extraClass] - Additional CSS class(es)
+     * @returns {HTMLElement|null}
+     */
+    createIcon(iconStr, extraClass) {
+      if (!iconStr) return null;
+
+      if (iconStr.startsWith('svg:')) {
+        const name = iconStr.slice(4);
+        const icon = document.createElement('span');
+        icon.className = 'custom-tool-icon' + (extraClass ? ' ' + extraClass : '');
+        const url = `/static/planting/images/icons/${name}.svg`;
+        icon.style.maskImage = `url('${url}')`;
+        icon.style.webkitMaskImage = `url('${url}')`;
+        return icon;
+      }
+
+      // Default: Bootstrap Icon
+      const icon = document.createElement('i');
+      icon.className = `bi ${iconStr}` + (extraClass ? ' ' + extraClass : '');
+      return icon;
+    }
+
+    /**
      * Render a single tool button
      * @param {Object} tool - Tool configuration
      * @returns {HTMLElement}
@@ -137,9 +186,8 @@
       btn.title = tooltip;
 
       // Icon
-      if (tool.icon) {
-        const icon = document.createElement('i');
-        icon.className = `bi ${tool.icon}`;
+      const icon = this.createIcon(tool.icon);
+      if (icon) {
         btn.appendChild(icon);
       }
 
@@ -183,10 +231,9 @@
       }
       trigger.title = tooltip;
 
-      if (primaryTool.icon) {
-        const icon = document.createElement('i');
-        icon.className = `bi ${primaryTool.icon}`;
-        trigger.appendChild(icon);
+      const triggerIcon = this.createIcon(primaryTool.icon);
+      if (triggerIcon) {
+        trigger.appendChild(triggerIcon);
       }
 
       // Flyout indicator
@@ -207,10 +254,9 @@
         toolBtn.dataset.tool = tool.id;
         toolBtn.title = tool.label;
 
-        if (tool.icon) {
-          const icon = document.createElement('i');
-          icon.className = `bi ${tool.icon}`;
-          toolBtn.appendChild(icon);
+        const flyoutIcon = this.createIcon(tool.icon);
+        if (flyoutIcon) {
+          toolBtn.appendChild(flyoutIcon);
         }
 
         const label = document.createElement('span');
@@ -304,10 +350,13 @@
       }
       trigger.title = tooltip;
 
-      // Update icon
-      const icon = trigger.querySelector('i');
-      if (icon && tool.icon) {
-        icon.className = `bi ${tool.icon}`;
+      // Update icon - replace existing icon element (could be <i> or <span>)
+      const oldIcon = trigger.querySelector('i, .custom-tool-icon');
+      const newIcon = this.createIcon(tool.icon);
+      if (oldIcon && newIcon) {
+        oldIcon.replaceWith(newIcon);
+      } else if (!oldIcon && newIcon) {
+        trigger.insertBefore(newIcon, trigger.firstChild);
       }
 
       // Activate the tool
@@ -384,7 +433,7 @@
         if (this.config.tools) {
           for (const group of this.config.tools) {
             if (group.tools) {
-              const tool = group.tools.find(t => t.shortcut?.toUpperCase() === key);
+              const tool = group.tools.find(t => t.shortcut?.toUpperCase() === key && this.isToolInMode(t));
               if (tool) {
                 e.preventDefault();
                 const btn = this.container.querySelector(`[data-tool="${tool.id}"]`);
@@ -420,6 +469,24 @@
     dispatchEvent(eventType, detail) {
       const eventName = `${this.eventPrefix}.${eventType}`;
       document.dispatchEvent(new CustomEvent(eventName, { detail, bubbles: true }));
+    }
+
+    /**
+     * Set the palette mode and re-render
+     * @param {string} mode - 'simple' or 'advanced'
+     */
+    setMode(mode) {
+      this.mode = mode;
+      this.render();
+      this.dispatchEvent('modeChange', { mode });
+    }
+
+    /**
+     * Get current palette mode
+     * @returns {string}
+     */
+    getMode() {
+      return this.mode;
     }
 
     /**
