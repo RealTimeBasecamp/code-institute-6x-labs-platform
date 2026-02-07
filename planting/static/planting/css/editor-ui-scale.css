@@ -19,9 +19,10 @@
 :root {
   /* ============================================
      UI Scale Multiplier (0.8 - 1.2)
-     Change this value to scale the entire editor UI
+     Default fallback; overridden per-user via
+     window.editorContext.preferences.uiScale
      ============================================ */
-  --ui-scale: 1.1;
+  --ui-scale: 1.0;
 
   /* ============================================
      Base Font Sizes (scaled)
@@ -70,17 +71,5 @@
   --editor-dropdown-item-padding-h: calc(12px * var(--ui-scale));
 }
 
-/* ============================================
-   UI Scale Presets (user-selectable)
-   ============================================ */
-[data-ui-scale="small"] {
-  --ui-scale: 0.85;
-}
-
-[data-ui-scale="normal"] {
-  --ui-scale: 1.0;
-}
-
-[data-ui-scale="large"] {
-  --ui-scale: 1.15;
-}
+/* UI scale presets removed — scale is now a per-user
+   preference set via EditorPreferences.ui_scale (0.8-1.2) */

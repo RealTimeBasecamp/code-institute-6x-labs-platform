@@ -221,9 +221,8 @@
    * Open settings modal
    */
   function openSettingsModal() {
-    // TODO: Implement settings modal
-    console.log('Settings modal triggered');
-    alert('Settings modal - to be implemented');
+    var modal = document.getElementById('UserSettingsModal');
+    if (modal) bootstrap.Modal.getOrCreateInstance(modal).show();
   }
 
   // ===== OFFCANVAS STATE PERSISTENCE =====

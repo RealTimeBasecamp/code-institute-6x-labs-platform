@@ -6,6 +6,7 @@ Registers User and SubscriptionTier models with the Django admin.
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
 from .models import User, SubscriptionTier
+from planting.models import EditorPreferences
 
 
 @admin.register(SubscriptionTier)
@@ -19,9 +20,18 @@ class SubscriptionTierAdmin(admin.ModelAdmin):
     prepopulated_fields = {'slug': ('name',)}
 
 
+class EditorPreferencesInline(admin.StackedInline):
+    """Inline editor preferences on the User admin page."""
+    model = EditorPreferences
+    can_delete = False
+    verbose_name_plural = 'Editor Preferences'
+
+
 @admin.register(User)
 class UserAdmin(BaseUserAdmin):
     """Custom User admin that includes subscription tier and profile fields."""
+
+    inlines = [EditorPreferencesInline]
 
     # Fields to display in the list view
     list_display = [

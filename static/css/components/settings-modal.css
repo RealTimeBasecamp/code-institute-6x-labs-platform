@@ -1,0 +1,338 @@
+/* ===== NOTION-STYLE SETTINGS MODAL ===== */
+/* Shared layout for Editor Preferences and User Settings modals.
+   Two-panel design: mini sidebar (left) + content area (right). */
+
+
+/* ---- Modal overrides ---- */
+.settings-modal .modal-dialog {
+  max-width: 860px;
+}
+
+.settings-modal .modal-content {
+  border: 1px solid var(--bs-border-color);
+  border-radius: 0.75rem;
+  overflow: hidden;
+  background: var(--bs-body-bg);
+  height: 75vh;
+  max-height: 75vh;
+}
+
+.settings-modal .modal-body {
+  padding: 0 !important;
+  margin: 0 !important;
+  max-height: none;
+  height: 100%;
+  overflow: hidden;
+}
+
+
+/* ---- Close button ---- */
+.settings-close {
+  position: absolute;
+  top: 0.75rem;
+  right: 0.75rem;
+  z-index: 10;
+  background: none;
+  border: none;
+  padding: 0.25rem;
+  line-height: 1;
+  font-size: 1.25rem;
+  color: var(--bs-secondary-color);
+  cursor: pointer;
+  border-radius: 0.25rem;
+  transition: color 0.15s, background-color 0.15s;
+}
+
+.settings-close:hover {
+  color: var(--bs-body-color);
+  background-color: var(--bs-tertiary-bg);
+}
+
+
+/* ---- Two-panel layout ---- */
+.settings-layout {
+  display: flex;
+  height: 100%;
+}
+
+
+/* ---- Left sidebar ---- */
+.settings-sidebar {
+  width: 220px;
+  min-width: 220px;
+  padding: 1rem 0.75rem;
+  overflow-y: auto;
+  border-right: 1px solid var(--bs-border-color);
+  background: var(--bs-tertiary-bg);
+}
+
+.settings-sidebar-group-header {
+  font-size: 0.6875rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--bs-secondary-color);
+  padding: 0.5rem 0.5rem 0.25rem;
+  margin-top: 0.5rem;
+}
+
+.settings-sidebar-group-header:first-child {
+  margin-top: 0;
+}
+
+.settings-sidebar-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.375rem 0.5rem;
+  border-radius: 0.375rem;
+  font-size: 0.8125rem;
+  color: var(--bs-body-color);
+  cursor: pointer;
+  transition: background-color 0.12s;
+  text-decoration: none;
+  border: none;
+  background: none;
+  width: 100%;
+  text-align: left;
+}
+
+.settings-sidebar-item:hover {
+  background-color: var(--bs-secondary-bg);
+}
+
+.settings-sidebar-item.active {
+  background-color: var(--bs-secondary-bg);
+  font-weight: 500;
+}
+
+.settings-sidebar-item i {
+  font-size: 0.9375rem;
+  opacity: 0.7;
+}
+
+
+/* ---- Right content area ---- */
+.settings-content {
+  flex: 1;
+  padding: 2rem 2.5rem;
+  overflow-y: auto;
+  position: relative;
+}
+
+.settings-content::-webkit-scrollbar {
+  width: 0.5rem;
+}
+
+.settings-content::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.settings-content::-webkit-scrollbar-thumb {
+  background: var(--bs-secondary);
+  border-radius: 0.25rem;
+}
+
+
+/* ---- Section panels ---- */
+.settings-section {
+  display: none;
+}
+
+.settings-section.active {
+  display: block;
+}
+
+.settings-section-title {
+  font-size: 1rem;
+  font-weight: 600;
+  margin-bottom: 1.5rem;
+}
+
+
+/* ---- Section group headers within content ---- */
+.settings-content-group-header {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--bs-secondary-color);
+  margin-bottom: 0.75rem;
+  padding-bottom: 0.375rem;
+  border-bottom: 1px solid var(--bs-border-color);
+}
+
+.settings-content-group-header:not(:first-child) {
+  margin-top: 1.75rem;
+}
+
+
+/* ---- Individual setting row ---- */
+.settings-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 2rem;
+  padding: 0.75rem 0;
+}
+
+.settings-row + .settings-row {
+  border-top: 1px solid var(--bs-border-color-translucent);
+}
+
+.settings-row-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.settings-row-label {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--bs-body-color);
+  margin-bottom: 0.125rem;
+}
+
+.settings-row-description {
+  font-size: 0.75rem;
+  color: var(--bs-secondary-color);
+  line-height: 1.4;
+}
+
+.settings-row-control {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+}
+
+
+/* ---- Controls ---- */
+
+/* Dropdown select */
+.settings-select {
+  font-size: 0.8125rem;
+  padding: 0.25rem 2rem 0.25rem 0.5rem;
+  border: 1px solid var(--bs-border-color);
+  border-radius: 0.375rem;
+  background-color: var(--bs-body-bg);
+  color: var(--bs-body-color);
+  min-width: 140px;
+  cursor: pointer;
+  appearance: auto;
+}
+
+.settings-select:focus {
+  border-color: var(--bs-primary);
+  outline: none;
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--bs-primary) 25%, transparent);
+}
+
+/* Range slider */
+.settings-range-group {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.settings-range {
+  width: 140px;
+  accent-color: var(--bs-primary);
+}
+
+.settings-range-value {
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: var(--bs-body-color);
+  min-width: 2.5rem;
+  text-align: center;
+}
+
+
+/* ---- Account card (for user settings) ---- */
+.settings-account-card {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1rem;
+  border-radius: 0.5rem;
+  background: var(--bs-tertiary-bg);
+  margin-bottom: 1rem;
+}
+
+.settings-account-info {
+  flex: 1;
+}
+
+.settings-account-name {
+  font-size: 0.9375rem;
+  font-weight: 600;
+}
+
+.settings-account-email {
+  font-size: 0.8125rem;
+  color: var(--bs-secondary-color);
+}
+
+.settings-account-tier {
+  font-size: 0.75rem;
+  color: var(--bs-secondary-color);
+}
+
+
+/* ---- Save indicator ---- */
+.settings-save-indicator {
+  font-size: 0.75rem;
+  color: var(--bs-success);
+  opacity: 0;
+  transition: opacity 0.2s;
+  position: absolute;
+  top: 2rem;
+  right: 2.5rem;
+}
+
+.settings-save-indicator.show {
+  opacity: 1;
+}
+
+
+/* ---- Responsive ---- */
+@media (max-width: 576px) {
+  .settings-modal .modal-content {
+    height: 90vh;
+    max-height: 90vh;
+    border-radius: 0;
+  }
+
+  .settings-layout {
+    flex-direction: column;
+  }
+
+  .settings-sidebar {
+    width: 100%;
+    min-width: 100%;
+    border-right: none;
+    border-bottom: 1px solid var(--bs-border-color);
+    padding: 0.5rem;
+    overflow-y: visible;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.25rem;
+  }
+
+  .settings-sidebar-group-header {
+    width: 100%;
+    padding: 0.25rem 0.5rem 0;
+    margin-top: 0.25rem;
+  }
+
+  .settings-sidebar-item {
+    padding: 0.25rem 0.5rem;
+    font-size: 0.75rem;
+  }
+
+  .settings-content {
+    padding: 1rem;
+  }
+
+  .settings-row {
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+}

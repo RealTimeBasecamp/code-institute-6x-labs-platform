@@ -44,8 +44,8 @@
     },
 
     openPreferences: function() {
-      console.log('Action: Open Preferences');
-      // TODO: Open preferences modal
+      var modal = document.getElementById('editorPreferencesModal');
+      if (modal) bootstrap.Modal.getOrCreateInstance(modal).show();
     },
   });
 

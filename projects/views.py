@@ -14,6 +14,7 @@ from django.views.generic import ListView
 from django.contrib.auth.mixins import LoginRequiredMixin
 from core.card_utils import render_card_groups
 from .utils import build_site_bounds_and_list
+from planting.models import EditorPreferences
 
 
 class ProjectListView(LoginRequiredMixin, ListView):
@@ -72,6 +73,10 @@ def project_planner(request):
     }
     # Provide default plotting algorithms list for templates
     context['plotting_algorithms'] = ['Poisson Disc sampling']
+
+    # Load per-user editor preferences
+    editor_prefs, _ = EditorPreferences.objects.get_or_create(user=request.user)
+    context['editor_prefs'] = editor_prefs
 
     # Detect Golden Layout popout window and render minimal template
     is_popout = request.GET.get('gl-window')
@@ -307,12 +312,16 @@ def project_planner_detail(request, slug):
             pass
         site_bounds_rows.append([i + 1, x, y, False])
 
+    # Load per-user editor preferences
+    editor_prefs, _ = EditorPreferences.objects.get_or_create(user=request.user)
+
     context = {
         'project': project,
         'projects': projects,
         'sites': sites,
         'site_rows': site_rows,
         'site_bounds_rows': site_bounds_rows,
+        'editor_prefs': editor_prefs,
     }
 
     # Detect Golden Layout popout window and render minimal template
@@ -347,3 +356,53 @@ def delete_project(request, slug):
         messages.error(request, f'Error deleting project: {str(e)}')
 
     return redirect('projects:projects_list')
+
+
+@login_required
+def editor_preferences_api(request):
+    """
+    API endpoint for reading and updating editor preferences.
+
+    GET: Returns current user's editor preferences as JSON.
+    PATCH: Updates specified fields and returns updated preferences.
+
+    Expects JSON body for PATCH, e.g.: {"ui_scale": 0.9, "auto_topdown_drawing": false}
+    """
+    prefs, _ = EditorPreferences.objects.get_or_create(user=request.user)
+
+    if request.method == 'GET':
+        return JsonResponse(prefs.to_dict())
+
+    if request.method == 'PATCH':
+        try:
+            data = json.loads(request.body.decode('utf-8') or '{}')
+        except (json.JSONDecodeError, UnicodeDecodeError):
+            return HttpResponseBadRequest('Invalid JSON')
+
+        # Whitelist of updatable fields
+        allowed_fields = {
+            'ui_scale': float,
+            'auto_topdown_drawing': bool,
+        }
+
+        updated = []
+        for field, cast in allowed_fields.items():
+            if field in data:
+                try:
+                    value = cast(data[field])
+                except (TypeError, ValueError):
+                    return HttpResponseBadRequest(f'Invalid value for {field}')
+
+                # Validate ui_scale range
+                if field == 'ui_scale' and not (0.8 <= value <= 1.2):
+                    return HttpResponseBadRequest('ui_scale must be between 0.8 and 1.2')
+
+                setattr(prefs, field, value)
+                updated.append(field)
+
+        if updated:
+            prefs.save(update_fields=updated)
+
+        return JsonResponse(prefs.to_dict())
+
+    return JsonResponse({'error': 'Method not allowed'}, status=405)

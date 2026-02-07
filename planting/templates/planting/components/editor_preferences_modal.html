@@ -1,0 +1,74 @@
+{% extends 'components/modals/settings_modal.html' %}
+{% load static %}
+
+{% block settings_modal_id %}editorPreferencesModal{% endblock %}
+{% block settings_modal_title %}Editor Preferences{% endblock %}
+
+{% block settings_sidebar %}
+  <div class="settings-sidebar-group-header">Editor</div>
+  <button class="settings-sidebar-item active" data-section="general">
+    <i class="bi bi-sliders"></i> General
+  </button>
+  <button class="settings-sidebar-item" data-section="drawing">
+    <i class="bi bi-pencil-square"></i> Drawing
+  </button>
+{% endblock %}
+
+{% block settings_panels %}
+  {# ---- General ---- #}
+  <div class="settings-section active" data-section="general">
+    <div class="settings-section-title">General</div>
+
+    <div class="settings-content-group-header">Interface</div>
+
+    <div class="settings-row">
+      <div class="settings-row-info">
+        <div class="settings-row-label">UI Scale</div>
+        <div class="settings-row-description">
+          Scale the entire editor interface. Affects toolbars, menus, icons, and panel text.
+        </div>
+      </div>
+      <div class="settings-row-control">
+        <div class="settings-range-group">
+          <input
+            type="range"
+            class="settings-range"
+            data-field="ui_scale"
+            min="0.8"
+            max="1.2"
+            step="0.05"
+            value="{{ editor_prefs.ui_scale|default:'1.0' }}"
+          />
+          <span class="settings-range-value">{{ editor_prefs.ui_scale|default:'1.0' }}</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  {# ---- Drawing ---- #}
+  <div class="settings-section" data-section="drawing">
+    <div class="settings-section-title">Drawing</div>
+
+    <div class="settings-content-group-header">Map Behaviour</div>
+
+    <div class="settings-row">
+      <div class="settings-row-info">
+        <div class="settings-row-label">Automatic top-down view</div>
+        <div class="settings-row-description">
+          Automatically switch the map to a top-down view when activating drawing tools.
+        </div>
+      </div>
+      <div class="settings-row-control">
+        <label class="toggle-switch">
+          <input
+            type="checkbox"
+            data-field="auto_topdown_drawing"
+            {% if editor_prefs.auto_topdown_drawing %}checked{% endif %}
+            aria-label="Automatic top-down view when drawing"
+          />
+          <span class="slider"></span>
+        </label>
+      </div>
+    </div>
+  </div>
+{% endblock %}

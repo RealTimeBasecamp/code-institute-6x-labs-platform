@@ -803,6 +803,13 @@
                 if (drawingMode) return;
                 if (!controller.map) return;
                 drawingMode = true;
+
+                // Switch to top-down view for drawing if user preference enabled
+                const prefs = window.editorContext && window.editorContext.preferences;
+                if (!prefs || prefs.autoTopdownDrawing !== false) {
+                    controller.map.easeTo({ pitch: 0, bearing: 0, duration: 400 });
+                }
+
                 alert('Drag on the map to draw a square: click, drag and release to finish.');
 
                 // Create temporary preview source/layers if not present

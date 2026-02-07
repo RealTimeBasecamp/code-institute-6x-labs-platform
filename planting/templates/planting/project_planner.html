@@ -80,8 +80,16 @@
       isAuthenticated: {{ user.is_authenticated|yesno:"true,false" }},
       isStaff: {{ user.is_staff|yesno:"true,false" }},
       isSuperuser: {{ user.is_superuser|yesno:"true,false" }}
+    },
+    preferences: {
+      uiScale: {{ editor_prefs.ui_scale|default:"1.0" }},
+      autoTopdownDrawing: {{ editor_prefs.auto_topdown_drawing|yesno:"true,false" }}
     }
   };
+  // Apply user's preferred UI scale immediately to avoid FOUC
+  document.documentElement.style.setProperty(
+    '--ui-scale', window.editorContext.preferences.uiScale
+  );
 </script>
 <script src="{% static 'js/core/field-generator.js' %}" defer></script>
 <script src="{% static 'js/core/reset-button-handler.js' %}" defer></script>
@@ -93,4 +101,30 @@
 <script type="module" src="{% static 'planting/js/layout.js' %}"></script>
 {# Actions - menu callbacks #}
 <script src="{% static 'planting/js/actions/menu-window-actions.js' %}" defer></script>
+
+{# Editor Preferences Modal #}
+{% include 'planting/components/editor_preferences_modal.html' %}
+<link rel="stylesheet" href="{% static 'css/components/toggle-switch.css' %}" />
+<script src="{% static 'js/components/modals/settings-modal.js' %}" defer></script>
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    var modalEl = document.getElementById('editorPreferencesModal');
+    if (!modalEl) return;
+    new SettingsModal(modalEl, {
+      apiEndpoint: '/projects/project-planner/api/editor-preferences/',
+      csrfToken: window.editorContext.csrfToken,
+      onInput: function(field, value) {
+        if (field === 'ui_scale') {
+          document.documentElement.style.setProperty('--ui-scale', value);
+        }
+      },
+      onSave: function(field, value) {
+        if (!window.editorContext.preferences) return;
+        // Keep in-memory context in sync
+        var camelKey = field.replace(/_([a-z])/g, function(m, c) { return c.toUpperCase(); });
+        window.editorContext.preferences[camelKey] = value;
+      }
+    });
+  });
+</script>
 {% endblock %}

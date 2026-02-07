@@ -1,0 +1,91 @@
+{% extends 'components/modals/settings_modal.html' %}
+{% load static %}
+
+{% block settings_modal_id %}{{ modal_id|default:'UserSettingsModal' }}{% endblock %}
+{% block settings_modal_title %}Settings{% endblock %}
+
+{% block settings_sidebar %}
+  <div class="settings-sidebar-group-header">Account</div>
+  <button class="settings-sidebar-item active" data-section="account">
+    <i class="bi bi-person"></i> Account
+  </button>
+
+  <div class="settings-sidebar-group-header">Preferences</div>
+  <button class="settings-sidebar-item" data-section="preferences">
+    <i class="bi bi-palette"></i> Preferences
+  </button>
+{% endblock %}
+
+{% block settings_panels %}
+  {# ---- Account ---- #}
+  <div class="settings-section active" data-section="account">
+    <div class="settings-section-title">Account</div>
+
+    <div class="settings-account-card">
+      {% include 'components/user_avatar.html' with user=user height=48 width=48 %}
+      <div class="settings-account-info">
+        <div class="settings-account-name">{{ user.display_name|default:user.get_full_name|default:user.username }}</div>
+        <div class="settings-account-email">{{ user.email }}</div>
+        <div class="settings-account-tier">{{ user.subscription_tier.name|default:"Sapling" }} plan</div>
+      </div>
+    </div>
+
+    <div class="settings-content-group-header">Profile</div>
+
+    <div class="settings-row">
+      <div class="settings-row-info">
+        <div class="settings-row-label">Display name</div>
+        <div class="settings-row-description">{{ user.display_name|default:user.username }}</div>
+      </div>
+    </div>
+
+    <div class="settings-row">
+      <div class="settings-row-info">
+        <div class="settings-row-label">Email</div>
+        <div class="settings-row-description">{{ user.email }}</div>
+      </div>
+    </div>
+  </div>
+
+  {# ---- Preferences ---- #}
+  <div class="settings-section" data-section="preferences">
+    <div class="settings-section-title">Preferences</div>
+
+    <div class="settings-content-group-header">Appearance</div>
+
+    <div class="settings-row">
+      <div class="settings-row-info">
+        <div class="settings-row-label">Theme</div>
+        <div class="settings-row-description">Colour theme for the application.</div>
+      </div>
+      <div class="settings-row-control">
+        <select class="settings-select" data-field="theme" aria-label="Theme">
+          {% with current_theme=user.theme|default:"default" %}
+          <option value="default" {% if current_theme == "default" %}selected{% endif %}>Default</option>
+          <option value="moon" {% if current_theme == "moon" %}selected{% endif %}>Moon</option>
+          <option value="gaia" {% if current_theme == "gaia" %}selected{% endif %}>Gaia</option>
+          <option value="sunset" {% if current_theme == "sunset" %}selected{% endif %}>Sunset</option>
+          <option value="honeycomb" {% if current_theme == "honeycomb" %}selected{% endif %}>Honeycomb</option>
+          <option value="ocean" {% if current_theme == "ocean" %}selected{% endif %}>Ocean</option>
+          {% endwith %}
+        </select>
+      </div>
+    </div>
+
+    <div class="settings-row">
+      <div class="settings-row-info">
+        <div class="settings-row-label">Display mode</div>
+        <div class="settings-row-description">Choose light, dark, or follow your system setting.</div>
+      </div>
+      <div class="settings-row-control">
+        <select class="settings-select" data-field="theme_mode" aria-label="Display mode">
+          {% with current_mode=user.theme_mode|default:"system" %}
+          <option value="light" {% if current_mode == "light" %}selected{% endif %}>Light</option>
+          <option value="dark" {% if current_mode == "dark" %}selected{% endif %}>Dark</option>
+          <option value="system" {% if current_mode == "system" %}selected{% endif %}>Use system setting</option>
+          {% endwith %}
+        </select>
+      </div>
+    </div>
+  </div>
+{% endblock %}
