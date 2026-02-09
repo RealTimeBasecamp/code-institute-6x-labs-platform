@@ -458,30 +458,24 @@
       this.editorState = { ...this.editorState, ...newState };
       window.editorState = this.editorState;
 
-      console.log('[MenuRenderer] updateState called with:', newState);
-
       // Update menu items based on new state
       Object.keys(newState).forEach(key => {
         const updates = newState[key];
         const item = document.querySelector(`.toolbar-dropdown-item[data-entry-id="${key}"]`);
-        
-        console.log(`[MenuRenderer] Looking for item: ${key}, found:`, item);
-        
+
         if (item && updates) {
           // Update checked state
           if (updates.checked !== undefined) {
             let checkmark = item.querySelector('.dropdown-item-check');
-            
+
             // Create checkmark if it doesn't exist
             if (!checkmark) {
               checkmark = document.createElement('i');
               checkmark.className = 'bi bi-check2 dropdown-item-check';
               checkmark.style.marginRight = '4px';
               item.insertBefore(checkmark, item.firstChild);
-              console.log(`[MenuRenderer] Created checkmark for ${key}`);
             }
-            
-            console.log(`[MenuRenderer] ${key} checkmark:`, checkmark, 'checked:', updates.checked);
+
             checkmark.style.visibility = updates.checked ? 'visible' : 'hidden';
           }
           

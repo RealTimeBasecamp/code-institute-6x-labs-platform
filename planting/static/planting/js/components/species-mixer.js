@@ -20,13 +20,10 @@
 
       // Listen for point generation events to update statistics
       document.addEventListener('pointsGenerated', function(e) {
-        const { count, algorithm, parameters } = e.detail;
-        console.log('Species Mixer: Points generated -', { count, algorithm });
         // Could update statistics display here if needed
       });
 
       document.addEventListener('pointsCleared', function(e) {
-        console.log('Species Mixer: Points cleared');
         // Could reset display here if needed
       });
     });

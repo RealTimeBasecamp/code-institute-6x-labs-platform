@@ -55,12 +55,8 @@
       // Other actions
       switch (action) {
         case 'toggle-split':
-          console.log('Toggle split view action');
           document.dispatchEvent(new CustomEvent('viewportToolbar.toggleSplit'));
           break;
-
-        default:
-          console.log('Viewport toolbar action:', action);
       }
     });
 
@@ -104,8 +100,6 @@
           }));
           break;
 
-        default:
-          console.log('Viewport toolbar select:', dropdownId, value);
       }
     });
 
@@ -134,9 +128,6 @@
             detail: { enabled: isActive }
           }));
           break;
-
-        default:
-          console.log('Viewport toolbar toggle:', id, isActive);
       }
     });
 
@@ -146,8 +137,6 @@
 
       // Update state
       window.viewportToolbarState[setting] = value;
-
-      console.log('Viewport setting changed:', setting, value);
     });
   });
 

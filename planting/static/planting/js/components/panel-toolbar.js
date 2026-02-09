@@ -76,19 +76,16 @@
     bindEvents() {
       // Single source of truth: WindowManager events
       document.addEventListener('windowOpened', (e) => {
-        console.log('[Toolbar] windowOpened event received:', e.detail);
         this.setButtonState(e.detail.windowId, true);
       });
 
       document.addEventListener('windowClosed', (e) => {
-        console.log('[Toolbar] windowClosed event received:', e.detail);
         this.setButtonState(e.detail.windowId, false);
       });
     }
 
     setButtonState(panelId, isOpen) {
       const btn = this.container?.querySelector(`[data-panel="${panelId}"]`);
-      console.log(`[Toolbar] setButtonState: ${panelId} = ${isOpen}, btn:`, btn);
       if (btn) {
         btn.classList.toggle('is-active', isOpen);
         btn.setAttribute('aria-pressed', String(isOpen));
@@ -101,7 +98,6 @@
         if (window.windowManager) {
           window.windowManager.buildRegistry();
           const openWindows = window.windowManager.getOpenWindows();
-          console.log('[Toolbar] syncInitialState, open windows:', openWindows);
           openWindows.forEach(windowId => {
             this.setButtonState(windowId, true);
           });

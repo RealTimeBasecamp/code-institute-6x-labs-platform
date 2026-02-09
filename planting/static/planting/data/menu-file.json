@@ -135,6 +135,20 @@
         },
         {
           "type": "item",
+          "id": "export_geopackage",
+          "label": "GeoPackage (.gpkg)",
+          "icon": "bi-database-down",
+          "callback": "editor-menu-actions-file.exportGeoPackage",
+          "active": true,
+          "visible_to": ["authenticated"],
+          "enabled_when": "hasActiveProject"
+        },
+        {
+          "type": "separator",
+          "visible_to": ["authenticated"]
+        },
+        {
+          "type": "item",
           "id": "export_qgis_project",
           "label": "QGIS Project File",
           "icon": "bi-geo",
@@ -160,9 +174,23 @@
       "id": "file_import",
       "label": "Import",
       "icon": "bi-upload",
-      "active": false,
+      "active": true,
       "visible_to": ["authenticated"],
       "entries": [
+        {
+          "type": "item",
+          "id": "import_geopackage",
+          "label": "GeoPackage (.gpkg)",
+          "icon": "bi-database-up",
+          "callback": "editor-menu-actions-file.importGeoPackage",
+          "active": true,
+          "visible_to": ["authenticated"],
+          "enabled_when": "hasActiveProject"
+        },
+        {
+          "type": "separator",
+          "visible_to": ["authenticated"]
+        },
         {
           "type": "item",
           "id": "import_qgis",

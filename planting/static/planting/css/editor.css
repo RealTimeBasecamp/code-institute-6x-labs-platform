@@ -178,6 +178,77 @@
 
 .window-tree-item span {
   font-size: var(--editor-font-base);
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.window-tree-item.is-empty {
+  opacity: 0.5;
+  cursor: default;
+}
+
+/* Tree nesting — indentation levels */
+.window-tree-item[data-depth="1"] { padding-left: calc(var(--editor-spacing-md) + 16px); }
+.window-tree-item[data-depth="2"] { padding-left: calc(var(--editor-spacing-md) + 32px); }
+.window-tree-item[data-depth="3"] { padding-left: calc(var(--editor-spacing-md) + 48px); }
+
+/* Expand/collapse chevron for folders */
+.window-tree-item .tree-toggle {
+  font-size: var(--editor-font-xs);
+  color: var(--bs-secondary-color);
+  cursor: pointer;
+  flex-shrink: 0;
+  width: 12px;
+  text-align: center;
+}
+
+/* Data-type indicator dot */
+.window-tree-item .tree-type-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.tree-type-dot[data-type="inclusion"]  { background: #22c55e; }
+.tree-type-dot[data-type="exclusion"]  { background: #ef4444; }
+.tree-type-dot[data-type="annotation"] { background: var(--bs-secondary-color); }
+
+/* Action buttons (visibility/lock) on tree items */
+.window-tree-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--editor-spacing-xs);
+  margin-left: auto;
+  flex-shrink: 0;
+  opacity: 0;
+  transition: opacity 0.1s;
+}
+
+.window-tree-item:hover .window-tree-actions,
+.window-tree-item.is-selected .window-tree-actions {
+  opacity: 1;
+}
+
+.window-tree-actions button {
+  background: none;
+  border: none;
+  padding: 1px;
+  cursor: pointer;
+  color: var(--bs-secondary-color);
+  font-size: var(--editor-font-sm) !important;
+  line-height: 1;
+}
+
+.window-tree-actions button:hover {
+  color: var(--bs-body-color);
+}
+
+.window-tree-actions button.is-off {
+  opacity: 0.35;
 }
 
 /* ============================================

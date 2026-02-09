@@ -42,7 +42,6 @@
         bubbles: true
       }));
 
-      console.log('Tool selected:', tool, config);
     });
 
     // Handle action events (zoom in/out/fit)
@@ -51,28 +50,22 @@
 
       switch (action) {
         case 'zoom-in':
-          console.log('Zoom in action');
           if (window.editorActions?.zoomin) {
             window.editorActions.zoomin();
           }
           break;
 
         case 'zoom-out':
-          console.log('Zoom out action');
           if (window.editorActions?.zoomout) {
             window.editorActions.zoomout();
           }
           break;
 
         case 'zoom-fit':
-          console.log('Zoom fit action');
           if (window.editorActions?.zoomfit) {
             window.editorActions.zoomfit();
           }
           break;
-
-        default:
-          console.log('Tool palette action:', action);
       }
     });
 

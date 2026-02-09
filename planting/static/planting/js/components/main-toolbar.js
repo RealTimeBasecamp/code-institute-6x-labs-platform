@@ -35,7 +35,6 @@
 
       switch (action) {
         case 'save':
-          console.log('Save action triggered');
           if (window.editorActions?.save) {
             window.editorActions.save();
           }
@@ -50,28 +49,22 @@
           break;
 
         case 'undo':
-          console.log('Undo action triggered');
           if (window.editorActions?.undo) {
             window.editorActions.undo();
           }
           break;
 
         case 'redo':
-          console.log('Redo action triggered');
           if (window.editorActions?.redo) {
             window.editorActions.redo();
           }
           break;
 
         default:
-          // Handle add-component actions dynamically
           if (action.startsWith('add-')) {
-            console.log('Add component action:', action);
             document.dispatchEvent(new CustomEvent('editor.addComponent', {
               detail: { type: action.replace('add-', '') }
             }));
-          } else {
-            console.log('Main toolbar action:', action);
           }
       }
     });
@@ -82,8 +75,6 @@
 
       if (dropdownId === 'site-dropdown') {
         window.mainToolbarState.currentSite = value;
-        console.log('Site changed to:', value);
-
         // Dispatch site change event for other components
         document.dispatchEvent(new CustomEvent('mainToolbar.siteChange', {
           detail: { site: value, label: label }

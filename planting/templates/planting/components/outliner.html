@@ -1,16 +1,17 @@
 {% load static %}
 {#
   Outliner Panel Component
-  Shows the scene hierarchy (sites, zones, objects)
+  Shows the scene hierarchy (sites, folders, components)
 
   Usage:
-  {% include 'planting/components/panel_outliner.html' with sites=sites project=project %}
+  {% include 'planting/components/outliner.html' with sites=sites project=project %}
 
   This panel:
-  - Displays project structure (sites, zones, components)
-  - Allows selection of objects in the scene
-  - Supports expand/collapse of tree items
-  - Dispatches selection events to the editor
+  - Displays site → folder → component hierarchy from StateManager
+  - Supports expand/collapse of folders
+  - Visibility/lock toggles on folders and components
+  - Click to select → populates Details panel + highlights on map
+  - Rebuilds automatically from stateManager events
 #}
 
 <div class="window-section">

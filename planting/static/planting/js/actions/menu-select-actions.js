@@ -19,22 +19,18 @@
     // ========================================
 
     selectAll: function () {
-      console.log('Action: Select All');
       // TODO: Select all objects
     },
 
     deselectAll: function () {
-      console.log('Action: Deselect All');
       // TODO: Clear selection
     },
 
     invertSelection: function () {
-      console.log('Action: Invert Selection');
       // TODO: Invert selection
     },
 
     selectByType: function (args) {
-      console.log('Action: Select by Type', args?.type);
       // TODO: Select all objects of specified type
       }
   });

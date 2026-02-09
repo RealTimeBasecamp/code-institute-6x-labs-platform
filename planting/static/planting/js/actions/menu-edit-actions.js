@@ -19,27 +19,22 @@
     // ========================================
 
     undo: function() {
-      console.log('Action: Undo');
       // TODO: Implement undo
     },
 
     redo: function() {
-      console.log('Action: Redo');
       // TODO: Implement redo
     },
 
     cut: function() {
-      console.log('Action: Cut');
       // TODO: Implement cut
     },
 
     copy: function() {
-      console.log('Action: Copy');
       // TODO: Implement copy
     },
 
     paste: function() {
-      console.log('Action: Paste');
       // TODO: Implement paste
     },
 

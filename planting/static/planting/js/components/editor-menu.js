@@ -12,8 +12,6 @@
       if (!callbackPath) return;
 
       try {
-        console.log('Handling editorAction callback:', callbackPath);
-
         const tryResolve = (pathParts) => {
           let ctx = window;
           for (const part of pathParts) {
@@ -230,8 +228,6 @@
               bubbles: true
             });
             document.dispatchEvent(event);
-
-            console.log('Menu action:', item.id, item.callback);
           }
         });
 

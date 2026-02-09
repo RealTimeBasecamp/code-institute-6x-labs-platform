@@ -220,7 +220,6 @@
           generateBtn.disabled = !selectedItem || selectedItem.type !== 'site';
         }
 
-        console.log('Point Plotter: Selection changed to', selectedItem.type);
       });
 
       // Listen for viewport selection changes
@@ -231,8 +230,6 @@
         if (generateBtn) {
           generateBtn.disabled = !selectedItem || selectedItem.type !== 'site';
         }
-
-        console.log('Point Plotter: Viewport selection changed to', selectedItem.type);
       });
 
       function generatePoints() {
@@ -281,7 +278,6 @@
             window.plotterState.isGenerating = false;
             if (generateBtn) generateBtn.disabled = false;
 
-            console.log('Point generation complete with algorithm:', algorithm);
           } else {
             progressFill.style.width = progress + '%';
             progressText.textContent = Math.floor(progress) + '%';
@@ -324,13 +320,9 @@
           bubbles: true
         }));
 
-        console.log('All points cleared');
       }
 
       function undoLastAction() {
-        // Undo last point generation or manual edit
-        console.log('Undo: Would revert to previous point configuration');
-
         document.dispatchEvent(new CustomEvent('plotterUndo', {
           detail: {},
           bubbles: true

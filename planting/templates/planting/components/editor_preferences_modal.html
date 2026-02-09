@@ -70,5 +70,25 @@
         </label>
       </div>
     </div>
+
+    <div class="settings-row">
+      <div class="settings-row-info">
+        <div class="settings-row-label">Set map direction to North in top-down view</div>
+        <div class="settings-row-description">
+          Rotate the map to face North when entering top-down drawing mode. The previous bearing is restored when you switch back to the select tool.
+        </div>
+      </div>
+      <div class="settings-row-control">
+        <label class="toggle-switch">
+          <input
+            type="checkbox"
+            data-field="north_up_drawing"
+            {% if editor_prefs.north_up_drawing %}checked{% endif %}
+            aria-label="Set map direction to North in top-down view"
+          />
+          <span class="slider"></span>
+        </label>
+      </div>
+    </div>
   </div>
 {% endblock %}

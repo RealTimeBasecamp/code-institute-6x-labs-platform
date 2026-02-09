@@ -65,7 +65,6 @@
     dispatchInitialState() {
       this.windowRegistry.forEach((component, windowId) => {
         this.dispatchEvent('windowOpened', { windowId });
-        console.log('WindowManager: initial window state', windowId);
       });
     }
 
@@ -78,7 +77,6 @@
       // Listen for items being destroyed
       this.layout.on('itemDestroyed', (event) => {
         const item = event._target || event.target;
-        console.log('WindowManager: itemDestroyed', item?.type, item?.componentType);
         if (item && item.type === 'component' && item.componentType) {
           this.windowRegistry.delete(item.componentType);
           this.dispatchEvent('windowClosed', { windowId: item.componentType });
@@ -88,7 +86,6 @@
       // Listen for items being created
       this.layout.on('itemCreated', (event) => {
         const item = event._target || event.target;
-        console.log('WindowManager: itemCreated', item?.type, item?.componentType);
         if (item && item.type === 'component' && item.componentType) {
           this.windowRegistry.set(item.componentType, item);
           this.dispatchEvent('windowOpened', { windowId: item.componentType });
@@ -134,7 +131,6 @@
       this.buildRegistry();
 
       if (this.isOpen(id)) {
-        console.log('WindowManager.open: window already open', id);
         return true;
       }
 
@@ -157,10 +153,7 @@
           return false;
         }
 
-        console.log(`WindowManager.open: adding ${id} to container type: ${container.type}`);
         container.addItem(config);
-        // Event will be dispatched via itemCreated listener
-        
         return true;
       } catch (err) {
         console.error('WindowManager.open: error', err);
@@ -176,7 +169,6 @@
       const component = this.getWindow(id);
       
       if (!component) {
-        console.log('WindowManager.close: window not open', id);
         return false;
       }
 
@@ -189,7 +181,6 @@
           // Fallback: try close method
           component.close();
         }
-        console.log('WindowManager.close: closed', id);
         return true;
       } catch (err) {
         console.error('WindowManager.close: error', err);
@@ -222,7 +213,6 @@
       
       // GoldenLayout's default: add to the root container
       // This will create a new stack/window rather than adding to an existing one
-      console.log(`🎯 Using root container: ${this.layout.rootItem.type}`);
       return this.layout.rootItem;
     }
 

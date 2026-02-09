@@ -19,55 +19,91 @@
     // ========================================
 
     newProject: function() {
-      console.log('Action: New Project');
       // TODO: Open new project modal/wizard
     },
 
     newSite: function() {
-      console.log('Action: New Site');
       // TODO: Open new site modal
     },
 
     openProjectBrowser: function() {
-      console.log('Action: Open Project Browser');
       // TODO: Open project browser modal
     },
 
     save: function() {
-      console.log('Action: Save');
       // TODO: Save current project state
     },
 
     saveAs: function() {
-      console.log('Action: Save As');
       // TODO: Open save as dialog
     },
 
     makeCopy: function() {
-      console.log('Action: Make a Copy');
       // TODO: Duplicate project
     },
 
     exportPDF: function() {
-      console.log('Action: Export PDF Report');
       // TODO: Open PDF export modal
     },
 
     exportPNG: function() {
-      console.log('Action: Export PNG');
       // TODO: Open PNG export modal
     },
 
     exportQGISProject: function() {
-      console.log('Action: Export QGIS Project (Coming Soon)');
     },
 
     exportQGISLayer: function() {
-      console.log('Action: Export QGIS Layer (Coming Soon)');
     },
 
     importQGIS: function() {
-      console.log('Action: Import from QGIS (Coming Soon)');
+    },
+
+    exportGeoPackage: function() {
+      var ctx = window.editorContext || {};
+      var sm = window.stateManager;
+      if (!ctx.projectSlug || !sm || !sm.activeSiteId) {
+        return;
+      }
+      // Trigger browser download via the export endpoint
+      var url = '/projects/' + ctx.projectSlug + '/api/sites/' + sm.activeSiteId + '/export/geopackage/';
+      window.location.href = url;
+    },
+
+    importGeoPackage: function() {
+      var ctx = window.editorContext || {};
+      var sm = window.stateManager;
+      if (!ctx.projectSlug || !sm || !sm.activeSiteId) {
+        return;
+      }
+      // Create a hidden file input to pick the .gpkg file
+      var input = document.createElement('input');
+      input.type = 'file';
+      input.accept = '.gpkg';
+      input.style.display = 'none';
+      document.body.appendChild(input);
+      input.addEventListener('change', function() {
+        var file = input.files && input.files[0];
+        if (!file) return;
+        var formData = new FormData();
+        formData.append('file', file);
+        var url = '/projects/' + ctx.projectSlug + '/api/sites/' + sm.activeSiteId + '/import/geopackage/';
+        fetch(url, {
+          method: 'POST',
+          headers: { 'X-CSRFToken': ctx.csrfToken },
+          body: formData
+        })
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+          if (data.features && data.features.length) {
+            // Reload state to pick up imported components
+            sm.load(ctx.projectSlug, sm.activeSiteId);
+          }
+        })
+        .catch(function(err) { console.error('Import failed:', err); });
+        document.body.removeChild(input);
+      });
+      input.click();
     },
 
     exit: function() {

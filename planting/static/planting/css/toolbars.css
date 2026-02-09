@@ -927,3 +927,19 @@
 .vp-reset-btn:active {
   transform: scale(0.95);
 }
+
+/* ==========================================================================
+   Project Guard — disable toolbars when no project is open
+   ========================================================================== */
+
+.no-project .vertical-toolbar button {
+  opacity: 0.4;
+  pointer-events: none;
+}
+
+.no-project [data-action="save"],
+.no-project [data-action="undo"],
+.no-project [data-action="redo"] {
+  opacity: 0.4;
+  pointer-events: none;
+}

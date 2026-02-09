@@ -171,8 +171,6 @@
             this._addDemoData();
             this._setupMapEvents();
             this._exposeAPI();
-
-            console.log(`Interactive Map initialized: ${this.config.project.name}`);
         }
 
         /**
@@ -276,7 +274,6 @@
                 });
             }
 
-            console.log(`Generated ${count} sample points in bounding box`);
         }
 
         /**
@@ -302,7 +299,6 @@
         _onMapLoad() {
             this._addExtrusionLayers();
             this._updateECharts();
-            console.log('MapLibre 3D extrusion layer ready!');
         }
 
         /**
@@ -349,7 +345,6 @@
             const terrainEnabled = !!e.terrain;
             this.toggleExtrusion(terrainEnabled);
             this.toggleHillshade(terrainEnabled);
-            console.log('Terrain toggled:', terrainEnabled ? '3D ON' : '2D ON');
         }
 
         // ============================================
@@ -359,7 +354,6 @@
         toggleECharts(show) {
             this.echartsVisible = typeof show === 'boolean' ? show : !this.echartsVisible;
             this.echartsLayer.style.display = this.echartsVisible ? 'block' : 'none';
-            console.log('ECharts Layer:', this.echartsVisible ? 'ON' : 'OFF');
             return this.echartsVisible;
         }
 
@@ -373,7 +367,6 @@
                 }
             });
 
-            console.log('3D Extrusion:', this.extrusionVisible ? 'ON' : 'OFF');
             return this.extrusionVisible;
         }
 
@@ -382,7 +375,6 @@
             if (this.map.getLayer('hillshade-layer')) {
                 this.map.setLayoutProperty('hillshade-layer', 'visibility', visibility);
             }
-            console.log('Hillshade:', show ? 'ON' : 'OFF');
             return show;
         }
 
@@ -580,7 +572,6 @@
             if (input && parseFloat(input.value) !== value) {
                 input.value = value;
             }
-            console.log('Terrain exaggeration:', value);
         }
 
         setExtrusionHeight(height) {
@@ -636,17 +627,6 @@
                 updateECharts: () => this._updateECharts()
             };
 
-            this._logAPI();
-        }
-
-        _logAPI() {
-            console.log('=== Interactive Map API ===');
-            console.log('addPolygon(name, [[lng,lat],...], {color, strokeColor, value, height})');
-            console.log('addPoints([{lng, lat, value, color, size, name}, ...])');
-            console.log('addPoint(lng, lat, {value, color, size, name})');
-            console.log('addLine([[lng,lat],...], {color, width, name})');
-            console.log('toggleExtrusion() | toggleHillshade() | toggleECharts()');
-            console.log('flyTo(lng, lat, zoom) | setTerrainExaggeration(value)');
         }
     }
 
@@ -665,7 +645,6 @@
                 // Expecting [lng, lat]
                 controller.config.location = controller.config.location || {};
                 controller.config.location.center = window.projectCoordinatesFirst;
-                console.log('Interactive Map: using project coordinates for initial center', window.projectCoordinatesFirst);
             }
         } catch (err) {
             // ignore
@@ -687,7 +666,6 @@
                     const curSlug = typeof window.currentProjectSlug !== 'undefined' ? String(window.currentProjectSlug) : '';
                     if (curSlug !== _lastProjectSlug) {
                         _lastProjectSlug = curSlug;
-                        console.log('Interactive Map: detected project slug change ->', curSlug);
                         if (window.projectCoordinatesFirst && Array.isArray(window.projectCoordinatesFirst) && window.projectCoordinatesFirst.length >= 2) {
                             // update controller config and move map
                             controller.config.location = controller.config.location || {};
@@ -699,8 +677,6 @@
                                     try { controller.map.setCenter(window.projectCoordinatesFirst); } catch (e2) {}
                                 }
                             }
-                        } else {
-                            console.log('Interactive Map: no project coordinates available for new slug');
                         }
                     }
                 } catch (err) {
@@ -1100,13 +1076,11 @@
         }
 
         if (publishBtn) {
-            console.log('Interactive Map: publish button attached (id=', publishBtn.id, ')');
             try { publishBtn.type = 'button'; } catch (e) {}
             publishBtn.addEventListener('click', async (e) => {
                 if (e && e.preventDefault) e.preventDefault();
                 return; // early return: disable publish action
                 const resolvedSlug = resolveProjectSlug();
-                console.log('Interactive Map: publish clicked', { staged: (localSites||[]).length, projectSlug: resolvedSlug });
                 if (!resolvedSlug) {
                     alert('No project selected. Cannot publish.');
                     return;
@@ -1137,7 +1111,6 @@
                     }
 
                     const data = await resp.json();
-                    console.log('Published sites:', data);
 
                     // Insert created server rows into the sites table and update site bounds map
                     try {
@@ -1252,7 +1225,6 @@
                     highlightSiteRow(currentSiteIdx);
                 }
 
-                console.log('Deleted local site:', localName);
                 return;
             }
 
@@ -1286,7 +1258,6 @@
                     highlightSiteRow(currentSiteIdx);
                 }
 
-                console.log('Deleted site row (DOM):', siteName || idx);
             }
 
             const resolvedDeleteSlug = resolveProjectSlug();
@@ -1308,7 +1279,6 @@
                     }
 
                     const data = await resp.json();
-                    console.log('Server deleted site:', data);
                     await finalizeDelete();
                 } catch (err) {
                     console.error('Server delete failed:', err);

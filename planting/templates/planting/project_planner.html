@@ -83,7 +83,8 @@
     },
     preferences: {
       uiScale: {{ editor_prefs.ui_scale|default:"1.0" }},
-      autoTopdownDrawing: {{ editor_prefs.auto_topdown_drawing|yesno:"true,false" }}
+      autoTopdownDrawing: {{ editor_prefs.auto_topdown_drawing|yesno:"true,false" }},
+      northUpDrawing: {{ editor_prefs.north_up_drawing|yesno:"true,false" }}
     }
   };
   // Apply user's preferred UI scale immediately to avoid FOUC
@@ -93,6 +94,13 @@
 </script>
 <script src="{% static 'js/core/field-generator.js' %}" defer></script>
 <script src="{% static 'js/core/reset-button-handler.js' %}" defer></script>
+{# Core - state manager and drawing manager #}
+<script src="{% static 'planting/js/core/state-manager.js' %}" defer></script>
+<script src="{% static 'planting/js/core/drawing-manager.js' %}" defer></script>
+<script src="{% static 'planting/js/core/tool-controller.js' %}" defer></script>
+<script src="{% static 'planting/js/core/gizmo-controller.js' %}" defer></script>
+<script src="{% static 'planting/js/core/editor-local-state.js' %}" defer></script>
+<script src="{% static 'planting/js/core/project-guard.js' %}" defer></script>
 {# Utils - renderers and managers #}
 <script src="{% static 'planting/js/utils/toolbar-overflow.js' %}" defer></script>
 <script src="{% static 'planting/js/utils/window-manager.js' %}" defer></script>
@@ -101,6 +109,9 @@
 <script type="module" src="{% static 'planting/js/layout.js' %}"></script>
 {# Actions - menu callbacks #}
 <script src="{% static 'planting/js/actions/menu-window-actions.js' %}" defer></script>
+{# Components - viewport panels #}
+<script src="{% static 'planting/js/components/tool-options-panel.js' %}" defer></script>
+<script src="{% static 'planting/js/components/map-search.js' %}" defer></script>
 
 {# Editor Preferences Modal #}
 {% include 'planting/components/editor_preferences_modal.html' %}

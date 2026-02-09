@@ -25,6 +25,7 @@
   width: 100%;
   height: 100%;
   overflow: hidden;
+  position: relative;   /* anchor for absolutely-positioned overlays */
 }
 
 /* Map element fills available space */
@@ -383,6 +384,283 @@
   height: 1px;
   background: var(--bs-border-color);
   margin: var(--editor-spacing-md) 0;
+}
+
+/* ==========================================================================
+   Map Search Bar (top-left of viewport)
+   ========================================================================== */
+
+.map-search {
+  position: absolute;
+  top: var(--editor-spacing-lg);
+  left: var(--editor-spacing-lg);
+  z-index: 5;
+  display: flex;
+  align-items: center;
+  gap: 0;
+}
+
+.map-search-btn {
+  width: 32px;
+  height: 32px;
+  background: var(--bs-body-bg);
+  border: 1px solid var(--bs-border-color);
+  border-radius: var(--editor-radius-base);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--bs-secondary-color);
+  font-size: var(--editor-font-md) !important;
+  transition: background 0.15s;
+  flex-shrink: 0;
+}
+
+.map-search-btn:hover {
+  background: var(--bs-secondary-bg);
+  color: var(--bs-body-color);
+}
+
+.map-search-input {
+  width: 0;
+  padding: 0;
+  border: none;
+  opacity: 0;
+  font-size: var(--editor-font-md) !important;
+  background: var(--bs-body-bg);
+  color: var(--bs-body-color);
+  border-radius: 0 var(--editor-radius-base) var(--editor-radius-base) 0;
+  transition: width 0.2s ease, opacity 0.2s ease, padding 0.2s ease;
+  outline: none;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+  border: 1px solid var(--bs-border-color);
+  border-left: none;
+}
+
+.map-search.is-expanded .map-search-btn {
+  border-radius: var(--editor-radius-base) 0 0 var(--editor-radius-base);
+}
+
+.map-search.is-expanded .map-search-input {
+  width: 160px;
+  padding: var(--editor-spacing-sm) var(--editor-spacing-md);
+  opacity: 1;
+}
+
+/* Error shake animation */
+.map-search-input.is-error {
+  animation: map-search-shake 0.4s ease;
+  border-color: #ef4444;
+}
+
+@keyframes map-search-shake {
+  0%, 100% { transform: translateX(0); }
+  20%      { transform: translateX(-4px); }
+  40%      { transform: translateX(4px); }
+  60%      { transform: translateX(-3px); }
+  80%      { transform: translateX(3px); }
+}
+
+/* ==========================================================================
+   Tool Options Panel (Blender-style, bottom-left of viewport)
+   ========================================================================== */
+
+.viewport-tool-options {
+  position: absolute;
+  bottom: calc(30px + var(--editor-spacing-lg));  /* above MapLibre scale control */
+  left: var(--editor-spacing-lg);
+  z-index: 5;
+  min-width: 180px;
+  max-width: 260px;
+  background: color-mix(in srgb, var(--bs-body-bg) 92%, transparent);
+  border: 1px solid var(--bs-border-color);
+  border-radius: var(--editor-radius-base);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.18);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  overflow: hidden;
+  font-size: var(--editor-font-md) !important;
+}
+
+.viewport-tool-options-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--editor-spacing-sm) var(--editor-spacing-md);
+  border-bottom: 1px solid var(--bs-border-color);
+  background: color-mix(in srgb, var(--bs-body-bg) 60%, transparent);
+  user-select: none;
+}
+
+.viewport-tool-options-title {
+  font-size: var(--editor-font-sm) !important;
+  font-weight: 600;
+  color: var(--bs-body-color);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.viewport-tool-options-toggle {
+  background: none;
+  border: none;
+  padding: 0;
+  margin: 0;
+  cursor: pointer;
+  color: var(--bs-secondary-color);
+  line-height: 1;
+  font-size: var(--editor-font-sm) !important;
+}
+
+.viewport-tool-options-toggle:hover {
+  color: var(--bs-body-color);
+}
+
+.viewport-tool-options-body {
+  padding: var(--editor-spacing-sm) var(--editor-spacing-md);
+}
+
+/* Style property rows inside the panel to be compact */
+.viewport-tool-options-body .window-property-row {
+  padding: var(--editor-spacing-xs) 0;
+  gap: var(--editor-spacing-sm);
+}
+
+.viewport-tool-options-body .window-property-label {
+  font-size: var(--editor-font-sm) !important;
+  min-width: 42px;
+}
+
+.viewport-tool-options-body .window-property-value input,
+.viewport-tool-options-body .window-property-value select {
+  font-size: var(--editor-font-sm) !important;
+  padding: var(--editor-spacing-xs) var(--editor-spacing-sm);
+  height: auto;
+}
+
+.viewport-tool-options-body .window-property-value input[type="range"] {
+  height: auto;
+  padding: 0;
+}
+
+.viewport-tool-options-body .window-property-value input[type="color"] {
+  width: 28px;
+  height: 22px;
+  padding: 1px;
+  border: 1px solid var(--bs-border-color);
+  border-radius: var(--editor-radius-sm);
+  cursor: pointer;
+  background: none;
+}
+
+.viewport-tool-options-body .range-value-display {
+  font-size: var(--editor-font-sm) !important;
+  min-width: 28px;
+  text-align: center;
+}
+
+/* ==========================================================================
+   Project Guard Overlay (no project open)
+   ========================================================================== */
+
+.project-guard-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: color-mix(in srgb, var(--bs-body-bg) 80%, transparent);
+  backdrop-filter: blur(2px);
+  -webkit-backdrop-filter: blur(2px);
+}
+
+.project-guard-message {
+  text-align: center;
+  padding: 2rem;
+  max-width: 320px;
+}
+
+.project-guard-message i {
+  font-size: 2.5rem;
+  color: var(--bs-secondary-color);
+  margin-bottom: 0.75rem;
+  display: block;
+}
+
+.project-guard-message h5 {
+  font-size: var(--editor-font-xl);
+  color: var(--bs-body-color);
+  margin: 0 0 0.5rem;
+}
+
+.project-guard-message p {
+  font-size: var(--editor-font-md);
+  color: var(--bs-secondary-color);
+  margin: 0;
+}
+
+/* ==========================================================================
+   Transform Gizmo Overlay (UE5-style)
+   ========================================================================== */
+
+.gizmo-overlay {
+  position: absolute;
+  pointer-events: none;
+  z-index: 4;
+  transform: translate(-50%, -50%);
+}
+
+.gizmo-overlay svg {
+  overflow: visible;
+  pointer-events: none;
+}
+
+.gizmo-handle {
+  pointer-events: all;
+  cursor: grab;
+}
+
+.gizmo-handle:hover {
+  filter: brightness(1.4);
+}
+
+.gizmo-handle.is-dragging {
+  cursor: grabbing;
+  filter: brightness(1.6);
+}
+
+.gizmo-handle-x { cursor: ew-resize; }
+.gizmo-handle-y { cursor: ns-resize; }
+.gizmo-handle-xy { cursor: move; }
+.gizmo-handle-rotate { cursor: crosshair; }
+.gizmo-handle-uniform { cursor: nwse-resize; }
+
+/* Gizmo axis lines */
+.gizmo-axis {
+  pointer-events: none;
+  opacity: 0.9;
+}
+
+/* Gizmo arrowheads */
+.gizmo-arrowhead {
+  pointer-events: none;
+}
+
+/* Rotation ring */
+.gizmo-ring {
+  fill: none;
+  pointer-events: none;
+  opacity: 0.8;
+}
+
+/* Angle indicator shown during rotation drag */
+.gizmo-angle-indicator {
+  pointer-events: none;
+  opacity: 0.5;
 }
 
 /* ==========================================================================

@@ -19,27 +19,21 @@
     // ========================================
 
     simplifyPath: function() {
-      console.log('Action: Simplify Path');
     },
 
     smoothPath: function() {
-      console.log('Action: Smooth Path');
     },
 
     reversePath: function() {
-      console.log('Action: Reverse Path');
     },
 
     pathUnion: function() {
-      console.log('Action: Path Union');
     },
 
     pathSubtract: function() {
-      console.log('Action: Path Subtract');
     },
 
     pathIntersect: function() {
-      console.log('Action: Path Intersect');
     },
   });
 

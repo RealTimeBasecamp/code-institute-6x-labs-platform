@@ -224,6 +224,10 @@ class EditorPreferences(models.Model):
         default=True,
         help_text="Automatically set map to top-down view when using drawing tools",
     )
+    north_up_drawing = models.BooleanField(
+        default=True,
+        help_text="Rotate map to face North when entering top-down drawing mode",
+    )
 
     class Meta:
         verbose_name = "Editor Preferences"
@@ -237,4 +241,5 @@ class EditorPreferences(models.Model):
         return {
             'ui_scale': self.ui_scale,
             'auto_topdown_drawing': self.auto_topdown_drawing,
+            'north_up_drawing': self.north_up_drawing,
         }

@@ -19,37 +19,30 @@
     // ========================================
 
     addSite: function() {
-      console.log('Action: Add Site');
       // TODO: Add new site to project
     },
 
     addPlantingZone: function() {
-      console.log('Action: Add Planting Zone');
       // TODO: Add planting zone to current site
     },
 
     addMarker: function() {
-      console.log('Action: Add Marker');
       // TODO: Add marker to viewport
     },
 
     duplicateObject: function() {
-      console.log('Action: Duplicate Object');
       // TODO: Duplicate selected object(s)
     },
 
     deleteObject: function() {
-      console.log('Action: Delete Object');
       // TODO: Delete selected object(s)
     },
 
     groupObjects: function() {
-      console.log('Action: Group Objects');
       // TODO: Group selected objects
     },
 
     ungroupObjects: function() {
-      console.log('Action: Ungroup Objects');
       // TODO: Ungroup selected group
     },
   });

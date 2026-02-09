@@ -1,17 +1,22 @@
 /**
  * Golden Layout v2 Initialization
  *
- * Registers components and loads the default layout.
+ * Registers components and loads the layout.
  * All docking, resizing, popout handled natively by Golden Layout.
+ *
+ * Layout persistence:
+ *   Saved to localStorage under `editor-state:<projectSlug>:goldenLayout`.
+ *   Auto-saves on every resize/move/close/open (debounced 500ms).
+ *   Falls back to the hardcoded default layout if nothing is saved.
  */
 
-import { GoldenLayout } from 'https://esm.sh/golden-layout@2.6.0';
+import { GoldenLayout, LayoutConfig } from 'https://esm.sh/golden-layout@2.6.0';
 
 // ============================================
-// Layout Configuration
+// Default Layout Configuration
 // ============================================
 
-const layoutConfig = {
+const defaultLayoutConfig = {
   root: {
     type: 'row',
     content: [
@@ -36,6 +41,55 @@ const layoutConfig = {
     ]
   }
 };
+
+// ============================================
+// Layout Persistence
+// ============================================
+
+var DEBOUNCE_MS = 500;
+var _saveTimer = null;
+
+function getStorageKey() {
+  var slug = (window.editorContext && window.editorContext.projectSlug) || '_global';
+  return 'editor-state:' + slug + ':goldenLayout';
+}
+
+function readSavedLayout() {
+  try {
+    var raw = localStorage.getItem(getStorageKey());
+    if (!raw) return null;
+    var parsed = JSON.parse(raw);
+    // saveLayout() returns ResolvedLayoutConfig but loadLayout() expects LayoutConfig.
+    // Convert back using the static helper.
+    if (parsed.resolved) {
+      return LayoutConfig.fromResolved(parsed);
+    }
+    return parsed;
+  } catch (e) {
+    return null;
+  }
+}
+
+function writeSavedLayout(config) {
+  try {
+    localStorage.setItem(getStorageKey(), JSON.stringify(config));
+  } catch (e) {
+    // localStorage full or unavailable
+  }
+}
+
+function scheduleSave(layout) {
+  if (_saveTimer) clearTimeout(_saveTimer);
+  _saveTimer = setTimeout(function () {
+    _saveTimer = null;
+    try {
+      var config = layout.saveLayout();
+      writeSavedLayout(config);
+    } catch (e) {
+      // Layout may not be fully ready yet
+    }
+  }, DEBOUNCE_MS);
+}
 
 // ============================================
 // Component Factory
@@ -128,13 +182,38 @@ function init() {
     }
   });
 
-  // Only load default layout in main window, not in popouts
+  // Only load layout in main window, not in popouts
   if (!isPopout) {
-    layout.loadLayout(layoutConfig);
+    // Try to restore saved layout, fall back to default
+    var saved = readSavedLayout();
+    if (saved) {
+      try {
+        layout.loadLayout(saved);
+      } catch (e) {
+        // Saved config invalid (e.g. schema changed) — use default
+        layout.loadLayout(defaultLayoutConfig);
+      }
+    } else {
+      layout.loadLayout(defaultLayoutConfig);
+    }
+
+    // Auto-save on every layout state change (resize, move, close, open, tab reorder)
+    layout.on('stateChanged', function () {
+      scheduleSave(layout);
+    });
   }
 
   // Expose for debugging/external access
   window.goldenLayout = layout;
+
+  // Expose a helper for non-module scripts (editor-local-state.js) to load
+  // configs that may be in ResolvedLayoutConfig format.
+  window.loadGoldenLayoutConfig = function (config) {
+    if (config && config.resolved) {
+      config = LayoutConfig.fromResolved(config);
+    }
+    layout.loadLayout(config);
+  };
 }
 
 if (document.readyState === 'loading') {

@@ -16,6 +16,25 @@
 
     <!-- ECharts Overlay Layer -->
     <div id="echarts-layer"></div>
+
+    <!-- Coordinate Search Bar (top-left) -->
+    <div class="map-search" id="map-search">
+      <button class="map-search-btn" type="button" title="Search coordinates">
+        <i class="bi bi-search"></i>
+      </button>
+      <input class="map-search-input" type="text" placeholder="Lat, Lng" autocomplete="off" />
+    </div>
+
+    <!-- Tool Options Panel (Blender-style, bottom-left) -->
+    <div class="viewport-tool-options" id="tool-options-panel" style="display:none;">
+      <div class="viewport-tool-options-header">
+        <span class="viewport-tool-options-title"></span>
+        <button class="viewport-tool-options-toggle" type="button" title="Toggle panel">
+          <i class="bi bi-chevron-down"></i>
+        </button>
+      </div>
+      <div class="viewport-tool-options-body" id="tool-options-body"></div>
+    </div>
 </div>
 
 <!-- Component JS -->

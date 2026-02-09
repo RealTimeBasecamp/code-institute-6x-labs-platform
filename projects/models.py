@@ -1,6 +1,7 @@
 from datetime import date
 from decimal import Decimal
 
+from django.core.exceptions import ValidationError
 from django.db import models
 from django.db.models import Avg, Sum, Count, Q
 from django.urls import reverse
@@ -253,7 +254,7 @@ class Project(models.Model):
         all_longitudes = []
 
         for site in self.sites.all():
-            geojson = site.site_inclusion_polygons if site.site_inclusion_polygons else site.bounding_box_coordinates
+            geojson = site.bounding_box_coordinates
 
             if geojson and isinstance(geojson, dict) and 'coordinates' in geojson:
                 coordinates = geojson['coordinates'][0]
@@ -279,7 +280,7 @@ class Project(models.Model):
         all_lngs = []
 
         for site in self.sites.all():
-            geojson = site.bounding_box_coordinates if site.bounding_box_coordinates else site.site_inclusion_polygons
+            geojson = site.bounding_box_coordinates
 
             if geojson and isinstance(geojson, dict) and 'coordinates' in geojson:
                 coordinates = geojson['coordinates'][0]
@@ -497,11 +498,8 @@ class Site(models.Model):
     )
     biodiversity_last_calculated = models.DateTimeField(null=True, blank=True)
 
-    # Coordinate-based geometry (GeoJSON format for MapLibre compatibility)
+    # Site boundary (GeoJSON Polygon — the overall site bounds set at creation)
     bounding_box_coordinates = models.JSONField(default=dict, blank=True)
-    site_inclusion_polygons = models.JSONField(db_column='site_boundary_polygon', default=dict, blank=True)
-    site_exclusion_polygons = models.JSONField(default=dict, blank=True)
-    entrance_pathfinding = models.JSONField(default=dict, blank=True)
 
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -823,6 +821,156 @@ class FungiBatchUsage(models.Model):
 
     def __str__(self):
         return f"{self.fungi_batch.qr_code} used at {self.site.name} ({self.weight_used_grams}g on {self.timestamp.strftime('%Y-%m-%d')})"
+
+
+# =============================================================================
+# COMPONENT FOLDER (Outliner organization — visibility/lock toggle for children)
+# =============================================================================
+class ComponentFolder(models.Model):
+    """
+    Organizational folder in the outliner tree.
+    Toggles visibility/lock for all child components.
+    Does not affect transform — purely for organization.
+    """
+    site = models.ForeignKey(Site, on_delete=models.CASCADE, related_name='component_folders')
+    name = models.CharField(max_length=255, default='New Folder')
+    parent = models.ForeignKey(
+        'self',
+        null=True,
+        blank=True,
+        on_delete=models.CASCADE,
+        related_name='children'
+    )
+    expanded = models.BooleanField(default=True)
+    visible = models.BooleanField(default=True)
+    locked = models.BooleanField(default=False)
+    z_order = models.IntegerField(default=0)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['z_order', 'created_at']
+
+    def __str__(self):
+        return self.name
+
+
+# =============================================================================
+# MAP COMPONENT (Vector shapes on the map — polygons, lines, points)
+# =============================================================================
+class MapComponent(models.Model):
+    """
+    A vector component on the map: polygon, polyline, or point.
+    Stores geometry as strict GeoJSON (RFC 7946) for MapLibre compatibility
+    and lossless GeoPackage conversion.
+    """
+    GEOMETRY_TYPES = [
+        ('Polygon', 'Polygon'),
+        ('MultiPolygon', 'MultiPolygon'),
+        ('LineString', 'LineString'),
+        ('MultiLineString', 'MultiLineString'),
+        ('Point', 'Point'),
+        ('MultiPoint', 'MultiPoint'),
+    ]
+    DATA_TYPES = [
+        ('annotation', 'Annotation'),
+        ('inclusion', 'Inclusion Zone'),
+        ('exclusion', 'Exclusion Zone'),
+    ]
+    FILL_PATTERNS = [
+        ('solid', 'Solid'),
+        ('hatched', 'Hatched'),
+        ('dotted', 'Dotted'),
+        ('none', 'None / Outline Only'),
+    ]
+
+    site = models.ForeignKey(Site, on_delete=models.CASCADE, related_name='map_components')
+    folder = models.ForeignKey(
+        ComponentFolder,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name='components'
+    )
+    name = models.CharField(max_length=255, default='Untitled')
+
+    # GeoJSON geometry — strict RFC 7946 format
+    # Example: {"type": "Polygon", "coordinates": [[[lng, lat], ...]]}
+    geometry_type = models.CharField(max_length=20, choices=GEOMETRY_TYPES)
+    geometry = models.JSONField()
+
+    # Data type — behavioral classification
+    data_type = models.CharField(max_length=20, choices=DATA_TYPES, default='annotation')
+
+    # Visual properties
+    stroke_color = models.CharField(max_length=9, default='#3388ff')
+    fill_color = models.CharField(max_length=9, default='#3388ff')
+    fill_opacity = models.FloatField(default=0.3)
+    stroke_width = models.FloatField(default=2.0)
+    fill_pattern = models.CharField(max_length=20, choices=FILL_PATTERNS, default='solid')
+
+    # Parametric metadata (e.g. {"sides": 6, "radius": 50} for hexagon)
+    parametric = models.JSONField(default=dict, blank=True)
+
+    # Display
+    visible = models.BooleanField(default=True)
+    locked = models.BooleanField(default=False)
+    z_order = models.IntegerField(default=0)
+
+    # Annotation-specific fields
+    annotation_title = models.CharField(max_length=255, blank=True)
+    annotation_description = models.TextField(blank=True)
+    annotation_icon = models.CharField(max_length=50, blank=True)
+
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['z_order', 'created_at']
+        indexes = [
+            models.Index(fields=['site', 'geometry_type']),
+            models.Index(fields=['site', 'data_type']),
+            models.Index(fields=['site', 'folder']),
+        ]
+
+    def __str__(self):
+        return f"{self.name} ({self.geometry_type})"
+
+    def clean(self):
+        """Validate geometry using Shapely."""
+        from shapely.geometry import shape as shapely_shape
+        try:
+            geom = shapely_shape(self.geometry)
+            if not geom.is_valid:
+                raise ValidationError({'geometry': 'Invalid geometry — self-intersecting or malformed.'})
+        except ValidationError:
+            raise
+        except Exception as e:
+            raise ValidationError({'geometry': f'Geometry validation failed: {e}'})
+
+    def to_geojson_feature(self):
+        """Serialize to a GeoJSON Feature dict."""
+        return {
+            'type': 'Feature',
+            'id': self.pk,
+            'geometry': self.geometry,
+            'properties': {
+                'name': self.name,
+                'data_type': self.data_type,
+                'stroke_color': self.stroke_color,
+                'fill_color': self.fill_color,
+                'fill_opacity': self.fill_opacity,
+                'stroke_width': self.stroke_width,
+                'fill_pattern': self.fill_pattern,
+                'parametric': self.parametric,
+                'visible': self.visible,
+                'locked': self.locked,
+                'z_order': self.z_order,
+                'folder_id': self.folder_id,
+                'annotation_title': self.annotation_title,
+                'annotation_description': self.annotation_description,
+                'annotation_icon': self.annotation_icon,
+            },
+        }
 
 
 # =============================================================================

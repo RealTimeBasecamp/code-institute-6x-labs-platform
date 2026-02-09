@@ -19,27 +19,22 @@
     // ========================================
 
     openDocs: function() {
-      console.log('Action: Open Documentation');
       window.open('/docs/', '_blank');
     },
 
     openSupport: function() {
-      console.log('Action: Open Support');
       window.open('/support/', '_blank');
     },
 
     showKeyboardShortcuts: function() {
-      console.log('Action: Show Keyboard Shortcuts');
       // TODO: Open keyboard shortcuts modal
     },
 
     openBlog: function() {
-      console.log('Action: Open Blog');
       window.open('/blog/', '_blank');
     },
 
     showAbout: function() {
-      console.log('Action: Show About');
       // TODO: Open about modal
     }
   });
