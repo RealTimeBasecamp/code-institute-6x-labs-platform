@@ -1,5 +1,5 @@
 /**
- * Outliner Panel — Scene Hierarchy Navigation
+ * Outliner Panel — Site Hierarchy Navigation
  *
  * Builds a tree from StateManager data:
  *   Site

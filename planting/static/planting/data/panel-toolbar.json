@@ -14,7 +14,7 @@
       "id": "outliner",
       "label": "Outliner",
       "icon": "bi-list-nested",
-      "tooltip": "Outliner - Scene hierarchy",
+      "tooltip": "Outliner - Site hierarchy",
       "default": true
     },
     {

@@ -9,7 +9,7 @@
     "rotationSnapValue": 10,
     "scaleSnap": true,
     "scaleSnapValue": 0.25,
-    "cameraMode": "perspective",
+    "cameraMode": "2d",
     "cameraSpeed": 3.5,
     "renderMode": "lit"
   },
@@ -87,18 +87,11 @@
       "items": [
         {
           "id": "camera-mode",
-          "type": "dropdown",
-          "icon": "bi-box",
-          "label": "Perspective",
-          "tooltip": "Camera Mode",
-          "options": [
-            { "type": "group", "label": "Projection Mode" },
-            { "value": "perspective", "label": "Perspective", "icon": "bi-box", "isSelected": true },
-            { "value": "orthographic", "label": "Orthographic", "icon": "bi-square" },
-            { "value": "top", "label": "Top", "icon": "bi-arrow-down-square" },
-            { "value": "front", "label": "Front", "icon": "bi-arrow-right-square" },
-            { "value": "side", "label": "Side", "icon": "bi-arrow-up-square" }
-          ]
+          "type": "toggle",
+          "icon": "bi-badge-3d",
+          "label": "2D",
+          "tooltip": "Toggle 2D / 3D View",
+          "default": false
         },
         {
           "id": "camera-speed",
