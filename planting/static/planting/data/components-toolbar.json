@@ -84,7 +84,7 @@
       "group": "icon",
       "label": "Icon",
       "tools": [
-        { "id": "icon", "label": "Icon - Place icon on map", "icon": "bi-info-circle", "addComponent": { "action": "add-icon", "label": "Add Icon", "group": "objects", "order": 1 }, "options": ["icon-type", "icon-size"] }
+        { "id": "icon", "label": "Icon - Place icon on map", "icon": "svg:info", "addComponent": { "action": "add-icon", "label": "Add Icon", "group": "objects", "order": 1 }, "options": ["icon-type", "icon-size"] }
       ]
     },
     {
