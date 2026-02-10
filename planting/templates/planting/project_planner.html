@@ -5,12 +5,12 @@
 {% block page_title %}Project Planner{% endblock %}
 
 {% block extra_css %}
-<link rel="stylesheet" href="{% static 'planting/css/editor-ui-scale.css' %}">
-<link rel="stylesheet" href="{% static 'planting/css/editor.css' %}">
-<link rel="stylesheet" href="{% static 'planting/css/toolbars.css' %}">
-{# Golden Layout v2 #}
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/golden-layout@2.6.0/dist/css/goldenlayout-base.css">
-<link rel="stylesheet" href="{% static 'planting/css/goldenlayout-theme.css' %}">
+  <link rel="stylesheet" href="{% static 'planting/css/editor-ui-scale.css' %}">
+  <link rel="stylesheet" href="{% static 'planting/css/editor.css' %}">
+  <link rel="stylesheet" href="{% static 'planting/css/toolbars.css' %}">
+  {# Golden Layout v2 #}
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/golden-layout@2.6.0/dist/css/goldenlayout-base.css">
+  <link rel="stylesheet" href="{% static 'planting/css/goldenlayout-theme.css' %}">
 {% endblock %}
 
 {% block content %}
@@ -112,6 +112,9 @@
 {# Components - viewport panels #}
 <script src="{% static 'planting/js/components/tool-options-panel.js' %}" defer></script>
 <script src="{% static 'planting/js/components/map-search.js' %}" defer></script>
+
+{# Open Project Modal #}
+{% include 'planting/components/open_project_modal.html' %}
 
 {# Editor Preferences Modal #}
 {% include 'planting/components/editor_preferences_modal.html' %}

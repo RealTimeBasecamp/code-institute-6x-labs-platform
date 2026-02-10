@@ -49,5 +49,20 @@
 {# Expose page globals before loading the interactive-map script so it
    can read them synchronously on init. This prevents a race where the map
    initializes before these variables are defined. #}
+{% if site_bounds_map_json %}
+<script>window.siteBoundsMap = {{ site_bounds_map_json|safe }};</script>
+{% else %}
+<script>window.siteBoundsMap = {};</script>
+{% endif %}
+{% if project %}
+<script>window.currentProjectSlug = "{{ project.slug }}";</script>
+{% else %}
+<script>window.currentProjectSlug = "";</script>
+{% endif %}
+{% if project_center_json and project_center_json != "null" %}
+<script>window.projectCoordinatesFirst = {{ project_center_json|safe }};</script>
+{% else %}
+<script>window.projectCoordinatesFirst = null;</script>
+{% endif %}
 
 <script src="{% static 'planting/js/interactive-map.js' %}"></script>

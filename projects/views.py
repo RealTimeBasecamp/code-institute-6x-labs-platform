@@ -13,7 +13,7 @@ import json
 from django.views.generic import ListView
 from django.contrib.auth.mixins import LoginRequiredMixin
 from core.card_utils import render_card_groups
-from .utils import build_site_bounds_and_list
+from .utils import build_site_bounds_and_list, build_project_center
 from planting.models import EditorPreferences
 
 
@@ -315,6 +315,12 @@ def project_planner_detail(request, slug):
     # Load per-user editor preferences
     editor_prefs, _ = EditorPreferences.objects.get_or_create(user=request.user)
 
+    # Build site bounds map for client-side navigation
+    bounds_context = build_site_bounds_and_list(project)
+
+    # Resolve project map center [lng, lat] or None
+    project_center = build_project_center(project)
+
     context = {
         'project': project,
         'projects': projects,
@@ -322,6 +328,10 @@ def project_planner_detail(request, slug):
         'site_rows': site_rows,
         'site_bounds_rows': site_bounds_rows,
         'editor_prefs': editor_prefs,
+        'site_bounds_map_json': bounds_context.get(
+            'site_bounds_map_json', '{}'
+        ),
+        'project_center_json': json.dumps(project_center),
     }
 
     # Detect Golden Layout popout window and render minimal template
@@ -356,6 +366,32 @@ def delete_project(request, slug):
         messages.error(request, f'Error deleting project: {str(e)}')
 
     return redirect('projects:projects_list')
+
+
+@login_required
+def projects_api(request):
+    """
+    API endpoint to list projects for the current user.
+    GET: Returns JSON list of projects created by the logged-in user.
+    """
+    if request.method != 'GET':
+        return JsonResponse({'error': 'Method not allowed'}, status=405)
+
+    projects = Project.objects.filter(
+        created_by=request.user
+    ).order_by(Lower('name'))
+
+    data = []
+    for p in projects:
+        data.append({
+            'slug': p.slug,
+            'name': p.name,
+            'status': str(p.status) if p.status else None,
+            'updated_at': p.updated_at.isoformat() if p.updated_at else None,
+            'site_count': p.sites.count(),
+        })
+
+    return JsonResponse({'projects': data})
 
 
 @login_required

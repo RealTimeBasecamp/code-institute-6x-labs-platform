@@ -1,0 +1,64 @@
+{% load static %}
+
+{% comment %}
+Open Project Modal - File browser for user projects.
+Triggered by File > Open Project > From Library... menu action.
+Project list is populated via JS from /projects/api/projects/.
+{% endcomment %}
+
+<link rel="stylesheet" href="{% static 'css/components/modal.css' %}">
+
+<div class="modal fade" id="openProjectModal" tabindex="-1" role="dialog" aria-modal="true" aria-labelledby="openProjectModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered modal-lg">
+    <div class="modal-content p-4 bordered rounded-3 bg-body-tertiary">
+
+      <div class="d-flex align-items-center mb-3">
+        <i class="bi bi-folder2-open fs-4 me-2" aria-hidden="true"></i>
+        <h2 class="h5 mb-0" id="openProjectModalLabel">Open Project</h2>
+        <button type="button" class="btn btn-primary btn-sm ms-auto" id="open-project-header-create-btn" style="display:none;">
+          <i class="bi bi-plus-lg me-1"></i>New project
+        </button>
+        <button type="button" class="btn-close ms-3" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+
+      {# Search bar #}
+      <div class="position-relative mb-3">
+        <i class="bi bi-search position-absolute top-50 translate-middle-y text-muted" style="left: 12px; font-size: 0.85rem;"></i>
+        <input type="text"
+               id="open-project-search"
+               class="form-control form-control-sm bg-body border-secondary-subtle"
+               placeholder="Search projects..."
+               autocomplete="off"
+               style="padding-left: 2rem; border-radius: 6px;">
+      </div>
+
+      <div class="modal-body mb-2" style="max-height: 50vh;">
+        <div id="open-project-list">
+          <div class="d-flex justify-content-center align-items-center py-5">
+            <div class="spinner-border text-primary" role="status">
+              <span class="visually-hidden">Loading...</span>
+            </div>
+          </div>
+        </div>
+        <div id="open-project-empty" class="text-center py-5" style="display:none;">
+          <i class="bi bi-folder fs-1 text-muted d-block mb-2"></i>
+          <p class="text-muted mb-3">No projects found</p>
+          <button type="button" class="btn btn-primary" id="open-project-create-btn">
+            <i class="bi bi-plus-lg me-1"></i>Create new project
+          </button>
+        </div>
+        <div id="open-project-no-results" class="text-center py-4" style="display:none;">
+          <p class="text-muted mb-0">No matching projects</p>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+{% include "components/modals/wizard_modal.html" with
+  modal_id="projectCreationWizard"
+  wizard_name="project_creation"
+  modal_title="Create New Project"
+  modal_icon="bi bi-folder-plus"
+%}
