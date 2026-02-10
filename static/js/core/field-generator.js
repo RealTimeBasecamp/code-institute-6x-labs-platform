@@ -82,6 +82,10 @@
         input = createSelectInput(config);
         valueContainer.appendChild(input); // Order 1
         break;
+      case 'color':
+        input = createColorInput(config);
+        valueContainer.appendChild(input); // Order 1
+        break;
       case 'text':
       default:
         input = createTextInput(config);
@@ -175,6 +179,18 @@
     input.type = 'checkbox';
     input.id = config.id;
     input.checked = config.value || false;
+    if (config.default !== undefined) input.dataset.default = config.default;
+    return input;
+  }
+
+  /**
+   * Create a color input
+   */
+  function createColorInput(config) {
+    var input = document.createElement('input');
+    input.type = 'color';
+    input.id = config.id;
+    input.value = config.value || '#000000';
     if (config.default !== undefined) input.dataset.default = config.default;
     return input;
   }
@@ -293,6 +309,7 @@
     createTextInput,
     createCheckboxInput,
     createSelectInput,
+    createColorInput,
     createResetButton
   };
 })();

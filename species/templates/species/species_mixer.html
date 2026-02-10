@@ -8,6 +8,7 @@
 
 {% block extra_css %}
 <link rel="stylesheet" href="{% static 'css/components/sortable-table.css' %}">
+<link rel="stylesheet" href="{% static 'css/components/species-mixer.css' %}">
 {% endblock %}
 
 {% block header_contents %}
@@ -24,48 +25,528 @@
 
 {% block content %}
 
-  {# Toolbar: Nav pills (switch table/grid) and Search (search bar moved here by JS) #}
-  {% load ui_tags %}
-  <div class="d-flex justify-content-between align-items-center mb-3" id="species-mixer-toolbar">
-    <div class="d-flex align-items-center">
-      {% make_tabs 'table:Table:bi-list:Table view,grid:Grid:bi-grid-3x3-gap-fill:Grid view' as view_tabs %}
-      {% include 'components/nav_pills.html' with tabs=view_tabs id='view-toggle' variant='text' %}
+<!-- ============================================================
+     LAYOUT: Two-column split (left: map, right: controls/tables)
+     ============================================================ -->
+
+<div class="container">
+  <div class="row gx-4">
+
+    <!-- ── LEFT COLUMN: Interactive Map ─────────────────────────────
+         - Displays planting site location (set during Step 2)
+         - After mix is generated (Step 8), species points are plotted on map
+         - Map controls:
+           - Visualisation toggle: heatmap / individual points
+           - Filter by species trait: e.g. "pollinator species", "erosion control"
+           - Dropdown to swap example terrain overlays:
+             open area with lake, riverside bank, hilly terrain with rock obstacles, etc.
+         - Dragging a point to a different terrain zone (e.g. wetter area)
+           triggers a recommendation update for that location
+         ──────────────────────────────────────────────────────────── -->
+
+    <div class="col-lg-8">
+      <div class="card species-mixer-map-card">
+        <div class="card-header d-flex align-items-center justify-content-between">
+          <span><i class="bi bi-map me-2"></i>Planting Map</span>
+          <div class="d-flex gap-2">
+            <!-- Visualisation toggle -->
+            <select class="form-select form-select-sm species-mixer-select" id="map-visualisation" disabled>
+              <option value="points" selected>Individual Points</option>
+              <option value="heatmap">Heatmap</option>
+            </select>
+            <!-- Filter by trait -->
+            <select class="form-select form-select-sm species-mixer-select" id="map-filter" disabled>
+              <option value="all" selected>All Species</option>
+              <option value="pollinator">Pollinator Species</option>
+              <option value="erosion">Erosion Control</option>
+              <option value="wildlife">Wildlife Habitat</option>
+            </select>
+            <!-- Terrain overlay -->
+            <select class="form-select form-select-sm species-mixer-select" id="map-terrain" disabled>
+              <option value="default" selected>Default Terrain</option>
+              <option value="lake">Open Area with Lake</option>
+              <option value="riverside">Riverside Bank</option>
+              <option value="hilly">Hilly Terrain</option>
+            </select>
+          </div>
+        </div>
+        <div class="card-body p-0">
+          <div id="species-mixer-map" class="species-mixer-map-container d-flex align-items-center justify-content-center">
+            <div class="text-center text-muted">
+              <i class="bi bi-geo-alt" style="font-size: 2.5rem;"></i>
+              <p class="mt-2 mb-0">Select a region to begin</p>
+              <small>Click on the map or enter coordinates</small>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
-    {# Search bar will be injected here by sortable-table.js (data-search-toolbar) #}
+
+    <!-- ── RIGHT COLUMN: Goals + Mix Tables ─────────────────────────
+
+         ┌─ SECTION A: Goal Sliders ──────────────────────────────────┐
+         │ Sliders for project goals that influence species weighting: │
+         │  • Erosion control                                         │
+         │  • Biodiversity improvement                                │
+         │  • Pollinator habitat                                      │
+         │  • Carbon sequestration                                    │
+         │  • Wildlife habitat                                        │
+         │ Adjusting a slider recalculates the recommended species.   │
+         └────────────────────────────────────────────────────────────┘
+
+         ┌─ SECTION B: Mix Blender ───────────────────────────────────┐
+         │ Combine multiple saved mixes into a single blended mix.    │
+         │ Each added mix gets a proportion slider:                   │
+         │                                                            │
+         │  "NE Scotland"  70%  |████████████████████░░░░░░░░|       │
+         │  "NE Peatland"  30%  |████████████░░░░░░░░░░░░░░░|       │
+         │                                                            │
+         │ Sliders are linked — adjusting one rebalances the others.  │
+         │ The blended result feeds into the species table below.     │
+         └────────────────────────────────────────────────────────────┘
+
+         ┌─ SECTION C: Options ───────────────────────────────────────┐
+         │ ☐ Auto-recalculate proportions on any table change         │
+         │   (adding/removing species, adjusting sliders)             │
+         └────────────────────────────────────────────────────────────┘
+
+         ┌─ SECTION D: Species Table ─────────────────────────────────┐
+         │                                                            │
+         │ Sorting:                                                   │
+         │  Rows are grouped and sorted by species type:              │
+         │   🌳 Broadleaf  |  🌼 Wildflower  |  🌾 Grass             │
+         │   🌲 Conifer    |  🌿 Shrub       |  … (extensible)       │
+         │  Each group has a subheading row / divider in the table.   │
+         │                                                            │
+         │ Columns:                                                   │
+         │  • 🔵 — colour dot matching the species' map point colour  │
+         │  • 🏷️ — type icon (broadleaf, wildflower, grass, etc.)     │
+         │  • Species name                                            │
+         │  • Characteristics & benefits                              │
+         │  • Radius (r)  — spacing between points to prevent       │
+         │                  overlap                                    │
+         │  • Ratio (ρ)   — density slider (user-overridable, controls │
+         │                  how densely this species is planted        │
+         │                  relative to the others in the mix)         │
+         │  • Points (n)  — final number of points generated on the   │
+         │                  map (read-only, calculated after map       │
+         │                  generation)                                │
+         │                                                            │
+         │ The colour dot and map point share the same colour so the  │
+         │ user can visually cross-reference table rows with points   │
+         │ on the map at a glance.                                    │
+         │                                                            │
+         │ User can:                                                  │
+         │  • Reorder rows (drag & drop)                              │
+         │  • Deselect / remove a species                             │
+         │  • Override the ratio/density slider per species            │
+         │  • Add a species manually via search bar                   │
+         └────────────────────────────────────────────────────────────┘
+
+         ┌─ SECTION E: AI Mix Insights ───────────────────────────────┐
+         │ Auto-generated analysis of the current mix vs goals.       │
+         │ Highlights trade-offs, e.g.:                               │
+         │  "Strong erosion control, but pollinator score could       │
+         │   improve — consider increasing wildflower proportion."    │
+         └────────────────────────────────────────────────────────────┘
+
+         ──────────────────────────────────────────────────────────── -->
+
+    <div class="col-lg-4 d-flex flex-column gap-3">
+
+      <!-- SECTION A: Goal Sliders -->
+      <div class="card">
+        <div class="card-header d-flex align-items-center justify-content-between">
+          <span><i class="bi bi-bullseye me-2"></i>Project Goals</span>
+          <span class="badge bg-primary rounded-pill">Step 3</span>
+        </div>
+        <div class="card-body">
+          <div class="species-mixer-goal-slider mb-3">
+            <div class="d-flex justify-content-between mb-1">
+              <label class="form-label mb-0 small">Erosion Control</label>
+              <span class="text-muted small goal-value">50%</span>
+            </div>
+            <input type="range" class="form-range" min="0" max="100" value="50" disabled>
+          </div>
+          <div class="species-mixer-goal-slider mb-3">
+            <div class="d-flex justify-content-between mb-1">
+              <label class="form-label mb-0 small">Biodiversity</label>
+              <span class="text-muted small goal-value">50%</span>
+            </div>
+            <input type="range" class="form-range" min="0" max="100" value="50" disabled>
+          </div>
+          <div class="species-mixer-goal-slider mb-3">
+            <div class="d-flex justify-content-between mb-1">
+              <label class="form-label mb-0 small">Pollinator Habitat</label>
+              <span class="text-muted small goal-value">50%</span>
+            </div>
+            <input type="range" class="form-range" min="0" max="100" value="50" disabled>
+          </div>
+          <div class="species-mixer-goal-slider mb-3">
+            <div class="d-flex justify-content-between mb-1">
+              <label class="form-label mb-0 small">Carbon Sequestration</label>
+              <span class="text-muted small goal-value">50%</span>
+            </div>
+            <input type="range" class="form-range" min="0" max="100" value="50" disabled>
+          </div>
+          <div class="species-mixer-goal-slider">
+            <div class="d-flex justify-content-between mb-1">
+              <label class="form-label mb-0 small">Wildlife Habitat</label>
+              <span class="text-muted small goal-value">50%</span>
+            </div>
+            <input type="range" class="form-range" min="0" max="100" value="50" disabled>
+          </div>
+        </div>
+      </div>
+
+      <!-- SECTION B: Mix Blender -->
+       {% comment %}
+      <div class="card">
+        <div class="card-header d-flex align-items-center justify-content-between">
+          <span><i class="bi bi-shuffle me-2"></i>Mix Blender</span>
+          <button class="btn btn-sm btn-outline-primary" disabled>
+            <i class="bi bi-plus-lg me-1"></i>Add Mix
+          </button>
+        </div>
+        <div class="card-body">
+          <div class="species-mixer-blend-row mb-3">
+            <div class="d-flex align-items-center justify-content-between mb-1">
+              <span class="small fw-medium">NE Scotland Mix</span>
+              <span class="text-muted small blend-value">70%</span>
+            </div>
+            <input type="range" class="form-range" min="0" max="100" value="70" disabled>
+          </div>
+          <div class="species-mixer-blend-row">
+            <div class="d-flex align-items-center justify-content-between mb-1">
+              <span class="small fw-medium">NE Peatland Mix</span>
+              <span class="text-muted small blend-value">30%</span>
+            </div>
+            <input type="range" class="form-range" min="0" max="100" value="30" disabled>
+          </div>
+        </div>
+      </div>
+      {% endcomment %}
+
+      <!-- SECTION C: Options -->
+      <div class="card">
+        <div class="card-header">
+          <i class="bi bi-gear me-2"></i>Options
+        </div>
+        <div class="card-body">
+          <div class="form-check">
+            <input class="form-check-input" type="checkbox" id="auto-recalculate" checked disabled>
+            <label class="form-check-label small" for="auto-recalculate">
+              Auto-recalculate proportions on changes
+            </label>
+          </div>
+        </div>
+      </div>
+
+      <!-- SECTION E: AI Mix Insights -->
+      <div class="card">
+        <div class="card-header d-flex align-items-center justify-content-between">
+          <span><i class="bi bi-stars me-2"></i>AI Mix Insights</span>
+          <span class="badge bg-secondary rounded-pill">Step 7</span>
+        </div>
+        <div class="card-body">
+          <div class="species-mixer-ai-placeholder d-flex align-items-center justify-content-center">
+            <div class="text-center text-muted">
+              <i class="bi bi-lightbulb" style="font-size: 1.5rem;"></i>
+              <p class="mt-2 mb-0 small">Generate a mix to see AI insights</p>
+              <small>Trade-off analysis and optimisation suggestions</small>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
   </div>
 
-  {# Tab content #}
-  <div class="tab-content">
-    {# Table view #}
-    <div class="tab-pane fade show active" id="tab-table" role="tabpanel">
-      {# TODO Update with sortable table component #}
-      <table class="table sortable-table" data-search-toolbar="species-mixer-toolbar">
-        <thead>
-          <tr>
-            <th scope="col">#</th>
-            <th scope="col" data-sortable>Name</th>
-            <th scope="col" data-sortable>Description</th>
-            <th scope="col" data-sortable>Number of Species</th>
-            <th scope="col" data-sortable>Created At</th>
-            <th scope="col" data-sortable>Updated At</th>
-            <th scope="col">Actions</th>
-          </tr>
-        </thead>
-        <tbody>
-          {# Species mix rows will be dynamically populated here #}
-        </tbody>
-      </table>
-    </div>
+  <!-- SECTION D: Species Table (full width below the two-column layout) -->
+  <div class="row mt-4">
+    <div class="col-12">
+      <div class="card">
+        <div class="card-header d-flex align-items-center justify-content-between">
+          <span><i class="bi bi-table me-2"></i>Species Mix</span>
+          <div class="d-flex align-items-center gap-2">
+            <div class="input-group input-group-sm species-mixer-search">
+              <span class="input-group-text"><i class="bi bi-search"></i></span>
+              <input type="text" class="form-control" placeholder="Add species..." disabled>
+            </div>
+            <button class="btn btn-sm btn-primary" disabled>
+              <i class="bi bi-magic me-1"></i>Generate Mix
+            </button>
+          </div>
+        </div>
+        <div class="card-body p-0">
+          <div class="table-responsive">
+            <table class="table table-hover sortable-table species-mixer-table mb-0">
+              <thead>
+                <tr>
+                  <th style="width: 2rem;"></th>
+                  <th style="width: 2rem;"></th>
+                  <th style="width: 2.5rem;"></th>
+                  <th data-sortable>Species</th>
+                  <th data-sortable>Characteristics</th>
+                  <th data-sortable style="width: 6rem;" title="Radius — spacing between points">Radius (<span class="symbol">r</span>)</th>
+                  <th style="width: 12rem;" title="Ratio / density">Ratio (<span class="symbol">ρ</span>)</th>
+                  <th data-sortable style="width: 6rem;" title="Points generated on map">Points (<span class="symbol">n</span>)</th>
+                  <th style="width: 3rem;"></th>
+                </tr>
+              </thead>
+              <tbody>
+                <!-- Group: Broadleaf -->
+                <tr class="species-mixer-group-header">
+                  <td colspan="9"><i class="bi bi-tree me-1"></i>Broadleaf</td>
+                </tr>
+                <tr class="species-mixer-row">
+                  <td><span class="species-colour-dot" style="background:#4CAF50;"></span></td>
+                  <td><i class="bi bi-tree" title="Broadleaf"></i></td>
+                  <td><input class="form-check-input" type="checkbox" checked disabled></td>
+                  <td>Silver Birch</td>
+                  <td><span class="badge bg-success bg-opacity-10 text-success me-1">Pioneer</span><span class="badge bg-info bg-opacity-10 text-info">Fast-growing</span></td>
+                  <td class="text-muted">3.0m</td>
+                  <td>
+                    <div class="d-flex align-items-center gap-2">
+                      <input type="range" class="form-range form-range-sm" min="0" max="100" value="35" disabled>
+                      <span class="text-muted small" style="min-width:2rem;">35%</span>
+                    </div>
+                  </td>
+                  <td class="text-muted">—</td>
+                  <td><button class="btn btn-sm btn-link text-danger p-0" disabled><i class="bi bi-x-lg"></i></button></td>
+                </tr>
+                <tr class="species-mixer-row">
+                  <td><span class="species-colour-dot" style="background:#66BB6A;"></span></td>
+                  <td><i class="bi bi-tree" title="Broadleaf"></i></td>
+                  <td><input class="form-check-input" type="checkbox" checked disabled></td>
+                  <td>Rowan</td>
+                  <td><span class="badge bg-warning bg-opacity-10 text-warning me-1">Wildlife</span><span class="badge bg-success bg-opacity-10 text-success">Hardy</span></td>
+                  <td class="text-muted">2.5m</td>
+                  <td>
+                    <div class="d-flex align-items-center gap-2">
+                      <input type="range" class="form-range form-range-sm" min="0" max="100" value="20" disabled>
+                      <span class="text-muted small" style="min-width:2rem;">20%</span>
+                    </div>
+                  </td>
+                  <td class="text-muted">—</td>
+                  <td><button class="btn btn-sm btn-link text-danger p-0" disabled><i class="bi bi-x-lg"></i></button></td>
+                </tr>
 
-    {# Grid view #}
-    <div class="tab-pane fade" id="tab-grid" role="tabpanel">
+                <!-- Group: Wildflower -->
+                <tr class="species-mixer-group-header">
+                  <td colspan="9"><i class="bi bi-flower1 me-1"></i>Wildflower</td>
+                </tr>
+                <tr class="species-mixer-row">
+                  <td><span class="species-colour-dot" style="background:#E91E63;"></span></td>
+                  <td><i class="bi bi-flower1" title="Wildflower"></i></td>
+                  <td><input class="form-check-input" type="checkbox" checked disabled></td>
+                  <td>Red Campion</td>
+                  <td><span class="badge bg-danger bg-opacity-10 text-danger me-1">Pollinator</span><span class="badge bg-primary bg-opacity-10 text-primary">Shade-tolerant</span></td>
+                  <td class="text-muted">0.3m</td>
+                  <td>
+                    <div class="d-flex align-items-center gap-2">
+                      <input type="range" class="form-range form-range-sm" min="0" max="100" value="15" disabled>
+                      <span class="text-muted small" style="min-width:2rem;">15%</span>
+                    </div>
+                  </td>
+                  <td class="text-muted">—</td>
+                  <td><button class="btn btn-sm btn-link text-danger p-0" disabled><i class="bi bi-x-lg"></i></button></td>
+                </tr>
+                <tr class="species-mixer-row">
+                  <td><span class="species-colour-dot" style="background:#FF9800;"></span></td>
+                  <td><i class="bi bi-flower1" title="Wildflower"></i></td>
+                  <td><input class="form-check-input" type="checkbox" checked disabled></td>
+                  <td>Foxglove</td>
+                  <td><span class="badge bg-danger bg-opacity-10 text-danger me-1">Pollinator</span><span class="badge bg-warning bg-opacity-10 text-warning">Biennial</span></td>
+                  <td class="text-muted">0.3m</td>
+                  <td>
+                    <div class="d-flex align-items-center gap-2">
+                      <input type="range" class="form-range form-range-sm" min="0" max="100" value="10" disabled>
+                      <span class="text-muted small" style="min-width:2rem;">10%</span>
+                    </div>
+                  </td>
+                  <td class="text-muted">—</td>
+                  <td><button class="btn btn-sm btn-link text-danger p-0" disabled><i class="bi bi-x-lg"></i></button></td>
+                </tr>
 
+                <!-- Group: Grass -->
+                <tr class="species-mixer-group-header">
+                  <td colspan="9"><i class="bi bi-brightness-high me-1"></i>Grass</td>
+                </tr>
+                <tr class="species-mixer-row">
+                  <td><span class="species-colour-dot" style="background:#8BC34A;"></span></td>
+                  <td><i class="bi bi-brightness-high" title="Grass"></i></td>
+                  <td><input class="form-check-input" type="checkbox" checked disabled></td>
+                  <td>Tufted Hair-grass</td>
+                  <td><span class="badge bg-success bg-opacity-10 text-success me-1">Erosion</span><span class="badge bg-info bg-opacity-10 text-info">Wet-tolerant</span></td>
+                  <td class="text-muted">0.2m</td>
+                  <td>
+                    <div class="d-flex align-items-center gap-2">
+                      <input type="range" class="form-range form-range-sm" min="0" max="100" value="15" disabled>
+                      <span class="text-muted small" style="min-width:2rem;">15%</span>
+                    </div>
+                  </td>
+                  <td class="text-muted">—</td>
+                  <td><button class="btn btn-sm btn-link text-danger p-0" disabled><i class="bi bi-x-lg"></i></button></td>
+                </tr>
+
+                <!-- Group: Shrub -->
+                <tr class="species-mixer-group-header">
+                  <td colspan="9"><i class="bi bi-flower2 me-1"></i>Shrub</td>
+                </tr>
+                <tr class="species-mixer-row">
+                  <td><span class="species-colour-dot" style="background:#9C27B0;"></span></td>
+                  <td><i class="bi bi-flower2" title="Shrub"></i></td>
+                  <td><input class="form-check-input" type="checkbox" checked disabled></td>
+                  <td>Hawthorn</td>
+                  <td><span class="badge bg-warning bg-opacity-10 text-warning me-1">Wildlife</span><span class="badge bg-danger bg-opacity-10 text-danger">Pollinator</span></td>
+                  <td class="text-muted">2.0m</td>
+                  <td>
+                    <div class="d-flex align-items-center gap-2">
+                      <input type="range" class="form-range form-range-sm" min="0" max="100" value="5" disabled>
+                      <span class="text-muted small" style="min-width:2rem;">5%</span>
+                    </div>
+                  </td>
+                  <td class="text-muted">—</td>
+                  <td><button class="btn btn-sm btn-link text-danger p-0" disabled><i class="bi bi-x-lg"></i></button></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
 
-  {% if user.is_superuser %}
-    {# Delete user button for superusers #}
-  {% endif %}
+  <!-- ── FULL-WIDTH BOTTOM CARD: Recent / Saved Mixes ─────────────
+       - Lists the user's previously created species mixes
+       - Click a mix to load it into the mixer above
+       - Can also drag a saved mix into the Mix Blender (Section B)
+       ──────────────────────────────────────────────────────────── -->
+
+  <div class="row mt-4">
+    <div class="col-12">
+      <div class="card">
+        <div class="card-header d-flex align-items-center justify-content-between">
+          <span><i class="bi bi-clock-history me-2"></i>Recent &amp; Saved Mixes</span>
+        </div>
+        <div class="card-body">
+          <div class="row g-3">
+            <!-- Saved mix card -->
+            <div class="col-md-3">
+              <div class="card species-mixer-saved-mix" role="button">
+                <div class="card-body p-3">
+                  <div class="d-flex align-items-start justify-content-between">
+                    <div>
+                      <h6 class="mb-1">NE Scotland Mix</h6>
+                      <small class="text-muted">12 species &middot; Updated 3d ago</small>
+                    </div>
+                    <i class="bi bi-arrow-up-right-square text-primary"></i>
+                  </div>
+                  <div class="mt-2 d-flex gap-1 flex-wrap">
+                    <span class="badge bg-success bg-opacity-10 text-success">Erosion</span>
+                    <span class="badge bg-danger bg-opacity-10 text-danger">Pollinator</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="col-md-3">
+              <div class="card species-mixer-saved-mix" role="button">
+                <div class="card-body p-3">
+                  <div class="d-flex align-items-start justify-content-between">
+                    <div>
+                      <h6 class="mb-1">NE Peatland Mix</h6>
+                      <small class="text-muted">8 species &middot; Updated 1w ago</small>
+                    </div>
+                    <i class="bi bi-arrow-up-right-square text-primary"></i>
+                  </div>
+                  <div class="mt-2 d-flex gap-1 flex-wrap">
+                    <span class="badge bg-info bg-opacity-10 text-info">Carbon</span>
+                    <span class="badge bg-warning bg-opacity-10 text-warning">Wildlife</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="col-md-3">
+              <div class="card species-mixer-saved-mix" role="button">
+                <div class="card-body p-3">
+                  <div class="d-flex align-items-start justify-content-between">
+                    <div>
+                      <h6 class="mb-1">Highland Riverside</h6>
+                      <small class="text-muted">15 species &middot; Updated 2w ago</small>
+                    </div>
+                    <i class="bi bi-arrow-up-right-square text-primary"></i>
+                  </div>
+                  <div class="mt-2 d-flex gap-1 flex-wrap">
+                    <span class="badge bg-success bg-opacity-10 text-success">Erosion</span>
+                    <span class="badge bg-warning bg-opacity-10 text-warning">Wildlife</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="col-md-3">
+              <div class="card species-mixer-saved-mix species-mixer-saved-mix--empty d-flex align-items-center justify-content-center" role="button">
+                <div class="card-body p-3 text-center text-muted">
+                  <i class="bi bi-plus-circle" style="font-size: 1.5rem;"></i>
+                  <p class="mb-0 mt-1 small">Create New Mix</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================================
+     UX FLOW — Wizard / Progressive Disclosure
+     Each step is disabled until the previous step is completed.
+     ============================================================
+
+     STEP 1 — Select Region
+       Prompt: "Select the region you will be planting in.
+                The more specific, the better."
+       Input:  Click on map OR enter lat/long manually.
+
+     STEP 2 — Confirm Location
+       User presses a "Confirm Location" button to lock in
+       the selected coordinates.
+
+     STEP 3 — Define Project Goals
+       Prompt: "What are your planting goals?"
+       Input:  Multi-select from goal options:
+                 • Erosion control
+                 • Wildlife habitat
+                 • Pollinator habitat
+                 • Carbon sequestration
+                 • (extensible list)
+       Defaults: Pre-selected based on region characteristics.
+       User can adjust sliders to weight each goal.
+
+     STEP 4 — Generate Species Mix
+       System generates a species table suited to the region
+       and weighted by the selected goals.
+       Columns: species, characteristics, benefits, proportion %.
+
+     STEP 5 — Customise Mix
+       User can deselect, reorder, and adjust proportions of
+       each species in the generated table.
+
+     STEP 6 — Add Species Manually
+       User can search for and add additional species rows
+       that were not in the auto-generated list.
+
+     STEP 7 — AI Insights
+       System generates an analysis of the mix against goals,
+       surfacing trade-offs and optimisation suggestions.
+
+     STEP 8 — Map Visualisation
+       Species points are plotted on the map.
+       User can filter, change terrain overlays, and drag
+       points to see location-sensitive recommendations.
+
+     ============================================================ -->
 
 {% endblock %}
 

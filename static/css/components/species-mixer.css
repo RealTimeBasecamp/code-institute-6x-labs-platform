@@ -1,0 +1,171 @@
+/* ===== Species Mixer Component ===== */
+
+/* ── Map Card ────────────────────────────────────────────────── */
+.species-mixer-map-card {
+  height: 100%;
+}
+
+.species-mixer-map-container {
+  min-height: 55vh;
+  background-color: var(--bs-body-bg);
+  border-radius: 0 0 var(--bs-border-radius) var(--bs-border-radius);
+}
+
+.species-mixer-select {
+  max-width: 10rem;
+  font-size: 0.8rem;
+}
+
+/* ── Goal Sliders ────────────────────────────────────────────── */
+.species-mixer-goal-slider .form-range {
+  height: 0.4rem;
+}
+
+.species-mixer-goal-slider .goal-value {
+  min-width: 2.5rem;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ── Mix Blender ─────────────────────────────────────────────── */
+.species-mixer-blend-row .form-range {
+  height: 0.4rem;
+}
+
+.species-mixer-blend-row .blend-value {
+  min-width: 2.5rem;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ── Species Table ───────────────────────────────────────────── */
+.species-mixer-table {
+  font-size: 0.875rem;
+}
+
+.species-mixer-table thead th {
+  background-color: var(--bs-tertiary-bg);
+  border-bottom: 2px solid var(--bs-border-color);
+  font-weight: 600;
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--bs-secondary-color);
+  padding: 0.6rem 0.75rem;
+  white-space: nowrap;
+}
+
+.species-mixer-table thead th .symbol {
+  text-transform: none;
+}
+
+.species-mixer-table tbody td {
+  padding: 0.5rem 0.75rem;
+  vertical-align: middle;
+  border-bottom: 1px solid var(--bs-border-color);
+}
+
+/* Group header rows */
+.species-mixer-group-header td {
+  background-color: var(--bs-tertiary-bg);
+  font-weight: 600;
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--bs-secondary-color);
+  padding: 0.4rem 0.75rem !important;
+  border-bottom: 1px solid var(--bs-border-color);
+}
+
+/* Species rows — subtle hover */
+.species-mixer-row {
+  transition: background-color 0.1s ease;
+}
+
+.species-mixer-row:hover {
+  background-color: var(--bs-hover-bg);
+}
+
+/* Colour dot matching map point */
+.species-colour-dot {
+  display: inline-block;
+  width: 0.75rem;
+  height: 0.75rem;
+  border-radius: 50%;
+  vertical-align: middle;
+  border: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+/* Inline density slider */
+.species-mixer-table .form-range {
+  height: 0.35rem;
+  min-width: 4rem;
+}
+
+/* Search input in header */
+.species-mixer-search {
+  max-width: 14rem;
+}
+
+.species-mixer-search .input-group-text {
+  background-color: var(--bs-tertiary-bg);
+  border-color: var(--bs-border-color);
+  color: var(--bs-secondary-color);
+}
+
+.species-mixer-search .form-control {
+  border-color: var(--bs-border-color);
+}
+
+/* ── AI Insights placeholder ─────────────────────────────────── */
+.species-mixer-ai-placeholder {
+  min-height: 6rem;
+  border-radius: var(--bs-border-radius);
+  border: 1px dashed var(--bs-border-color);
+  background-color: var(--bs-body-bg);
+}
+
+/* ── Saved / Recent Mixes ────────────────────────────────────── */
+.species-mixer-saved-mix {
+  cursor: pointer;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+  border: 1px solid var(--bs-border-color);
+}
+
+.species-mixer-saved-mix:hover {
+  border-color: var(--bs-primary, #059acc);
+  box-shadow: 0 0 0 0.15rem rgba(5, 154, 204, 0.12);
+}
+
+.species-mixer-saved-mix--empty {
+  border-style: dashed;
+  min-height: 6rem;
+}
+
+.species-mixer-saved-mix--empty:hover {
+  border-color: var(--bs-primary, #059acc);
+  background-color: var(--bs-hover-bg);
+}
+
+/* ── Responsive adjustments ──────────────────────────────────── */
+@media (max-width: 991.98px) {
+  .species-mixer-map-container {
+    min-height: 40vh;
+  }
+
+  .species-mixer-select {
+    max-width: 7rem;
+  }
+
+  /* Stack the map header controls */
+  .species-mixer-map-card .card-header {
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+}
+
+@media (max-width: 575.98px) {
+  .species-mixer-search {
+    max-width: 100%;
+  }
+}
