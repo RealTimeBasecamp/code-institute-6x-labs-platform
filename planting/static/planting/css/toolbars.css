@@ -422,7 +422,7 @@
 
 /* ============================================
    MAIN TOOL PALETTE - Left Vertical Toolbar
-   Photoshop-style tool buttons with nested flyouts
+   Vertical tool buttons with nested flyouts
    ============================================ */
 .main-tool-palette {
   border-right: 1px solid var(--bs-border-color);
@@ -442,7 +442,7 @@
   margin-top: 0;
 }
 
-/* Nested Tool Flyouts (like Photoshop) */
+/* Nested Tool Flyouts */
 .tool-palette-nested {
   position: relative;
   display: flex;

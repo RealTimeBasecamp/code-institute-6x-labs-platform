@@ -30,9 +30,16 @@
     if (!toolId) return [];
 
     switch (toolId) {
+      // Terra Draw shape modes
+      case 'rectangle':
+      case 'square':
+      case 'circle':
       case 'polygon':
-        return polygonFields(options);
-      case 'line':
+      case 'freehand':
+        return shapeFields(toolId, options);
+      // Pen / vertex-by-vertex polygon + line
+      case 'pen':
+      case 'linestring':
         return lineFields(options);
       case 'point':
         return pointFields(options);
@@ -43,7 +50,10 @@
     }
   }
 
-  function polygonFields(options) {
+  /**
+   * Shape fields — shared by rectangle, square, circle, polygon, freehand.
+   */
+  function shapeFields(toolId, options) {
     var fields = [];
 
     // Data type (annotation / inclusion / exclusion)
@@ -61,8 +71,8 @@
       onChange: function (v) { dispatchOption('shape-mode', v); }
     });
 
-    // Sides slider — only for regular (non-rectangular) polygons
-    if (options && options.regular && !options.rectangular) {
+    // Sides slider — only for generic polygon mode
+    if (toolId === 'polygon') {
       fields.push({
         id: 'tool-opt-polygon-sides',
         label: 'Sides',
@@ -70,7 +80,7 @@
         min: 3,
         max: 64,
         step: 1,
-        value: (options && options.sides) || 6,
+        value: 6,
         default: 6,
         onChange: function (v) { dispatchOption('polygon-sides', v); }
       });
@@ -87,6 +97,11 @@
     });
 
     return fields;
+  }
+
+  // Keep legacy name for any external callers
+  function polygonFields(options) {
+    return shapeFields('polygon', options);
   }
 
   function lineFields(options) {
@@ -157,27 +172,20 @@
   // -------------------------------------------------------------------------
 
   var TOOL_LABELS = {
-    'polygon': 'Polygon',
-    'line':    'Line',
-    'point':   'Point',
-    'select':  'Select',
-    'eraser':  'Eraser'
+    'rectangle':  'Rectangle',
+    'square':     'Square',
+    'circle':     'Circle',
+    'polygon':    'Polygon',
+    'pen':        'Pen',
+    'linestring': 'Line',
+    'freehand':   'Freehand',
+    'point':      'Point',
+    'select':     'Select',
+    'eraser':     'Eraser'
   };
 
   function toolLabel(toolId, options) {
     if (!toolId) return '';
-    if (toolId === 'polygon') {
-      if (options && options.rectangular) return 'Rectangle';
-      if (options && options.regular) {
-        if (options.sides === 4)  return 'Square';
-        if (options.sides >= 24) return 'Circle';
-        return 'Polygon (' + (options.sides || 6) + ' sides)';
-      }
-      return 'Polygon';
-    }
-    if (toolId === 'line') {
-      return options && options.bezier ? 'Curved Line' : 'Line';
-    }
     if (toolId === 'point') {
       if (options && options.annotation) return 'Annotation';
       if (options && options.icon) return 'Icon';

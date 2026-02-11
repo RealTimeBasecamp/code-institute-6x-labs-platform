@@ -176,7 +176,15 @@
   color: var(--bs-secondary-color);
 }
 
-.window-tree-item span {
+/* Custom SVG icons in tree (mask-image based) */
+.window-tree-item .tree-item-icon {
+  width: var(--editor-font-base);
+  height: var(--editor-font-base);
+  flex: 0 0 auto;
+  color: var(--bs-secondary-color);
+}
+
+.window-tree-item .tree-item-name {
   font-size: var(--editor-font-base);
   flex: 1;
   min-width: 0;
@@ -205,32 +213,13 @@
   text-align: center;
 }
 
-/* Data-type indicator dot */
-.window-tree-item .tree-type-dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  flex-shrink: 0;
-}
-
-.tree-type-dot[data-type="inclusion"]  { background: #22c55e; }
-.tree-type-dot[data-type="exclusion"]  { background: #ef4444; }
-.tree-type-dot[data-type="annotation"] { background: var(--bs-secondary-color); }
-
-/* Action buttons (visibility/lock) on tree items */
+/* Action buttons (visibility/lock) — always visible */
 .window-tree-actions {
   display: flex;
   align-items: center;
   gap: var(--editor-spacing-xs);
   margin-left: auto;
   flex-shrink: 0;
-  opacity: 0;
-  transition: opacity 0.1s;
-}
-
-.window-tree-item:hover .window-tree-actions,
-.window-tree-item.is-selected .window-tree-actions {
-  opacity: 1;
 }
 
 .window-tree-actions button {
@@ -249,6 +238,61 @@
 
 .window-tree-actions button.is-off {
   opacity: 0.35;
+}
+
+.window-tree-actions button .custom-tool-icon {
+  width: var(--editor-font-base);
+  height: var(--editor-font-base);
+}
+
+/* Drag-and-drop feedback */
+.window-tree-item.is-dragging {
+  opacity: 0.4;
+}
+
+.window-tree-item.is-drag-over {
+  outline: 2px solid var(--primary-color, var(--bs-primary));
+  outline-offset: -2px;
+  border-radius: var(--editor-radius-sm);
+}
+
+.window-tree-item.is-drop-above {
+  box-shadow: 0 -2px 0 0 var(--primary-color, var(--bs-primary));
+}
+
+.window-tree-item.is-drop-below {
+  box-shadow: 0 2px 0 0 var(--primary-color, var(--bs-primary));
+}
+
+/* Inline rename input */
+.tree-rename-input {
+  flex: 1;
+  min-width: 0;
+  font-size: var(--editor-font-base);
+  font-family: inherit;
+  background: var(--bs-body-bg);
+  color: var(--bs-body-color);
+  border: 1px solid var(--primary-color, var(--bs-primary));
+  border-radius: var(--editor-radius-sm);
+  padding: 0 var(--editor-spacing-xs);
+  outline: none;
+}
+
+/* Header "add folder" button */
+.outliner-header-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--bs-secondary-color);
+  font-size: var(--editor-font-base);
+  padding: 0 var(--editor-spacing-xs);
+  margin-left: auto;
+  line-height: 1;
+  transition: color 0.15s;
+}
+
+.outliner-header-btn:hover {
+  color: var(--bs-body-color);
 }
 
 /* ============================================
@@ -361,16 +405,21 @@
   margin: calc(-1 * var(--editor-spacing-md)) calc(-1 * var(--editor-spacing-md)) var(--editor-spacing-md) calc(-1 * var(--editor-spacing-md));
 }
 
+.window-section-header span {
+  flex: 1;
+}
+
 .window-section-header:hover {
   background: var(--bs-secondary-bg);
 }
 
-.window-section-header i {
+
+.window-section-header > i {
   font-size: var(--editor-font-xs);
   transition: transform 0.2s;
 }
 
-.window-section.is-collapsed .window-section-header i {
+.window-section.is-collapsed .window-section-header > i {
   transform: rotate(-90deg);
 }
 

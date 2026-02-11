@@ -380,7 +380,7 @@
     // Dropdown IDs and their config-driven label sources
     var dropdownIds = [
       'location-snap-value', 'rotation-snap-value', 'scale-snap-value',
-      'camera-mode', 'camera-speed', 'render-mode',
+      'camera-speed', 'render-mode',
     ];
 
     dropdownIds.forEach(function (id) {
@@ -459,9 +459,11 @@
       document.dispatchEvent(new CustomEvent(name, { detail: detail }));
     }
 
-    // Camera mode
+    // Camera mode (toggle stores boolean; convert to '2d'/'3d' string)
     if (saved['camera-mode'] !== undefined) {
-      fire('viewportToolbar.cameraModeChange', { cameraMode: saved['camera-mode'] });
+      var cameraMode = saved['camera-mode'] ? '3d' : '2d';
+      appState.cameraMode = cameraMode;
+      fire('viewportToolbar.cameraModeChange', { cameraMode: cameraMode });
     }
 
     // Render mode

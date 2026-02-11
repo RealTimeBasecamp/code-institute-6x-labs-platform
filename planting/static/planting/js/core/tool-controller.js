@@ -14,7 +14,7 @@
 (function () {
   'use strict';
 
-  // Map toolbar tool IDs to DrawingManager setTool() calls
+  // Map toolbar tool IDs to TerraDrawBridge setTool() calls
   const TOOL_MAP = {
     // Selection tools
     'select':          { tool: 'select' },
@@ -23,15 +23,15 @@
     'marquee':         { tool: 'select' },
     'polygon-marquee': { tool: 'select' },
 
-    // Shape tools → polygon drawing
-    'shape-square':    { tool: 'polygon', options: { sides: 4, regular: true } },
-    'shape-rectangle': { tool: 'polygon', options: { rectangular: true } },
-    'shape-circle':    { tool: 'polygon', options: { sides: 32, regular: true } },
-    'shape-polygon':   { tool: 'polygon', options: { sides: 6, regular: true } },
+    // Shape tools → Terra Draw modes
+    'shape-square':    { tool: 'square' },
+    'shape-rectangle': { tool: 'rectangle' },
+    'shape-circle':    { tool: 'circle' },
+    'shape-polygon':   { tool: 'polygon' },
 
-    // Line tools
-    'line':            { tool: 'line' },
-    'line-curved':     { tool: 'line', options: { bezier: true } },
+    // Line / pen tools
+    'line':            { tool: 'pen' },
+    'line-curved':     { tool: 'freehand' },
 
     // Point-based tools
     'annotation':      { tool: 'point', options: { annotation: true } },
@@ -90,8 +90,19 @@
       if (!detail) return;
 
       // Update drawing manager tool options live
-      if (detail.optionId === 'polygon-sides' && window.drawingManager.activeTool === 'polygon') {
-        window.drawingManager.toolOptions.sides = parseInt(detail.value, 10) || 6;
+      if (detail.optionId === 'polygon-sides') {
+        var sides = parseInt(detail.value, 10) || 6;
+        window.drawingManager.toolOptions.sides = sides;
+
+        // Update the live CornerPolygonMode instance so the next drag uses new value
+        if (window.drawingManager._polygonMode && window.drawingManager._polygonMode.setSides) {
+          window.drawingManager._polygonMode.setSides(sides);
+        }
+
+        // If a polygon component is selected, update its geometry
+        if (window.drawingManager.selectedClientId) {
+          window.drawingManager.updateSides(window.drawingManager.selectedClientId, sides);
+        }
       }
       if (detail.optionId === 'shape-mode') {
         window.drawingManager.toolOptions.dataType = detail.value;

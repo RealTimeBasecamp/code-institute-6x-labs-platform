@@ -206,6 +206,30 @@
     // Toggle sections visibility
     toggleComponentSections(true);
     toggleAnnotationSection((comp.data_type || 'annotation') === 'annotation');
+
+    // Disable editing when locked (except the locked checkbox itself)
+    setFieldsLocked(!!comp.locked);
+  }
+
+  /**
+   * Enable or disable all editable fields in the details panel.
+   * The "locked" checkbox always stays enabled so the user can unlock.
+   */
+  function setFieldsLocked(locked) {
+    var fieldIds = [
+      'details-name', 'details-data-type', 'details-visible',
+      'details-stroke-color', 'details-fill-color', 'details-fill-opacity',
+      'details-stroke-width', 'details-fill-pattern',
+      'details-annotation-title', 'details-annotation-desc', 'details-annotation-icon',
+      'details-location-x', 'details-location-y'
+    ];
+    for (var i = 0; i < fieldIds.length; i++) {
+      var el = document.getElementById(fieldIds[i]);
+      if (el) {
+        el.disabled = locked;
+        el.style.opacity = locked ? '0.5' : '';
+      }
+    }
   }
 
   function clearDisplay() {

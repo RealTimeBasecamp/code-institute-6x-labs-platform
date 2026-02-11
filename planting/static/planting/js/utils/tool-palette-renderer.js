@@ -1,6 +1,6 @@
 /**
  * Tool Palette Renderer - Config-driven vertical tool palette
- * Renders a Photoshop/Unreal-style tool palette from JSON configuration
+ * Renders a vertical tool palette from JSON configuration
  *
  * Features:
  * - Vertical layout with tool groups

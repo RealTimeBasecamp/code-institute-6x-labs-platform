@@ -88,9 +88,10 @@
         {
           "id": "camera-mode",
           "type": "toggle",
-          "icon": "bi-badge-3d",
-          "label": "2D",
+          "icon": "svg:2D",
+          "activeIcon": "svg:3D",
           "tooltip": "Toggle 2D / 3D View",
+          "showLabel": false,
           "default": false
         },
         {

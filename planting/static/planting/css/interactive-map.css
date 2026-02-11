@@ -663,6 +663,25 @@
   opacity: 0.5;
 }
 
+/* Locked component feedback — fade in/out lock icon next to gizmo */
+.gizmo-locked-indicator {
+  position: absolute;
+  top: -20px;
+  left: 8px;
+  pointer-events: none;
+  color: var(--bs-warning, #FFC107);
+  filter: drop-shadow(0 1px 4px rgba(0, 0, 0, 0.6));
+  animation: gizmo-lock-flash 1s ease-in-out forwards;
+}
+
+@keyframes gizmo-lock-flash {
+  0%   { opacity: 0; transform: scale(0.6); }
+  20%  { opacity: 1; transform: scale(1.1); }
+  35%  { opacity: 1; transform: scale(1); }
+  70%  { opacity: 1; transform: scale(1); }
+  100% { opacity: 0; transform: scale(0.8); }
+}
+
 /* ==========================================================================
    Responsive Adjustments
    ========================================================================== */

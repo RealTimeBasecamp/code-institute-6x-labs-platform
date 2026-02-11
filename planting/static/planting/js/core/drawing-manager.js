@@ -342,7 +342,7 @@
           this.map.keyboard.enable();
         }
 
-        // Auto top-down view when a drawing tool is selected
+        // Auto 2D view when a drawing tool is selected
         // (controlled by user preference autoTopdownDrawing)
         if (isDrawTool) {
           var prefs = (window.editorContext && window.editorContext.preferences) || {};
@@ -504,7 +504,7 @@
       const sPx = { x: projected.x, y: projected.y };
       const cPx = this._canvasPoint(e);
 
-      // Modifier keys (Photoshop-style) — read directly from native event
+      // Modifier keys — read directly from native event
       const shift = e.shiftKey;
       const ctrl = e.ctrlKey || e.metaKey;
 
@@ -611,11 +611,14 @@
         coordinates: [e.lngLat.lng, e.lngLat.lat],
       };
 
-      const isAnnotation = this.toolOptions.annotation || false;
+      let pointName = 'Point';
+      if (this.toolOptions.annotation) pointName = 'Annotation';
+      else if (this.toolOptions.picture) pointName = 'Image';
+      else if (this.toolOptions.icon) pointName = 'Icon';
       const clientId = this.stateManager.addComponent({
         geometry: geometry,
         geometry_type: 'Point',
-        name: isAnnotation ? 'Annotation' : 'Point',
+        name: pointName,
         data_type: 'annotation',
         stroke_color: '#3388ff',
         fill_color: '#3388ff',

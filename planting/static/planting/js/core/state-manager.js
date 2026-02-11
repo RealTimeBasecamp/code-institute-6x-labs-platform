@@ -316,6 +316,23 @@
       this.execute(new MoveToFolderCommand(this, clientId, oldFolderId, newFolderId));
     }
 
+    /**
+     * Reorder components by assigning new z_order values.
+     * @param {string[]} orderedClientIds - Client IDs in desired order
+     */
+    reorderComponents(orderedClientIds) {
+      const cmds = [];
+      for (let i = 0; i < orderedClientIds.length; i++) {
+        const comp = this.components.get(orderedClientIds[i]);
+        if (comp && comp.z_order !== i) {
+          cmds.push(new UpdatePropertyCommand(this, orderedClientIds[i], 'z_order', comp.z_order, i));
+        }
+      }
+      if (cmds.length > 0) {
+        this.execute(new BatchCommand(cmds));
+      }
+    }
+
     executeBatch(commands) {
       if (commands.length === 0) return;
       if (commands.length === 1) {
@@ -495,6 +512,9 @@
     _addComponent(data) {
       const comp = deepClone(data);
       if (!comp.clientId) comp.clientId = uuid();
+      // Ensure essential display defaults are always present
+      if (comp.visible === undefined) comp.visible = true;
+      if (comp.locked === undefined) comp.locked = false;
       this.components.set(comp.clientId, comp);
       dispatch('stateManager.componentAdded', { component: deepClone(comp) });
     }

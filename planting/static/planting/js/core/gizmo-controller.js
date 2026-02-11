@@ -170,6 +170,45 @@
     }
 
     // -----------------------------------------------------------------------
+    // Locked feedback
+    // -----------------------------------------------------------------------
+
+    /**
+     * Show a temporary lock icon near the gizmo that fades in and out,
+     * indicating the component is locked and cannot be transformed.
+     */
+    _showLockedFeedback() {
+      // Prevent stacking multiple indicators
+      if (this._lockFeedbackActive) return;
+      this._lockFeedbackActive = true;
+
+      var indicator = document.createElement('div');
+      indicator.className = 'gizmo-locked-indicator';
+      var lockIcon = document.createElement('span');
+      lockIcon.className = 'custom-tool-icon';
+      var url = '/static/planting/images/icons/lock-enabled.svg';
+      lockIcon.style.maskImage = "url('" + url + "')";
+      lockIcon.style.webkitMaskImage = "url('" + url + "')";
+      lockIcon.style.width = '32px';
+      lockIcon.style.height = '32px';
+      indicator.appendChild(lockIcon);
+      this.overlay.appendChild(indicator);
+
+      // Remove after animation completes
+      var self = this;
+      indicator.addEventListener('animationend', function () {
+        indicator.remove();
+        self._lockFeedbackActive = false;
+      });
+
+      // Safety fallback in case animationend doesn't fire
+      setTimeout(function () {
+        if (indicator.parentNode) indicator.remove();
+        self._lockFeedbackActive = false;
+      }, 1200);
+    }
+
+    // -----------------------------------------------------------------------
     // Position helpers
     // -----------------------------------------------------------------------
 
@@ -293,28 +332,66 @@
     }
 
     _renderRotateGizmo(svg, s) {
-      var radius = RING_RADIUS * s;
-      var hr     = HANDLE_RADIUS * s;
+      var len = ARROW_LENGTH * s;
+      var hr  = HANDLE_RADIUS * s;
+      var arcR = PLANE_SIZE * s * 1.4;  // arc radius sits between the axes like the translate plane
 
-      // Rotation ring (blue)
-      svg.appendChild(this._svgCircle(0, 0, radius, 'none', COLORS.z, LINE_WIDTH));
+      // Yellow filled quarter-arc between X and Y axes (rotate affordance)
+      var arc = document.createElementNS(SVG_NS, 'path');
+      // Arc from end of X axis (arcR, 0) counter-clockwise to end of Y axis (0, -arcR)
+      arc.setAttribute('d',
+        'M ' + arcR + ',0' +
+        ' A ' + arcR + ',' + arcR + ' 0 0,0 0,' + (-arcR) +
+        ' L 0,0 Z'
+      );
+      arc.setAttribute('fill', COLORS.xy);
+      arc.setAttribute('fill-opacity', '0.25');
+      arc.setAttribute('stroke', COLORS.xy);
+      arc.setAttribute('stroke-width', LINE_WIDTH * 0.5);
+      arc.setAttribute('class', 'gizmo-handle gizmo-handle-rotate');
+      arc.dataset.axis = 'rotate';
+      this._bindDrag(arc, 'rotate');
+      svg.appendChild(arc);
 
-      // Wider hit ring (invisible)
-      var hitRing = this._svgCircle(0, 0, radius, 'none', 'rgba(255,255,255,0.001)', HIT_WIDTH);
-      hitRing.setAttribute('class', 'gizmo-handle gizmo-handle-rotate');
-      hitRing.dataset.axis = 'rotate';
-      this._bindDrag(hitRing, 'rotate');
-      svg.appendChild(hitRing);
+      // X axis (red) — pointing right (East)
+      svg.appendChild(this._svgLine(0, 0, len, 0, COLORS.x, LINE_WIDTH, 'gizmo-axis'));
 
-      // Handle dot on ring (right side at 0°)
-      var handle = this._svgCircle(radius, 0, hr, COLORS.z);
-      handle.setAttribute('class', 'gizmo-handle gizmo-handle-rotate');
-      handle.dataset.axis = 'rotate';
-      this._bindDrag(handle, 'rotate');
-      svg.appendChild(handle);
+      // Y axis (green) — pointing up (North, SVG negative-Y)
+      svg.appendChild(this._svgLine(0, 0, 0, -len, COLORS.y, LINE_WIDTH, 'gizmo-axis'));
 
-      // Center reference dot
-      svg.appendChild(this._svgCircle(0, 0, 3 * s, COLORS.z));
+      // Handle circle at end of X axis (red)
+      var xHandle = this._svgCircle(len, 0, hr, COLORS.x);
+      xHandle.setAttribute('class', 'gizmo-handle gizmo-handle-rotate');
+      xHandle.dataset.axis = 'rotate';
+      this._bindDrag(xHandle, 'rotate');
+      svg.appendChild(xHandle);
+
+      // Handle circle at end of Y axis (green)
+      var yHandle = this._svgCircle(0, -len, hr, COLORS.y);
+      yHandle.setAttribute('class', 'gizmo-handle gizmo-handle-rotate');
+      yHandle.dataset.axis = 'rotate';
+      this._bindDrag(yHandle, 'rotate');
+      svg.appendChild(yHandle);
+
+      // Invisible wider hit area over the arc for easier grabbing
+      var hitArc = document.createElementNS(SVG_NS, 'path');
+      hitArc.setAttribute('d',
+        'M ' + (arcR + 6) + ',0' +
+        ' A ' + (arcR + 6) + ',' + (arcR + 6) + ' 0 0,0 0,' + (-(arcR + 6)) +
+        ' L 0,0 Z'
+      );
+      hitArc.setAttribute('fill', 'rgba(255,255,255,0.001)');
+      hitArc.setAttribute('class', 'gizmo-handle gizmo-handle-rotate');
+      hitArc.dataset.axis = 'rotate';
+      this._bindDrag(hitArc, 'rotate');
+      svg.appendChild(hitArc);
+
+      // Center dot (yellow)
+      var center = this._svgCircle(0, 0, hr, COLORS.xy);
+      center.setAttribute('class', 'gizmo-handle gizmo-handle-rotate');
+      center.dataset.axis = 'rotate';
+      this._bindDrag(center, 'rotate');
+      svg.appendChild(center);
     }
 
     _renderScaleGizmo(svg, s) {
@@ -418,6 +495,12 @@
       if (!this.target) return;
       var comp = this.stateManager.getComponent(this.target.clientId);
       if (!comp?.geometry) return;
+
+      // Block transforms on locked components — show lock feedback
+      if (comp.locked) {
+        this._showLockedFeedback();
+        return;
+      }
 
       var originalGeometry = JSON.parse(JSON.stringify(comp.geometry));
       var centroid = this._getCentroid(comp);

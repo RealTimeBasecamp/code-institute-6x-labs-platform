@@ -690,6 +690,10 @@
       const btn = document.createElement('button');
       btn.className = 'vp-toolbar-btn vp-toggle';
       btn.dataset.toggle = item.id;
+      if (item.activeIcon) {
+        btn.dataset.toggleIcon = item.icon;
+        btn.dataset.toggleActiveIcon = item.activeIcon;
+      }
 
       // Build tooltip with shortcut
       let tooltip = item.tooltip || item.label;
@@ -701,13 +705,26 @@
       // Icon
       const btnIcon = this.createIcon(item.icon);
       if (btnIcon) {
+        btnIcon.classList.add('vp-toggle-icon');
         btn.appendChild(btnIcon);
+      }
+
+      // Label (optional)
+      if (item.label && item.showLabel !== false) {
+        const label = document.createElement('span');
+        label.className = 'vp-btn-label';
+        label.textContent = item.label;
+        btn.appendChild(label);
       }
 
       // Set initial active state
       if (this.state[item.id] !== undefined ? this.state[item.id] : (item.isActive || item.default)) {
         btn.classList.add('is-active');
         this.state[item.id] = true;
+        // Swap to active icon if configured
+        if (item.activeIcon) {
+          this._swapToggleIcon(btn, item.activeIcon);
+        }
       }
 
       // Click handler
@@ -716,10 +733,27 @@
         btn.classList.toggle('is-active');
         const isActive = btn.classList.contains('is-active');
         this.state[item.id] = isActive;
+        // Swap icon if activeIcon is configured
+        if (item.activeIcon) {
+          this._swapToggleIcon(btn, isActive ? item.activeIcon : item.icon);
+        }
         this.dispatchEvent('toggle', { id: item.id, isActive, ...item });
       });
 
       return btn;
+    }
+
+    /**
+     * Swap the icon inside a toggle button
+     * @param {HTMLElement} btn - Toggle button element
+     * @param {string} iconStr - New icon identifier
+     */
+    _swapToggleIcon(btn, iconStr) {
+      const oldIcon = btn.querySelector('.vp-toggle-icon');
+      const newIcon = this.createIcon(iconStr, 'vp-toggle-icon');
+      if (oldIcon && newIcon) {
+        oldIcon.replaceWith(newIcon);
+      }
     }
 
     /**
@@ -890,6 +924,10 @@
         const toggle = this.container?.querySelector(`[data-toggle="${key}"]`);
         if (toggle) {
           toggle.classList.toggle('is-active', value);
+          // Swap icon if toggle has activeIcon configured
+          if (toggle.dataset.toggleActiveIcon) {
+            this._swapToggleIcon(toggle, value ? toggle.dataset.toggleActiveIcon : toggle.dataset.toggleIcon);
+          }
         }
 
         // Update checkbox states

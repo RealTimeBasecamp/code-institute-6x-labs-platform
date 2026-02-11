@@ -24,7 +24,7 @@
       rotationSnapValue: 10,
       scaleSnap: true,
       scaleSnapValue: 0.25,
-      cameraMode: 'perspective',
+      cameraMode: '2d',
       cameraSpeed: 3.5,
       renderMode: 'lit'
     };
@@ -86,13 +86,6 @@
           }));
           break;
 
-        case 'camera-mode':
-          window.viewportToolbarState.cameraMode = value;
-          document.dispatchEvent(new CustomEvent('viewportToolbar.cameraModeChange', {
-            detail: { cameraMode: value }
-          }));
-          break;
-
         case 'render-mode':
           window.viewportToolbarState.renderMode = value;
           document.dispatchEvent(new CustomEvent('viewportToolbar.renderModeChange', {
@@ -128,7 +121,27 @@
             detail: { enabled: isActive }
           }));
           break;
+
+        case 'camera-mode':
+          var mode = isActive ? '3d' : '2d';
+          window.viewportToolbarState.cameraMode = mode;
+          document.dispatchEvent(new CustomEvent('viewportToolbar.cameraModeChange', {
+            detail: { cameraMode: mode }
+          }));
+          break;
       }
+    });
+
+    // Apply 2D/3D view to the map when camera mode changes
+    document.addEventListener('viewportToolbar.cameraModeChange', function(e) {
+      var map = window._interactiveMapController && window._interactiveMapController.map;
+      if (!map) return;
+      var is3D = e.detail.cameraMode === '3d';
+      map.easeTo({
+        pitch: is3D ? 45 : 0,
+        bearing: 0,
+        duration: 600
+      });
     });
 
     // Handle setting change events (checkboxes, sliders, number inputs)

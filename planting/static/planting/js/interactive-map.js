@@ -780,7 +780,7 @@
                 if (!controller.map) return;
                 drawingMode = true;
 
-                // Switch to top-down view for drawing if user preference enabled
+                // Switch to 2D view for drawing if user preference enabled
                 const prefs = window.editorContext && window.editorContext.preferences;
                 if (!prefs || prefs.autoTopdownDrawing !== false) {
                     controller.map.easeTo({ pitch: 0, bearing: 0, duration: 400 });

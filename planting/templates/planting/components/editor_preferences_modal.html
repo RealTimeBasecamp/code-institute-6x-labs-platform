@@ -53,9 +53,9 @@
 
     <div class="settings-row">
       <div class="settings-row-info">
-        <div class="settings-row-label">Automatic top-down view</div>
+        <div class="settings-row-label">Automatic 2D view</div>
         <div class="settings-row-description">
-          Automatically switch the map to a top-down view when activating drawing tools.
+          Automatically switch the map to 2D view when activating drawing tools.
         </div>
       </div>
       <div class="settings-row-control">
@@ -64,7 +64,7 @@
             type="checkbox"
             data-field="auto_topdown_drawing"
             {% if editor_prefs.auto_topdown_drawing %}checked{% endif %}
-            aria-label="Automatic top-down view when drawing"
+            aria-label="Automatic 2D view when drawing"
           />
           <span class="slider"></span>
         </label>
@@ -73,9 +73,9 @@
 
     <div class="settings-row">
       <div class="settings-row-info">
-        <div class="settings-row-label">Set map direction to North in top-down view</div>
+        <div class="settings-row-label">Set map direction to North in 2D view</div>
         <div class="settings-row-description">
-          Rotate the map to face North when entering top-down drawing mode. The previous bearing is restored when you switch back to the select tool.
+          Rotate the map to face North when entering 2D drawing mode. The previous bearing is restored when you switch back to the select tool.
         </div>
       </div>
       <div class="settings-row-control">
@@ -84,7 +84,7 @@
             type="checkbox"
             data-field="north_up_drawing"
             {% if editor_prefs.north_up_drawing %}checked{% endif %}
-            aria-label="Set map direction to North in top-down view"
+            aria-label="Set map direction to North in 2D view"
           />
           <span class="slider"></span>
         </label>
