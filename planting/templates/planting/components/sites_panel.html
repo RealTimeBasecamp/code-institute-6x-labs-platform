@@ -1,0 +1,38 @@
+{% load static %}
+
+{% comment %}
+Sites Panel Component
+Shows the list of sites for the current project with visibility/lock toggles.
+
+Usage:
+{% include 'planting/components/sites_panel.html' with project=project %}
+
+Features:
+- Lists all project sites with eye/lock icons
+- Active site highlighted in bold
+- "Add Site" button in header
+- Previous/Next arrow buttons
+- Clicking a site row makes it active
+- Rebuilt when sites are created/deleted
+{% endcomment %}
+
+<div class="window-section">
+  <div class="window-section-header" data-section="sites-list">
+    <i class="bi bi-chevron-down"></i>
+    <span>Project Sites</span>
+    <button type="button" class="outliner-header-btn" id="sites-add-btn"
+            title="Add new site">
+      <i class="bi bi-plus-lg"></i>
+    </button>
+  </div>
+  <div class="window-section-content">
+    <div class="window-tree-view" id="sites-tree">
+      <div class="window-tree-item is-empty">
+        <i class="bi bi-inbox"></i>
+        <span>No sites</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="{% static 'planting/js/components/sites-panel.js' %}"></script>

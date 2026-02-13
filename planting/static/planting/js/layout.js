@@ -105,7 +105,7 @@ function bindComponent(container) {
     if (componentType === 'viewport') {
       template.style.display = '';
       template.removeAttribute('id');
-      template.className = 'gl-component';
+      template.classList.add('gl-component');
       container.element.appendChild(template);
 
       const resizeMap = () => window.map?.resize?.();
@@ -116,7 +116,7 @@ function bindComponent(container) {
       const clone = template.cloneNode(true);
       clone.style.display = '';
       clone.removeAttribute('id');
-      clone.className = 'gl-component';
+      clone.classList.add('gl-component');
       container.element.appendChild(clone);
     }
   } else {

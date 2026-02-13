@@ -51,7 +51,6 @@
 
     // Create input based on type
     let input;
-    const hasDefault = config.default !== undefined;
 
     // Order of elements in valueContainer:
     // 1. Input field (number/text/select) or range slider
@@ -93,19 +92,26 @@
         break;
     }
 
-    // Add reset button if default value exists (Order 3)
-    if (hasDefault && config.type !== 'checkbox') { // Checkboxes typically don't need reset
-      const resetBtn = createResetButton(config.id, config.default);
-      valueContainer.appendChild(resetBtn);
-    }
-
-    // Add unit label if provided (Order 4 - always last)
+    // Add unit label if provided (Order 3 - before reset button)
     if (config.unit && config.type === 'number') {
       const unitLabel = document.createElement('span');
       unitLabel.className = 'property-unit';
       unitLabel.textContent = config.unit;
       valueContainer.appendChild(unitLabel);
     }
+
+    // Always add reset button as last element on every field (Order 4)
+    // Resets to explicit default, or to initial value, or to empty
+    var defaultVal = config.default !== undefined
+      ? config.default
+      : (config.value !== undefined ? config.value : '');
+    if (config.type === 'checkbox' && defaultVal === '') {
+      defaultVal = false;
+    }
+    // Ensure the input always has data-default so the reset handler works
+    input.dataset.default = defaultVal;
+    const resetBtn = createResetButton(config.id, defaultVal);
+    valueContainer.appendChild(resetBtn);
 
     row.appendChild(valueContainer);
 

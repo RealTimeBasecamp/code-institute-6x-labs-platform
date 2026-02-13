@@ -42,26 +42,23 @@
       </div>
 
       {# Details Panel Content #}
-      <div id="template-details" data-panel-id="details" data-panel-title="Details" data-panel-icon="bi-sliders">
+      <div id="template-details" class="window-property-panel" data-panel-id="details" data-panel-title="Details" data-panel-icon="bi-sliders">
         {% include 'planting/components/details.html' with project=project %}
       </div>
 
       {# Point Plotter Panel Content #}
-      <div id="template-point-plotter" data-panel-id="point-plotter" data-panel-title="Point Plotter" data-panel-icon="bi-geo-alt">
+      <div id="template-point-plotter" class="window-property-panel" data-panel-id="point-plotter" data-panel-title="Point Plotter" data-panel-icon="bi-geo-alt">
         {% include 'planting/components/point_plotter.html' with project=project %}
       </div>
 
       {# Species Mixer Panel Content #}
-      <div id="template-species-mixer" data-panel-id="species-mixer" data-panel-title="Species Mixer" data-panel-icon="bi-shuffle">
+      <div id="template-species-mixer" class="window-property-panel" data-panel-id="species-mixer" data-panel-title="Species Mixer" data-panel-icon="bi-shuffle">
         {% include 'planting/components/species_mixer.html' with project=project %}
       </div>
 
       {# Sites Panel Content #}
       <div id="template-sites" data-panel-id="sites" data-panel-title="Sites" data-panel-icon="bi-geo">
-        <div class="sites-panel">
-          <h5>Project Sites</h5>
-          <p class="text-muted">Manage your project sites here.</p>
-        </div>
+        {% include 'planting/components/sites_panel.html' with project=project %}
       </div>
     </div>
 
@@ -94,6 +91,7 @@
 </script>
 <script src="{% static 'js/core/field-generator.js' %}" defer></script>
 <script src="{% static 'js/core/reset-button-handler.js' %}" defer></script>
+<script src="{% static 'js/core/property-divider.js' %}" defer></script>
 {# Core - state manager and Terra Draw bridge (replaces drawing-manager.js) #}
 <script src="{% static 'planting/js/core/state-manager.js' %}" defer></script>
 <script src="{% static 'planting/js/core/corner-shape-modes.js' %}" defer></script>
@@ -113,9 +111,14 @@
 {# Components - viewport panels #}
 <script src="{% static 'planting/js/components/tool-options-panel.js' %}" defer></script>
 <script src="{% static 'planting/js/components/map-search.js' %}" defer></script>
+{# Site creation workflow (modal + staged drawing) #}
+<script src="{% static 'planting/js/core/site-creation-workflow.js' %}" defer></script>
 
 {# Open Project Modal #}
 {% include 'planting/components/open_project_modal.html' %}
+
+{# New Site Modal #}
+{% include 'planting/components/new_site_modal.html' %}
 
 {# Editor Preferences Modal #}
 {% include 'planting/components/editor_preferences_modal.html' %}

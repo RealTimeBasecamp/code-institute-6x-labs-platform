@@ -26,7 +26,9 @@
     },
 
     newSite: function() {
-      // TODO: Open new site modal
+      if (window.SiteCreationWorkflow) {
+        window.SiteCreationWorkflow.start();
+      }
     },
 
     openProjectBrowser: function() {

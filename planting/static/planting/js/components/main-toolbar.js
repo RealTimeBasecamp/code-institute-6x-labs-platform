@@ -75,12 +75,66 @@
 
       if (dropdownId === 'site-dropdown') {
         window.mainToolbarState.currentSite = value;
+        // Sync with siteManager if available
+        if (window.siteManager) {
+          window.siteManager.setActive(value);
+        }
         // Dispatch site change event for other components
         document.dispatchEvent(new CustomEvent('mainToolbar.siteChange', {
           detail: { site: value, label: label }
         }));
       }
     });
+
+    // Listen for siteManager changes and update the dropdown to stay in sync
+    document.addEventListener('siteManager.siteChanged', function(e) {
+      const siteId = e.detail && e.detail.siteId;
+      if (!siteId) return;
+      window.mainToolbarState.currentSite = siteId;
+      updateSiteDropdownUI(siteId);
+    });
+
+    // Rebuild site dropdown when sites are added or removed
+    document.addEventListener('siteManager.siteAdded', function() { rebuildSiteDropdown(); });
+    document.addEventListener('siteManager.siteRemoved', function() { rebuildSiteDropdown(); });
+
+    /**
+     * Rebuild the site dropdown options from siteManager data.
+     */
+    function rebuildSiteDropdown() {
+      if (!window.siteManager || !toolbar.updateDropdownOptions) return;
+      var sites = window.siteManager.sites;
+      var options = sites.map(function(s) {
+        return {
+          value: s.id,
+          label: s.name || 'Untitled Site',
+          isSelected: s.id === window.siteManager.activeSiteId
+        };
+      });
+      if (options.length === 0) {
+        options = [{ value: '', label: 'No sites', isSelected: false }];
+      }
+      toolbar.updateDropdownOptions('site-dropdown', options);
+    }
+
+    /**
+     * Update the visual state of the site dropdown to reflect the active site.
+     */
+    function updateSiteDropdownUI(siteId) {
+      const siteDropdown = container.querySelector('[data-dropdown-id="site-dropdown"]');
+      if (!siteDropdown) return;
+      const menu = siteDropdown.querySelector('.vp-dropdown-menu');
+      if (menu) {
+        menu.querySelectorAll('.vp-dropdown-item').forEach(function(item) {
+          item.classList.toggle('is-selected', item.dataset.value === String(siteId));
+          if (item.dataset.value === String(siteId)) {
+            const trigger = siteDropdown.querySelector('.vp-dropdown-trigger');
+            const label = trigger && trigger.querySelector('.vp-btn-label');
+            if (label) label.textContent = item.textContent;
+          }
+        });
+      }
+    }
 
     /**
      * Populate the add-components dropdown from components toolbar config.
@@ -148,45 +202,23 @@
     }
 
     /**
-     * Navigate to previous or next site
+     * Navigate to previous or next site using siteManager data.
      * @param {number} direction - Direction (-1 for previous, 1 for next)
      */
     function navigateSite(direction) {
-      const sites = ['site-1', 'site-2', 'site-3'];
-      const currentIndex = sites.indexOf(window.mainToolbarState.currentSite);
-      let newIndex = currentIndex + direction;
+      var sm = window.siteManager;
+      if (!sm || sm.sites.length === 0) return;
+
+      var siteIds = sm.sites.map(function(s) { return s.id; });
+      var currentIndex = siteIds.indexOf(sm.activeSiteId);
+      var newIndex = currentIndex + direction;
 
       // Wrap around
-      if (newIndex < 0) newIndex = sites.length - 1;
-      if (newIndex >= sites.length) newIndex = 0;
+      if (newIndex < 0) newIndex = siteIds.length - 1;
+      if (newIndex >= siteIds.length) newIndex = 0;
 
-      const newSite = sites[newIndex];
-      window.mainToolbarState.currentSite = newSite;
-
-      // Update dropdown display
-      toolbar.updateDropdownOptions && toolbar.updateState?.({ currentSite: newSite });
-
-      // Find and click the corresponding dropdown item to update UI
-      const siteDropdown = container.querySelector('[data-dropdown-id="site-dropdown"]');
-      const menu = siteDropdown?.querySelector('.vp-dropdown-menu');
-      if (menu) {
-        const items = menu.querySelectorAll('.vp-dropdown-item');
-        items.forEach(item => {
-          item.classList.remove('is-selected');
-          if (item.dataset.value === newSite) {
-            item.classList.add('is-selected');
-            // Update trigger label
-            const trigger = siteDropdown.querySelector('.vp-dropdown-trigger');
-            const label = trigger?.querySelector('.vp-btn-label');
-            if (label) label.textContent = item.textContent;
-          }
-        });
-      }
-
-      // Dispatch site change event
-      document.dispatchEvent(new CustomEvent('mainToolbar.siteChange', {
-        detail: { site: newSite }
-      }));
+      var newSiteId = siteIds[newIndex];
+      sm.setActive(newSiteId);
     }
   });
 })();

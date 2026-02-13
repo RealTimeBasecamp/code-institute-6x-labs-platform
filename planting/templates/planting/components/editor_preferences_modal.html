@@ -9,6 +9,9 @@
   <button class="settings-sidebar-item active" data-section="general">
     <i class="bi bi-sliders"></i> General
   </button>
+  <button class="settings-sidebar-item" data-section="sites">
+    <i class="bi bi-geo-alt"></i> Sites
+  </button>
   <button class="settings-sidebar-item" data-section="drawing">
     <i class="bi bi-pencil-square"></i> Drawing
   </button>
@@ -41,6 +44,55 @@
           />
           <span class="settings-range-value">{{ editor_prefs.ui_scale|default:'1.0' }}</span>
         </div>
+      </div>
+    </div>
+  </div>
+
+  {# ---- Sites ---- #}
+  <div class="settings-section" data-section="sites">
+    <div class="settings-section-title">Sites</div>
+
+    <div class="settings-content-group-header">Components</div>
+
+    <div class="settings-row">
+      <div class="settings-row-info">
+        <div class="settings-row-label">Relative scaling for child components</div>
+        <div class="settings-row-description">
+          When enabled, components parented under a site boundary will scale proportionally when the site boundary is resized.
+        </div>
+      </div>
+      <div class="settings-row-control">
+        <label class="toggle-switch">
+          <input
+            type="checkbox"
+            data-field="relative_child_scaling"
+            {% if editor_prefs.relative_child_scaling %}checked{% endif %}
+            aria-label="Relative scaling for child components"
+          />
+          <span class="slider"></span>
+        </label>
+      </div>
+    </div>
+
+    <div class="settings-content-group-header">Animation</div>
+
+    <div class="settings-row">
+      <div class="settings-row-info">
+        <div class="settings-row-label">Play flying animation between sites</div>
+        <div class="settings-row-description">
+          Animate the camera with a smooth fly-to transition when switching between sites. When disabled, the view changes instantly.
+        </div>
+      </div>
+      <div class="settings-row-control">
+        <label class="toggle-switch">
+          <input
+            type="checkbox"
+            data-field="fly_between_sites"
+            {% if editor_prefs.fly_between_sites %}checked{% endif %}
+            aria-label="Play flying animation between sites"
+          />
+          <span class="slider"></span>
+        </label>
       </div>
     </div>
   </div>

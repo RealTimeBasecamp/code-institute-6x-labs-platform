@@ -297,30 +297,43 @@
 
 /* ============================================
    Panel Content - Property Grid (Details)
+   UE5-style divider: a single --property-divider-pos
+   CSS variable on the panel container controls the
+   label/value split across ALL sections in that panel.
    ============================================ */
+
 .window-property-grid {
   display: flex;
   flex-direction: column;
-  gap: var(--editor-spacing-xs);
+  gap: 0;
 }
 
 .window-property-row {
   display: flex;
-  align-items: center;
-  gap: var(--editor-spacing-md);
-  padding: var(--editor-spacing-sm) 0;
+  align-items: stretch;           /* Stretch so divider spans full row height */
+  gap: 0;
+  padding: 0;
   min-width: 0;
   flex-shrink: 1;
+  border-bottom: 1px solid color-mix(in srgb, var(--bs-border-color) 40%, transparent);
 }
 
 .window-property-label {
+  /* Width driven by the panel-level divider variable */
+  width: var(--property-divider-pos, 35%);
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;            /* Centre text vertically inside stretched label */
   font-size: var(--editor-font-sm);
   color: var(--bs-secondary-color);
-  text-align: right;
+  text-align: left;
   white-space: nowrap;
+  overflow: hidden;
   text-overflow: ellipsis;
-  min-width: 0;
-  flex-shrink: 1;
+  padding: 2px var(--editor-spacing-base);
+  box-sizing: border-box;
+  /* Subtle divider — full row height, only within rows */
+  border-right: 1px solid color-mix(in srgb, var(--bs-border-color) 35%, transparent);
 }
 
 .window-property-value {
@@ -331,18 +344,43 @@
   min-width: 0;
   flex-shrink: 1;
   overflow: hidden;
+  padding: 2px var(--editor-spacing-base);
+}
+
+/* Highlight divider when hovering the drag zone */
+.window-property-row.is-divider-hover .window-property-label {
+  border-right-color: var(--primary-color, var(--bs-primary));
+}
+
+/* While actively dragging the divider */
+.property-divider-dragging {
+  cursor: col-resize !important;
+  user-select: none !important;
+}
+
+.property-divider-dragging * {
+  cursor: col-resize !important;
 }
 
 .window-property-value input,
 .window-property-value select {
   flex: 1;
   min-width: 0;
-  padding: var(--editor-spacing-sm) var(--editor-spacing-base);
-  font-size: var(--editor-font-base);
+  padding: 3px var(--editor-spacing-sm);
+  font-size: var(--editor-font-sm);
   background: var(--bs-body-bg);
   border: 1px solid var(--bs-border-color);
   border-radius: var(--editor-radius-sm);
   color: var(--bs-body-color);
+  height: calc(24px * var(--ui-scale));
+}
+
+/* Checkboxes: left-align, don't stretch to fill row */
+.window-property-value input[type="checkbox"] {
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  margin: 0;
 }
 
 .window-property-value input:focus,
@@ -370,8 +408,8 @@
   color: var(--bs-secondary-color);
   cursor: pointer;
   border-radius: var(--editor-radius-sm);
-  min-width: 0;
-  flex-shrink: 1;
+  flex: 0 0 auto;
+  margin-left: auto;              /* Push to far right */
 }
 
 .property-reset-btn:hover {
@@ -402,7 +440,7 @@
   user-select: none;
   font-size: var(--editor-font-base);
   font-weight: 500;
-  margin: calc(-1 * var(--editor-spacing-md)) calc(-1 * var(--editor-spacing-md)) var(--editor-spacing-md) calc(-1 * var(--editor-spacing-md));
+  margin: 0 calc(-1 * var(--editor-spacing-md)) var(--editor-spacing-xs);
 }
 
 .window-section-header span {
@@ -424,7 +462,7 @@
 }
 
 .window-section-content {
-  padding: var(--editor-spacing-md) 0;
+  padding: var(--editor-spacing-xs) 0;
 }
 
 .window-section.is-collapsed .window-section-content {
@@ -470,4 +508,257 @@
 
 .editor-container ::-webkit-scrollbar-thumb:hover {
   background: var(--bs-secondary-color);
+}
+
+/* ============================================
+   New Site Modal — Option Cards
+   ============================================ */
+.site-creation-option {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 16px 20px;
+  border-radius: 8px;
+  background: var(--bs-body-bg);
+  border: 1px solid var(--bs-border-color);
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+  text-align: left;
+  color: var(--bs-body-color);
+  width: 100%;
+}
+
+.site-creation-option:hover:not(.is-disabled) {
+  background: color-mix(in srgb, var(--bs-primary) 8%, var(--bs-body-bg));
+  border-color: var(--bs-primary);
+}
+
+.site-creation-option.is-disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.site-creation-option-icon {
+  width: 48px;
+  height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--bs-primary) 12%, transparent);
+  color: var(--bs-primary);
+  font-size: 1.35rem;
+  flex-shrink: 0;
+}
+
+.site-creation-option.is-disabled .site-creation-option-icon {
+  background: var(--bs-secondary-bg);
+  color: var(--bs-secondary-color);
+}
+
+.site-creation-option-body {
+  flex: 1;
+  min-width: 0;
+}
+
+.site-creation-option-title {
+  font-weight: 600;
+  font-size: 0.925rem;
+  margin-bottom: 2px;
+}
+
+.site-creation-option-desc {
+  font-size: 0.8rem;
+  color: var(--bs-secondary-color);
+  line-height: 1.4;
+}
+
+/* ============================================
+   Viewport Workflow Overlay — Back / Confirm bar
+   ============================================ */
+.viewport-workflow-overlay {
+  position: absolute;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 1000;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  pointer-events: none;
+}
+
+.viewport-workflow-overlay > * {
+  pointer-events: auto;
+}
+
+.viewport-workflow-stage {
+  font-size: 0.75rem;
+  color: var(--bs-light);
+  background: rgba(0, 0, 0, 0.6);
+  padding: 4px 14px;
+  border-radius: 20px;
+  backdrop-filter: blur(4px);
+  user-select: none;
+}
+
+.viewport-workflow-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 16px;
+  background: rgba(0, 0, 0, 0.7);
+  border-radius: 10px;
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.viewport-workflow-bar .btn {
+  min-width: 90px;
+  font-size: 0.8rem;
+}
+
+/* ============================================
+   Viewport Workflow — Site Name Input
+   ============================================ */
+.viewport-workflow-input {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+}
+
+.viewport-workflow-input label {
+  font-size: 0.75rem;
+  color: var(--bs-light);
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
+  user-select: none;
+}
+
+.viewport-workflow-input input {
+  width: 280px;
+  padding: 8px 14px;
+  font-size: 0.875rem;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  background: rgba(0, 0, 0, 0.6);
+  color: #fff;
+  backdrop-filter: blur(8px);
+  text-align: center;
+}
+
+.viewport-workflow-input input::placeholder {
+  color: rgba(255, 255, 255, 0.4);
+}
+
+.viewport-workflow-input input:focus {
+  outline: none;
+  border-color: var(--bs-primary);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--bs-primary) 30%, transparent);
+}
+
+.viewport-workflow-input .invalid-feedback {
+  font-size: 0.75rem;
+  color: #ff6b6b;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
+}
+
+/* ============================================
+   Viewport Workflow — Crosshair Overlay
+   ============================================ */
+.viewport-crosshair {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  pointer-events: none;
+  z-index: 999;
+}
+
+.viewport-crosshair::before,
+.viewport-crosshair::after {
+  content: '';
+  position: absolute;
+  background: rgba(255, 255, 255, 0.8);
+  box-shadow: 0 0 4px rgba(0, 0, 0, 0.5);
+}
+
+/* Horizontal line */
+.viewport-crosshair::before {
+  top: 50%;
+  left: calc(50% - 30px);
+  width: 60px;
+  height: 1px;
+  transform: translateY(-0.5px);
+}
+
+/* Vertical line */
+.viewport-crosshair::after {
+  left: 50%;
+  top: calc(50% - 30px);
+  width: 1px;
+  height: 60px;
+  transform: translateX(-0.5px);
+}
+
+/* Centre dot */
+.viewport-crosshair-dot {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 6px;
+  height: 6px;
+  background: var(--bs-primary);
+  border: 1px solid #fff;
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  box-shadow: 0 0 6px rgba(0, 0, 0, 0.5);
+}
+
+/* ============================================
+   Viewport Dim Overlay — Greys out viewport
+   during name input stage (map locked)
+   ============================================ */
+.viewport-workflow-dim {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 998;
+  pointer-events: none;
+}
+
+/* ============================================
+   No-Sites Guard — Shown when project has
+   no sites, blocks tools until site created
+   ============================================ */
+.viewport-no-sites-guard {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.4);
+  z-index: 997;
+}
+
+.viewport-no-sites-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 32px 40px;
+  background: rgba(0, 0, 0, 0.7);
+  border-radius: 12px;
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: #fff;
+  text-align: center;
 }

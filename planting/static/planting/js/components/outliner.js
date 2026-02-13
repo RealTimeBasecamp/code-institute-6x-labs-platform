@@ -55,9 +55,17 @@
     'Point':      'bi-geo-alt',
   };
 
+  // data_type → icon mapping (takes priority over name-based icons)
+  var DATA_TYPE_ICONS = {
+    'site_boundary': 'bi-geo-alt-fill',
+  };
+
   var DEFAULT_ICON = 'bi-bounding-box';
 
   function iconForComponent(comp) {
+    if (comp.data_type && DATA_TYPE_ICONS[comp.data_type]) {
+      return DATA_TYPE_ICONS[comp.data_type];
+    }
     return COMPONENT_ICONS[comp.name] || DEFAULT_ICON;
   }
 
@@ -389,6 +397,14 @@
 
     function byZOrder(a, b) { return (a.z_order || 0) - (b.z_order || 0); }
 
+    /** Sort comparator that puts site_boundary components first, then by z_order. */
+    function siteFirstThenZOrder(a, b) {
+      var aIsSite = a.data_type === 'site_boundary' ? 0 : 1;
+      var bIsSite = b.data_type === 'site_boundary' ? 0 : 1;
+      if (aIsSite !== bIsSite) return aIsSite - bIsSite;
+      return (a.z_order || 0) - (b.z_order || 0);
+    }
+
     var folders = [];
     sm.folders.forEach(function (f) { folders.push(f); });
     folders.sort(byZOrder);
@@ -397,6 +413,22 @@
       treeEl.innerHTML = '<div class="window-tree-item is-empty"><i class="bi bi-inbox"></i><span>No components</span></div>';
       return;
     }
+
+    // Render site_boundary components first (top-level in the tree)
+    rootComponents.sort(siteFirstThenZOrder);
+    var siteBoundaries = [];
+    var otherRootComponents = [];
+    rootComponents.forEach(function (comp) {
+      if (comp.data_type === 'site_boundary') {
+        siteBoundaries.push(comp);
+      } else {
+        otherRootComponents.push(comp);
+      }
+    });
+
+    siteBoundaries.forEach(function (comp) {
+      treeEl.appendChild(buildComponentRow(comp, 0));
+    });
 
     folders.forEach(function (folder) {
       treeEl.appendChild(buildFolderRow(folder, 0));
@@ -410,7 +442,7 @@
       }
     });
 
-    rootComponents.sort(byZOrder).forEach(function (comp) {
+    otherRootComponents.forEach(function (comp) {
       treeEl.appendChild(buildComponentRow(comp, 0));
     });
 
