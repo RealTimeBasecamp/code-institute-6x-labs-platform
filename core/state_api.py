@@ -20,6 +20,7 @@ logger = logging.getLogger(__name__)
 
 
 # Action type handlers registry
+# Maps action type patterns to handler functions
 ACTION_HANDLERS = {}
 
 
