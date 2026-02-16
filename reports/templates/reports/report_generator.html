@@ -73,6 +73,19 @@
                             <input type="file" class="form-control form-control-sm" accept="image/*">
                         </div>
 
+                        {# TODO This should be an expandable section with 5 blocks like theme selection in user settings #}
+                        {# Make box selection a component to populate #}
+                        <div class="form-check mb-2">
+                            <label class="form-check-label" for="orientation">Theme</label>
+                            <select class="form-select form-select-sm w-auto" id="Brand colours (Default)">
+                                    <option>Brand colours (Default)</option>
+                                    <option>Light</option>
+                                    <option>Dark</option>
+                                    <option>High contrast</option>
+                                    <option>Custom</option>
+                            </select>
+                        </div>
+
                         <div class="form-check mb-2">
                             <label class="form-check-label" for="toc">Table of contents (recommended)</label>
                             <input class="form-check-input" type="checkbox" id="toc" checked>
