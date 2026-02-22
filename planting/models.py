@@ -185,6 +185,118 @@ class Species(models.Model):
         blank=True
     )
 
+    # ── Ecological attributes (used by the species mixer AI) ─────────────────
+
+    # Soil preferences
+    SOIL_TYPE_CLAY = 'clay'
+    SOIL_TYPE_SANDY = 'sandy'
+    SOIL_TYPE_LOAMY = 'loamy'
+    SOIL_TYPE_SILTY = 'silty'
+    SOIL_TYPE_PEATY = 'peaty'
+    SOIL_TYPE_CHALKY = 'chalky'
+
+    SOIL_MOISTURE_DRY = 'dry'
+    SOIL_MOISTURE_MOIST = 'moist'
+    SOIL_MOISTURE_WET = 'wet'
+    SOIL_MOISTURE_VARIABLE = 'variable'
+    SOIL_MOISTURE_CHOICES = [
+        (SOIL_MOISTURE_DRY, 'Dry'),
+        (SOIL_MOISTURE_MOIST, 'Moist'),
+        (SOIL_MOISTURE_WET, 'Wet'),
+        (SOIL_MOISTURE_VARIABLE, 'Variable'),
+    ]
+
+    SHADE_NONE = 'none'
+    SHADE_PARTIAL = 'partial'
+    SHADE_FULL = 'full'
+    SHADE_CHOICES = [
+        (SHADE_NONE, 'Full Sun'),
+        (SHADE_PARTIAL, 'Partial Shade'),
+        (SHADE_FULL, 'Full Shade'),
+    ]
+
+    # Accepted soil types for this species (list of SOIL_TYPE_* values)
+    soil_types = models.JSONField(
+        default=list,
+        blank=True,
+        help_text="List of accepted soil types, e.g. ['clay', 'loamy', 'peaty']"
+    )
+    soil_ph_min = models.FloatField(
+        null=True,
+        blank=True,
+        help_text="Minimum soil pH tolerated (e.g. 4.5)"
+    )
+    soil_ph_max = models.FloatField(
+        null=True,
+        blank=True,
+        help_text="Maximum soil pH tolerated (e.g. 7.5)"
+    )
+    soil_moisture = models.CharField(
+        max_length=20,
+        choices=SOIL_MOISTURE_CHOICES,
+        null=True,
+        blank=True,
+        help_text="Preferred soil moisture level"
+    )
+    shade_tolerance = models.CharField(
+        max_length=20,
+        choices=SHADE_CHOICES,
+        null=True,
+        blank=True,
+        help_text="Shade tolerance level"
+    )
+
+    # Climate preferences
+    climate_zones = models.JSONField(
+        default=list,
+        blank=True,
+        help_text="Accepted climate zones, e.g. ['temperate', 'continental']"
+    )
+    min_annual_rainfall_mm = models.IntegerField(
+        null=True,
+        blank=True,
+        help_text="Minimum annual rainfall (mm) this species can tolerate"
+    )
+    max_annual_rainfall_mm = models.IntegerField(
+        null=True,
+        blank=True,
+        help_text="Maximum annual rainfall (mm) this species can tolerate"
+    )
+    min_temp_c = models.FloatField(
+        null=True,
+        blank=True,
+        help_text="Minimum winter temperature tolerated (°C)"
+    )
+
+    # Ecological benefits
+    ecological_benefits = models.JSONField(
+        default=list,
+        blank=True,
+        help_text=(
+            "List of ecological benefits, e.g. "
+            "['pollinator', 'erosion_control', 'carbon_sequestration', 'wildlife_habitat', 'biodiversity']"
+        )
+    )
+
+    # Native range
+    native_regions = models.JSONField(
+        default=list,
+        blank=True,
+        help_text="UK/EU regions where this species is native, e.g. ['scotland', 'england', 'wales', 'ireland']"
+    )
+    gbif_taxon_key = models.IntegerField(
+        null=True,
+        blank=True,
+        help_text="GBIF taxon key for cross-referencing occurrence data"
+    )
+
+    # Planting geometry (higher-level than spacing_mm, in metres)
+    typical_spacing_m = models.FloatField(
+        null=True,
+        blank=True,
+        help_text="Typical planting spacing in metres (used by species mixer map visualisation)"
+    )
+
     class Meta:
         verbose_name_plural = "Species"
 

@@ -1,5 +1,93 @@
 /* ===== Species Mixer Component ===== */
 
+/* ── Step Progress Bar ───────────────────────────────────────── */
+.mixer-step-bar {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.mixer-step-bar__inner {
+  display: flex;
+  align-items: center;
+  min-width: max-content;
+  padding: 0.5rem 0;
+}
+
+.mixer-step {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  opacity: 0.4;
+  transition: opacity 0.2s ease;
+}
+
+.mixer-step.active {
+  opacity: 1;
+}
+
+.mixer-step.complete {
+  opacity: 0.8;
+}
+
+.mixer-step__num {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.75rem;
+  height: 1.75rem;
+  border-radius: 50%;
+  font-size: 0.8rem;
+  font-weight: 600;
+  background-color: var(--bs-secondary-bg);
+  color: var(--bs-secondary-color);
+  border: 2px solid var(--bs-border-color);
+  transition: background-color 0.2s, border-color 0.2s, color 0.2s;
+  flex-shrink: 0;
+}
+
+.mixer-step.active .mixer-step__num {
+  background-color: var(--bs-primary, #059acc);
+  border-color: var(--bs-primary, #059acc);
+  color: #fff;
+}
+
+.mixer-step.complete .mixer-step__num {
+  background-color: var(--bs-success, #198754);
+  border-color: var(--bs-success, #198754);
+  color: #fff;
+}
+
+/* Override Unicode content for complete steps */
+.mixer-step.complete .mixer-step__num::after {
+  content: '✓';
+  font-size: 0.7rem;
+  position: absolute;
+}
+.mixer-step.complete .mixer-step__num {
+  position: relative;
+  font-size: 0; /* hide number when showing checkmark */
+}
+
+.mixer-step__label {
+  font-size: 0.8rem;
+  font-weight: 500;
+  white-space: nowrap;
+  color: var(--bs-body-color);
+}
+
+.mixer-step__connector {
+  flex: 0 0 3rem;
+  height: 2px;
+  background-color: var(--bs-border-color);
+  margin: 0 0.25rem;
+}
+
+/* ── Step prompt card ────────────────────────────────────────── */
+.mixer-step-prompt {
+  border-style: dashed;
+  background-color: var(--bs-tertiary-bg);
+}
+
 /* ── Map Card ────────────────────────────────────────────────── */
 .species-mixer-map-card {
   height: 100%;
@@ -9,6 +97,41 @@
   min-height: 55vh;
   background-color: var(--bs-body-bg);
   border-radius: 0 0 var(--bs-border-radius) var(--bs-border-radius);
+}
+
+.species-mixer-map-empty {
+  padding: 2rem;
+  text-align: center;
+  color: var(--bs-secondary-color);
+  background: transparent;
+  z-index: 5;
+}
+
+/* Location badge overlaid on the map */
+.mixer-location-badge {
+  position: absolute;
+  bottom: 0.75rem;
+  left: 0.75rem;
+  z-index: 10;
+  padding: 0.35rem 0.75rem;
+  border-radius: var(--bs-border-radius-pill);
+  background-color: rgba(25, 135, 84, 0.9);  /* success green */
+  backdrop-filter: blur(4px);
+  color: #fff;
+  font-size: 0.8rem;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  max-width: 90%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.mixer-location-badge .btn {
+  font-size: 0.7rem;
+  color: rgba(255,255,255,.85) !important;
 }
 
 .species-mixer-select {
@@ -145,6 +268,38 @@
 .species-mixer-saved-mix--empty:hover {
   border-color: var(--bs-primary, #059acc);
   background-color: var(--bs-hover-bg);
+}
+
+/* ── Species search autocomplete dropdown ────────────────────── */
+.species-search-dropdown {
+  top: 100%;
+  left: 0;
+  right: 0;
+  z-index: 1050;
+  max-height: 15rem;
+  overflow-y: auto;
+  border: 1px solid var(--bs-border-color);
+  border-radius: var(--bs-border-radius);
+  box-shadow: var(--bs-box-shadow);
+  background-color: var(--bs-body-bg);
+}
+
+.species-search-dropdown .list-group-item {
+  font-size: 0.85rem;
+  border-left: none;
+  border-right: none;
+  cursor: pointer;
+}
+
+.species-search-dropdown .list-group-item:first-child {
+  border-top: none;
+}
+
+/* ── Env data chips ───────────────────────────────────────────── */
+.env-chip {
+  font-size: 0.75rem;
+  font-weight: 500;
+  letter-spacing: 0.01em;
 }
 
 /* ── Responsive adjustments ──────────────────────────────────── */
