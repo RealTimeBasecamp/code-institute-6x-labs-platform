@@ -14,6 +14,8 @@ import logging
 from django.contrib import admin, messages
 from django.utils.html import format_html
 
+from core.utils.parsers import pipe_separated_list, safe_float, safe_int
+
 from .models import EditorPreferences, PlantStatus, Species
 
 logger = logging.getLogger(__name__)
@@ -142,31 +144,16 @@ class SpeciesAdmin(admin.ModelAdmin):
                     skipped += 1
                     continue
 
-                def parse_list(val):
-                    return [v.strip() for v in val.split('|') if v.strip()] if val.strip() else []
-
-                def parse_float(val):
-                    try:
-                        return float(val.strip()) if val.strip() else None
-                    except ValueError:
-                        return None
-
-                def parse_int(val):
-                    try:
-                        return int(val.strip()) if val.strip() else None
-                    except ValueError:
-                        return None
-
-                if row.get('soil_ph_min'): species.soil_ph_min = parse_float(row['soil_ph_min'])
-                if row.get('soil_ph_max'): species.soil_ph_max = parse_float(row['soil_ph_max'])
-                if row.get('soil_types'): species.soil_types = parse_list(row['soil_types'])
+                if row.get('soil_ph_min'): species.soil_ph_min = safe_float(row['soil_ph_min'])
+                if row.get('soil_ph_max'): species.soil_ph_max = safe_float(row['soil_ph_max'])
+                if row.get('soil_types'): species.soil_types = pipe_separated_list(row['soil_types'])
                 if row.get('soil_moisture'): species.soil_moisture = row['soil_moisture'].strip()
                 if row.get('shade_tolerance'): species.shade_tolerance = row['shade_tolerance'].strip()
-                if row.get('climate_zones'): species.climate_zones = parse_list(row['climate_zones'])
-                if row.get('min_annual_rainfall_mm'): species.min_annual_rainfall_mm = parse_int(row['min_annual_rainfall_mm'])
-                if row.get('max_annual_rainfall_mm'): species.max_annual_rainfall_mm = parse_int(row['max_annual_rainfall_mm'])
-                if row.get('min_temp_c'): species.min_temp_c = parse_float(row['min_temp_c'])
-                if row.get('ecological_benefits'): species.ecological_benefits = parse_list(row['ecological_benefits'])
+                if row.get('climate_zones'): species.climate_zones = pipe_separated_list(row['climate_zones'])
+                if row.get('min_annual_rainfall_mm'): species.min_annual_rainfall_mm = safe_int(row['min_annual_rainfall_mm'])
+                if row.get('max_annual_rainfall_mm'): species.max_annual_rainfall_mm = safe_int(row['max_annual_rainfall_mm'])
+                if row.get('min_temp_c'): species.min_temp_c = safe_float(row['min_temp_c'])
+                if row.get('ecological_benefits'): species.ecological_benefits = pipe_separated_list(row['ecological_benefits'])
                 if row.get('native_regions'): species.native_regions = parse_list(row['native_regions'])
                 if row.get('gbif_taxon_key'): species.gbif_taxon_key = parse_int(row['gbif_taxon_key'])
                 if row.get('typical_spacing_m'): species.typical_spacing_m = parse_float(row['typical_spacing_m'])

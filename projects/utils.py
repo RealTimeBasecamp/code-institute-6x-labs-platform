@@ -1,23 +1,6 @@
 import json
 
-
-def _extract_pts(coords):
-    pts = []
-    if isinstance(coords, list):
-        pts = coords
-    elif isinstance(coords, dict):
-        if coords.get('type') == 'Polygon' and coords.get('coordinates'):
-            try:
-                pts = coords.get('coordinates')[0]
-            except Exception:
-                pts = []
-        elif coords.get('coordinates') and isinstance(coords.get('coordinates')[0], (list, tuple)):
-            pts = coords.get('coordinates')
-
-    if pts and isinstance(pts[0], (list, tuple)) and isinstance(pts[0][0], (list, tuple)):
-        pts = pts[0]
-
-    return pts
+from core.utils.gis import extract_polygon_points as _extract_pts
 
 
 def build_site_bounds_and_list(project):

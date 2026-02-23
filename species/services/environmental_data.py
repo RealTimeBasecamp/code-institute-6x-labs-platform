@@ -31,8 +31,9 @@ ENVIRONMENTAL DATA (soil, climate, hydrology):
   ✅  EA Flood Map (England)     https://environment.data.gov.uk/spatialdata/
       Free WFS, no auth. Flood zone 2/3 for England.
 
-  ✅  SEPA Flood Risk (Scotland) https://maps.sepa.org.uk/arcgis/rest/services/
+  ✅  SEPA Flood Risk (Scotland) https://map.sepa.org.uk/server/rest/services/Open/Flood_Maps/MapServer/
       Free ArcGIS REST, no auth. Flood risk for Scotland.
+      Layer 0=High, 1=Medium, 2=Low. inSR=4326 required for WGS84 input.
 
   ⛔  WorldClim v2.1             https://worldclim.org/data/index.html
       Download-only GeoTIFF rasters (no API). Pre-download + cache server-side.
@@ -86,6 +87,8 @@ import math
 
 import requests
 from django.core.cache import cache
+
+from core.utils.gis import wgs84_to_bng
 
 logger = logging.getLogger(__name__)
 
@@ -330,29 +333,64 @@ def _fetch_sepa_flood_risk(lat: float, lng: float) -> dict:
     """
     Query SEPA Flood Map for Scotland.
 
-    SEPA ArcGIS endpoint: https://maps.sepa.org.uk/arcgis/rest/services/
-    Free, no auth. May be unreachable from some networks — falls back to 'low'.
+    SEPA ArcGIS REST endpoint (new domain as of 2024):
+      https://map.sepa.org.uk/server/rest/services/Open/Flood_Maps/MapServer/
+      Layer 0: River Flooding High Likelihood
+      Layer 1: River Flooding Medium Likelihood
+      Layer 2: River Flooding Low Likelihood
+
+    The data is stored in EPSG:27700 (British National Grid). The ArcGIS
+    inSR=4326 parameter is not reliably reprojecting inputs, so we convert
+    WGS84 → BNG in Python first using a pure implementation of the OS formula.
+    Distance is 500m around the point (BNG is in metres, so distance=500 works).
+
+    Note: the old domain maps.sepa.org.uk no longer exists in DNS.
     """
     result = {'flood_risk': 'low', 'water_body_nearby': False, 'source': 'sepa'}
+
     try:
-        data = _get(
-            'https://maps.sepa.org.uk/arcgis/rest/services/SEPA/Flood_Risk/MapServer/0/query',
-            params={
-                'geometry': f'{lng},{lat}',
-                'geometryType': 'esriGeometryPoint',
-                'inSR': '4326',
-                'distance': 500,
-                'units': 'esriSRUnit_Meter',
-                'returnCountOnly': 'true',
-                'f': 'json',
-            }
-        )
-        if data and data.get('count', 0) > 0:
+        easting, northing = wgs84_to_bng(lat, lng)
+    except Exception as exc:
+        logger.warning('BNG coordinate conversion failed for %.4f,%.4f: %s', lat, lng, exc)
+        return result
+
+    # BNG coordinates — no inSR needed, data is natively EPSG:27700
+    # distance=500 means 500 metres (BNG uses metres as its unit)
+    base_params = {
+        'geometry': f'{easting:.0f},{northing:.0f}',
+        'geometryType': 'esriGeometryPoint',
+        'spatialRel': 'esriSpatialRelIntersects',
+        'distance': 500,
+        'units': 'esriSRUnit_Meter',
+        'returnCountOnly': 'true',
+        'f': 'json',
+    }
+    base_url = 'https://map.sepa.org.uk/server/rest/services/Open/Flood_Maps/MapServer'
+
+    try:
+        # Layer 0 = High likelihood
+        high = _get(f'{base_url}/0/query', params=base_params)
+        if high and high.get('count', 0) > 0:
+            result['flood_risk'] = 'high'
+            result['water_body_nearby'] = True
+            return result
+
+        # Layer 1 = Medium likelihood
+        med = _get(f'{base_url}/1/query', params=base_params)
+        if med and med.get('count', 0) > 0:
             result['flood_risk'] = 'medium'
             result['water_body_nearby'] = True
-    except Exception:
-        # SEPA endpoint can be unreachable — silently fall back to 'low'
-        pass
+            return result
+
+        # Layer 2 = Low likelihood (still flag water_body_nearby)
+        low = _get(f'{base_url}/2/query', params=base_params)
+        if low and low.get('count', 0) > 0:
+            result['flood_risk'] = 'low'
+            result['water_body_nearby'] = True
+
+    except Exception as exc:
+        logger.warning('SEPA flood query failed for %.4f,%.4f: %s', lat, lng, exc)
+
     return result
 
 
