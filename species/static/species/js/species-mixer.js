@@ -32,11 +32,46 @@ class SpeciesMixer {
   static POLL_INTERVAL_MS      = 2000;  // 2s polling
   static RESCORE_DEBOUNCE_MS   = 1000; // 1s after slider stops
   static SEARCH_DEBOUNCE_MS    = 300;  // 300ms for species search
+  // Category colour palettes — each category gets a family of contrasting shades
+  // so map dots for all species of one type are visually grouped by hue,
+  // but individual species remain distinguishable from each other.
+  //
+  // Design intent (map legibility at small dot size):
+  //   Tree       — deep forest greens (both broadleaf & conifer; sub-type shown in tooltip)
+  //   Shrub      — warm olive/sage (lighter than trees, still green-family)
+  //   Wildflower — purples & violets (reads as "flower", far from greens)
+  //   Grass      — ambers & golds (warm, high contrast on green maps)
+  //   Fern       — lime/yellow-green (bright, clearly not a tree)
+  //   Moss       — muted blue-grey (subtle, low-prominence visually)
+  //   Fungi      — warm browns & sienna (earthy, unmistakably distinct)
+  //   Other      — neutral mid-greys
+  static CATEGORY_COLOURS = {
+    'tree':       ['#1B5E20','#2E7D32','#388E3C','#00695C','#43A047'],
+    'shrub':      ['#558B2F','#7CB342','#9CCC65','#827717','#A5D6A7'],
+    'wildflower': ['#4A148C','#6A1B9A','#7B1FA2','#AB47BC','#CE93D8'],
+    'grass':      ['#E65100','#F57C00','#FB8C00','#FFA000','#FFB300'],
+    'fern':       ['#9E9D24','#C0CA33','#CDDC39','#76FF03','#B2FF59'],
+    'moss':       ['#546E7A','#78909C','#90A4AE','#B0BEC5','#4E6252'],
+    'fungi':      ['#BF360C','#D84315','#6D4C41','#8D6E63','#A1887F'],
+    'other':      ['#424242','#616161','#757575','#9E9E9E','#BDBDBD'],
+  };
+
+  // Fallback for manual species adds where category may not be known yet
   static COLOURS = [
-    '#4CAF50','#2196F3','#F44336','#FF9800','#9C27B0',
-    '#00BCD4','#8BC34A','#FF5722','#3F51B5','#009688',
-    '#FFC107','#E91E63','#607D8B','#795548','#CDDC39',
+    '#1B5E20','#4A148C','#E65100','#00695C','#BF360C',
+    '#558B2F','#6A1B9A','#F57C00','#00897B','#9E9D24',
+    '#2E7D32','#7B1FA2','#FB8C00','#26A69A','#D84315',
   ];
+
+  // Return a colour from the correct category palette, cycling through shades
+  // as more species of the same category are added.
+  static colourForItem(category, indexWithinCategory) {
+    // Normalise legacy category names to current simplified set
+    const legacyMap = { 'broadleaf': 'tree', 'conifer': 'tree' };
+    const key = legacyMap[(category || '').toLowerCase()] || (category || '').toLowerCase();
+    const palette = SpeciesMixer.CATEGORY_COLOURS[key] || SpeciesMixer.CATEGORY_COLOURS['other'];
+    return palette[indexWithinCategory % palette.length];
+  }
 
   // ──────────────────────────────────────────────────────────────────────────
   // Constructor
@@ -295,7 +330,7 @@ class SpeciesMixer {
 
   async _startGeneration() {
     this._transitionTo(SpeciesMixer.STATE_4_GENERATING);
-    this._updateLoadingStatus('Starting BLOOM AI agent...');
+    this._updateLoadingStatus('Querying environmental data...');
 
     const goals = this._getGoals();
 
@@ -450,14 +485,14 @@ class SpeciesMixer {
 
   _generationStatusMessage() {
     const messages = [
-      'Starting BLOOM AI agent...',
+      'Querying environmental data...',
       'Querying SoilGrids — collecting soil pH and texture...',
       'Querying NBN Atlas — finding native species observed nearby...',
       'Querying GBIF — cross-referencing biodiversity records...',
       'Querying climate data — rainfall and temperature normals...',
       'Querying hydrology — assessing flood risk...',
-      'Searching species database for suitable candidates...',
-      'BLOOM is analysing ecological suitability...',
+      'Searching species databases for candidates...',
+      'Cross-referencing traits against environmental conditions...',
       'Selecting optimal mix based on your goals...',
       'Almost done — finalising species ratios...',
     ];
@@ -496,7 +531,7 @@ class SpeciesMixer {
   _onGenerationError(msg) {
     this._transitionTo(SpeciesMixer.STATE_3_GOALS_SET);
     document.getElementById('generate-mix-btn').innerHTML =
-      '<i class="bi bi-magic me-2"></i>Generate Mix with BLOOM AI';
+      '<i class="bi bi-magic me-2"></i>Generate Species Mix';
     // Show error in insights area
     document.getElementById('insights-placeholder')?.classList.remove('d-none');
     document.getElementById('insights-placeholder').innerHTML = `
@@ -504,7 +539,7 @@ class SpeciesMixer {
         <i class="bi bi-exclamation-triangle" style="font-size:1.5rem;"></i>
         <p class="mt-2 mb-0 small">Generation failed</p>
         <small>${msg}</small>
-        <br><small class="text-muted">Check that the BLOOM TGI server is running.</small>
+        <br><small class="text-muted">Check your network connection and try again.</small>
       </div>`;
   }
 
@@ -513,20 +548,34 @@ class SpeciesMixer {
   // ──────────────────────────────────────────────────────────────────────────
 
   _renderMix(speciesMixData) {
-    this.mixItems = speciesMixData.map((item, i) => ({
-      ...item,
-      name: item.common_name || `Species ${item.species_id}`,
-      colour: SpeciesMixer.COLOURS[i % SpeciesMixer.COLOURS.length],
-      is_active: true,
-      is_manual: false,
-    }));
+    // Assign colours by category so same-category species share a hue family,
+    // cycling through contrasting shades within that family.
+    const catCounters = {};
+    this.mixItems = speciesMixData.map((item) => {
+      const cat = (item.category || 'other').toLowerCase();
+      catCounters[cat] = (catCounters[cat] || 0);
+      const colour = SpeciesMixer.colourForItem(cat, catCounters[cat]);
+      catCounters[cat]++;
+      return {
+        ...item,
+        name: item.common_name || item.scientific_name || `Species ${item.species_id}`,
+        colour,
+        is_active: true,
+        is_manual: false,
+      };
+    });
 
     const tbody = document.getElementById('species-mix-tbody');
+    // Dispose existing popovers before clearing rows to avoid memory leaks
+    tbody.querySelectorAll('.species-name-cell').forEach(el => {
+      const pop = bootstrap.Popover.getInstance(el);
+      if (pop) pop.dispose();
+    });
     tbody.innerHTML = '';
 
     if (!this.mixItems.length) {
       tbody.innerHTML = `
-        <tr><td colspan="9" class="text-center text-muted py-4">
+        <tr><td colspan="8" class="text-center text-muted py-4">
           <i class="bi bi-exclamation-circle me-2"></i>No species returned.
           Check the species database has ecological data.
         </td></tr>`;
@@ -545,7 +594,7 @@ class SpeciesMixer {
       // Group header row
       const headerRow = document.createElement('tr');
       headerRow.className = 'species-mixer-group-header';
-      headerRow.innerHTML = `<td colspan="9">${this._categoryIcon(category)} ${category}</td>`;
+      headerRow.innerHTML = `<td colspan="8">${this._categoryIcon(category)} ${category}</td>`;
       tbody.appendChild(headerRow);
 
       items.forEach(item => {
@@ -566,14 +615,22 @@ class SpeciesMixer {
       `<span class="badge bg-secondary bg-opacity-10 text-secondary me-1">${this._benefitLabel(b)}</span>`
     ).join('');
 
+    // Build hover popover content — sub-category, family, sources
+    const subcatLabel = item.subcategory || item.category || '';
+    const familyLabel = item.family || '';
+    const sourcePills = this._buildSourcePills(item);
+    const popoverHtml = [
+      subcatLabel ? `<div class="text-muted small mb-1">${subcatLabel}${familyLabel ? ` &middot; ${familyLabel}` : ''}</div>` : '',
+      item.reason ? `<div class="small mb-2">${item.reason}</div>` : '',
+      sourcePills ? `<div class="mt-1">${sourcePills}</div>` : '',
+    ].filter(Boolean).join('') || `<span class="text-muted small">No additional info</span>`;
+
     tr.innerHTML = `
-      <td><span class="species-colour-dot" style="background:${item.colour};"></span></td>
-      <td>${this._categoryIcon(item.category)}</td>
       <td><input class="form-check-input row-active-check" type="checkbox" ${item.is_active ? 'checked' : ''} title="Include in mix"></td>
-      <td>
+      <td><span class="species-colour-dot" style="background:${item.colour};"></span></td>
+      <td class="species-name-cell" style="cursor:pointer;">
         <div class="fw-medium">${item.name}</div>
         ${item.scientific_name ? `<small class="text-muted fst-italic">${item.scientific_name}</small>` : ''}
-        ${item.ai_reason ? `<small class="text-muted d-block" title="${item.ai_reason}">${item.ai_reason.slice(0, 60)}${item.ai_reason.length > 60 ? '…' : ''}</small>` : ''}
         ${item.is_manual ? '<span class="badge bg-info bg-opacity-10 text-info ms-1" style="font-size:.65rem;">Manual</span>' : ''}
       </td>
       <td class="suitability-cell">
@@ -598,6 +655,17 @@ class SpeciesMixer {
         </button>
       </td>`;
 
+    // Hover popover on name cell showing sub-category, family, reason, sources
+    const nameCell = tr.querySelector('.species-name-cell');
+    const popover = new bootstrap.Popover(nameCell, {
+      trigger: 'hover focus',
+      placement: 'right',
+      html: true,
+      title: `<strong>${item.name}</strong>`,
+      content: popoverHtml,
+      container: 'body',
+    });
+
     // Ratio slider interaction
     const ratioSlider = tr.querySelector('.ratio-slider');
     const ratioDisplay = tr.querySelector('.ratio-display');
@@ -620,6 +688,40 @@ class SpeciesMixer {
     });
 
     return tr;
+  }
+
+  _buildSourcePills(item) {
+    // Sources are strings like 'gbif', 'inaturalist', 'nbn'.
+    // Build clickable pill links using gbif_key where available.
+    const sources = item.sources || [];
+    const gbifKey = item.gbif_key;
+    const sciName = encodeURIComponent(item.scientific_name || '');
+
+    const SOURCE_META = {
+      gbif:        { label: 'GBIF',        colour: '#4CAF50' },
+      inaturalist: { label: 'iNaturalist', colour: '#74AC00' },
+      nbn:         { label: 'NBN Atlas',   colour: '#003087' },
+    };
+
+    return sources.map(src => {
+      const meta = SOURCE_META[src] || { label: src, colour: '#666' };
+      let href = '#';
+      if (src === 'gbif') {
+        href = gbifKey
+          ? `https://www.gbif.org/species/${gbifKey}`
+          : `https://www.gbif.org/species/search?q=${sciName}`;
+      } else if (src === 'inaturalist') {
+        href = `https://www.inaturalist.org/taxa/search?q=${sciName}`;
+      } else if (src === 'nbn') {
+        href = `https://records.nbnatlas.org/occurrences/search?q=${sciName}`;
+      }
+      const isExternal = href !== '#';
+      return `<a href="${isExternal ? href : 'javascript:void(0)'}"
+                 ${isExternal ? 'target="_blank" rel="noopener"' : ''}
+                 class="badge text-white text-decoration-none me-1 mb-1"
+                 style="background:${meta.colour};"
+              >${meta.label}${isExternal ? ' <i class="bi bi-box-arrow-up-right" style="font-size:.55rem;vertical-align:middle;"></i>' : ''}</a>`;
+    }).join('');
   }
 
   _removeSpecies(speciesId) {
@@ -754,7 +856,9 @@ class SpeciesMixer {
     // Check not already in mix
     if (this.mixItems.find(m => m.species_id === species.id)) return;
 
-    const colour = SpeciesMixer.COLOURS[this.mixItems.length % SpeciesMixer.COLOURS.length];
+    const cat = (species.category || 'other').toLowerCase();
+    const catCount = this.mixItems.filter(m => (m.category || '').toLowerCase() === cat).length;
+    const colour = SpeciesMixer.colourForItem(cat, catCount);
     const newItem = {
       species_id: species.id,
       name: species.common_name,
@@ -887,11 +991,15 @@ class SpeciesMixer {
       document.getElementById('coord-display').textContent =
         this.lat ? `${this.lat.toFixed(6)}, ${this.lng.toFixed(6)}` : '';
 
-      this.mixItems = (data.items || []).map((item, i) => ({
-        ...item,
-        name: item.common_name || `Species ${item.species_id}`,
-        colour: SpeciesMixer.COLOURS[i % SpeciesMixer.COLOURS.length],
-      }));
+      // Assign category-based colours when loading a saved mix
+      const loadCatCounters = {};
+      this.mixItems = (data.items || []).map((item) => {
+        const cat = (item.category || 'other').toLowerCase();
+        loadCatCounters[cat] = (loadCatCounters[cat] || 0);
+        const colour = SpeciesMixer.colourForItem(cat, loadCatCounters[cat]);
+        loadCatCounters[cat]++;
+        return { ...item, name: item.common_name || `Species ${item.species_id}`, colour };
+      });
 
       this._renderMix(this.mixItems);
       this._renderInsights(data.ai_insights, data.env_summary);
@@ -930,16 +1038,19 @@ class SpeciesMixer {
   }
 
   _categoryIcon(category) {
+    const legacyMap = { 'broadleaf': 'tree', 'conifer': 'tree' };
+    const key = legacyMap[(category || '').toLowerCase()] || (category || '').toLowerCase();
     const icons = {
-      'tree': '<i class="bi bi-tree"></i>',
-      'broadleaf': '<i class="bi bi-tree"></i>',
-      'conifer': '<i class="bi bi-tree-fill"></i>',
-      'shrub': '<i class="bi bi-flower2"></i>',
+      'tree':       '<i class="bi bi-tree-fill"></i>',
+      'shrub':      '<i class="bi bi-flower2"></i>',
       'wildflower': '<i class="bi bi-flower1"></i>',
-      'grass': '<i class="bi bi-brightness-high"></i>',
-      'fungi': '<i class="bi bi-circle-half"></i>',
+      'grass':      '<i class="bi bi-align-bottom"></i>',
+      'fern':       '<i class="bi bi-wind"></i>',
+      'moss':       '<i class="bi bi-droplet-half"></i>',
+      'fungi':      '<i class="bi bi-circle-half"></i>',
+      'other':      '<i class="bi bi-circle"></i>',
     };
-    return icons[(category || '').toLowerCase()] || '<i class="bi bi-circle"></i>';
+    return icons[key] || '<i class="bi bi-circle"></i>';
   }
 
   _benefitLabel(benefit) {
@@ -1011,7 +1122,7 @@ class SpeciesMixer {
     if (this.marker) { this.marker.remove(); this.marker = null; }
 
     document.getElementById('species-mix-tbody').innerHTML = `
-      <tr id="table-empty-row"><td colspan="9" class="text-center text-muted py-4">
+      <tr id="table-empty-row"><td colspan="8" class="text-center text-muted py-4">
         <i class="bi bi-magic me-2"></i>Generate a mix to see species recommendations
       </td></tr>`;
 

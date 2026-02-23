@@ -43,7 +43,6 @@ from species.services.environmental_data import (
     fetch_climate,
     fetch_gbif,
     fetch_hydrology,
-    fetch_inaturalist,
     fetch_nbn_atlas,
     fetch_soilgrids,
 )
@@ -52,6 +51,232 @@ logger = logging.getLogger(__name__)
 
 # Maximum tool-calling iterations to prevent infinite loops
 _MAX_ITERATIONS = 12
+
+# Map botanical family (lowercase) → simplified top-level display category.
+# Six main categories used in the species mixer UI table.
+# Sub-type detail (e.g. "Broadleaf tree", "Conifer", "Sedge") is stored in
+# _FAMILY_TO_SUBCATEGORY and shown in hover tooltips only.
+# Categories must match keys in SpeciesMixer.CATEGORY_COLOURS in species-mixer.js.
+_FAMILY_TO_CATEGORY: dict[str, str] = {
+    # ── Trees (broadleaf + conifer both → 'Tree') ────────────────────────────
+    'salicaceae': 'Tree',           # willows, poplars
+    'betulaceae': 'Tree',           # birch, alder, hazel, hornbeam
+    'fagaceae': 'Tree',             # oak, beech, sweet chestnut
+    'aceraceae': 'Tree',            # maples (older family; now in Sapindaceae)
+    'sapindaceae': 'Tree',          # maples (modern placement)
+    'tiliaceae': 'Tree',            # limes (older; now in Malvaceae)
+    'malvaceae': 'Tree',            # limes (modern)
+    'ulmaceae': 'Tree',             # elms
+    'oleaceae': 'Tree',             # ash, privet, olive
+    'juglandaceae': 'Tree',         # walnut
+    'platanaceae': 'Tree',          # plane trees
+    'hippocastanaceae': 'Tree',     # horse chestnut
+    'aquifoliaceae': 'Tree',        # holly
+    'cornaceae': 'Tree',            # dogwood (small tree / shrub)
+    'rhamnaceae': 'Tree',           # buckthorn
+    'pinaceae': 'Tree',             # pine, spruce, fir, larch, cedar
+    'cupressaceae': 'Tree',         # cypress, juniper, yew (modern)
+    'taxaceae': 'Tree',             # yews
+    'taxodiaceae': 'Tree',          # redwoods (older)
+    # ── Shrubs ──────────────────────────────────────────────────────────────
+    'ericaceae': 'Shrub',           # heather, bilberry, rhododendron, blueberry
+    'rosaceae': 'Shrub',            # roses, hawthorn, rowan, bramble, cherry
+    'grossulariaceae': 'Shrub',     # currants, gooseberry
+    'adoxaceae': 'Shrub',           # elderberry, viburnum (modern placement)
+    'berberidaceae': 'Shrub',       # barberry
+    'buxaceae': 'Shrub',            # box
+    'thymelaeaceae': 'Shrub',       # daphne
+    'myricaceae': 'Shrub',          # bog myrtle
+    'elaeagnaceae': 'Shrub',        # sea buckthorn, oleaster
+    'araliaceae': 'Shrub',          # ivy, Hedera — woody climber/shrub
+    # ── Wildflowers / forbs ─────────────────────────────────────────────────
+    'asteraceae': 'Wildflower',     # daisies, thistles, dandelions, knapweed
+    'fabaceae': 'Wildflower',       # clovers, vetches, trefoils
+    'ranunculaceae': 'Wildflower',  # buttercups, anemones, clematis
+    'scrophulariaceae': 'Wildflower',# foxglove, mullein, speedwell
+    'plantaginaceae': 'Wildflower', # plantains, foxglove (modern)
+    'lamiaceae': 'Wildflower',      # mints, dead-nettles, selfheal, woundwort
+    'apiaceae': 'Wildflower',       # cow parsley, hogweed, angelica
+    'boraginaceae': 'Wildflower',   # borage, forget-me-not, viper's bugloss
+    'violaceae': 'Wildflower',      # violets, pansies
+    'geraniaceae': 'Wildflower',    # cranesbills
+    'campanulaceae': 'Wildflower',  # harebells, bellflowers
+    'primulaceae': 'Wildflower',    # primroses, cowslips
+    'caryophyllaceae': 'Wildflower',# campions, stitchworts, chickweed
+    'polygonaceae': 'Wildflower',   # sorrels, docks, bistort
+    'onagraceae': 'Wildflower',     # rosebay willowherb, evening primrose
+    'hypericaceae': 'Wildflower',   # St John's wort
+    'iridaceae': 'Wildflower',      # iris, yellow flag
+    'orchidaceae': 'Wildflower',    # orchids
+    'liliaceae': 'Wildflower',      # lilies, bluebells (older family)
+    'asparagaceae': 'Wildflower',   # bluebells (modern placement), wild garlic
+    'amaryllidaceae': 'Wildflower', # daffodils, snowdrops, wild garlic
+    'urticaceae': 'Wildflower',     # nettles
+    'oxalidaceae': 'Wildflower',    # wood sorrel
+    'caprifoliaceae': 'Wildflower', # valerian, honeysuckle, teasel, scabious
+    'viburnaceae': 'Wildflower',    # Devil's-bit scabious, field scabious
+    'dipsacaceae': 'Wildflower',    # teasel, scabious (older family)
+    'valerianaceae': 'Wildflower',  # valerian (older family)
+    'brassicaceae': 'Wildflower',   # cuckoo flower, watercress, shepherd's purse
+    'papaveraceae': 'Wildflower',   # poppies, fumitory
+    'solanaceae': 'Wildflower',     # bittersweet, black nightshade
+    'crassulaceae': 'Wildflower',   # stonecrop, navelwort
+    'lentibulariaceae': 'Wildflower',# butterwort, bladderwort (carnivorous)
+    'rubiaceae': 'Wildflower',      # cleavers, bedstraws
+    'balsaminaceae': 'Wildflower',  # Himalayan balsam, touch-me-not
+    'moraceae': 'Wildflower',       # fig family
+    'typhaceae': 'Wildflower',      # bulrush / reedmace (wetland)
+    'convolvulaceae': 'Wildflower', # bindweeds
+    'gentianaceae': 'Wildflower',   # gentians, centaury
+    'menyanthaceae': 'Wildflower',  # bogbean
+    'droseraceae': 'Wildflower',    # sundews (carnivorous)
+    'saxifragaceae': 'Wildflower',  # saxifrages, golden saxifrage
+    # ── Grasses, sedges, rushes ─────────────────────────────────────────────
+    'poaceae': 'Grass',             # all true grasses
+    'cyperaceae': 'Grass',          # sedges (ecologically similar; wet-tolerant)
+    'juncaceae': 'Grass',           # rushes
+    # ── Ferns ───────────────────────────────────────────────────────────────
+    'pteridaceae': 'Fern',
+    'dryopteridaceae': 'Fern',      # buckler ferns, male fern
+    'athyriaceae': 'Fern',          # lady fern
+    'polypodiaceae': 'Fern',        # common polypody
+    'dennstaedtiaceae': 'Fern',     # bracken
+    'blechnaceae': 'Fern',          # hard fern
+    'osmundaceae': 'Fern',          # royal fern
+    'equisetaceae': 'Fern',         # horsetails
+    'aspleniaceae': 'Fern',         # spleenworts
+    'thelypteridaceae': 'Fern',     # marsh fern
+    'woodsiaceae': 'Fern',          # alpine ferns
+    'hymenophyllaceae': 'Fern',     # filmy ferns
+    # ── Fungi ───────────────────────────────────────────────────────────────
+    'agaricaceae': 'Fungi',
+    'boletaceae': 'Fungi',
+    'russulaceae': 'Fungi',
+    'cantharellaceae': 'Fungi',
+    'polyporaceae': 'Fungi',
+    'tricholomataceae': 'Fungi',
+    'cortinariaceae': 'Fungi',
+    'hymenogastraceae': 'Fungi',
+    'marasmiaceae': 'Fungi',
+    'mycenaceae': 'Fungi',
+    'inocybaceae': 'Fungi',
+    'strophariaceae': 'Fungi',
+    'paxillaceae': 'Fungi',
+    'suillaceae': 'Fungi',
+    # ── Mosses / liverworts ─────────────────────────────────────────────────
+    'sphagnaceae': 'Moss',          # sphagnum (key peatland species)
+    'bryaceae': 'Moss',
+    'brachytheciaceae': 'Moss',     # feather mosses
+    'hylocomiaceae': 'Moss',        # carpet mosses (Pleurozium, Hylocomium)
+    'hypnaceae': 'Moss',            # Hypnum species
+    'pottiaceae': 'Moss',           # dry-habitat mosses
+    'rhabdoweisiaceae': 'Moss',
+    'dicranaceae': 'Moss',          # fork mosses
+    'leucobryaceae': 'Moss',        # cushion mosses
+    'mniaceae': 'Moss',             # thread mosses
+    'amblystegiaceae': 'Moss',      # wetland mosses
+    'fissidentaceae': 'Moss',       # pocket mosses
+    'marchantiaceae': 'Moss',       # liverworts (treated as Moss category)
+    'conocephalaceae': 'Moss',      # liverworts
+    'pelliaceae': 'Moss',           # liverworts
+}
+
+# Human-readable sub-type label shown in hover tooltips (family → sub-category string).
+# Provides detail hidden from the main table column, e.g. "Broadleaf tree", "Sedge", "Rush".
+_FAMILY_TO_SUBCATEGORY: dict[str, str] = {
+    # Trees — distinguish broadleaf from conifer in tooltip
+    'salicaceae': 'Broadleaf tree', 'betulaceae': 'Broadleaf tree',
+    'fagaceae': 'Broadleaf tree', 'aceraceae': 'Broadleaf tree',
+    'sapindaceae': 'Broadleaf tree', 'tiliaceae': 'Broadleaf tree',
+    'malvaceae': 'Broadleaf tree', 'ulmaceae': 'Broadleaf tree',
+    'oleaceae': 'Broadleaf tree', 'juglandaceae': 'Broadleaf tree',
+    'platanaceae': 'Broadleaf tree', 'hippocastanaceae': 'Broadleaf tree',
+    'aquifoliaceae': 'Broadleaf tree', 'cornaceae': 'Broadleaf tree',
+    'rhamnaceae': 'Broadleaf tree',
+    'pinaceae': 'Conifer', 'cupressaceae': 'Conifer',
+    'taxaceae': 'Conifer', 'taxodiaceae': 'Conifer',
+    # Shrubs
+    'ericaceae': 'Heath & heather', 'rosaceae': 'Rose family',
+    'grossulariaceae': 'Currant & gooseberry', 'adoxaceae': 'Elder & viburnum',
+    'berberidaceae': 'Barberry', 'buxaceae': 'Box',
+    'thymelaeaceae': 'Daphne', 'myricaceae': 'Bog myrtle',
+    'elaeagnaceae': 'Sea buckthorn', 'araliaceae': 'Ivy & vine',
+    # Wildflowers — friendly sub-type
+    'asteraceae': 'Daisy family', 'fabaceae': 'Clover & vetch',
+    'ranunculaceae': 'Buttercup family', 'scrophulariaceae': 'Figwort family',
+    'plantaginaceae': 'Plantain family', 'lamiaceae': 'Mint family',
+    'apiaceae': 'Carrot family', 'boraginaceae': 'Borage family',
+    'violaceae': 'Violet', 'geraniaceae': 'Cranesbill',
+    'campanulaceae': 'Bellflower', 'primulaceae': 'Primrose family',
+    'caryophyllaceae': 'Campion family', 'polygonaceae': 'Dock & sorrel',
+    'onagraceae': 'Willowherb family', 'hypericaceae': 'St John\'s wort',
+    'iridaceae': 'Iris family', 'orchidaceae': 'Orchid',
+    'liliaceae': 'Lily family', 'asparagaceae': 'Bluebell family',
+    'amaryllidaceae': 'Daffodil family', 'urticaceae': 'Nettle',
+    'oxalidaceae': 'Wood sorrel', 'caprifoliaceae': 'Honeysuckle family',
+    'viburnaceae': 'Scabious', 'dipsacaceae': 'Teasel & scabious',
+    'valerianaceae': 'Valerian', 'brassicaceae': 'Mustard family',
+    'papaveraceae': 'Poppy family', 'solanaceae': 'Nightshade family',
+    'crassulaceae': 'Stonecrop', 'lentibulariaceae': 'Carnivorous plant',
+    'rubiaceae': 'Bedstraw family', 'balsaminaceae': 'Balsam',
+    'moraceae': 'Fig family', 'typhaceae': 'Bulrush',
+    'convolvulaceae': 'Bindweed', 'gentianaceae': 'Gentian family',
+    'menyanthaceae': 'Bogbean', 'droseraceae': 'Sundew (carnivorous)',
+    'saxifragaceae': 'Saxifrage',
+    # Grasses
+    'poaceae': 'Grass', 'cyperaceae': 'Sedge', 'juncaceae': 'Rush',
+    # Ferns
+    'pteridaceae': 'Fern', 'dryopteridaceae': 'Buckler fern',
+    'athyriaceae': 'Lady fern', 'polypodiaceae': 'Polypody fern',
+    'dennstaedtiaceae': 'Bracken', 'blechnaceae': 'Hard fern',
+    'osmundaceae': 'Royal fern', 'equisetaceae': 'Horsetail',
+    'aspleniaceae': 'Spleenwort fern', 'thelypteridaceae': 'Marsh fern',
+    'woodsiaceae': 'Alpine fern', 'hymenophyllaceae': 'Filmy fern',
+    # Mosses / liverworts
+    'sphagnaceae': 'Sphagnum moss', 'bryaceae': 'Moss',
+    'brachytheciaceae': 'Feather moss', 'hylocomiaceae': 'Carpet moss',
+    'hypnaceae': 'Moss', 'pottiaceae': 'Moss', 'rhabdoweisiaceae': 'Moss',
+    'dicranaceae': 'Fork moss', 'leucobryaceae': 'Cushion moss',
+    'mniaceae': 'Thread moss', 'amblystegiaceae': 'Wetland moss',
+    'fissidentaceae': 'Pocket moss', 'marchantiaceae': 'Liverwort',
+    'conocephalaceae': 'Liverwort', 'pelliaceae': 'Liverwort',
+    # Fungi
+    'agaricaceae': 'Mushroom', 'boletaceae': 'Bolete',
+    'russulaceae': 'Russula & milk-cap', 'cantharellaceae': 'Chanterelle',
+    'polyporaceae': 'Bracket fungus', 'tricholomataceae': 'Toadstool',
+    'cortinariaceae': 'Webcap', 'hymenogastraceae': 'Psilocybe family',
+    'marasmiaceae': 'Marasmius', 'mycenaceae': 'Bonnet fungus',
+    'inocybaceae': 'Fibrecap', 'strophariaceae': 'Scalycap',
+    'paxillaceae': 'Rollrim', 'suillaceae': 'Slippery Jack',
+}
+
+
+def _category_from_family(family: str | None) -> str:
+    """
+    Derive a simplified top-level display category from a botanical family name.
+
+    Six main categories: Tree, Shrub, Wildflower, Grass, Fern, Moss, Fungi.
+    Returns 'Other' for unknown families.
+    """
+    if not family:
+        return 'Other'
+    return _FAMILY_TO_CATEGORY.get(family.lower(), 'Other')
+
+
+def _subcategory_from_family(family: str | None) -> str:
+    """
+    Derive a human-readable sub-type label from a botanical family name.
+
+    Used in hover tooltips. Returns the capitalised family name as fallback.
+    """
+    if not family:
+        return ''
+    sub = _FAMILY_TO_SUBCATEGORY.get(family.lower())
+    if sub:
+        return sub
+    # Fallback: title-case the raw family name (e.g. 'Rosaceae')
+    return family.capitalize()
+
 
 # Tool definitions in OpenAI-compatible format (supported by TGI)
 _TOOLS = [
@@ -451,76 +676,152 @@ class SpeciesMixAgent:
         def score_candidate(c):
             score = 0
 
-            # Observation evidence weight — more records = better established locally
+            # Observation evidence weight — more records = better established locally.
+            # Cap is intentionally low so trait-match bonuses can overcome observation bias.
             score += min(c.get('observation_count', 1) * 2, 40)
 
             # Multi-source bonus — appears in GBIF + iNaturalist + NBN = very reliable
             score += len(c.get('sources', [])) * 10
 
-            # Trait-based cross-referencing via GBIF trait data
-            traits = c.get('gbif_traits', {})
-            family = (traits.get('family') or '').lower()
+            # Citizen-science observation bias correction.
+            # Trees, grasses, ferns, and mosses are systematically under-recorded in
+            # citizen science databases compared to wildflowers and shrubs. Apply a
+            # flat bonus to compensate so they can compete on ecological merit.
+            family_raw = (c.get('gbif_traits', {}).get('family') or c.get('family') or '')
+            family = family_raw.lower()
+            category = _category_from_family(family)
+            if category == 'Tree':
+                score += 30   # trees are rarely photographed species-level by non-experts
+            elif category == 'Grass':
+                score += 25   # grasses heavily under-recorded in iNat/GBIF
+            elif category in ('Fern', 'Moss'):
+                score += 15   # lower plants also under-observed
 
             # Flood risk cross-reference
-            # Families known to include flood-tolerant species
             flood_tolerant_families = {'salicaceae', 'betulaceae', 'iridaceae', 'cyperaceae', 'juncaceae'}
             if flood_risk in ('high', 'medium') and family in flood_tolerant_families:
                 score += 35
 
             # Acid soil cross-reference (pH < 5.5)
             if ph and ph < 5.5:
-                acid_tolerant_families = {'ericaceae', 'betulaceae', 'pinaceae', 'juncaceae'}
+                acid_tolerant_families = {'ericaceae', 'betulaceae', 'pinaceae', 'juncaceae',
+                                          'cyperaceae', 'sphagnaceae'}
                 if family in acid_tolerant_families:
                     score += 25
 
             # Alkaline soil cross-reference (pH > 7.0)
             if ph and ph > 7.0:
-                alkaline_families = {'rosaceae', 'fabaceae', 'orchidaceae', 'asteraceae'}
+                alkaline_families = {'rosaceae', 'fabaceae', 'orchidaceae', 'asteraceae',
+                                     'poaceae', 'fagaceae'}
                 if family in alkaline_families:
                     score += 20
 
             # Moisture cross-reference
             if moisture == 'wet':
-                wet_families = {'salicaceae', 'betulaceae', 'cyperaceae', 'juncaceae', 'iridaceae'}
+                wet_families = {'salicaceae', 'betulaceae', 'cyperaceae', 'juncaceae', 'iridaceae',
+                                 'typhaceae', 'osmundaceae', 'amblystegiaceae', 'sphagnaceae'}
                 if family in wet_families:
                     score += 20
             elif moisture == 'dry':
-                dry_families = {'fabaceae', 'lamiaceae', 'cistaceae', 'poaceae'}
+                dry_families = {'fabaceae', 'lamiaceae', 'cistaceae', 'poaceae',
+                                 'crassulaceae', 'asteraceae'}
                 if family in dry_families:
                     score += 20
 
             # Low rainfall tolerance
             if rainfall < 600:
-                drought_families = {'fabaceae', 'lamiaceae', 'cistaceae', 'asteraceae'}
+                drought_families = {'fabaceae', 'lamiaceae', 'cistaceae', 'asteraceae', 'poaceae'}
                 if family in drought_families:
                     score += 15
 
             # Goal alignment — use family as proxy for ecological function
             if goal_weights.get('pollinator', 0) >= 50:
                 pollinator_families = {'rosaceae', 'fabaceae', 'lamiaceae', 'asteraceae',
-                                       'apiaceae', 'boraginaceae', 'scrophulariaceae'}
+                                       'apiaceae', 'boraginaceae', 'scrophulariaceae',
+                                       'campanulaceae', 'primulaceae', 'ranunculaceae'}
                 if family in pollinator_families:
                     score += goal_weights['pollinator'] // 3
 
             if goal_weights.get('erosion_control', 0) >= 50:
-                erosion_families = {'salicaceae', 'betulaceae', 'pinaceae', 'fabaceae', 'poaceae'}
+                erosion_families = {'salicaceae', 'betulaceae', 'pinaceae', 'fabaceae',
+                                    'poaceae', 'cyperaceae', 'juncaceae', 'fagaceae'}
                 if family in erosion_families:
                     score += goal_weights['erosion_control'] // 3
 
             if goal_weights.get('carbon_sequestration', 0) >= 50:
-                carbon_families = {'pinaceae', 'betulaceae', 'fagaceae', 'aceraceae', 'salicaceae'}
+                carbon_families = {'pinaceae', 'betulaceae', 'fagaceae', 'aceraceae',
+                                   'salicaceae', 'cupressaceae', 'taxodiaceae'}
                 if family in carbon_families:
                     score += goal_weights['carbon_sequestration'] // 3
 
             if goal_weights.get('wildlife_habitat', 0) >= 50:
-                wildlife_families = {'rosaceae', 'betulaceae', 'fagaceae', 'salicaceae', 'aquifoliaceae'}
+                wildlife_families = {'rosaceae', 'betulaceae', 'fagaceae', 'salicaceae',
+                                     'aquifoliaceae', 'sambucaceae', 'adoxaceae', 'rhamnaceae'}
                 if family in wildlife_families:
                     score += goal_weights['wildlife_habitat'] // 3
+
+            if goal_weights.get('biodiversity', 0) >= 50:
+                # All families benefit equally; no specific bonus — biodiversity is
+                # served by the diversity enforcement below, not a family bonus.
+                pass
 
             return score
 
         scored = sorted(candidates, key=score_candidate, reverse=True)
-        top = scored[:self.max_species]
+
+        # --- Diversity-first selection ---
+        # Guarantee minimum representation from key functional groups so the mix
+        # always includes trees, shrubs, wildflowers, and grasses where candidates
+        # exist — regardless of observation-count differences between categories.
+        CATEGORY_MINIMUMS = {
+            'Tree':       2,   # at least 2 tree species
+            'Shrub':      2,   # at least 2 shrubs
+            'Wildflower': 3,   # wildflowers are core biodiversity habitat
+            'Grass':      1,   # at least one grass/sedge/rush
+        }
+        # Optional extras if candidates are available
+        CATEGORY_OPTIONALS = {'Fern': 1, 'Moss': 1}
+
+        selected = []
+        used_names = set()
+
+        def _pick_best(category, n, pool):
+            """Pick up to n best-scored candidates of a given category not yet selected."""
+            picks = []
+            for c in pool:
+                if len(picks) >= n:
+                    break
+                fam = (c.get('gbif_traits', {}).get('family') or c.get('family') or '').lower()
+                if _category_from_family(fam) == category and c['scientific_name'] not in used_names:
+                    picks.append(c)
+                    used_names.add(c['scientific_name'])
+            return picks
+
+        # 1. Fill mandatory category minimums
+        for cat, min_count in CATEGORY_MINIMUMS.items():
+            picks = _pick_best(cat, min_count, scored)
+            selected.extend(picks)
+
+        # 2. Fill optional categories if slots remain
+        remaining_slots = self.max_species - len(selected)
+        for cat, opt_count in CATEGORY_OPTIONALS.items():
+            if remaining_slots <= 0:
+                break
+            picks = _pick_best(cat, min(opt_count, remaining_slots), scored)
+            selected.extend(picks)
+            remaining_slots -= len(picks)
+
+        # 3. Fill remaining slots with highest-scored unused candidates
+        remaining_slots = self.max_species - len(selected)
+        for c in scored:
+            if remaining_slots <= 0:
+                break
+            if c['scientific_name'] not in used_names:
+                selected.append(c)
+                used_names.add(c['scientific_name'])
+                remaining_slots -= 1
+
+        top = selected
 
         # --- Step 4: Assign ratios weighted by score ---
         scores = [max(score_candidate(s), 1) for s in top]
@@ -532,24 +833,27 @@ class SpeciesMixAgent:
         species_mix = []
         for s, ratio in zip(top, ratios):
             traits = s.get('gbif_traits', {})
-            family = traits.get('family') or 'unknown family'
+            family = traits.get('family') or s.get('family') or None
+            family_display = family or 'unknown family'
             sources_str = ' & '.join(s.get('sources', ['external DB']))
             common = s.get('common_name') or s['scientific_name']
             reason = (
                 f"Recorded near this location via {sources_str} "
                 f"({s.get('observation_count', 0)} observations). "
-                f"Family: {family}."
+                f"Family: {family_display}."
             )
             species_mix.append({
-                # No local DB id — use scientific name as identifier
-                # The frontend will need to handle this for external species
+                # No local DB id — sourced from external biodiversity databases
                 'species_id': None,
                 'scientific_name': s['scientific_name'],
                 'common_name': common,
-                'family': family,
+                'family': family_display,
+                'category': _category_from_family(family),
+                'subcategory': _subcategory_from_family(family),
                 'ratio': ratio,
                 'reason': reason,
                 'sources': s.get('sources', []),
+                'gbif_key': s.get('gbif_key'),
                 'observation_count': s.get('observation_count', 0),
             })
 
@@ -557,12 +861,11 @@ class SpeciesMixAgent:
         top_goals = sorted(goal_weights.items(), key=lambda x: x[1], reverse=True)[:2]
         top_goal_names = ' and '.join(g[0].replace('_', ' ') for g in top_goals)
         insights = (
-            f"Rule-based mix of {len(species_mix)} species sourced from GBIF, iNaturalist, "
+            f"Mix of {len(species_mix)} species sourced from GBIF, iNaturalist, "
             f"and NBN Atlas — all recorded near this location. "
-            f"Ranked by observation evidence and trait cross-referencing against "
+            f"Ranked by observation evidence and ecological trait cross-referencing against "
             f"{env_summary.lower()}. "
-            f"Prioritised {top_goal_names} based on your goal weights. "
-            f"Connect a BLOOM AI server (TGI_BASE_URL) for deeper ecological reasoning."
+            f"Prioritised {top_goal_names} based on your goal weights."
         )
 
         return {

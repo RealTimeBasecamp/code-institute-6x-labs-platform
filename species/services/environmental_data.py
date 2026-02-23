@@ -863,19 +863,16 @@ class SpeciesCandidateTool:
         # --- Step 3: Sort by evidence weight, cap at limit ---
         candidates = sorted(merged.values(), key=lambda x: x['observation_count'], reverse=True)[:limit]
 
-        # --- Step 4: Enrich top candidates with GBIF trait data ---
-        # Fetch traits for the top 30 (not all 60 — avoids excessive API calls)
-        for candidate in candidates[:30]:
+        # --- Step 4: Enrich ALL candidates with GBIF trait data ---
+        # Must fetch traits for every candidate so that trees, grasses, and ferns
+        # (which tend to have lower citizen-science observation counts and often fall
+        # outside the top 30) still receive family data and score correctly.
+        for candidate in candidates:
             traits = fetch_gbif_species_traits(candidate['scientific_name'])
             candidate['gbif_traits'] = traits
             candidate['family'] = traits.get('family')
             # Fill in vernacular name if we don't have one
             if not candidate['common_name'] and traits.get('vernacular_names'):
                 candidate['common_name'] = traits['vernacular_names'][0]
-
-        # Remaining candidates get empty traits
-        for candidate in candidates[30:]:
-            candidate['gbif_traits'] = {}
-            candidate['family'] = None
 
         return candidates

@@ -97,7 +97,7 @@
         <div class="card-body text-center py-4">
           <i class="bi bi-mouse2" style="font-size:2rem; opacity:.5;"></i>
           <p class="mt-2 mb-1 fw-medium">Select a location</p>
-          <small class="text-muted">Click anywhere on the map to set your planting location. BLOOM will query environmental data for that exact point.</small>
+          <small class="text-muted">Click anywhere on the map to set your planting location. Environmental data will be queried for that exact point.</small>
         </div>
       </div>
 
@@ -193,8 +193,8 @@
           <div id="insights-placeholder" class="species-mixer-ai-placeholder d-flex align-items-center justify-content-center">
             <div class="text-center text-muted">
               <i class="bi bi-lightbulb" style="font-size:1.5rem;"></i>
-              <p class="mt-2 mb-0 small">Generate a mix to see AI insights</p>
-              <small>BLOOM will analyse trade-offs and optimisation opportunities</small>
+              <p class="mt-2 mb-0 small">Generate a mix to see ecological insights</p>
+              <small>Trade-offs and optimisation opportunities will appear here</small>
             </div>
           </div>
           <p id="insights-text" class="mb-1 small d-none"></p>
@@ -205,7 +205,7 @@
       <!-- Generate Mix CTA (shown after Step 2) -->
       <div id="generate-cta" class="d-none">
         <button class="btn btn-primary w-100" id="generate-mix-btn" disabled>
-          <i class="bi bi-magic me-2"></i>Generate Mix with BLOOM AI
+          <i class="bi bi-magic me-2"></i>Generate Species Mix
         </button>
         <p class="text-muted text-center small mt-2 mb-0">
           <i class="bi bi-shield-check me-1"></i>SoilGrids &middot; NBN Atlas &middot; GBIF &middot; Met Office &middot; EA / SEPA
@@ -239,7 +239,7 @@
         <!-- Generation loading state -->
         <div id="table-loading-state" class="card-body py-4 text-center d-none">
           <div class="spinner-border text-primary mb-3" role="status" aria-label="Generating mix"></div>
-          <p class="fw-medium mb-1" id="loading-status-text">Starting BLOOM AI agent...</p>
+          <p class="fw-medium mb-1" id="loading-status-text">Querying environmental data...</p>
           <div class="progress mt-3" style="height:4px; max-width:300px; margin:0 auto;">
             <div class="progress-bar progress-bar-striped progress-bar-animated w-75" role="progressbar"></div>
           </div>
@@ -255,7 +255,6 @@
               <tr>
                 <th style="width:2rem;"></th>
                 <th style="width:2rem;"></th>
-                <th style="width:2.5rem;"></th>
                 <th data-sortable>Species</th>
                 <th style="width:9rem;">Suitability</th>
                 <th data-sortable>Characteristics</th>
