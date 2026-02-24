@@ -201,17 +201,51 @@
 }
 
 /* ── Map placeholder overlay (Goals / Mix tabs) ──────────────── */
+/* Radar chart panel — opaque so the live map beneath is hidden cleanly */
 .mixer-map-placeholder {
   position: absolute;
   inset: 0;
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
-  background: color-mix(in srgb, var(--bs-body-bg) 55%, transparent);
+  background: var(--bs-body-bg);
   display: flex;
-  align-items: center;
+  align-items: stretch;
   justify-content: center;
   z-index: 10;
   color: var(--bs-body-color);
+  padding: 0.5rem;
+}
+
+/* Wrapper so the handle can be absolutely positioned over the canvas */
+.mixer-radar-wrap {
+  position: relative;
+  width: 100%;
+  height: 100%;
+}
+
+/* ECharts radar chart — fills the wrapper */
+.mixer-radar-chart {
+  width: 100%;
+  height: 100%;
+  min-height: 200px;
+}
+
+/* Draggable handle dot */
+.mixer-radar-handle {
+  position: absolute;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--primary-color, var(--bs-primary));
+  border: 2px solid #fff;
+  box-shadow: 0 1px 6px rgba(0,0,0,0.4);
+  transform: translate(-50%, -50%);
+  cursor: grab;
+  z-index: 20;
+  transition: box-shadow 0.15s;
+}
+.mixer-radar-handle:active,
+.mixer-radar-handle.dragging {
+  cursor: grabbing;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.5);
 }
 
 /* ── Right panel tab bar ─────────────────────────────────────── */
@@ -221,41 +255,20 @@
   border-bottom: 1px solid var(--bs-border-color);
 }
 
-/* Override the component's floating-capsule defaults for the full-width bar context */
+/* Customise the nav-pills component for the mixer tab bar using its own CSS variables.
+   The component's sliding indicator + capsule container are kept — we just theme them. */
 .mixer-nav-pills {
-  /* Reset component's capsule shape to flat tab bar */
-  background: transparent;
-  border-radius: 0;
-  height: auto;
-  padding: 0;
-  gap: 0.25rem;
+  /* Use full-width pill style that matches the panel width */
+  width: 100%;
   margin-bottom: 0;
-  /* Undo overflow:hidden that clips tab underlines */
-  overflow: visible;
-}
-
-/* Hide the sliding indicator — we use active background instead */
-.mixer-nav-pills::before {
-  display: none;
-}
-
-.mixer-nav-pills .nav-link {
-  font-size: 0.875rem !important;
-  padding: 0.4rem 0.75rem;
-  border-radius: var(--bs-border-radius);
-  color: var(--bs-body-color);
-  background: transparent !important;
-  height: auto;
-}
-
-.mixer-nav-pills .nav-link:not(.active):hover {
-  background: var(--bs-tertiary-bg) !important;
-  opacity: 1;
-}
-
-.mixer-nav-pills .nav-link.active {
-  background: var(--bs-primary, #059acc) !important;
-  color: #fff !important;
+  /* Theme: primary-coloured indicator on a subtle tinted track */
+  --pill-bg: var(--bs-tertiary-bg);
+  --pill-active-bg: var(--primary-color, var(--bs-primary));
+  --pill-active-text-color: #fff;
+  --pill-text-color: var(--bs-secondary-color);
+  --pill-radius: var(--bs-border-radius);
+  --pill-height: 2.25rem;
+  --pill-padding: 0.2rem;
 }
 
 /* ── Scrollable tab content area ─────────────────────────────── */
@@ -365,13 +378,54 @@
 /* ── Goal Sliders ────────────────────────────────────────────── */
 .species-mixer-goal-slider .form-range {
   height: 0.4rem;
+  --bs-form-range-thumb-bg: var(--goal-colour);
+  --bs-form-range-thumb-box-shadow: 0 0 0 1px var(--bs-body-bg), 0 0 0 0.25rem color-mix(in srgb, var(--goal-colour) 25%, transparent);
+  --bs-form-range-thumb-active-bg: color-mix(in srgb, var(--goal-colour) 70%, #fff);
+  --bs-form-range-thumb-focus-box-shadow: 0 0 0 1px var(--bs-body-bg), 0 0 0 0.25rem color-mix(in srgb, var(--goal-colour) 25%, transparent);
 }
+.species-mixer-goal-slider .form-range::-webkit-slider-thumb {
+  background-color: var(--goal-colour) !important;
+}
+.species-mixer-goal-slider .form-range::-moz-range-thumb {
+  background-color: var(--goal-colour) !important;
+  border-color:     var(--goal-colour) !important;
+}
+
+/* Per-goal colours injected via --goal-colour on the slider wrapper */
+.species-mixer-goal-slider--erosion_control      { --goal-colour: #78716c; }
+.species-mixer-goal-slider--biodiversity         { --goal-colour: #3b82f6; }
+.species-mixer-goal-slider--pollinator           { --goal-colour: #f59e0b; }
+.species-mixer-goal-slider--carbon_sequestration { --goal-colour: #10b981; }
+.species-mixer-goal-slider--wildlife_habitat     { --goal-colour: #8b5cf6; }
 
 .species-mixer-goal-slider .goal-value {
   min-width: 2.5rem;
   text-align: right;
   font-variant-numeric: tabular-nums;
 }
+
+/* Stacked allocation bar — shows how 100% is split across goals */
+.goal-allocation-bar {
+  display: flex;
+  height: 6px;
+  border-radius: 999px;
+  overflow: hidden;
+  gap: 2px;
+  margin-top: 0.25rem;
+}
+
+.goal-allocation-segment {
+  height: 100%;
+  border-radius: 999px;
+  transition: width 0.2s ease;
+  min-width: 0;
+}
+
+.goal-alloc--erosion_control      { background: #78716c; }
+.goal-alloc--biodiversity         { background: #3b82f6; }
+.goal-alloc--pollinator           { background: #f59e0b; }
+.goal-alloc--carbon_sequestration { background: #10b981; }
+.goal-alloc--wildlife_habitat     { background: #8b5cf6; }
 
 /* ── Mix Blender ─────────────────────────────────────────────── */
 .species-mixer-blend-row .form-range {
@@ -522,6 +576,49 @@
   border: 1px solid color-mix(in srgb, var(--bs-primary) 20%, transparent);
   white-space: nowrap;
 }
+
+/* ── Goal-alignment pills (shown in characteristics column) ─────── */
+.species-goal-pill {
+  font-size: 0.62rem;
+  font-weight: 500;
+  padding: 0.2em 0.5em;
+  border-radius: 999px;
+  white-space: nowrap;
+  border: 1px solid transparent;
+}
+/* Each goal gets its own colour family */
+.species-goal-pill--pollinator {
+  background: color-mix(in srgb, #f59e0b 12%, transparent);
+  color: #b45309;
+  border-color: color-mix(in srgb, #f59e0b 25%, transparent);
+}
+.species-goal-pill--erosion_control {
+  background: color-mix(in srgb, #78716c 12%, transparent);
+  color: #57534e;
+  border-color: color-mix(in srgb, #78716c 25%, transparent);
+}
+.species-goal-pill--carbon_sequestration {
+  background: color-mix(in srgb, #10b981 12%, transparent);
+  color: #047857;
+  border-color: color-mix(in srgb, #10b981 25%, transparent);
+}
+.species-goal-pill--wildlife_habitat {
+  background: color-mix(in srgb, #8b5cf6 12%, transparent);
+  color: #6d28d9;
+  border-color: color-mix(in srgb, #8b5cf6 25%, transparent);
+}
+.species-goal-pill--biodiversity {
+  background: color-mix(in srgb, #3b82f6 12%, transparent);
+  color: #1d4ed8;
+  border-color: color-mix(in srgb, #3b82f6 25%, transparent);
+}
+
+/* ── Goal icon colours (used directly on <i> in slider labels) ── */
+.goal-icon--erosion_control      { color: #78716c; }
+.goal-icon--biodiversity         { color: #3b82f6; }
+.goal-icon--pollinator           { color: #f59e0b; }
+.goal-icon--carbon_sequestration { color: #10b981; }
+.goal-icon--wildlife_habitat     { color: #8b5cf6; }
 
 /* ── Native / Invasive status badges ─────────────────────────── */
 .species-status-pill {

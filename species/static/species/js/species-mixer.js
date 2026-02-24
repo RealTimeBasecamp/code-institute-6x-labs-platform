@@ -109,6 +109,7 @@ class SpeciesMixer {
     this._initLocationSearch();
     this._bindEvents();
     this._initMixNameField();
+    this._initRadar();
     this._loadRecentMixes();
   }
 
@@ -215,6 +216,14 @@ class SpeciesMixer {
       mapPanel.style.width = `${saved}%`;
     }
 
+    // Re-measure the pill nav indicator after the panel has its final width.
+    // initPillNavs() fires at DOMContentLoaded before flex layout is resolved,
+    // so getBoundingClientRect() returns stale values — we correct it here.
+    requestAnimationFrame(() => {
+      const nav = document.getElementById('mixer-tabs');
+      if (nav?._pillNav) nav._pillNav.updateIndicator();
+    });
+
     let dragging = false;
     let startX   = 0;
     let startPct = 0;
@@ -246,8 +255,10 @@ class SpeciesMixer {
       // Persist position
       const pct = (mapPanel.offsetWidth / pane.offsetWidth) * 100;
       localStorage.setItem('mixer-map-pct', pct.toFixed(1));
-      // Tell MapLibre about the new container size
+      // Tell MapLibre and ECharts about the new container size
       this.map?.resize();
+      this.radarChart?.resize();
+      this._positionRadarHandle?.();
     });
   }
 
@@ -350,15 +361,22 @@ class SpeciesMixer {
   _onTabShown(tabId) {
     const placeholder = document.getElementById('map-overlay-placeholder');
     if (placeholder) {
-      // Show the blurred ECharts placeholder whenever we're NOT on the Location tab
       if (tabId === 'tab-location') {
         placeholder.classList.add('d-none');
+        // Map is now visible again — let MapLibre recalculate its canvas size
+        this.map?.resize();
       } else {
         placeholder.classList.remove('d-none');
+        // Radar becomes visible — resize first so getWidth/getHeight return real
+        // dimensions, then redraw so the handle lands at the correct pixel position.
+        requestAnimationFrame(() => {
+          this.radarChart?.resize();
+          this._positionRadarHandle?.();
+        });
       }
+    } else {
+      this.map?.resize();
     }
-    // MapLibre needs resize after the pane reflows
-    this.map?.resize();
   }
 
   _switchTab(tabId) {
@@ -373,6 +391,251 @@ class SpeciesMixer {
     // Hide the lock overlay inside the given tab pane
     const overlay = document.getElementById(`${tabId}-lock-overlay`);
     overlay?.classList.add('d-none');
+  }
+
+  // ──────────────────────────────────────────────────────────────────────────
+  // Goals radar chart (ECharts)
+  // ──────────────────────────────────────────────────────────────────────────
+
+  _initRadar() {
+    if (typeof echarts === 'undefined') {
+      console.warn('ECharts not loaded — radar chart skipped.');
+      return;
+    }
+
+    const el = document.getElementById('goal-radar-chart');
+    if (!el) return;
+
+    this.radarChart = echarts.init(el, null, { renderer: 'canvas' });
+
+    // Resize with the window
+    window.addEventListener('resize', () => { this.radarChart?.resize(); this._positionRadarHandle?.(); });
+
+    // Draggable radar — drag anywhere on the chart to adjust sliders.
+    // Each goal axis has a fixed angle (startAngle=90, 5 axes, 72° apart).
+    // When the user drags by (dx, dy), we project that delta onto each axis
+    // direction and add the projection (scaled) to that axis's raw weight.
+    this._initRadarDrag(el);
+
+    // Draw initial equal state
+    this._updateRadar();
+  }
+
+  _initRadarDrag(el) {
+    // Goal order must match _updateRadar GOALS array exactly.
+    const GOAL_KEYS = [
+      'erosion_control',
+      'biodiversity',
+      'pollinator',
+      'carbon_sequestration',
+      'wildlife_habitat',
+    ];
+
+    // Axis angles in screen space (Y-down, clockwise positive).
+    // ECharts: startAngle=90 (top), clockwise, 72° between axes.
+    // Screen angle for axis i (measured clockwise from right, in radians):
+    //   screenDeg = 90 - i*72  → convert clockwise-from-top to standard atan2 space
+    //   atan2-compatible: x = sin(clockwiseAngle), y = -cos(clockwiseAngle)
+    // Simpler: just store the clockwise-from-top angle and use sin/cos directly.
+    // ECharts radar with startAngle=90 places axis 0 at top and goes
+    // COUNTER-clockwise in screen space (standard mathematical positive direction).
+    // CCW degrees from top for axis i: ccwDeg = i * 72
+    // Screen unit vector (Y-down): ux = -sin(ccwDeg), uy = -cos(ccwDeg)
+    // Verification:
+    //   i=0 Erosion:            ccw=0°   → (0,  -1) = UP            ✓
+    //   i=1 Biodiversity:       ccw=72°  → (-0.95, -0.31) = upper-left ✓ (matches screenshot)
+    //   i=2 Pollinators:        ccw=144° → (-0.59,  0.81) = lower-left ✓
+    //   i=3 Carbon:             ccw=216° → ( 0.59,  0.81) = lower-right ✓
+    //   i=4 Wildlife Habitat:   ccw=288° → ( 0.95, -0.31) = upper-right ✓
+    const axes = GOAL_KEYS.map((key, i) => {
+      const rad = (i * 72) * Math.PI / 180;
+      return { key, ux: -Math.sin(rad), uy: -Math.cos(rad) };
+    });
+
+    // Normalised handle position (-1..1 on each screen axis). Starts at centre.
+    this._radarHandle = { x: 0, y: 0 };
+
+    const handle = document.getElementById('goal-radar-handle');
+    if (!handle) return;
+
+    // Position the handle div at the correct spot inside the wrapper.
+    // The wrapper is position:relative; handle is position:absolute with transform:-50%,-50%.
+    // Radar centre = 50% x, 52% y of the wrapper. Radius = 62% of min(w,h)/2.
+    const positionHandle = () => {
+      const wrap = el.parentElement; // .mixer-radar-wrap
+      if (!wrap) return;
+      const w = wrap.offsetWidth;
+      const h = wrap.offsetHeight;
+      const r = Math.min(w, h) * 0.62 * 0.5;
+      const cx = w * 0.50;
+      const cy = h * 0.52;
+      handle.style.left = `${cx + this._radarHandle.x * r}px`;
+      handle.style.top  = `${cy + this._radarHandle.y * r}px`;
+    };
+
+    // Call positionHandle whenever the radar updates
+    this._positionRadarHandle = positionHandle;
+
+    let dragging = false;
+
+    handle.addEventListener('mousedown', (e) => {
+      if (this.state === SpeciesMixer.STATE_4_GENERATING) return;
+      dragging = true;
+      handle.classList.add('dragging');
+      e.preventDefault();
+    });
+
+    window.addEventListener('mousemove', (e) => {
+      if (!dragging) return;
+      const wrap = el.parentElement;
+      if (!wrap) return;
+      const rect = wrap.getBoundingClientRect();
+      const w = rect.width;
+      const h = rect.height;
+      const r = Math.min(w, h) * 0.62 * 0.5;
+      const cx = rect.left + w * 0.50;
+      const cy = rect.top  + h * 0.52;
+
+      // Normalised position relative to radar centre
+      let nx = (e.clientX - cx) / r;
+      let ny = (e.clientY - cy) / r;
+
+      // Clamp to unit circle
+      const rawMag = Math.sqrt(nx * nx + ny * ny);
+      const mag = Math.min(rawMag, 1);
+      if (rawMag > 1) { nx /= rawMag; ny /= rawMag; }
+
+      this._radarHandle = { x: nx, y: ny };
+
+      // Convert handle position to angle + magnitude.
+      // At centre (mag=0): all axes equal. At edge (mag=1): pointed axis dominates.
+      const handleAngle = Math.atan2(ny, nx); // -π..π
+
+      axes.forEach(({ key, ux, uy }) => {
+        const axisAngle = Math.atan2(uy, ux);
+        let diff = handleAngle - axisAngle;
+        // Normalise diff to -π..π
+        while (diff >  Math.PI) diff -= 2 * Math.PI;
+        while (diff < -Math.PI) diff += 2 * Math.PI;
+        // Use cos(diff) clamped to [0,1] raised to power 6 for a very sharp peak.
+        // cos^6: adjacent axes at ±72° → 0.31^6 ≈ 0.001 → effectively 1%, true straight-line spike.
+        // cos^3 left adjacent axes at ~0.03 → ~4%, visibly widening the radar polygon.
+        const cosVal = Math.max(0, Math.cos(diff));
+        const c2 = cosVal * cosVal;
+        const score = c2 * c2 * c2; // cosVal^6, [0,1], very sharp peak at aligned axis
+        // At mag=0: raw=50 (neutral). At mag=1: raw = score*100 (0..100).
+        // Lerping between 50 and score*100 means non-dominant axes reach 0 at the edge,
+        // so the pointed axis can achieve a true 100% normalised share.
+        const raw = Math.round(50 + (score * 100 - 50) * mag);
+        this._goalWeights[key] = Math.max(0, Math.min(100, raw));
+      });
+
+      positionHandle();
+      this._syncGoalSliders();
+      this._debouncedRescore();
+    });
+
+    window.addEventListener('mouseup', () => {
+      if (!dragging) return;
+      dragging = false;
+      handle.classList.remove('dragging');
+    });
+
+    // Initial position (centre)
+    positionHandle();
+  }
+
+  _updateRadar() {
+    if (!this.radarChart) return;
+
+    // Read current theme colours from CSS custom properties.
+    // We resolve values via a temporary element so inherited vars work correctly.
+    const style = getComputedStyle(document.documentElement);
+    const resolve = (prop, fallback) => {
+      let v = style.getPropertyValue(prop).trim();
+      // If the value is itself a var() reference, resolve one more level
+      if (v.startsWith('var(')) {
+        const inner = v.match(/var\(([^)]+)\)/)?.[1]?.split(',')[0]?.trim();
+        if (inner) v = style.getPropertyValue(inner).trim();
+      }
+      return v || fallback;
+    };
+
+    const bodyColor   = resolve('--bs-body-color',     '#212529');
+    const borderColor = resolve('--bs-border-color',   '#dee2e6');
+
+    // Goal definitions — colours must match CSS goal-icon--* and goal-alloc--* rules
+    const GOALS = [
+      { key: 'erosion_control',       label: 'Erosion\nControl', colour: '#78716c', rgb: [120, 113, 108] },
+      { key: 'biodiversity',          label: 'Biodiversity',     colour: '#3b82f6', rgb: [59,  130, 246] },
+      { key: 'pollinator',            label: 'Pollinators',      colour: '#f59e0b', rgb: [245, 158,  11] },
+      { key: 'carbon_sequestration',  label: 'Carbon',           colour: '#10b981', rgb: [16,  185, 129] },
+      { key: 'wildlife_habitat',      label: 'Wildlife\nHabitat',colour: '#8b5cf6', rgb: [139,  92, 246] },
+    ];
+
+    // Normalised percentages — same logic as _getGoals
+    const weights = this._goalWeights || {};
+    const total   = GOALS.reduce((s, g) => s + (weights[g.key] ?? 0), 0) || 1;
+    const values  = GOALS.map(g => Math.round((weights[g.key] ?? 0) / total * 100));
+
+    // ECharts renders a collapsed polygon when any value is exactly 0
+    // (the 0-valued spokes collapse to the centre creating a flat pentagon artifact).
+    // Floor the radar data at 0.5 — invisible on a 0–100 scale but prevents the bug.
+    const radarValues = values.map(v => Math.max(0.5, v));
+
+    // Weighted RGB blend of goal colours — polygon fill reflects the mix emphasis
+    let [blendR, blendG, blendB] = [0, 0, 0];
+    GOALS.forEach((g, i) => {
+      const w = values[i] / 100;
+      blendR += g.rgb[0] * w;
+      blendG += g.rgb[1] * w;
+      blendB += g.rgb[2] * w;
+    });
+    // values sum to 100 so weights normalise correctly; guard against all-zero
+    const blendStroke = `rgb(${Math.round(blendR)},${Math.round(blendG)},${Math.round(blendB)})`;
+    const blendFill   = `rgba(${Math.round(blendR)},${Math.round(blendG)},${Math.round(blendB)},0.35)`;
+
+    const option = {
+      backgroundColor: 'transparent',
+      radar: {
+        center: ['50%', '52%'],
+        radius: '62%',
+        startAngle: 90,
+        splitNumber: 4,
+        // Rich text: coloured ● dot prefix for each axis label
+        axisName: {
+          color: bodyColor,
+          fontSize: 10.5,
+          rich: Object.fromEntries(
+            GOALS.map((g, i) => [`c${i}`, { color: g.colour, fontSize: 13 }])
+          ),
+        },
+        indicator: GOALS.map((g, i) => ({ name: `{c${i}|●} ${g.label}`, min: 0, max: 100 })),
+        splitArea: {
+          areaStyle: {
+            color: ['rgba(0,0,0,0.04)','rgba(0,0,0,0.02)','rgba(0,0,0,0.04)','rgba(0,0,0,0.02)'],
+          },
+        },
+        axisLine:  { lineStyle: { color: borderColor, opacity: 0.5 } },
+        splitLine: { lineStyle: { color: borderColor, opacity: 0.5 } },
+      },
+      series: [{
+        type: 'radar',
+        data: [{
+          value: radarValues,
+          name: 'Goals',
+          areaStyle: { color: blendFill },
+          lineStyle: { color: blendStroke, width: 2 },
+          itemStyle: { color: blendStroke },
+          symbol: 'none',
+        }],
+      }],
+    };
+
+    this.radarChart.setOption(option, { notMerge: false, lazyUpdate: false });
+
+    // Keep the HTML handle div in sync
+    this._positionRadarHandle?.();
   }
 
   async _fetchLocationName(lat, lng) {
@@ -594,6 +857,77 @@ class SpeciesMixer {
   }
 
   // ──────────────────────────────────────────────────────────────────────────
+  // Linked goal sliders — five sliders always summing to 100%
+  // ──────────────────────────────────────────────────────────────────────────
+
+  _initGoalSliders() {
+    const GOALS = ['erosion_control','biodiversity','pollinator','carbon_sequestration','wildlife_habitat'];
+
+    // Raw slider values — each 0–100 independently. Percentage labels and the AI
+    // always receive normalised values (each / sum * 100), so sliders are never blocked.
+    // Start equal at 50 so the normalised share is 20% each.
+    this._goalWeights = {};
+    GOALS.forEach(g => { this._goalWeights[g] = 50; });
+
+    document.querySelectorAll('.goal-slider').forEach((slider) => {
+      slider.addEventListener('input', (e) => {
+        if (this.state === SpeciesMixer.STATE_4_GENERATING) return;
+        this._goalWeights[e.target.dataset.goal] = Math.max(0, parseInt(e.target.value, 10));
+        this._computeHandleFromWeights(); // reposition handle to match new weights
+        this._syncGoalSliders();
+        this._debouncedRescore();
+      });
+    });
+
+    this._syncGoalSliders();
+  }
+
+  _syncGoalSliders() {
+    const GOALS = ['erosion_control','biodiversity','pollinator','carbon_sequestration','wildlife_habitat'];
+    const total = GOALS.reduce((s, g) => s + (this._goalWeights[g] ?? 0), 0) || 1;
+    GOALS.forEach(g => {
+      const raw = this._goalWeights[g] ?? 0;
+      const pct = Math.round(raw / total * 100);
+      const slider = document.getElementById(`goal-${g}`);
+      if (slider) slider.value = raw;
+      const disp = document.getElementById(`goal-val-${g}`);
+      if (disp) disp.textContent = `${pct}%`;
+      const seg = document.getElementById(`alloc-${g}`);
+      if (seg) seg.style.width = `${pct}%`;
+    });
+    this._updateRadar?.();
+  }
+
+  /**
+   * Compute the radar handle position from the current goal weights.
+   * Each axis has a unit vector; the handle is the weighted centroid of those vectors.
+   * For a regular pentagon the unit vectors sum to zero, so:
+   *   - equal weights → handle at centre (0, 0)
+   *   - 100% on one axis → handle at that axis tip (magnitude 1)
+   * This is the inverse of the drag calculation, so slider changes move the handle
+   * to the position that "best represents" the current weight distribution.
+   */
+  _computeHandleFromWeights() {
+    if (!this._radarHandle) return; // radar not initialised yet
+    const GOAL_KEYS = ['erosion_control','biodiversity','pollinator','carbon_sequestration','wildlife_habitat'];
+    const total = GOAL_KEYS.reduce((s, k) => s + (this._goalWeights[k] ?? 0), 0) || 1;
+    let hx = 0, hy = 0;
+    GOAL_KEYS.forEach((key, i) => {
+      const rad = (i * 72) * Math.PI / 180;
+      const ux = -Math.sin(rad);
+      const uy = -Math.cos(rad);
+      const w = (this._goalWeights[key] ?? 0) / total;
+      hx += ux * w;
+      hy += uy * w;
+    });
+    // Clamp to unit circle (weighted centroid can't exceed 1 for a unit pentagon, but guard anyway)
+    const mag = Math.sqrt(hx * hx + hy * hy);
+    if (mag > 1) { hx /= mag; hy /= mag; }
+    this._radarHandle = { x: hx, y: hy };
+    // _positionRadarHandle will be called by _updateRadar → _syncGoalSliders chain
+  }
+
+  // ──────────────────────────────────────────────────────────────────────────
   // Event binding
   // ──────────────────────────────────────────────────────────────────────────
 
@@ -619,18 +953,19 @@ class SpeciesMixer {
       }
     });
 
-    // Goal sliders — update display value + debounce rescore
-    // Sliders are disabled during STATE_4 so clicks won't fire,
-    // but pointer-events on the wrapper may still reach the label — handled by generate-mix-btn guard
-    document.querySelectorAll('.goal-slider').forEach((slider) => {
-      slider.addEventListener('input', (e) => {
-        const pct = e.target.value;
-        const goalId = e.target.dataset.goal;
-        const display = document.getElementById(`goal-val-${goalId}`);
-        if (display) display.textContent = `${pct}%`;
-        this._debouncedRescore();
-      });
+    // Reset goals — sets all raw weights back to 50 (equal 20% each)
+    document.getElementById('reset-goals-btn')?.addEventListener('click', () => {
+      if (this.state === SpeciesMixer.STATE_4_GENERATING) return;
+      const GOALS = ['erosion_control','biodiversity','pollinator','carbon_sequestration','wildlife_habitat'];
+      GOALS.forEach(g => { this._goalWeights[g] = 50; });
+      this._radarHandle = { x: 0, y: 0 };
+      this._syncGoalSliders();
+      this._debouncedRescore();
     });
+
+    // Goal sliders — linked proportional system: all 5 always sum to 100%
+    // Moving one slider scales the others proportionally.
+    this._initGoalSliders();
 
     // Generate Mix button (Goals tab):
     //   STATE_3 / STATE_5 → switch to Mix tab, start generation
@@ -1166,13 +1501,14 @@ class SpeciesMixer {
     tr.className = 'species-mixer-row';
     tr.dataset.speciesId = item.species_id;
 
-    // Characteristics pills: ecological benefits + category pill
-    const benefitBadges = (item.ecological_benefits || []).map(b =>
-      `<span class="badge species-char-pill me-1 mb-1">${this._benefitLabel(b)}</span>`
-    ).join('');
+    // Characteristics pills: category + goal-alignment tags derived from family
     const categoryPill = item.category
       ? `<span class="badge species-cat-pill me-1 mb-1">${this._categoryIcon(item.category)} ${item.category}</span>`
       : '';
+    const goalTags = this._goalTagsFromFamily(item.family, item.ecological_benefits)
+      .map(({ label, icon, key }) =>
+        `<span class="badge species-goal-pill species-goal-pill--${key} me-1 mb-1">${icon} ${label}</span>`
+      ).join('');
 
     // Native/invasive badge — uses suitability_label or native_regions if available
     const nativeBadge = this._nativeBadge(item);
@@ -1200,7 +1536,7 @@ class SpeciesMixer {
         ${item.is_manual ? '<span class="badge bg-info bg-opacity-10 text-info" style="font-size:.6rem;">Manual</span>' : ''}
       </td>
       <td class="col-chars">
-        <div class="d-flex flex-wrap gap-0">${categoryPill}${benefitBadges}</div>
+        <div class="d-flex flex-wrap gap-0">${categoryPill}${goalTags}</div>
       </td>
       <td class="col-native suitability-cell" data-sort-value="${item.suitability_label || ''}">
         ${nativeBadge}
@@ -1657,12 +1993,16 @@ class SpeciesMixer {
       this.cachedCandidates = data.cached_candidates || [];
 
       // Restore goal sliders
+      // Restore goal weights — update internal state + DOM (sliders + display + bar)
       const goals = data.goals || {};
       Object.entries(goals).forEach(([key, val]) => {
+        if (this._goalWeights && key in this._goalWeights) this._goalWeights[key] = val;
         const slider = document.getElementById(`goal-${key}`);
         const display = document.getElementById(`goal-val-${key}`);
-        if (slider) slider.value = val;
+        const seg    = document.getElementById(`alloc-${key}`);
+        if (slider)  slider.value = val;
         if (display) display.textContent = `${val}%`;
+        if (seg)     seg.style.width = `${val}%`;
       });
 
       // Render map marker
@@ -1718,10 +2058,15 @@ class SpeciesMixer {
   // ──────────────────────────────────────────────────────────────────────────
 
   _getGoals() {
+    // Return normalised weights (each / sum * 100, integers summing to 100).
+    const GOALS = ['erosion_control','biodiversity','pollinator','carbon_sequestration','wildlife_habitat'];
+    const weights = this._goalWeights || {};
+    const total = GOALS.reduce((s, g) => s + (weights[g] || 50), 0) || 1;
     const goals = {};
-    document.querySelectorAll('.goal-slider').forEach(slider => {
-      goals[slider.dataset.goal] = parseInt(slider.value, 10);
-    });
+    GOALS.forEach(g => { goals[g] = Math.round((weights[g] || 50) / total * 100); });
+    // Fix rounding so sum is exactly 100
+    const diff = 100 - Object.values(goals).reduce((s, v) => s + v, 0);
+    if (diff !== 0) goals[GOALS[0]] += diff;
     return goals;
   }
 
@@ -1750,6 +2095,51 @@ class SpeciesMixer {
       'biodiversity': 'Biodiversity',
     };
     return labels[benefit] || benefit;
+  }
+
+  _goalTagsFromFamily(family, ecoBenefits) {
+    // Derive which goals this species serves, using the same family→goal mappings
+    // the AI agent uses for scoring. Falls back to ecological_benefits from the DB.
+    // Returns [{key, label, icon}] for each matched goal, max 3 tags to keep cell compact.
+    const fam = (family || '').toLowerCase().split(' ')[0]; // e.g. "Betulaceae" → "betulaceae"
+
+    const GOAL_FAMILIES = {
+      pollinator:           { label: 'Pollinator',  icon: '<i class="bi bi-bug"></i>',
+        families: new Set(['rosaceae','fabaceae','lamiaceae','asteraceae','apiaceae',
+                           'boraginaceae','scrophulariaceae','campanulaceae',
+                           'primulaceae','ranunculaceae','violaceae','geraniaceae']) },
+      erosion_control:      { label: 'Erosion',     icon: '<i class="bi bi-layers"></i>',
+        families: new Set(['salicaceae','betulaceae','pinaceae','fabaceae','poaceae',
+                           'cyperaceae','juncaceae','fagaceae','rosaceae']) },
+      carbon_sequestration: { label: 'Carbon',      icon: '<i class="bi bi-tree"></i>',
+        families: new Set(['pinaceae','betulaceae','fagaceae','aceraceae','salicaceae',
+                           'cupressaceae','taxodiaceae','ulmaceae','juglandaceae']) },
+      wildlife_habitat:     { label: 'Wildlife',    icon: '<i class="bi bi-feather"></i>',
+        families: new Set(['rosaceae','betulaceae','fagaceae','salicaceae','aquifoliaceae',
+                           'adoxaceae','rhamnaceae','ericaceae','cornaceae']) },
+      biodiversity:         { label: 'Biodiversity',icon: '<i class="bi bi-flower1"></i>',
+        families: new Set(['orchidaceae','ericaceae','cyperaceae','juncaceae',
+                           'asteraceae','poaceae','sphagnaceae','osmundaceae']) },
+    };
+
+    const matched = [];
+
+    // Primary: family lookup
+    for (const [key, meta] of Object.entries(GOAL_FAMILIES)) {
+      if (meta.families.has(fam)) {
+        matched.push({ key, label: meta.label, icon: meta.icon });
+      }
+    }
+
+    // Fallback: use ecological_benefits array (from local DB species)
+    if (matched.length === 0 && Array.isArray(ecoBenefits)) {
+      for (const b of ecoBenefits) {
+        const meta = GOAL_FAMILIES[b];
+        if (meta) matched.push({ key: b, label: meta.label, icon: meta.icon });
+      }
+    }
+
+    return matched.slice(0, 3); // cap at 3 to keep cell compact
   }
 
   _nativeBadge(item) {
@@ -1867,11 +2257,11 @@ class SpeciesMixer {
     const resetSearch = document.getElementById('location-search-input');
     if (resetSearch) resetSearch.value = '';
     document.getElementById('generate-cta')?.classList.add('d-none');
-    document.querySelectorAll('.goal-slider').forEach(s => {
-      s.setAttribute('disabled', '');
-      s.value = 50;
-    });
-    document.querySelectorAll('.goal-value').forEach(el => { el.textContent = '50%'; });
+    // Reset goal weights to equal raw values (50 each → 20% normalised share)
+    const GOALS = ['erosion_control','biodiversity','pollinator','carbon_sequestration','wildlife_habitat'];
+    if (this._goalWeights) GOALS.forEach(g => { this._goalWeights[g] = 50; });
+    document.querySelectorAll('.goal-slider').forEach(s => { s.setAttribute('disabled', ''); });
+    this._syncGoalSliders();
 
     // Reset both generate buttons to initial disabled state
     const resetHtml = '<i class="bi bi-magic me-2"></i>Generate Species Mix';

@@ -40,8 +40,9 @@
    * Set up event listeners and initial indicator position.
    */
   init() {
-    // Set initial indicator position
-    this.updateIndicator();
+    // Defer the initial measurement until after first paint so getBoundingClientRect()
+    // returns real dimensions (elements may not be laid out yet at DOMContentLoaded).
+    requestAnimationFrame(() => this.updateIndicator());
 
     // Listen for tab changes (Bootstrap events)
     this.container.addEventListener('shown.bs.tab', () => {

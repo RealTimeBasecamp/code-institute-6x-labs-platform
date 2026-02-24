@@ -53,12 +53,11 @@
       <small class="text-muted" style="font-size:.7rem;">Environmental data fetched automatically</small>
     </div>
 
-    <!-- ECharts species distribution placeholder (shown on Goals/Mix tabs) -->
+    <!-- Goals radar chart overlay (shown on Goals/Mix tabs) -->
     <div id="map-overlay-placeholder" class="mixer-map-placeholder d-none">
-      <div class="text-center">
-        <i class="bi bi-diagram-3" style="font-size:2.5rem; opacity:.3;"></i>
-        <p class="mt-3 mb-1 fw-medium">Species distribution</p>
-        <small class="text-muted">ECharts point visualisation — coming soon</small>
+      <div class="mixer-radar-wrap">
+        <div id="goal-radar-chart" class="mixer-radar-chart"></div>
+        <div id="goal-radar-handle" class="mixer-radar-handle" title="Drag to adjust goals"></div>
       </div>
     </div>
   </div>
@@ -190,6 +189,13 @@
           <small class="text-muted">Click the map to set your planting point</small>
         </div>
 
+        <!-- Reset goals button -->
+        <div class="d-flex justify-content-end mb-2">
+          <button type="button" class="btn btn-secondary btn-sm" id="reset-goals-btn">
+            <i class="bi bi-arrow-counterclockwise me-1"></i>Reset to Default
+          </button>
+        </div>
+
         <!-- Goal sliders card -->
         <div class="card mb-3" id="goals-sliders-card">
           <div class="card-body position-relative">
@@ -198,47 +204,56 @@
                  data-bs-toggle="modal" data-bs-target="#stopGenerationModal"
                  role="button" aria-label="Generation in progress — click to stop"></div>
 
-            <p class="text-muted small mb-3">Weight each goal from 0% (not important) to 100% (highest priority). The AI will balance the species mix accordingly.</p>
+            <p class="text-muted small mb-3">Drag a goal to increase its priority — the others adjust automatically so the total always equals 100%.</p>
 
-            <div class="species-mixer-goal-slider mb-3">
+            <div class="species-mixer-goal-slider species-mixer-goal-slider--erosion_control mb-3">
               <div class="d-flex justify-content-between mb-1">
-                <label class="form-label mb-0 small" for="goal-erosion_control">Erosion Control</label>
-                <span class="text-muted small goal-value" id="goal-val-erosion_control">50%</span>
+                <label class="form-label mb-0 small" for="goal-erosion_control"><i class="bi bi-layers goal-icon--erosion_control me-1"></i> Erosion Control</label>
+                <span class="text-muted small goal-value" id="goal-val-erosion_control">20%</span>
               </div>
               <input type="range" class="form-range goal-slider" id="goal-erosion_control"
                      data-goal="erosion_control" min="0" max="100" value="50" disabled>
             </div>
-            <div class="species-mixer-goal-slider mb-3">
+            <div class="species-mixer-goal-slider species-mixer-goal-slider--biodiversity mb-3">
               <div class="d-flex justify-content-between mb-1">
-                <label class="form-label mb-0 small" for="goal-biodiversity">Biodiversity</label>
-                <span class="text-muted small goal-value" id="goal-val-biodiversity">50%</span>
+                <label class="form-label mb-0 small" for="goal-biodiversity"><i class="bi bi-flower1 goal-icon--biodiversity me-1"></i> Biodiversity</label>
+                <span class="text-muted small goal-value" id="goal-val-biodiversity">20%</span>
               </div>
               <input type="range" class="form-range goal-slider" id="goal-biodiversity"
                      data-goal="biodiversity" min="0" max="100" value="50" disabled>
             </div>
-            <div class="species-mixer-goal-slider mb-3">
+            <div class="species-mixer-goal-slider species-mixer-goal-slider--pollinator mb-3">
               <div class="d-flex justify-content-between mb-1">
-                <label class="form-label mb-0 small" for="goal-pollinator">Pollinator Habitat</label>
-                <span class="text-muted small goal-value" id="goal-val-pollinator">50%</span>
+                <label class="form-label mb-0 small" for="goal-pollinator"><i class="bi bi-bug goal-icon--pollinator me-1"></i> Pollinator Habitat</label>
+                <span class="text-muted small goal-value" id="goal-val-pollinator">20%</span>
               </div>
               <input type="range" class="form-range goal-slider" id="goal-pollinator"
                      data-goal="pollinator" min="0" max="100" value="50" disabled>
             </div>
-            <div class="species-mixer-goal-slider mb-3">
+            <div class="species-mixer-goal-slider species-mixer-goal-slider--carbon_sequestration mb-3">
               <div class="d-flex justify-content-between mb-1">
-                <label class="form-label mb-0 small" for="goal-carbon_sequestration">Carbon Sequestration</label>
-                <span class="text-muted small goal-value" id="goal-val-carbon_sequestration">50%</span>
+                <label class="form-label mb-0 small" for="goal-carbon_sequestration"><i class="bi bi-tree goal-icon--carbon_sequestration me-1"></i> Carbon Sequestration</label>
+                <span class="text-muted small goal-value" id="goal-val-carbon_sequestration">20%</span>
               </div>
               <input type="range" class="form-range goal-slider" id="goal-carbon_sequestration"
                      data-goal="carbon_sequestration" min="0" max="100" value="50" disabled>
             </div>
-            <div class="species-mixer-goal-slider mb-0">
+            <div class="species-mixer-goal-slider species-mixer-goal-slider--wildlife_habitat mb-3">
               <div class="d-flex justify-content-between mb-1">
-                <label class="form-label mb-0 small" for="goal-wildlife_habitat">Wildlife Habitat</label>
-                <span class="text-muted small goal-value" id="goal-val-wildlife_habitat">50%</span>
+                <label class="form-label mb-0 small" for="goal-wildlife_habitat"><i class="bi bi-feather goal-icon--wildlife_habitat me-1"></i> Wildlife Habitat</label>
+                <span class="text-muted small goal-value" id="goal-val-wildlife_habitat">20%</span>
               </div>
               <input type="range" class="form-range goal-slider" id="goal-wildlife_habitat"
                      data-goal="wildlife_habitat" min="0" max="100" value="50" disabled>
+            </div>
+
+            <!-- Stacked allocation bar -->
+            <div class="goal-allocation-bar" id="goal-allocation-bar" title="100% total goal allocation">
+              <div class="goal-allocation-segment goal-alloc--erosion_control"  id="alloc-erosion_control"  style="width:20%"></div>
+              <div class="goal-allocation-segment goal-alloc--biodiversity"     id="alloc-biodiversity"     style="width:20%"></div>
+              <div class="goal-allocation-segment goal-alloc--pollinator"       id="alloc-pollinator"       style="width:20%"></div>
+              <div class="goal-allocation-segment goal-alloc--carbon_sequestration" id="alloc-carbon_sequestration" style="width:20%"></div>
+              <div class="goal-allocation-segment goal-alloc--wildlife_habitat" id="alloc-wildlife_habitat" style="width:20%"></div>
             </div>
           </div>
         </div>
@@ -634,6 +649,7 @@
 
 {% block extra_js %}
 <script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/echarts@5/dist/echarts.min.js"></script>
 <script src="{% static 'js/components/sortable-table.js' %}" defer></script>
 <script src="{% static 'species/js/species-mixer.js' %}" defer></script>
 {% endblock %}
