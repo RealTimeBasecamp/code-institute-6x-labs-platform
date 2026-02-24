@@ -426,6 +426,26 @@ def api_save_mix(request):
 
 
 @login_required
+@require_http_methods(['POST'])
+def api_create_mix(request):
+    """
+    POST /species/mixer/api/mixes/create/
+
+    Creates a new blank SpeciesMix and returns its id + name.
+    Called by the "Add New Mix" button on the species list page to get
+    a fresh mix_id before redirecting to the mixer.
+    """
+    count = SpeciesMix.objects.filter(owner=request.user).count()
+    name = f'Species Mix #{count + 1}'
+    mix = SpeciesMix.objects.create(owner=request.user, name=name)
+    return JsonResponse({
+        'mix_id': mix.id,
+        'mix_name': mix.name,
+        'mixer_url': f'/species/mixer/?mix_id={mix.id}',
+    })
+
+
+@login_required
 @require_http_methods(['GET'])
 def api_list_mixes(request):
     """

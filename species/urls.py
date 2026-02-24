@@ -27,6 +27,7 @@ urlpatterns = [
 
     # Mix CRUD
     path('mixer/api/save/', api_views.api_save_mix, name='api_save_mix'),
+    path('mixer/api/mixes/create/', api_views.api_create_mix, name='api_create_mix'),
     path('mixer/api/mixes/', api_views.api_list_mixes, name='api_list_mixes'),
     path('mixer/api/mixes/<int:mix_id>/', api_views.api_get_mix, name='api_get_mix'),
     path('mixer/api/mixes/<int:mix_id>/delete/', api_views.api_delete_mix, name='api_delete_mix'),

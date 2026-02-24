@@ -91,8 +91,8 @@ class SpeciesMixer {
     this.cachedCandidates = [];
     this._ecoDataLoaded = false;  // true once eco grid has been populated
 
-    // Mix state
-    this.mixId = null;
+    // Mix state — initialMixId comes from the Django view (auto-created on page load)
+    this.mixId = config.initialMixId || null;
     this.mixItems = [];      // [{ species_id, name, category, ratio, ai_reason, ... }]
     this.currentTaskId = null;
     this.pollTimer = null;
@@ -106,7 +106,9 @@ class SpeciesMixer {
     this._initMap();
     this._initDivider();
     this._initTabs();
+    this._initLocationSearch();
     this._bindEvents();
+    this._initMixNameField();
     this._loadRecentMixes();
   }
 
@@ -264,6 +266,87 @@ class SpeciesMixer {
     });
   }
 
+  _initLocationSearch() {
+    const input    = document.getElementById('location-search-input');
+    const dropdown = document.getElementById('location-search-dropdown');
+    if (!input || !dropdown) return;
+
+    let debounceTimer = null;
+    let activeRequest = null; // track in-flight fetch so we can ignore stale results
+
+    const closeDropdown = () => {
+      dropdown.classList.add('d-none');
+      dropdown.innerHTML = '';
+    };
+
+    const showResult = (place) => {
+      const lat = parseFloat(place.lat);
+      const lng = parseFloat(place.lon);
+      const label = place.display_name;
+
+      // Update input, close dropdown
+      input.value = label;
+      closeDropdown();
+
+      // Fly map to the selected location
+      this.map?.flyTo({ center: [lng, lat], zoom: 13, duration: 800 });
+
+      // Trigger the same flow as a map click
+      this._onMapClick(lat, lng);
+    };
+
+    const search = async (query) => {
+      if (query.length < 3) { closeDropdown(); return; }
+
+      // Cancel previous in-flight request by ignoring its result
+      const thisRequest = {};
+      activeRequest = thisRequest;
+
+      try {
+        const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query)}&format=json&limit=5&addressdetails=0`;
+        const resp = await fetch(url, { headers: { 'Accept-Language': 'en' } });
+        if (activeRequest !== thisRequest) return; // stale — a newer request has taken over
+        const results = await resp.json();
+        if (activeRequest !== thisRequest) return;
+
+        if (!results.length) { closeDropdown(); return; }
+
+        dropdown.innerHTML = results.map((r, i) =>
+          `<div class="mixer-location-result" data-idx="${i}">${r.display_name}</div>`
+        ).join('');
+        dropdown.classList.remove('d-none');
+
+        dropdown.querySelectorAll('.mixer-location-result').forEach((el, i) => {
+          el.addEventListener('mousedown', (e) => {
+            e.preventDefault(); // prevent input blur before click fires
+            showResult(results[i]);
+          });
+        });
+      } catch {
+        closeDropdown();
+      }
+    };
+
+    input.addEventListener('input', () => {
+      clearTimeout(debounceTimer);
+      debounceTimer = setTimeout(() => search(input.value.trim()), 350);
+    });
+
+    input.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') closeDropdown();
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        const first = dropdown.querySelector('.mixer-location-result');
+        first?.dispatchEvent(new MouseEvent('mousedown', { bubbles: true }));
+      }
+    });
+
+    // Close dropdown when focus leaves the search area
+    input.addEventListener('blur', () => {
+      setTimeout(closeDropdown, 150);
+    });
+  }
+
   _onTabShown(tabId) {
     const placeholder = document.getElementById('map-overlay-placeholder');
     if (placeholder) {
@@ -293,21 +376,20 @@ class SpeciesMixer {
   }
 
   async _fetchLocationName(lat, lng) {
-    // Show skeleton state on the name line while fetching
-    const nameEl = document.getElementById('location-display-name');
-    if (nameEl) nameEl.innerHTML = '<span class="location-name-skeleton skeleton-line" style="width:70%;"></span>';
-    document.getElementById('coord-display').textContent = `${lat.toFixed(6)}, ${lng.toFixed(6)}`;
+    // Set coords immediately (full precision, no truncation)
+    document.getElementById('coord-display').textContent = `${lat}, ${lng}`;
 
     const url = `${this.config.apiUrls.location}?lat=${lat}&lng=${lng}`;
     try {
       const resp = await fetch(url, { headers: { 'X-CSRFToken': this.config.csrfToken } });
       const data = await resp.json();
-      this.locationName = data.location_name || `${lat.toFixed(4)}, ${lng.toFixed(4)}`;
+      this.locationName = data.location_name || `${lat}, ${lng}`;
     } catch {
-      this.locationName = `${lat.toFixed(4)}, ${lng.toFixed(4)}`;
+      this.locationName = `${lat}, ${lng}`;
     }
-    if (nameEl) nameEl.textContent = this.locationName;
-    document.getElementById('map-location-name').textContent = this.locationName;
+    // Update location search input with place name
+    const searchInput = document.getElementById('location-search-input');
+    if (searchInput) searchInput.value = this.locationName;
   }
 
   async _fetchEnvDataSoil(lat, lng) {
@@ -385,11 +467,12 @@ class SpeciesMixer {
     if (state >= SpeciesMixer.STATE_2_LOCATION_SET) {
       hide('step1-prompt');
       show('location-info-panel');
-      show('map-location-badge');
     }
 
     if (state >= SpeciesMixer.STATE_3_GOALS_SET) {
       enable('.goal-slider');
+      document.getElementById('goals-generating-shield')?.classList.add('d-none');
+      document.getElementById('goals-sliders-card')?.classList.remove('goals-generating');
       show('generate-cta');
       const goalsBtn = document.getElementById('generate-mix-btn');
       const mixBtn = document.getElementById('mix-generate-btn');
@@ -406,6 +489,8 @@ class SpeciesMixer {
       const goalsBtn = document.getElementById('generate-mix-btn');
       const mixBtn = document.getElementById('mix-generate-btn');
       disable('.goal-slider');
+      document.getElementById('goals-generating-shield')?.classList.remove('d-none');
+      document.getElementById('goals-sliders-card')?.classList.add('goals-generating');
       if (goalsBtn) {
         goalsBtn.disabled = false;
         goalsBtn.innerHTML = stopHtml;
@@ -439,10 +524,94 @@ class SpeciesMixer {
   }
 
   // ──────────────────────────────────────────────────────────────────────────
+  // Mix name field — auto-save name to the current mix on blur
+  // ──────────────────────────────────────────────────────────────────────────
+
+  _initMixNameField() {
+    const input = document.getElementById('mix-name-input');
+    if (!input) return;
+
+    // Save name to server when the user finishes editing (blur or Enter)
+    const saveName = async () => {
+      const name = input.value.trim();
+      if (!name || !this.mixId) return;
+      try {
+        await fetch(this.config.apiUrls.save, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': this.config.csrfToken,
+          },
+          body: JSON.stringify({
+            mix_id: this.mixId,
+            name,
+            // Pass current state so the save endpoint doesn't wipe existing data
+            latitude: this.lat,
+            longitude: this.lng,
+            location_name: this.locationName,
+            env_data: this.envData,
+            cached_candidates: this.cachedCandidates,
+            goals: this._getGoals(),
+            ai_insights: document.getElementById('insights-text')?.textContent || '',
+            env_summary: document.getElementById('env-summary-text')?.textContent || '',
+            species_items: this.mixItems.map((item, i) => ({
+              species_id: item.species_id,
+              ratio: item.ratio,
+              ai_reason: item.ai_reason || '',
+              suitability_score: item.suitability_score ?? null,
+              suitability_label: item.suitability_label || '',
+              is_manual: item.is_manual || false,
+              order: i,
+            })),
+          }),
+        });
+      } catch (_) {
+        // Non-blocking — name save failure is silent
+      }
+    };
+
+    input.addEventListener('blur', saveName);
+    input.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') { e.preventDefault(); input.blur(); }
+    });
+  }
+
+  async _createNewMix() {
+    try {
+      const resp = await fetch(this.config.apiUrls.createMix, {
+        method: 'POST',
+        headers: { 'X-CSRFToken': this.config.csrfToken },
+      });
+      const data = await resp.json();
+      if (data.mix_id) {
+        this.mixId = data.mix_id;
+        const input = document.getElementById('mix-name-input');
+        if (input) input.value = data.mix_name;
+      }
+    } catch (_) {
+      // Non-blocking — mix record will be created on first save
+    }
+  }
+
+  // ──────────────────────────────────────────────────────────────────────────
   // Event binding
   // ──────────────────────────────────────────────────────────────────────────
 
   _bindEvents() {
+    // Coordinates copy button
+    document.getElementById('coord-copy-btn')?.addEventListener('click', () => {
+      if (this.lat == null || this.lng == null) return;
+      const text = `${this.lat}, ${this.lng}`;
+      navigator.clipboard.writeText(text).then(() => {
+        const btn = document.getElementById('coord-copy-btn');
+        const icon = btn?.querySelector('.coord-copy-btn__copy-icon');
+        if (icon) {
+          icon.className = 'bi bi-check2 coord-copy-btn__copy-icon';
+          setTimeout(() => { icon.className = 'bi bi-copy coord-copy-btn__copy-icon'; }, 1800);
+        }
+      });
+    });
+
     // Change location button (pencil icon on map badge)
     document.getElementById('change-location-btn')?.addEventListener('click', () => {
       if (this.state < SpeciesMixer.STATE_4_GENERATING) {
@@ -468,7 +637,7 @@ class SpeciesMixer {
     //   STATE_4           → show stop-generation modal
     document.getElementById('generate-mix-btn')?.addEventListener('click', (e) => {
       if (this.state === SpeciesMixer.STATE_4_GENERATING) {
-        this._showStopModal();
+        this._stopGeneration();
         return;
       }
       if (this.state !== SpeciesMixer.STATE_3_GOALS_SET && this.state !== SpeciesMixer.STATE_5_MIX_READY) return;
@@ -678,6 +847,7 @@ class SpeciesMixer {
   _startPolling(taskId, mode, extra = {}) {
     clearInterval(this.pollTimer);
     this._seenProgressCount = 0;  // track which progress events we've already rendered
+    this._currentFeedMsg = null;  // message currently shown in the bold header (not yet in log)
 
     // Clear the feed log for a fresh generation
     if (mode === 'generation') {
@@ -704,6 +874,11 @@ class SpeciesMixer {
             // Replay any unseen progress events (covers sync/dev mode where task
             // finishes before the first poll fires)
             this._consumeProgressEvents(data.progress || []);
+            // Flush the last in-progress header message into the log as completed
+            if (this._currentFeedMsg != null) {
+              this._appendFeedLine(this._currentFeedMsg);
+              this._currentFeedMsg = null;
+            }
             this._setProgressBar(100);
             this._appendFeedLine('Mix generation complete.', 'success');
           }
@@ -723,14 +898,19 @@ class SpeciesMixer {
     const seen = this._seenProgressCount || 0;
     const newEvents = events.slice(seen);
     newEvents.forEach(ev => {
-      this._appendFeedLine(ev.msg);
+      // Flush the previous "in-progress" header message into the log as a completed line
+      if (this._currentFeedMsg != null) {
+        this._appendFeedLine(this._currentFeedMsg);
+      }
+      // The new message becomes the active header — not added to the log yet
+      this._currentFeedMsg = ev.msg;
+      const statusEl = document.getElementById('loading-status-text');
+      if (statusEl) statusEl.textContent = ev.msg;
+
       if (ev.count != null) {
         const countEl = document.getElementById('loading-species-count');
         if (countEl) countEl.textContent = `${ev.count} species`;
       }
-      // Update status text to latest event message
-      const statusEl = document.getElementById('loading-status-text');
-      if (statusEl) statusEl.textContent = ev.msg;
     });
     this._seenProgressCount = events.length;
     // Advance progress bar: 10 → 90% across ~10 expected phases
@@ -747,8 +927,10 @@ class SpeciesMixer {
     line.className = `feed-line${type ? ` feed-line--${type}` : ''}`;
     line.innerHTML = `<i class="bi bi-check2 feed-line__icon"></i><span>${msg}</span>`;
     log.appendChild(line);
-    // Auto-scroll to bottom
-    log.scrollTop = log.scrollHeight;
+    // Keep at most 5 lines — silently drop the oldest when a 6th arrives
+    while (log.children.length > 5) {
+      log.removeChild(log.firstChild);
+    }
   }
 
   _setProgressBar(pct) {
@@ -1034,15 +1216,38 @@ class SpeciesMixer {
         </button>
       </td>`;
 
-    // Hover popover on name cell
+    // Hover popover on name cell — manual trigger so mouse can move into the popover
     const nameCell = tr.querySelector('.species-name-cell');
-    new bootstrap.Popover(nameCell, {
-      trigger: 'hover focus',
+    const pop = new bootstrap.Popover(nameCell, {
+      trigger: 'manual',
       placement: 'right',
       html: true,
       title: `<strong>${item.name}</strong>`,
       content: popoverHtml,
       container: 'body',
+    });
+
+    let popHideTimer = null;
+
+    const showPop = () => {
+      clearTimeout(popHideTimer);
+      pop.show();
+    };
+
+    const hidePop = () => {
+      popHideTimer = setTimeout(() => pop.hide(), 200);
+    };
+
+    // Keep visible while hovering the trigger cell
+    nameCell.addEventListener('mouseenter', showPop);
+    nameCell.addEventListener('mouseleave', hidePop);
+
+    // Keep visible while hovering the popover itself
+    nameCell.addEventListener('shown.bs.popover', () => {
+      const tip = document.getElementById(nameCell.getAttribute('aria-describedby'));
+      if (!tip) return;
+      tip.addEventListener('mouseenter', () => clearTimeout(popHideTimer));
+      tip.addEventListener('mouseleave', hidePop);
     });
 
     // Active checkbox
@@ -1471,9 +1676,10 @@ class SpeciesMixer {
 
       // Restore location display
       document.getElementById('location-display-name').textContent = this.locationName;
-      document.getElementById('map-location-name').textContent = this.locationName;
+      const srchInput = document.getElementById('location-search-input');
+      if (srchInput) srchInput.value = this.locationName;
       document.getElementById('coord-display').textContent =
-        this.lat ? `${this.lat.toFixed(6)}, ${this.lng.toFixed(6)}` : '';
+        this.lat ? `${this.lat}, ${this.lng}` : '';
 
       // Assign category-based colours when loading a saved mix
       const loadCatCounters = {};
@@ -1638,6 +1844,9 @@ class SpeciesMixer {
     this.cachedCandidates = [];
     this._ecoDataLoaded = false;
     this.mixId = null;
+
+    // Auto-create a new blank mix record for the fresh session
+    this._createNewMix();
     this.mixItems = [];
     // Reset eco data panel to per-cell skeleton state
     this._resetEcoCells();
@@ -1655,7 +1864,8 @@ class SpeciesMixer {
     this._transitionTo(SpeciesMixer.STATE_1_EMPTY);
     document.getElementById('location-info-panel')?.classList.add('d-none');
     document.getElementById('step1-prompt')?.classList.remove('d-none');
-    document.getElementById('map-location-badge')?.classList.add('d-none');
+    const resetSearch = document.getElementById('location-search-input');
+    if (resetSearch) resetSearch.value = '';
     document.getElementById('generate-cta')?.classList.add('d-none');
     document.querySelectorAll('.goal-slider').forEach(s => {
       s.setAttribute('disabled', '');

@@ -50,13 +50,42 @@ def species_detail(request, common_name):
     return render(request, 'species/species_detail.html', context)
 
 
+def _auto_mix_name(user):
+    """Return an auto-generated name like 'Species Mix #3' for a new mix."""
+    count = SpeciesMix.objects.filter(owner=user).count()
+    return f'Species Mix #{count + 1}'
+
+
 @login_required
 def species_mix_list(request):
     """
     Species mixer page -- progressive wizard for AI-driven mix generation.
+
+    On GET without a mix_id query parameter, auto-creates a new SpeciesMix
+    (blank, no location or items yet) and injects its ID + name so the frontend
+    can immediately start saving edits to the correct record.
+
+    Accepts ?mix_id=<id> to re-open an existing mix.
     """
+    mix_id = request.GET.get('mix_id')
+    current_mix = None
+
+    if mix_id:
+        try:
+            current_mix = SpeciesMix.objects.get(pk=mix_id, owner=request.user)
+        except SpeciesMix.DoesNotExist:
+            pass
+
+    if current_mix is None:
+        current_mix = SpeciesMix.objects.create(
+            owner=request.user,
+            name=_auto_mix_name(request.user),
+        )
+
     recent_mixes = SpeciesMix.objects.filter(owner=request.user).order_by('-updated_at')[:8]
     context = {
+        'current_mix_id': current_mix.pk,
+        'current_mix_name': current_mix.name,
         'recent_mixes': recent_mixes,
         'breadcrumbs': [
             {

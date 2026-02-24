@@ -19,7 +19,21 @@
 {% endblock %}
 
 {% block content %}
-{% make_tabs 'location:Location:bi-geo-alt,goals:Goals:bi-bullseye,mix:Mix:bi-diagram-3' as mixer_tabs %}
+{% make_tabs 'location:Location:bi-geo-alt,goals:Goals:bi-bullseye,mix:Mix:bi-funnel' as mixer_tabs %}
+
+<!-- Mix name bar -->
+<div class="mixer-name-bar" id="mixer-name-bar" data-mix-id="{{ current_mix_id|default:'' }}">
+  <label class="mixer-name-label" for="mix-name-input">Species Mix</label>
+  <div class="mixer-name-wrap">
+    <input type="text" id="mix-name-input"
+           class="mixer-name-input"
+           placeholder="Untitled Mix"
+           value="{{ current_mix_name|default:'' }}"
+           maxlength="200"
+           autocomplete="off"
+           spellcheck="false">
+  </div>
+</div>
 
 <!-- ═══════════════════════════════════════════════════════════════════════════
      SPLIT-PANE SHELL
@@ -37,15 +51,6 @@
       <i class="bi bi-cursor-fill" style="font-size:2rem; opacity:.35;"></i>
       <p class="mt-3 mb-1 fw-medium small">Click to set location</p>
       <small class="text-muted" style="font-size:.7rem;">Environmental data fetched automatically</small>
-    </div>
-
-    <!-- Location badge (bottom-left after pin) -->
-    <div id="map-location-badge" class="mixer-location-badge d-none">
-      <i class="bi bi-geo-alt-fill me-1"></i>
-      <span id="map-location-name">Loading location...</span>
-      <button class="btn btn-link text-white p-0 ms-2" id="change-location-btn" title="Change location">
-        <i class="bi bi-pencil"></i>
-      </button>
     </div>
 
     <!-- ECharts species distribution placeholder (shown on Goals/Mix tabs) -->
@@ -77,8 +82,19 @@
            ─────────────────────────────────────────────────────────────── -->
       <div class="tab-pane fade show active" id="tab-location" role="tabpanel" aria-labelledby="mixer-tabs-location-tab">
 
+        <!-- Location search field -->
+        <div class="mixer-location-search-wrap position-relative mb-3">
+          <i class="bi bi-geo-alt mixer-location-field__icon"></i>
+          <input type="text" id="location-search-input"
+                 class="mixer-location-input"
+                 placeholder="Search for a location..."
+                 autocomplete="off"
+                 spellcheck="false">
+          <div id="location-search-dropdown" class="mixer-location-dropdown d-none"></div>
+        </div>
+
         <!-- Step 1 prompt (before map click) -->
-        <div id="step1-prompt" class="text-center py-5 px-3">
+        <div id="step1-prompt" class="text-center py-4 px-3">
           <i class="bi bi-mouse2" style="font-size:2rem; opacity:.45;"></i>
           <p class="mt-3 mb-1 fw-medium">Select a location</p>
           <small class="text-muted">Click anywhere on the map to set your planting location. Soil, climate and hydrology data will be fetched automatically for that point.</small>
@@ -87,12 +103,13 @@
         <!-- Location info (shown after map click) -->
         <div id="location-info-panel" class="d-none">
 
-          <!-- Place name + coords -->
+          <!-- Coordinates copy button -->
           <div class="mb-3">
-            <p class="mb-0 fw-semibold lh-sm" id="location-display-name">
-              <span class="location-name-skeleton skeleton-line" style="width:70%;"></span>
-            </p>
-            <p class="text-muted small mb-0 mt-1" id="coord-display">-</p>
+            <button type="button" id="coord-copy-btn" class="coord-copy-btn" title="Copy coordinates to clipboard">
+              <i class="bi bi-geo-alt-fill coord-copy-btn__icon"></i>
+              <span id="coord-display">—</span>
+              <i class="bi bi-copy coord-copy-btn__copy-icon"></i>
+            </button>
           </div>
 
           <!-- Ecological data grid (8 cells, each starts as skeleton) -->
@@ -173,49 +190,56 @@
           <small class="text-muted">Click the map to set your planting point</small>
         </div>
 
-        <!-- Goal sliders -->
-        <div class="mb-4">
-          <p class="text-muted small mb-3">Weight each goal from 0% (not important) to 100% (highest priority). The AI will balance the species mix accordingly.</p>
+        <!-- Goal sliders card -->
+        <div class="card mb-3" id="goals-sliders-card">
+          <div class="card-body position-relative">
+            <!-- Shield: covers card during generation, click triggers stop modal -->
+            <div id="goals-generating-shield" class="goals-generating-shield d-none"
+                 data-bs-toggle="modal" data-bs-target="#stopGenerationModal"
+                 role="button" aria-label="Generation in progress — click to stop"></div>
 
-          <div class="species-mixer-goal-slider mb-3">
-            <div class="d-flex justify-content-between mb-1">
-              <label class="form-label mb-0 small" for="goal-erosion_control">Erosion Control</label>
-              <span class="text-muted small goal-value" id="goal-val-erosion_control">50%</span>
+            <p class="text-muted small mb-3">Weight each goal from 0% (not important) to 100% (highest priority). The AI will balance the species mix accordingly.</p>
+
+            <div class="species-mixer-goal-slider mb-3">
+              <div class="d-flex justify-content-between mb-1">
+                <label class="form-label mb-0 small" for="goal-erosion_control">Erosion Control</label>
+                <span class="text-muted small goal-value" id="goal-val-erosion_control">50%</span>
+              </div>
+              <input type="range" class="form-range goal-slider" id="goal-erosion_control"
+                     data-goal="erosion_control" min="0" max="100" value="50" disabled>
             </div>
-            <input type="range" class="form-range goal-slider" id="goal-erosion_control"
-                   data-goal="erosion_control" min="0" max="100" value="50" disabled>
-          </div>
-          <div class="species-mixer-goal-slider mb-3">
-            <div class="d-flex justify-content-between mb-1">
-              <label class="form-label mb-0 small" for="goal-biodiversity">Biodiversity</label>
-              <span class="text-muted small goal-value" id="goal-val-biodiversity">50%</span>
+            <div class="species-mixer-goal-slider mb-3">
+              <div class="d-flex justify-content-between mb-1">
+                <label class="form-label mb-0 small" for="goal-biodiversity">Biodiversity</label>
+                <span class="text-muted small goal-value" id="goal-val-biodiversity">50%</span>
+              </div>
+              <input type="range" class="form-range goal-slider" id="goal-biodiversity"
+                     data-goal="biodiversity" min="0" max="100" value="50" disabled>
             </div>
-            <input type="range" class="form-range goal-slider" id="goal-biodiversity"
-                   data-goal="biodiversity" min="0" max="100" value="50" disabled>
-          </div>
-          <div class="species-mixer-goal-slider mb-3">
-            <div class="d-flex justify-content-between mb-1">
-              <label class="form-label mb-0 small" for="goal-pollinator">Pollinator Habitat</label>
-              <span class="text-muted small goal-value" id="goal-val-pollinator">50%</span>
+            <div class="species-mixer-goal-slider mb-3">
+              <div class="d-flex justify-content-between mb-1">
+                <label class="form-label mb-0 small" for="goal-pollinator">Pollinator Habitat</label>
+                <span class="text-muted small goal-value" id="goal-val-pollinator">50%</span>
+              </div>
+              <input type="range" class="form-range goal-slider" id="goal-pollinator"
+                     data-goal="pollinator" min="0" max="100" value="50" disabled>
             </div>
-            <input type="range" class="form-range goal-slider" id="goal-pollinator"
-                   data-goal="pollinator" min="0" max="100" value="50" disabled>
-          </div>
-          <div class="species-mixer-goal-slider mb-3">
-            <div class="d-flex justify-content-between mb-1">
-              <label class="form-label mb-0 small" for="goal-carbon_sequestration">Carbon Sequestration</label>
-              <span class="text-muted small goal-value" id="goal-val-carbon_sequestration">50%</span>
+            <div class="species-mixer-goal-slider mb-3">
+              <div class="d-flex justify-content-between mb-1">
+                <label class="form-label mb-0 small" for="goal-carbon_sequestration">Carbon Sequestration</label>
+                <span class="text-muted small goal-value" id="goal-val-carbon_sequestration">50%</span>
+              </div>
+              <input type="range" class="form-range goal-slider" id="goal-carbon_sequestration"
+                     data-goal="carbon_sequestration" min="0" max="100" value="50" disabled>
             </div>
-            <input type="range" class="form-range goal-slider" id="goal-carbon_sequestration"
-                   data-goal="carbon_sequestration" min="0" max="100" value="50" disabled>
-          </div>
-          <div class="species-mixer-goal-slider">
-            <div class="d-flex justify-content-between mb-1">
-              <label class="form-label mb-0 small" for="goal-wildlife_habitat">Wildlife Habitat</label>
-              <span class="text-muted small goal-value" id="goal-val-wildlife_habitat">50%</span>
+            <div class="species-mixer-goal-slider mb-0">
+              <div class="d-flex justify-content-between mb-1">
+                <label class="form-label mb-0 small" for="goal-wildlife_habitat">Wildlife Habitat</label>
+                <span class="text-muted small goal-value" id="goal-val-wildlife_habitat">50%</span>
+              </div>
+              <input type="range" class="form-range goal-slider" id="goal-wildlife_habitat"
+                     data-goal="wildlife_habitat" min="0" max="100" value="50" disabled>
             </div>
-            <input type="range" class="form-range goal-slider" id="goal-wildlife_habitat"
-                   data-goal="wildlife_habitat" min="0" max="100" value="50" disabled>
           </div>
         </div>
 
@@ -544,25 +568,13 @@
 </div>
 
 <!-- Stop Generation Modal -->
-<div class="modal fade" id="stopGenerationModal" tabindex="-1" aria-labelledby="stopGenerationModalLabel">
-  <div class="modal-dialog modal-dialog-centered">
-    <div class="modal-content">
-      <div class="modal-header border-0 pb-0">
-        <h5 class="modal-title" id="stopGenerationModalLabel">
-          <i class="bi bi-stop-circle text-danger me-2"></i>Stop generation?
-        </h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-      </div>
-      <div class="modal-body pt-2">
-        <p class="mb-0">The mix is still generating. Stopping now will discard the current run — you'll need to generate again after changing your goals.</p>
-      </div>
-      <div class="modal-footer border-0">
-        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Keep generating</button>
-        <button type="button" class="btn btn-danger" id="confirm-stop-generation-btn">Stop &amp; edit goals</button>
-      </div>
-    </div>
-  </div>
-</div>
+{% include 'components/modals/modal.html' with
+  modal_id='stopGenerationModal'
+  modal_icon='bi bi-stop-circle text-danger'
+  modal_title='Stop generation?'
+  modal_body_content='<p class="mb-0">The mix is still generating. Stopping now will discard the current run — you\'ll need to generate again after changing your goals.</p>'
+  modal_footer_content='<button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Keep generating</button><button type="button" class="btn btn-danger" id="confirm-stop-generation-btn">Stop &amp; edit goals</button>'
+%}
 
 <!-- Save Mix Modal -->
 <div class="modal fade" id="saveMixModal" tabindex="-1" aria-labelledby="saveMixModalLabel">
@@ -575,11 +587,6 @@
         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
       </div>
       <div class="modal-body">
-        <div class="mb-3">
-          <label class="form-label" for="mix-name-input">Mix Name</label>
-          <input type="text" class="form-control" id="mix-name-input"
-                 placeholder="e.g. NE Scotland Highland Mix" maxlength="200">
-        </div>
         <div class="mb-3">
           <label class="form-label" for="mix-description-input">
             Description <span class="text-muted">(optional)</span>
@@ -602,6 +609,7 @@
 <script>
   window.speciesMixerConfig = {
     csrfToken: '{{ csrf_token }}',
+    initialMixId: {{ current_mix_id|default:'null' }},
     apiUrls: {
       generate:         '{% url "species:api_generate_mix" %}',
       rescore:          '{% url "species:api_rescore_mix" %}',
@@ -613,6 +621,7 @@
       envDataHydrology: '{% url "species:api_env_data_hydrology" %}',
       envData:          '{% url "species:api_env_data" %}',
       save:             '{% url "species:api_save_mix" %}',
+      createMix:        '{% url "species:api_create_mix" %}',
       mixes:            '{% url "species:api_list_mixes" %}',
       getMix:           '/species/mixer/api/mixes/',
       speciesSearch:    '{% url "species:api_species_search" %}',
