@@ -397,33 +397,138 @@ def _fetch_sepa_flood_risk(lat: float, lng: float) -> dict:
 # =============================================================================
 # ✅ CLIMATE — Coordinate heuristics (WorldClim approximation)
 # WorldClim v2.1 (https://worldclim.org) is download-only (GeoTIFF rasters).
-# Copernicus CDS (https://cds.climate.copernicus.eu) requires Python cdsapi
-# + async raster download + account registration — not practical as REST call.
-# Until rasters are pre-downloaded and served locally, we use lat/lng heuristics
-# which are accurate enough for UK-focused recommendations.
+# Open-Meteo (https://open-meteo.com) — free, no API key, global coverage.
+# Uses ERA5 reanalysis data (1940–present). Returns accurate historical climate
+# normals for any GPS coordinate without registration.
 # =============================================================================
 def fetch_climate(lat: float, lng: float) -> dict:
     """
-    Get climate normals for a location.
+    Get climate normals for a location via Open-Meteo historical weather API.
+
+    Uses a rolling 10-year window (current year − 10 to current year − 1)
+    to compute mean annual values. Falls back to coordinate heuristics if the
+    API is unavailable.
 
     Returns dict with keys:
-      mean_annual_rainfall_mm (int)
-      mean_temp_c (float)
-      climate_zone (str) — arctic / temperate / continental / mediterranean / tropical
+      mean_annual_rainfall_mm (int)     — total annual precipitation
+      mean_temp_c (float)               — mean annual temperature
+      climate_zone (str)                — arctic / temperate / continental /
+                                          mediterranean / tropical
+      frost_days_per_year (int)         — days with min temp < 0°C
+      growing_season_days (int)         — days with mean temp > 5°C
+      summer_drought_risk (bool)        — True if mean Jul-Aug rainfall < 50mm
     """
     key = _cache_key('climate', lat, lng)
     cached = cache.get(key)
     if cached is not None:
         return cached
 
-    result = _estimate_climate_from_coords(lat, lng)
+    result = _fetch_open_meteo_climate(lat, lng)
     cache.set(key, result, _CACHE_TTL)
     return result
 
 
+def _fetch_open_meteo_climate(lat: float, lng: float) -> dict:
+    """
+    Fetch 10-year climate normals from Open-Meteo archive API.
+
+    Queries ERA5 reanalysis data — accurate to ~10 km² globally.
+    Falls back to coordinate heuristics on network failure.
+    """
+    import datetime
+    end_year = datetime.date.today().year - 1
+    start_year = end_year - 9  # 10-year window
+
+    try:
+        resp = requests.get(
+            'https://archive-api.open-meteo.com/v1/archive',
+            params={
+                'latitude': round(lat, 4),
+                'longitude': round(lng, 4),
+                'start_date': f'{start_year}-01-01',
+                'end_date': f'{end_year}-12-31',
+                'daily': (
+                    'precipitation_sum,'
+                    'temperature_2m_mean,'
+                    'temperature_2m_min'
+                ),
+                'timezone': 'auto',
+            },
+            timeout=20,
+        )
+        resp.raise_for_status()
+        data = resp.json()
+        daily = data.get('daily', {})
+        precip = daily.get('precipitation_sum', [])
+        temp_mean = daily.get('temperature_2m_mean', [])
+        temp_min = daily.get('temperature_2m_min', [])
+
+        # Filter out None values (missing days in archive)
+        precip = [p for p in precip if p is not None]
+        temp_mean = [t for t in temp_mean if t is not None]
+        temp_min = [t for t in temp_min if t is not None]
+
+        if not precip or not temp_mean:
+            raise ValueError('Empty data from Open-Meteo')
+
+        # Annual rainfall: sum all daily precip, divide by years
+        total_precip = sum(precip)
+        years = (end_year - start_year + 1)
+        mean_annual_rainfall = int(total_precip / years)
+
+        # Mean annual temperature
+        mean_temp = round(sum(temp_mean) / len(temp_mean), 1)
+
+        # Frost days: count days where min temp < 0°C, normalise per year
+        frost_days = int(sum(1 for t in temp_min if t < 0.0) / years)
+
+        # Growing season: days where mean temp > 5°C, per year
+        growing_days = int(sum(1 for t in temp_mean if t > 5.0) / years)
+
+        # Summer drought risk: mean Jul+Aug daily rainfall < 2mm/day (≈ < 60mm/month)
+        # Use index position to identify Jul/Aug — approximate (every ~365 days cycle)
+        # Use the last complete year's Jul-Aug window for simplicity
+        jul_aug_precip = [
+            p for i, p in enumerate(precip[-365:])
+            if 180 <= (i % 365) <= 243  # approx Jul 1 – Sep 1
+        ]
+        summer_drought = bool(
+            jul_aug_precip and (sum(jul_aug_precip) / len(jul_aug_precip)) < 2.0
+        )
+
+        # Climate zone from mean temperature
+        if mean_temp < 0:
+            zone = 'arctic'
+        elif mean_temp < 8:
+            zone = 'temperate'
+        elif mean_temp < 14:
+            zone = 'temperate'  # keep temperate for mild oceanic climates
+        elif mean_temp < 20:
+            zone = 'mediterranean'
+        else:
+            zone = 'tropical'
+
+        # Override zone for high-rainfall temperate (oceanic) vs continental
+        if zone == 'temperate' and mean_annual_rainfall < 500:
+            zone = 'continental'
+
+        return {
+            'mean_annual_rainfall_mm': mean_annual_rainfall,
+            'mean_temp_c': mean_temp,
+            'climate_zone': zone,
+            'frost_days_per_year': frost_days,
+            'growing_season_days': growing_days,
+            'summer_drought_risk': summer_drought,
+        }
+
+    except Exception as exc:
+        logger.warning('Open-Meteo climate fetch failed (%s) — using heuristic fallback', exc)
+        return _estimate_climate_from_coords(lat, lng)
+
+
 def _estimate_climate_from_coords(lat: float, lng: float) -> dict:
     """
-    Estimate climate normals from lat/lng.
+    Fallback: estimate climate normals from lat/lng when Open-Meteo is unavailable.
     For UK (lat 49–61, lng -8 to 2): uses region-specific estimates.
     """
     is_uk = (49 <= lat <= 61) and (-8 <= lng <= 2)
@@ -454,6 +559,9 @@ def _estimate_climate_from_coords(lat: float, lng: float) -> dict:
         'mean_annual_rainfall_mm': int(rainfall),
         'mean_temp_c': round(temp, 1),
         'climate_zone': climate_zone,
+        'frost_days_per_year': None,
+        'growing_season_days': None,
+        'summer_drought_risk': None,
     }
 
 

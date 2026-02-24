@@ -29,7 +29,12 @@ from django.views.decorators.http import require_http_methods
 
 from planting.models import Species
 from species.models import SpeciesMix, SpeciesMixItem
-from species.services.environmental_data import fetch_location_name
+from species.services.environmental_data import (
+    fetch_climate,
+    fetch_hydrology,
+    fetch_location_name,
+    fetch_soilgrids,
+)
 from species.tasks import run_mix_generation, run_mix_rescore, run_species_validation
 
 logger = logging.getLogger(__name__)
@@ -204,8 +209,16 @@ def api_task_status(request, task_id):
 
     Returns task status and result when complete.
     Status values: 'queued' | 'running' | 'complete' | 'error' | 'not_found'
+
+    Response shape (running):
+        { status: 'running', progress: [{ msg: str, count?: int }, ...] }
+
+    Response shape (complete):
+        { status: 'complete', result: { species_mix, env_summary, insights, env_data, ... } }
     """
     state = _get_task_status(task_id)
+    # Ensure progress is always present so frontend can safely read it in any state
+    state.setdefault('progress', [])
     return JsonResponse(state)
 
 
@@ -230,6 +243,59 @@ def api_location_data(request):
 
     location_name = fetch_location_name(lat, lng)
     return JsonResponse({'location_name': location_name})
+
+
+# =============================================================================
+# Environmental data preview (immediate on map click)
+# =============================================================================
+
+@login_required
+@require_http_methods(['GET'])
+def api_env_data(request):
+    """
+    GET /species/mixer/api/env-data/?lat=&lng=
+
+    Fetches soil, climate and hydrology data in parallel for immediate display
+    in the location card after a map click. All three sources are cached, so
+    repeat calls for the same location are fast.
+
+    Returns:
+        {
+            soil:     { ph, texture_class, moisture_class, organic_carbon, ... }
+            climate:  { mean_annual_rainfall_mm, mean_temp_c, frost_days_per_year, ... }
+            hydrology: { flood_risk, water_body_nearby }
+        }
+    """
+    try:
+        lat = float(request.GET['lat'])
+        lng = float(request.GET['lng'])
+    except (KeyError, ValueError):
+        return JsonResponse({'error': 'lat and lng are required query parameters'}, status=400)
+
+    from concurrent.futures import ThreadPoolExecutor, as_completed
+
+    results = {}
+    def _fetch_soil():
+        return 'soil', fetch_soilgrids(lat, lng)
+    def _fetch_climate():
+        return 'climate', fetch_climate(lat, lng)
+    def _fetch_hydrology():
+        return 'hydrology', fetch_hydrology(lat, lng)
+
+    with ThreadPoolExecutor(max_workers=3) as executor:
+        futures = [
+            executor.submit(_fetch_soil),
+            executor.submit(_fetch_climate),
+            executor.submit(_fetch_hydrology),
+        ]
+        for future in as_completed(futures):
+            try:
+                key, data = future.result()
+                results[key] = data
+            except Exception as exc:
+                logger.warning('env-data fetch failed: %s', exc)
+
+    return JsonResponse(results)
 
 
 # =============================================================================

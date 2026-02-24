@@ -36,8 +36,24 @@ def _set_running(task_id: str) -> None:
     cache.set(_task_key(task_id), {'status': 'running', 'progress': []}, timeout=_TASK_TTL)
 
 
+def _push_progress(task_id: str, message: str, count: int | None = None) -> None:
+    """Append a progress event to the task cache entry (read-modify-write)."""
+    state = cache.get(_task_key(task_id)) or {'status': 'running', 'progress': []}
+    event = {'msg': message}
+    if count is not None:
+        event['count'] = count
+    state.setdefault('progress', []).append(event)
+    cache.set(_task_key(task_id), state, timeout=_TASK_TTL)
+
+
 def _set_complete(task_id: str, result: dict) -> None:
-    cache.set(_task_key(task_id), {'status': 'complete', 'result': result}, timeout=_TASK_TTL)
+    # Preserve progress events so the frontend can replay them even in sync (no-Redis) mode
+    prior = cache.get(_task_key(task_id)) or {}
+    cache.set(
+        _task_key(task_id),
+        {'status': 'complete', 'result': result, 'progress': prior.get('progress', [])},
+        timeout=_TASK_TTL,
+    )
 
 
 def _set_error(task_id: str, error: str) -> None:
@@ -68,9 +84,13 @@ def run_mix_generation(task_id: str, lat: float, lng: float, goals: dict) -> Non
     """
     _set_running(task_id)
     logger.info("Starting mix generation task %s for lat=%s lng=%s", task_id, lat, lng)
+
+    def on_progress(message: str, count: int | None = None) -> None:
+        _push_progress(task_id, message, count)
+
     try:
         agent = SpeciesMixAgent()
-        result = agent.generate_mix(lat, lng, goals)
+        result = agent.generate_mix(lat, lng, goals, on_progress=on_progress)
         if not result.get('species_mix'):
             _set_error(task_id, 'The AI did not return any species. Please try again.')
             return

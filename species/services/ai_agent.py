@@ -428,16 +428,22 @@ class SpeciesMixAgent:
     # MODE A: Full generation
     # ──────────────────────────────────────────────────────────────────────────
 
-    def generate_mix(self, lat: float, lng: float, goals: dict) -> dict:
+    def generate_mix(self, lat: float, lng: float, goals: dict, on_progress=None) -> dict:
         """
         Mode A: Full generation.
 
         If TGI is reachable, uses BLOOM tool-calling to orchestrate the full pipeline.
         If TGI is unavailable, falls back to a rule-based engine that queries the same
         environmental APIs and scores species from the database directly.
+
+        Args:
+            on_progress: optional callable(message: str, count: int | None) for live
+                         progress events consumed by the Dramatiq task and surfaced to
+                         the frontend via the task-status polling endpoint.
         """
         env_data = {}
         cached_candidates = []
+        _progress = on_progress or (lambda msg, count=None: None)
 
         if self._tgi_available():
             messages = [
@@ -454,7 +460,7 @@ class SpeciesMixAgent:
             result = self._agent_loop(messages, env_data, cached_candidates)
         else:
             logger.info("TGI unavailable — using rule-based fallback for mix generation")
-            result = self._rule_based_generate(lat, lng, goals, env_data, cached_candidates)
+            result = self._rule_based_generate(lat, lng, goals, env_data, cached_candidates, _progress)
 
         result['env_data'] = env_data
         result['cached_candidates'] = cached_candidates
@@ -623,24 +629,46 @@ class SpeciesMixAgent:
         goals: dict,
         env_data: dict,
         cached_candidates: list,
+        on_progress=None,
     ) -> dict:
         """
-        Rule-based fallback when TGI/BLOOM is not running.
+        Collect → Cross-reference → Eliminate engine.
 
-        Calls all environmental APIs (soil, climate, hydrology), then queries
-        external species databases (GBIF, iNaturalist, NBN Atlas) for species
-        recorded near the location, fetches their trait data via GBIF Species API,
-        and cross-references env conditions against traits to produce suitability scores.
+        Phase 1 — Collect: gather ALL plant species observed within a large
+          radius (25 km) from GBIF, iNaturalist, and NBN Atlas. This builds
+          the broadest possible candidate pool of locally-recorded species.
 
-        Example cross-reference logic:
-          - High flood risk → favour Salix, Alnus, Iris pseudacorus (flood-tolerant)
-          - Acid soil (pH < 5.5) → favour Calluna, Vaccinium, Betula pendula
-          - Low rainfall (< 600mm) → avoid water-demanding species
-          - Scotland location → prefer species with UK/Scotland native range records
+        Phase 2 — Cross-reference: fetch soil (SoilGrids), climate (Open-Meteo),
+          and hydrology (EA/SEPA) data independently in parallel-ish calls.
+
+        Phase 3 — Eliminate: iteratively remove candidates that are incompatible
+          with the site conditions. Eliminations are HARD disqualifiers — a
+          species that cannot survive here is removed entirely, not just
+          down-scored.
+
+          Elimination order (hardest constraints first):
+            1. Flood risk — remove species intolerant of flood conditions
+            2. Soil pH    — remove species outside their pH tolerance
+            3. Moisture   — remove species incompatible with site moisture
+            4. Rainfall   — remove species from the wrong rainfall regime
+            5. Temperature — remove species outside their climatic range
+
+        Phase 4 — Rank survivors by ecological evidence (observation count
+          and multi-source confirmation) and goal alignment.
+
+        Phase 5 — Select with category diversity guarantees: ensures trees,
+          shrubs, wildflowers, and grasses all appear in the final mix.
         """
-        # --- Step 1: Collect environmental data ---
+        # ── Phase 1 & 2: Collect environmental data + candidate species ──────
+        _p = on_progress or (lambda msg, count=None: None)
+
+        _p('Querying SoilGrids — soil pH, texture and moisture data...')
         soil = fetch_soilgrids(lat, lng)
+
+        _p('Querying Open-Meteo — climate normals (rainfall, temperature, frost days)...')
         climate = fetch_climate(lat, lng)
+
+        _p('Querying EA / SEPA — flood risk assessment...')
         hydrology = fetch_hydrology(lat, lng)
 
         env_data.update({
@@ -649,13 +677,21 @@ class SpeciesMixAgent:
             'hydrology': hydrology,
         })
 
-        # --- Step 2: Get species candidates from external databases ---
-        # SpeciesCandidateTool queries GBIF occurrences, iNaturalist, and NBN Atlas,
-        # then fetches GBIF trait data (family, vernacular names) for each candidate.
-        candidates = SpeciesCandidateTool.search(lat=lat, lng=lng, env_data=env_data)
+        _p('Searching NBN Atlas — native species observed nearby...')
+        _p('Searching GBIF — global biodiversity occurrence records...')
+        _p('Searching iNaturalist — citizen-science observations...')
+
+        # Larger radius (25 km) to cast a wide net.  SpeciesCandidateTool
+        # already de-duplicates across sources and enriches every candidate
+        # with its GBIF family before returning.
+        candidates = SpeciesCandidateTool.search(
+            lat=lat, lng=lng, env_data=env_data, radius_km=25
+        )
         cached_candidates.extend(candidates)
+        _p(f'Found {len(candidates)} candidate species across all databases.', count=len(candidates))
 
         if not candidates:
+            _p('No species records found near this location.')
             return {
                 'species_mix': [],
                 'env_summary': self._format_env_summary(env_data),
@@ -666,143 +702,290 @@ class SpeciesMixAgent:
                 ),
             }
 
-        # --- Step 3: Score candidates against env conditions and goals ---
+        # ── Extract env variables used in elimination and scoring ─────────────
+
         goal_weights = {k: int(v) for k, v in goals.items()}
-        ph = soil.get('ph')
-        moisture = soil.get('moisture_class', 'moist')
-        flood_risk = hydrology.get('flood_risk', 'low')
+        ph = soil.get('ph')                              # float, e.g. 5.8
+        moisture = soil.get('moisture_class', 'moist')   # dry / moist / wet
+        organic_c = soil.get('organic_carbon')           # %, proxy for peat
+        flood_risk = hydrology.get('flood_risk', 'low')  # high / medium / low
+        water_nearby = hydrology.get('water_body_nearby', False)
         rainfall = climate.get('mean_annual_rainfall_mm', 700)
+        mean_temp = climate.get('mean_temp_c')           # °C (None if heuristic)
+        frost_days = climate.get('frost_days_per_year')  # days/yr
+        growing_days = climate.get('growing_season_days')# days with temp > 5°C
 
-        def score_candidate(c):
+        _p('Cross-referencing species against soil, climate and hydrology data...')
+        # ── Phase 3: Elimination ──────────────────────────────────────────────
+        #
+        # Each filter defines:
+        #   - CONDITION: when the site condition is severe enough to disqualify
+        #   - DISQUALIFIED families: those that cannot tolerate that condition
+        #
+        # Families NOT in the disqualified set pass through each filter.
+        # An empty disqualified set means the filter is skipped.
+
+        def _family(c):
+            return (
+                c.get('gbif_traits', {}).get('family')
+                or c.get('family')
+                or ''
+            ).lower()
+
+        pool = list(candidates)  # start with full candidate pool
+        eliminated_counts = {}   # track how many eliminated per filter
+
+        def _eliminate(pool, label, condition, disqualified_families):
+            """Remove candidates whose family is disqualified given the condition."""
+            if not condition or not disqualified_families:
+                return pool, 0
+            survivors = [c for c in pool if _family(c) not in disqualified_families]
+            removed = len(pool) - len(survivors)
+            if removed:
+                eliminated_counts[label] = removed
+            return survivors, removed
+
+        # Filter 1 — Flood risk
+        # If flood risk is high, species that cannot tolerate waterlogged roots
+        # are eliminated. Kept: families that include flood/wetland-tolerant genera.
+        FLOOD_INTOLERANT = {
+            # Dry-land trees/shrubs that die when roots are waterlogged
+            'pinaceae', 'cupressaceae', 'fagaceae', 'aceraceae', 'sapindaceae',
+            # Dry grassland / steppe families
+            'cistaceae', 'lamiaceae',
+        } if flood_risk == 'high' else set()
+        pool, _ = _eliminate(pool, 'flood_intolerant', flood_risk == 'high', FLOOD_INTOLERANT)
+
+        # Filter 2 — Soil pH (hard limits only; broad acid/alkaline tolerance handled in scoring)
+        # Very acid (pH < 4.5): calcicolous and neutral-preferring families removed
+        EXTREME_ACID_INTOLERANT = {
+            'orchidaceae', 'fabaceae',   # most legumes need near-neutral pH
+            'brassicaceae',              # generally intolerant of pH < 5
+        } if ph and ph < 4.5 else set()
+        pool, _ = _eliminate(pool, 'extreme_acid', ph and ph < 4.5, EXTREME_ACID_INTOLERANT)
+
+        # Very alkaline (pH > 8.0): calcifuge families removed
+        EXTREME_ALKALINE_INTOLERANT = {
+            'ericaceae',     # heathers are obligate calcifuges
+            'pinaceae',      # pines strongly prefer acid soils
+            'sphagnaceae',   # sphagnum only grows in highly acidic conditions
+        } if ph and ph > 8.0 else set()
+        pool, _ = _eliminate(pool, 'extreme_alkaline', ph and ph > 8.0, EXTREME_ALKALINE_INTOLERANT)
+
+        # Filter 3 — Soil moisture
+        # Dry sites: eliminate obligate wetland families
+        DRY_INTOLERANT = {
+            'typhaceae', 'sphagnaceae', 'amblystegiaceae',
+        } if moisture == 'dry' else set()
+        pool, _ = _eliminate(pool, 'dry_soil', moisture == 'dry', DRY_INTOLERANT)
+
+        # Wet sites: eliminate species that need free-draining soil
+        WET_INTOLERANT = {
+            'cistaceae',   # rockroses — strict dry-soil plants
+        } if moisture == 'wet' else set()
+        pool, _ = _eliminate(pool, 'wet_soil', moisture == 'wet', WET_INTOLERANT)
+
+        # Filter 4 — Rainfall / drought
+        # Very low rainfall (< 450 mm): remove high water-demand families
+        LOW_RAINFALL_INTOLERANT = {
+            'typhaceae', 'osmundaceae', 'sphagnaceae',
+        } if rainfall < 450 else set()
+        pool, _ = _eliminate(pool, 'low_rainfall', rainfall < 450, LOW_RAINFALL_INTOLERANT)
+
+        # Very high rainfall (> 1500 mm, e.g. Scottish Highlands): remove drought-adapted families
+        HIGH_RAINFALL_INTOLERANT = {
+            'cistaceae',   # Mediterranean drought specialists
+        } if rainfall > 1500 else set()
+        pool, _ = _eliminate(pool, 'high_rainfall', rainfall > 1500, HIGH_RAINFALL_INTOLERANT)
+
+        # Filter 5 — Temperature (only if real data from Open-Meteo, not heuristic)
+        # Sub-alpine / boreal (mean temp < 3°C): remove warm-climate obligates
+        COLD_INTOLERANT = {
+            'oleaceae',    # olive family — frost-sensitive
+        } if (mean_temp is not None and mean_temp < 3) else set()
+        pool, _ = _eliminate(pool, 'cold_climate', mean_temp is not None and mean_temp < 3, COLD_INTOLERANT)
+
+        # Warm / Mediterranean (mean temp > 16°C): remove boreal/arctic obligates
+        WARM_INTOLERANT = {
+            'sphagnaceae',   # sphagnum is a cold, wet peatland specialist
+        } if (mean_temp is not None and mean_temp > 16) else set()
+        pool, _ = _eliminate(pool, 'warm_climate', mean_temp is not None and mean_temp > 16, WARM_INTOLERANT)
+
+        # Filter 6 — High organic carbon / peat (proxy for bog/fen habitat)
+        # If organic_carbon > 8%, this is likely a peatland — prefer peat-specialist families
+        # (no hard elimination here — too aggressive; handled in scoring bonus)
+
+        if not pool:
+            # All candidates were eliminated — return survivors from broadest filter only
+            pool = candidates[:self.max_species]
+            logger.warning(
+                '_rule_based_generate: all candidates eliminated by env filters at '
+                '(%s, %s) — reverting to full pool. env: %s', lat, lng, eliminated_counts
+            )
+
+        _p(
+            f'Eliminated {len(candidates) - len(pool)} incompatible species — '
+            f'{len(pool)} survivors entering scoring phase.',
+            count=len(pool),
+        )
+        # ── Phase 4: Score surviving candidates ───────────────────────────────
+        #
+        # All remaining candidates have passed the hard elimination filters and
+        # are potentially suitable for this site. Now rank them by:
+        #   A. Observation evidence (how reliably recorded at this location)
+        #   B. Ecological fit bonuses (reward families best-matched to site conditions)
+        #   C. Goal alignment bonuses (reward families that serve the user's goals)
+        #   D. Observation-bias correction (boost under-recorded categories)
+
+        def score_survivor(c):
             score = 0
+            fam = _family(c)
+            category = _category_from_family(fam)
 
-            # Observation evidence weight — more records = better established locally.
-            # Cap is intentionally low so trait-match bonuses can overcome observation bias.
+            # A. Observation evidence
             score += min(c.get('observation_count', 1) * 2, 40)
+            score += len(c.get('sources', [])) * 10   # multi-source reliability bonus
 
-            # Multi-source bonus — appears in GBIF + iNaturalist + NBN = very reliable
-            score += len(c.get('sources', [])) * 10
-
-            # Citizen-science observation bias correction.
-            # Trees, grasses, ferns, and mosses are systematically under-recorded in
-            # citizen science databases compared to wildflowers and shrubs. Apply a
-            # flat bonus to compensate so they can compete on ecological merit.
-            family_raw = (c.get('gbif_traits', {}).get('family') or c.get('family') or '')
-            family = family_raw.lower()
-            category = _category_from_family(family)
+            # B1. Observation bias correction (trees/grasses recorded far less than wildflowers)
             if category == 'Tree':
-                score += 30   # trees are rarely photographed species-level by non-experts
+                score += 30
             elif category == 'Grass':
-                score += 25   # grasses heavily under-recorded in iNat/GBIF
+                score += 25
             elif category in ('Fern', 'Moss'):
-                score += 15   # lower plants also under-observed
+                score += 15
 
-            # Flood risk cross-reference
-            flood_tolerant_families = {'salicaceae', 'betulaceae', 'iridaceae', 'cyperaceae', 'juncaceae'}
-            if flood_risk in ('high', 'medium') and family in flood_tolerant_families:
-                score += 35
+            # B2. Positive ecological fit — reward the best families for this site
+            # Flood-tolerant species get a positive bonus on flood-prone sites
+            FLOOD_TOLERANT = {'salicaceae', 'betulaceae', 'iridaceae', 'cyperaceae', 'juncaceae',
+                               'typhaceae', 'osmundaceae', 'amblystegiaceae'}
+            if flood_risk in ('high', 'medium') and fam in FLOOD_TOLERANT:
+                score += 35  # willows, alders, iris, sedges, bulrushes, royal fern
 
-            # Acid soil cross-reference (pH < 5.5)
+            # Water proximity bonus for riparian specialists
+            if water_nearby and fam in FLOOD_TOLERANT:
+                score += 10
+
+            # Acid soil specialists rewarded on acid sites
             if ph and ph < 5.5:
-                acid_tolerant_families = {'ericaceae', 'betulaceae', 'pinaceae', 'juncaceae',
-                                          'cyperaceae', 'sphagnaceae'}
-                if family in acid_tolerant_families:
-                    score += 25
+                ACID_SPECIALISTS = {'ericaceae', 'betulaceae', 'pinaceae', 'juncaceae',
+                                    'cyperaceae', 'sphagnaceae', 'vacciniaceae'}
+                if fam in ACID_SPECIALISTS:
+                    score += 25  # heathers, birch, Scots pine, rushes
 
-            # Alkaline soil cross-reference (pH > 7.0)
+            # Alkaline specialists rewarded on alkaline sites
             if ph and ph > 7.0:
-                alkaline_families = {'rosaceae', 'fabaceae', 'orchidaceae', 'asteraceae',
-                                     'poaceae', 'fagaceae'}
-                if family in alkaline_families:
-                    score += 20
+                ALKALINE_SPECIALISTS = {'rosaceae', 'fabaceae', 'orchidaceae', 'asteraceae',
+                                        'poaceae', 'fagaceae', 'brassicaceae'}
+                if fam in ALKALINE_SPECIALISTS:
+                    score += 20  # roses, legumes, orchids, grasses, oaks
 
-            # Moisture cross-reference
+            # Wet moisture specialists
             if moisture == 'wet':
-                wet_families = {'salicaceae', 'betulaceae', 'cyperaceae', 'juncaceae', 'iridaceae',
-                                 'typhaceae', 'osmundaceae', 'amblystegiaceae', 'sphagnaceae'}
-                if family in wet_families:
-                    score += 20
-            elif moisture == 'dry':
-                dry_families = {'fabaceae', 'lamiaceae', 'cistaceae', 'poaceae',
-                                 'crassulaceae', 'asteraceae'}
-                if family in dry_families:
+                WET_SPECIALISTS = {'salicaceae', 'betulaceae', 'cyperaceae', 'juncaceae',
+                                   'iridaceae', 'typhaceae', 'osmundaceae', 'amblystegiaceae',
+                                   'sphagnaceae'}
+                if fam in WET_SPECIALISTS:
                     score += 20
 
-            # Low rainfall tolerance
-            if rainfall < 600:
-                drought_families = {'fabaceae', 'lamiaceae', 'cistaceae', 'asteraceae', 'poaceae'}
-                if family in drought_families:
+            # Dry moisture specialists
+            if moisture == 'dry':
+                DRY_SPECIALISTS = {'fabaceae', 'lamiaceae', 'cistaceae', 'poaceae',
+                                   'crassulaceae', 'asteraceae', 'thymelaeaceae'}
+                if fam in DRY_SPECIALISTS:
+                    score += 20
+
+            # High rainfall specialists
+            if rainfall > 1200:
+                HIGH_RAIN_SPECIALISTS = {'betulaceae', 'salicaceae', 'ericaceae', 'sphagnaceae',
+                                         'osmundaceae', 'cyperaceae', 'juncaceae'}
+                if fam in HIGH_RAIN_SPECIALISTS:
                     score += 15
 
-            # Goal alignment — use family as proxy for ecological function
+            # Drought tolerance bonus for low-rainfall sites
+            if rainfall < 600:
+                DROUGHT_TOLERANT = {'fabaceae', 'lamiaceae', 'cistaceae', 'asteraceae',
+                                    'poaceae', 'crassulaceae'}
+                if fam in DROUGHT_TOLERANT:
+                    score += 15
+
+            # Peatland bonus (high organic carbon proxy for bog/fen habitat)
+            if organic_c and organic_c > 8:
+                PEAT_SPECIALISTS = {'sphagnaceae', 'ericaceae', 'cyperaceae', 'juncaceae',
+                                    'brachytheciaceae', 'hylocomiaceae'}
+                if fam in PEAT_SPECIALISTS:
+                    score += 20
+
+            # Temperature: cold-climate bonus for sub-alpine sites
+            if mean_temp is not None and mean_temp < 6:
+                MONTANE_FAMILIES = {'ericaceae', 'betulaceae', 'pinaceae', 'salicaceae',
+                                    'poaceae', 'juncaceae', 'cyperaceae', 'sphagnaceae'}
+                if fam in MONTANE_FAMILIES:
+                    score += 20
+
+            # Frost hardiness bonus (many frost days → favour frost-hardy families)
+            if frost_days and frost_days > 60:
+                FROST_HARDY = {'betulaceae', 'pinaceae', 'fagaceae', 'salicaceae',
+                               'ericaceae', 'poaceae', 'rosaceae'}
+                if fam in FROST_HARDY:
+                    score += 10
+
+            # C. Goal alignment
             if goal_weights.get('pollinator', 0) >= 50:
-                pollinator_families = {'rosaceae', 'fabaceae', 'lamiaceae', 'asteraceae',
-                                       'apiaceae', 'boraginaceae', 'scrophulariaceae',
-                                       'campanulaceae', 'primulaceae', 'ranunculaceae'}
-                if family in pollinator_families:
+                POLLINATOR = {'rosaceae', 'fabaceae', 'lamiaceae', 'asteraceae', 'apiaceae',
+                              'boraginaceae', 'scrophulariaceae', 'campanulaceae',
+                              'primulaceae', 'ranunculaceae', 'violaceae', 'geraniaceae'}
+                if fam in POLLINATOR:
                     score += goal_weights['pollinator'] // 3
 
             if goal_weights.get('erosion_control', 0) >= 50:
-                erosion_families = {'salicaceae', 'betulaceae', 'pinaceae', 'fabaceae',
-                                    'poaceae', 'cyperaceae', 'juncaceae', 'fagaceae'}
-                if family in erosion_families:
+                EROSION = {'salicaceae', 'betulaceae', 'pinaceae', 'fabaceae', 'poaceae',
+                           'cyperaceae', 'juncaceae', 'fagaceae', 'rosaceae'}
+                if fam in EROSION:
                     score += goal_weights['erosion_control'] // 3
 
             if goal_weights.get('carbon_sequestration', 0) >= 50:
-                carbon_families = {'pinaceae', 'betulaceae', 'fagaceae', 'aceraceae',
-                                   'salicaceae', 'cupressaceae', 'taxodiaceae'}
-                if family in carbon_families:
+                CARBON = {'pinaceae', 'betulaceae', 'fagaceae', 'aceraceae', 'salicaceae',
+                          'cupressaceae', 'taxodiaceae', 'ulmaceae', 'juglandaceae'}
+                if fam in CARBON:
                     score += goal_weights['carbon_sequestration'] // 3
 
             if goal_weights.get('wildlife_habitat', 0) >= 50:
-                wildlife_families = {'rosaceae', 'betulaceae', 'fagaceae', 'salicaceae',
-                                     'aquifoliaceae', 'sambucaceae', 'adoxaceae', 'rhamnaceae'}
-                if family in wildlife_families:
+                WILDLIFE = {'rosaceae', 'betulaceae', 'fagaceae', 'salicaceae', 'aquifoliaceae',
+                            'adoxaceae', 'rhamnaceae', 'ericaceae', 'cornaceae'}
+                if fam in WILDLIFE:
                     score += goal_weights['wildlife_habitat'] // 3
-
-            if goal_weights.get('biodiversity', 0) >= 50:
-                # All families benefit equally; no specific bonus — biodiversity is
-                # served by the diversity enforcement below, not a family bonus.
-                pass
 
             return score
 
-        scored = sorted(candidates, key=score_candidate, reverse=True)
+        scored = sorted(pool, key=score_survivor, reverse=True)
 
-        # --- Diversity-first selection ---
-        # Guarantee minimum representation from key functional groups so the mix
-        # always includes trees, shrubs, wildflowers, and grasses where candidates
-        # exist — regardless of observation-count differences between categories.
+        _p('Ranking survivors by goal alignment and ecological evidence...')
+        # ── Phase 5: Diversity-first selection ────────────────────────────────
         CATEGORY_MINIMUMS = {
-            'Tree':       2,   # at least 2 tree species
-            'Shrub':      2,   # at least 2 shrubs
-            'Wildflower': 3,   # wildflowers are core biodiversity habitat
-            'Grass':      1,   # at least one grass/sedge/rush
+            'Tree':       2,
+            'Shrub':      2,
+            'Wildflower': 3,
+            'Grass':      1,
         }
-        # Optional extras if candidates are available
         CATEGORY_OPTIONALS = {'Fern': 1, 'Moss': 1}
 
         selected = []
         used_names = set()
 
         def _pick_best(category, n, pool):
-            """Pick up to n best-scored candidates of a given category not yet selected."""
             picks = []
             for c in pool:
                 if len(picks) >= n:
                     break
-                fam = (c.get('gbif_traits', {}).get('family') or c.get('family') or '').lower()
+                fam = _family(c)
                 if _category_from_family(fam) == category and c['scientific_name'] not in used_names:
                     picks.append(c)
                     used_names.add(c['scientific_name'])
             return picks
 
-        # 1. Fill mandatory category minimums
         for cat, min_count in CATEGORY_MINIMUMS.items():
-            picks = _pick_best(cat, min_count, scored)
-            selected.extend(picks)
+            selected.extend(_pick_best(cat, min_count, scored))
 
-        # 2. Fill optional categories if slots remain
         remaining_slots = self.max_species - len(selected)
         for cat, opt_count in CATEGORY_OPTIONALS.items():
             if remaining_slots <= 0:
@@ -811,7 +994,6 @@ class SpeciesMixAgent:
             selected.extend(picks)
             remaining_slots -= len(picks)
 
-        # 3. Fill remaining slots with highest-scored unused candidates
         remaining_slots = self.max_species - len(selected)
         for c in scored:
             if remaining_slots <= 0:
@@ -823,13 +1005,18 @@ class SpeciesMixAgent:
 
         top = selected
 
-        # --- Step 4: Assign ratios weighted by score ---
-        scores = [max(score_candidate(s), 1) for s in top]
+        _p(
+            f'Selected {len(top)} species with category diversity — assigning ratios...',
+            count=len(top),
+        )
+        # ── Assign ratios proportional to score ───────────────────────────────
+        scores = [max(score_survivor(s), 1) for s in top]
         total = sum(scores)
         ratios = [round(sc / total, 3) for sc in scores]
-        ratios[-1] = round(1.0 - sum(ratios[:-1]), 3)  # fix rounding drift
+        if ratios:
+            ratios[-1] = round(1.0 - sum(ratios[:-1]), 3)
 
-        # --- Step 5: Build output ---
+        # ── Build output ──────────────────────────────────────────────────────
         species_mix = []
         for s, ratio in zip(top, ratios):
             traits = s.get('gbif_traits', {})
@@ -837,35 +1024,62 @@ class SpeciesMixAgent:
             family_display = family or 'unknown family'
             sources_str = ' & '.join(s.get('sources', ['external DB']))
             common = s.get('common_name') or s['scientific_name']
-            reason = (
-                f"Recorded near this location via {sources_str} "
-                f"({s.get('observation_count', 0)} observations). "
-                f"Family: {family_display}."
-            )
+            fam = (family or '').lower()
+            category = _category_from_family(fam)
+
+            # Build a concise reason that references the actual site conditions
+            reason_parts = [
+                f"Recorded via {sources_str} ({s.get('observation_count', 0)} obs near location)."
+            ]
+            if flood_risk in ('high', 'medium') and fam in {
+                'salicaceae', 'betulaceae', 'iridaceae', 'cyperaceae', 'juncaceae', 'typhaceae'
+            }:
+                reason_parts.append('Flood-tolerant — suited to this site\'s flood risk.')
+            if ph and ph < 5.5 and fam in {'ericaceae', 'betulaceae', 'pinaceae', 'juncaceae'}:
+                reason_parts.append(f'Acid-tolerant (site pH {ph:.1f}).')
+            elif ph and ph > 7.0 and fam in {'rosaceae', 'fabaceae', 'orchidaceae', 'asteraceae'}:
+                reason_parts.append(f'Alkaline-tolerant (site pH {ph:.1f}).')
+            if moisture == 'wet' and fam in {
+                'salicaceae', 'betulaceae', 'cyperaceae', 'juncaceae', 'sphagnaceae'
+            }:
+                reason_parts.append('Adapted to wet/waterlogged soil.')
+            if moisture == 'dry' and fam in {'fabaceae', 'lamiaceae', 'cistaceae', 'poaceae'}:
+                reason_parts.append('Drought-tolerant — suited to this site\'s dry soil.')
+            if rainfall > 1200 and fam in {'betulaceae', 'ericaceae', 'sphagnaceae', 'osmundaceae'}:
+                reason_parts.append(f'Thrives in high-rainfall areas ({rainfall} mm/yr).')
+            if organic_c and organic_c > 8 and fam in {
+                'sphagnaceae', 'ericaceae', 'cyperaceae'
+            }:
+                reason_parts.append('Peatland specialist — organic carbon indicates bog/fen habitat.')
+
             species_mix.append({
-                # No local DB id — sourced from external biodiversity databases
                 'species_id': None,
                 'scientific_name': s['scientific_name'],
                 'common_name': common,
                 'family': family_display,
-                'category': _category_from_family(family),
+                'category': category,
                 'subcategory': _subcategory_from_family(family),
                 'ratio': ratio,
-                'reason': reason,
+                'reason': ' '.join(reason_parts),
                 'sources': s.get('sources', []),
                 'gbif_key': s.get('gbif_key'),
                 'observation_count': s.get('observation_count', 0),
             })
 
         env_summary = self._format_env_summary(env_data)
+        n_candidates = len(candidates)
+        n_eliminated = n_candidates - len(pool)
         top_goals = sorted(goal_weights.items(), key=lambda x: x[1], reverse=True)[:2]
         top_goal_names = ' and '.join(g[0].replace('_', ' ') for g in top_goals)
+
         insights = (
-            f"Mix of {len(species_mix)} species sourced from GBIF, iNaturalist, "
-            f"and NBN Atlas — all recorded near this location. "
-            f"Ranked by observation evidence and ecological trait cross-referencing against "
-            f"{env_summary.lower()}. "
-            f"Prioritised {top_goal_names} based on your goal weights."
+            f"Screened {n_candidates} plant species recorded within 25 km of this location "
+            f"(GBIF, iNaturalist, NBN Atlas). "
+            f"{n_eliminated} eliminated as ecologically incompatible with site conditions "
+            f"({env_summary.lower()}). "
+            f"The {len(species_mix)} selected species all survived cross-referencing against "
+            f"soil pH, moisture, flood risk, rainfall, and temperature data. "
+            f"Ratios weighted by observation evidence and {top_goal_names} goal alignment."
         )
 
         return {

@@ -109,23 +109,87 @@
             <i class="bi bi-check-lg me-1"></i>Confirm
           </button>
         </div>
-        <div class="card-body">
-          <p class="mb-2 fw-medium" id="location-display-name">Loading...</p>
-          <div class="d-flex flex-wrap gap-1" id="env-chips">
-            <span class="badge bg-secondary bg-opacity-10 text-secondary env-chip d-none" id="chip-ph">
-              <i class="bi bi-eyedropper me-1"></i><span class="chip-val">pH -</span>
-            </span>
-            <span class="badge bg-secondary bg-opacity-10 text-secondary env-chip d-none" id="chip-soil">
-              <i class="bi bi-layers me-1"></i><span class="chip-val">-</span>
-            </span>
-            <span class="badge bg-secondary bg-opacity-10 text-secondary env-chip d-none" id="chip-rain">
-              <i class="bi bi-cloud-rain me-1"></i><span class="chip-val">-mm/yr</span>
-            </span>
-            <span class="badge bg-secondary bg-opacity-10 text-secondary env-chip d-none" id="chip-flood">
-              <i class="bi bi-water me-1"></i><span class="chip-val">Flood: -</span>
-            </span>
+        <div class="card-body pb-2">
+          <!-- Place name + coordinates (visible immediately on map click) -->
+          <div class="d-flex align-items-start gap-2 mb-3">
+            <div class="flex-grow-1">
+              <p class="mb-0 fw-semibold lh-sm" id="location-display-name">
+                <span class="location-name-skeleton skeleton-line" style="width:70%;"></span>
+              </p>
+              <p class="text-muted small mb-0 mt-1" id="coord-display">-</p>
+            </div>
           </div>
-          <p class="text-muted small mt-2 mb-0" id="coord-display">-</p>
+
+          <!-- Ecological data panel — blurred while loading, revealed after generation -->
+          <div class="eco-data-panel position-relative" id="eco-data-panel">
+            <!-- Blur overlay shown only during generation while env data is fetching -->
+            <div class="eco-blur-overlay d-none" id="eco-blur-overlay">
+              <div class="eco-blur-spinner">
+                <div class="spinner-border spinner-border-sm text-primary" role="status"></div>
+                <span class="small text-muted ms-2">Fetching environmental data...</span>
+              </div>
+            </div>
+
+            <!-- Ecological data grid (populated by JS after generation) -->
+            <div class="eco-grid" id="eco-grid">
+              <div class="eco-stat" id="eco-ph">
+                <i class="bi bi-eyedropper eco-stat__icon"></i>
+                <div class="eco-stat__body">
+                  <span class="eco-stat__label">Soil pH</span>
+                  <span class="eco-stat__val skeleton-line" style="width:2.5rem;"></span>
+                </div>
+              </div>
+              <div class="eco-stat" id="eco-texture">
+                <i class="bi bi-layers eco-stat__icon"></i>
+                <div class="eco-stat__body">
+                  <span class="eco-stat__label">Texture</span>
+                  <span class="eco-stat__val skeleton-line" style="width:3rem;"></span>
+                </div>
+              </div>
+              <div class="eco-stat" id="eco-moisture">
+                <i class="bi bi-droplet-half eco-stat__icon"></i>
+                <div class="eco-stat__body">
+                  <span class="eco-stat__label">Moisture</span>
+                  <span class="eco-stat__val skeleton-line" style="width:3rem;"></span>
+                </div>
+              </div>
+              <div class="eco-stat" id="eco-rain">
+                <i class="bi bi-cloud-rain eco-stat__icon"></i>
+                <div class="eco-stat__body">
+                  <span class="eco-stat__label">Rainfall</span>
+                  <span class="eco-stat__val skeleton-line" style="width:4rem;"></span>
+                </div>
+              </div>
+              <div class="eco-stat" id="eco-temp">
+                <i class="bi bi-thermometer-half eco-stat__icon"></i>
+                <div class="eco-stat__body">
+                  <span class="eco-stat__label">Temperature</span>
+                  <span class="eco-stat__val skeleton-line" style="width:3.5rem;"></span>
+                </div>
+              </div>
+              <div class="eco-stat" id="eco-flood">
+                <i class="bi bi-water eco-stat__icon"></i>
+                <div class="eco-stat__body">
+                  <span class="eco-stat__label">Flood Risk</span>
+                  <span class="eco-stat__val skeleton-line" style="width:3rem;"></span>
+                </div>
+              </div>
+              <div class="eco-stat" id="eco-frost">
+                <i class="bi bi-snow eco-stat__icon"></i>
+                <div class="eco-stat__body">
+                  <span class="eco-stat__label">Frost Days</span>
+                  <span class="eco-stat__val skeleton-line" style="width:2.5rem;"></span>
+                </div>
+              </div>
+              <div class="eco-stat" id="eco-organic">
+                <i class="bi bi-flower1 eco-stat__icon"></i>
+                <div class="eco-stat__body">
+                  <span class="eco-stat__label">Organic C</span>
+                  <span class="eco-stat__val skeleton-line" style="width:3rem;"></span>
+                </div>
+              </div>
+            </div><!-- /eco-grid -->
+          </div><!-- /eco-data-panel -->
         </div>
       </div>
 
@@ -223,9 +287,7 @@
           <span><i class="bi bi-table me-2"></i>Species Mix</span>
           <div class="d-flex align-items-center gap-2">
             <div class="input-group input-group-sm species-mixer-search position-relative">
-              <span class="input-group-text"><i class="bi bi-search"></i></span>
-              <input type="text" class="form-control" id="species-search-input"
-                     placeholder="Add species manually..." autocomplete="off" disabled>
+              <button type="button" class="btn btn-outline-secondary" id="add-species-manually-btn" disabled><i class="bi bi-plus me-1"></i> Add species manually</button>
               <ul class="species-search-dropdown list-group position-absolute d-none"
                   id="species-search-dropdown"></ul>
             </div>
@@ -236,16 +298,23 @@
           </div>
         </div>
 
-        <!-- Generation loading state -->
-        <div id="table-loading-state" class="card-body py-4 text-center d-none">
-          <div class="spinner-border text-primary mb-3" role="status" aria-label="Generating mix"></div>
-          <p class="fw-medium mb-1" id="loading-status-text">Querying environmental data...</p>
-          <div class="progress mt-3" style="height:4px; max-width:300px; margin:0 auto;">
-            <div class="progress-bar progress-bar-striped progress-bar-animated w-75" role="progressbar"></div>
+        <!-- Generation loading state — live database query feed -->
+        <div id="table-loading-state" class="d-none">
+          <div class="generation-feed-panel">
+            <div class="generation-feed-header">
+              <div class="spinner-border spinner-border-sm text-primary" role="status" aria-label="Generating mix"></div>
+              <div class="generation-feed-header__text">
+                <span class="fw-semibold" id="loading-status-text">Starting analysis...</span>
+                <span class="text-muted small" id="loading-species-count"></span>
+              </div>
+            </div>
+            <div class="generation-feed-log" id="generation-feed-log">
+              <!-- Progress events appended here by JS -->
+            </div>
+            <div class="progress generation-progress" role="progressbar" aria-label="Generation progress">
+              <div class="progress-bar progress-bar-striped progress-bar-animated" id="generation-progress-bar" style="width:5%"></div>
+            </div>
           </div>
-          <p class="text-muted small mt-3 mb-0">
-            Querying SoilGrids &middot; NBN Atlas &middot; GBIF &middot; climate &middot; hydrology
-          </p>
         </div>
 
         <!-- Species table -->
@@ -387,6 +456,7 @@
       validateSpecies: '{% url "species:api_validate_species" %}',
       taskStatus:      '/species/mixer/api/task-status/',
       location:        '{% url "species:api_location_data" %}',
+      envData:         '{% url "species:api_env_data" %}',
       save:            '{% url "species:api_save_mix" %}',
       mixes:           '{% url "species:api_list_mixes" %}',
       getMix:          '/species/mixer/api/mixes/',

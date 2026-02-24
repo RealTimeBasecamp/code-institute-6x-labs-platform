@@ -89,6 +89,7 @@ class SpeciesMixer {
     // Environment data (cached after generation)
     this.envData = {};
     this.cachedCandidates = [];
+    this._ecoDataLoaded = false;  // true once eco grid has been populated
 
     // Mix state
     this.mixId = null;
@@ -155,10 +156,17 @@ class SpeciesMixer {
     }
 
     this._transitionTo(SpeciesMixer.STATE_2_LOCATION_SET);
+    // Fire both fetches in parallel — no awaiting each other
     this._fetchLocationName(lat, lng);
+    this._fetchEnvData(lat, lng);
   }
 
   async _fetchLocationName(lat, lng) {
+    // Show skeleton state on the name line while fetching
+    const nameEl = document.getElementById('location-display-name');
+    if (nameEl) nameEl.innerHTML = '<span class="location-name-skeleton skeleton-line" style="width:70%;"></span>';
+    document.getElementById('coord-display').textContent = `${lat.toFixed(6)}, ${lng.toFixed(6)}`;
+
     const url = `${this.config.apiUrls.location}?lat=${lat}&lng=${lng}`;
     try {
       const resp = await fetch(url, { headers: { 'X-CSRFToken': this.config.csrfToken } });
@@ -167,10 +175,28 @@ class SpeciesMixer {
     } catch {
       this.locationName = `${lat.toFixed(4)}, ${lng.toFixed(4)}`;
     }
-    document.getElementById('location-display-name').textContent = this.locationName;
+    if (nameEl) nameEl.textContent = this.locationName;
     document.getElementById('map-location-name').textContent = this.locationName;
-    document.getElementById('coord-display').textContent =
-      `${lat.toFixed(6)}, ${lng.toFixed(6)}`;
+  }
+
+  async _fetchEnvData(lat, lng) {
+    // Fetch soil + climate + hydrology immediately on map click.
+    // Populates the eco data grid in the location card.
+    // This is a preview — the same data is also fetched during generation.
+    if (!this.config.apiUrls.envData) return;
+    try {
+      const resp = await fetch(
+        `${this.config.apiUrls.envData}?lat=${lat}&lng=${lng}`,
+        { headers: { 'X-CSRFToken': this.config.csrfToken } }
+      );
+      if (!resp.ok) return;
+      const data = await resp.json();
+      // Cache it so generation can re-use without re-fetching
+      this.envData = data;
+      this._updateEcoData(data);
+    } catch {
+      // Silent — eco grid stays in skeleton state
+    }
   }
 
   // ──────────────────────────────────────────────────────────────────────────
@@ -445,11 +471,14 @@ class SpeciesMixer {
 
   _startPolling(taskId, mode, extra = {}) {
     clearInterval(this.pollTimer);
-    const statusUrls = {
-      generation: () => this._updateLoadingStatus(this._generationStatusMessage()),
-      rescore: () => {},
-      validate: () => {},
-    };
+    this._seenProgressCount = 0;  // track which progress events we've already rendered
+
+    // Clear the feed log for a fresh generation
+    if (mode === 'generation') {
+      const log = document.getElementById('generation-feed-log');
+      if (log) log.innerHTML = '';
+      this._setProgressBar(5);
+    }
 
     this.pollTimer = setInterval(async () => {
       try {
@@ -460,9 +489,18 @@ class SpeciesMixer {
         const data = await resp.json();
 
         if (data.status === 'running' || data.status === 'queued') {
-          if (statusUrls[mode]) statusUrls[mode]();
+          if (mode === 'generation') {
+            this._consumeProgressEvents(data.progress || []);
+          }
         } else if (data.status === 'complete') {
           clearInterval(this.pollTimer);
+          if (mode === 'generation') {
+            // Replay any unseen progress events (covers sync/dev mode where task
+            // finishes before the first poll fires)
+            this._consumeProgressEvents(data.progress || []);
+            this._setProgressBar(100);
+            this._appendFeedLine('Mix generation complete.', 'success');
+          }
           this._onTaskComplete(mode, data.result, extra);
         } else if (data.status === 'error' || data.status === 'not_found') {
           clearInterval(this.pollTimer);
@@ -472,41 +510,52 @@ class SpeciesMixer {
         console.warn('Polling error:', err);
       }
     }, SpeciesMixer.POLL_INTERVAL_MS);
-
-    // Cycle loading messages for generation mode
-    if (mode === 'generation') {
-      this._loadingMessageCycle = 0;
-      this._loadingMessageTimer = setInterval(() => {
-        this._loadingMessageCycle++;
-        this._updateLoadingStatus(this._generationStatusMessage());
-      }, 4000);
-    }
   }
 
-  _generationStatusMessage() {
-    const messages = [
-      'Querying environmental data...',
-      'Querying SoilGrids — collecting soil pH and texture...',
-      'Querying NBN Atlas — finding native species observed nearby...',
-      'Querying GBIF — cross-referencing biodiversity records...',
-      'Querying climate data — rainfall and temperature normals...',
-      'Querying hydrology — assessing flood risk...',
-      'Searching species databases for candidates...',
-      'Cross-referencing traits against environmental conditions...',
-      'Selecting optimal mix based on your goals...',
-      'Almost done — finalising species ratios...',
-    ];
-    return messages[Math.min(this._loadingMessageCycle || 0, messages.length - 1)];
+  _consumeProgressEvents(events) {
+    if (!Array.isArray(events)) return;
+    const newEvents = events.slice(this._seenProgressCount || 0);
+    newEvents.forEach(ev => {
+      this._appendFeedLine(ev.msg);
+      if (ev.count != null) {
+        const countEl = document.getElementById('loading-species-count');
+        if (countEl) countEl.textContent = `${ev.count} species`;
+      }
+      // Update status text to latest event message
+      const statusEl = document.getElementById('loading-status-text');
+      if (statusEl) statusEl.textContent = ev.msg;
+    });
+    // Advance progress bar proportionally to events received vs total expected (~10 phases)
+    const total = Math.max(events.length, 1);
+    const pct = Math.min(10 + Math.round((total / 10) * 85), 90);
+    this._setProgressBar(pct);
+    this._seenProgressCount = events.length;
+  }
+
+  _appendFeedLine(msg, type = '') {
+    const log = document.getElementById('generation-feed-log');
+    if (!log) return;
+    const line = document.createElement('div');
+    line.className = `feed-line${type ? ` feed-line--${type}` : ''}`;
+    line.innerHTML = `<i class="bi bi-check2 feed-line__icon"></i><span>${msg}</span>`;
+    log.appendChild(line);
+    // Auto-scroll to bottom
+    log.scrollTop = log.scrollHeight;
+  }
+
+  _setProgressBar(pct) {
+    const bar = document.getElementById('generation-progress-bar');
+    if (bar) bar.style.width = `${pct}%`;
   }
 
   _onTaskComplete(mode, result, extra) {
-    clearInterval(this._loadingMessageTimer);
     document.getElementById('rescore-indicator')?.classList.add('d-none');
 
     if (mode === 'generation') {
-      // Cache env data and candidates for future rescores
       if (result.env_data) this.envData = result.env_data;
       if (result.cached_candidates) this.cachedCandidates = result.cached_candidates;
+      // Only populate eco grid from generation result if map-click fetch didn't already do it
+      if (!this._ecoDataLoaded) this._updateEcoData(result.env_data);
       this._renderMix(result.species_mix || []);
       this._renderInsights(result.insights, result.env_summary);
       this._transitionTo(SpeciesMixer.STATE_5_MIX_READY);
@@ -519,7 +568,6 @@ class SpeciesMixer {
   }
 
   _onTaskError(mode, error) {
-    clearInterval(this._loadingMessageTimer);
     document.getElementById('rescore-indicator')?.classList.add('d-none');
     if (mode === 'generation') {
       this._onGenerationError(error);
@@ -783,6 +831,59 @@ class SpeciesMixer {
   // Insights rendering
   // ──────────────────────────────────────────────────────────────────────────
 
+  _updateEcoData(envData) {
+    if (!envData) return;
+    const soil = envData.soil || {};
+    const climate = envData.climate || {};
+    const hydrology = envData.hydrology || {};
+
+    const _set = (id, val, suffix = '') => {
+      const el = document.getElementById(id);
+      if (!el) return;
+      const valEl = el.querySelector('.eco-stat__val');
+      if (!valEl) return;
+      if (val != null && val !== '' && val !== undefined) {
+        valEl.textContent = `${val}${suffix}`;
+        valEl.classList.remove('skeleton-line');
+        valEl.style.width = '';
+      } else {
+        valEl.textContent = '—';
+        valEl.classList.remove('skeleton-line');
+        valEl.style.width = '';
+      }
+    };
+
+    _set('eco-ph', soil.ph != null ? soil.ph.toFixed(1) : null, '');
+    _set('eco-texture', soil.texture_class || soil.texture || null);
+    _set('eco-moisture', soil.moisture_class || null);
+    _set('eco-rain', climate.mean_annual_rainfall_mm != null ? Math.round(climate.mean_annual_rainfall_mm) : null, ' mm/yr');
+    _set('eco-temp', climate.mean_temp_c != null ? climate.mean_temp_c.toFixed(1) : null, ' °C');
+    _set('eco-organic', soil.organic_carbon != null ? soil.organic_carbon.toFixed(1) : null, '%');
+    _set('eco-frost', climate.frost_days_per_year != null ? Math.round(climate.frost_days_per_year) : null, ' days');
+
+    // Flood risk with colour-coded badge
+    const floodEl = document.getElementById('eco-flood');
+    if (floodEl) {
+      const valEl = floodEl.querySelector('.eco-stat__val');
+      const risk = hydrology.flood_risk || null;
+      if (valEl) {
+        valEl.classList.remove('skeleton-line');
+        valEl.style.width = '';
+        if (risk) {
+          const riskCls = risk === 'high' ? 'text-danger' : risk === 'medium' ? 'text-warning' : 'text-success';
+          valEl.innerHTML = `<span class="${riskCls} fw-medium text-capitalize">${risk}</span>`;
+        } else {
+          valEl.textContent = '—';
+        }
+      }
+    }
+
+    // Mark eco data as loaded so generation won't re-render and flicker the panel
+    this._ecoDataLoaded = true;
+    // Ensure blur overlay is hidden (in case it was shown)
+    document.getElementById('eco-blur-overlay')?.classList.add('d-none');
+  }
+
   _renderInsights(insights, envSummary) {
     const placeholder = document.getElementById('insights-placeholder');
     const insightsText = document.getElementById('insights-text');
@@ -1001,6 +1102,7 @@ class SpeciesMixer {
         return { ...item, name: item.common_name || `Species ${item.species_id}`, colour };
       });
 
+      this._updateEcoData(data.env_data);
       this._renderMix(this.mixItems);
       this._renderInsights(data.ai_insights, data.env_summary);
       this._transitionTo(SpeciesMixer.STATE_5_MIX_READY);
@@ -1116,8 +1218,16 @@ class SpeciesMixer {
     this.locationName = '';
     this.envData = {};
     this.cachedCandidates = [];
+    this._ecoDataLoaded = false;
     this.mixId = null;
     this.mixItems = [];
+    // Reset eco data panel to skeleton state (hide overlay — user hasn't generated yet)
+    document.getElementById('eco-blur-overlay')?.classList.add('d-none');
+    document.querySelectorAll('.eco-stat__val').forEach(el => {
+      el.textContent = '';
+      el.className = 'eco-stat__val skeleton-line';
+      el.style.width = '3rem';
+    });
 
     if (this.marker) { this.marker.remove(); this.marker = null; }
 
