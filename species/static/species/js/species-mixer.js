@@ -144,6 +144,11 @@ class SpeciesMixer {
     this.lat = lat;
     this.lng = lng;
 
+    // Reset eco cells to skeleton for the new location
+    this._ecoDataLoaded = false;
+    this.envData = {};
+    this._resetEcoCells();
+
     // Place / move marker
     if (this.map) {
       if (this.marker) {
@@ -156,9 +161,35 @@ class SpeciesMixer {
     }
 
     this._transitionTo(SpeciesMixer.STATE_2_LOCATION_SET);
-    // Fire both fetches in parallel — no awaiting each other
+    // Fire all four fetches in parallel — each resolves independently
     this._fetchLocationName(lat, lng);
-    this._fetchEnvData(lat, lng);
+    this._fetchEnvDataSoil(lat, lng);
+    this._fetchEnvDataClimate(lat, lng);
+    this._fetchEnvDataHydrology(lat, lng);
+  }
+
+  _resetEcoCells() {
+    // Return all 8 eco stat value elements to skeleton loading state.
+    // Called on every new map click so stale data from a previous location is cleared.
+    const skeletonWidths = {
+      'eco-ph':       '2.5rem',
+      'eco-texture':  '3rem',
+      'eco-moisture': '3rem',
+      'eco-rain':     '4rem',
+      'eco-temp':     '3.5rem',
+      'eco-flood':    '3rem',
+      'eco-frost':    '2.5rem',
+      'eco-organic':  '3rem',
+    };
+    Object.entries(skeletonWidths).forEach(([id, width]) => {
+      const el = document.getElementById(id);
+      if (!el) return;
+      const valEl = el.querySelector('.eco-stat__val');
+      if (!valEl) return;
+      valEl.textContent = '';
+      valEl.className = 'eco-stat__val skeleton-line';
+      valEl.style.width = width;
+    });
   }
 
   async _fetchLocationName(lat, lng) {
@@ -179,23 +210,60 @@ class SpeciesMixer {
     document.getElementById('map-location-name').textContent = this.locationName;
   }
 
-  async _fetchEnvData(lat, lng) {
-    // Fetch soil + climate + hydrology immediately on map click.
-    // Populates the eco data grid in the location card.
-    // This is a preview — the same data is also fetched during generation.
-    if (!this.config.apiUrls.envData) return;
+  async _fetchEnvDataSoil(lat, lng) {
+    // SoilGrids — typically fast (~1-2s), returns pH, texture, moisture, organic carbon
+    if (!this.config.apiUrls.envDataSoil) return;
     try {
       const resp = await fetch(
-        `${this.config.apiUrls.envData}?lat=${lat}&lng=${lng}`,
+        `${this.config.apiUrls.envDataSoil}?lat=${lat}&lng=${lng}`,
         { headers: { 'X-CSRFToken': this.config.csrfToken } }
       );
       if (!resp.ok) return;
-      const data = await resp.json();
-      // Cache it so generation can re-use without re-fetching
-      this.envData = data;
-      this._updateEcoData(data);
-    } catch {
-      // Silent — eco grid stays in skeleton state
+      const soil = await resp.json();
+      // Merge into cached envData so generation can re-use it
+      this.envData = { ...this.envData, soil };
+      this._updateEcoSoil(soil);
+      this._checkEcoDataComplete();
+    } catch { /* cells stay as skeletons */ }
+  }
+
+  async _fetchEnvDataClimate(lat, lng) {
+    // Open-Meteo — fetches 10yrs of daily data, can take 5-15s on first call
+    // (cached for 30 days so repeat calls for the same area are instant)
+    if (!this.config.apiUrls.envDataClimate) return;
+    try {
+      const resp = await fetch(
+        `${this.config.apiUrls.envDataClimate}?lat=${lat}&lng=${lng}`,
+        { headers: { 'X-CSRFToken': this.config.csrfToken } }
+      );
+      if (!resp.ok) return;
+      const climate = await resp.json();
+      this.envData = { ...this.envData, climate };
+      this._updateEcoClimate(climate);
+      this._checkEcoDataComplete();
+    } catch { /* cells stay as skeletons */ }
+  }
+
+  async _fetchEnvDataHydrology(lat, lng) {
+    // EA/SEPA flood risk — fast (~1-3s)
+    if (!this.config.apiUrls.envDataHydrology) return;
+    try {
+      const resp = await fetch(
+        `${this.config.apiUrls.envDataHydrology}?lat=${lat}&lng=${lng}`,
+        { headers: { 'X-CSRFToken': this.config.csrfToken } }
+      );
+      if (!resp.ok) return;
+      const hydrology = await resp.json();
+      this.envData = { ...this.envData, hydrology };
+      this._updateEcoHydrology(hydrology);
+      this._checkEcoDataComplete();
+    } catch { /* cells stay as skeletons */ }
+  }
+
+  _checkEcoDataComplete() {
+    // Mark eco data as fully loaded once all three sources have responded
+    if (this.envData.soil && this.envData.climate && this.envData.hydrology) {
+      this._ecoDataLoaded = true;
     }
   }
 
@@ -831,57 +899,57 @@ class SpeciesMixer {
   // Insights rendering
   // ──────────────────────────────────────────────────────────────────────────
 
+  // Shared helper — resolves a single eco-stat value element out of skeleton state
+  _setEcoVal(id, val, suffix = '') {
+    const el = document.getElementById(id);
+    if (!el) return;
+    const valEl = el.querySelector('.eco-stat__val');
+    if (!valEl) return;
+    valEl.classList.remove('skeleton-line');
+    valEl.style.width = '';
+    valEl.textContent = (val != null && val !== '') ? `${val}${suffix}` : '—';
+  }
+
+  _updateEcoSoil(soil) {
+    if (!soil) return;
+    this._setEcoVal('eco-ph', soil.ph != null ? soil.ph.toFixed(1) : null);
+    this._setEcoVal('eco-texture', soil.texture_class || soil.texture || null);
+    this._setEcoVal('eco-moisture', soil.moisture_class || null);
+    this._setEcoVal('eco-organic', soil.organic_carbon != null ? soil.organic_carbon.toFixed(1) : null, '%');
+  }
+
+  _updateEcoClimate(climate) {
+    if (!climate) return;
+    this._setEcoVal('eco-rain', climate.mean_annual_rainfall_mm != null ? Math.round(climate.mean_annual_rainfall_mm) : null, ' mm/yr');
+    this._setEcoVal('eco-temp', climate.mean_temp_c != null ? climate.mean_temp_c.toFixed(1) : null, ' °C');
+    this._setEcoVal('eco-frost', climate.frost_days_per_year != null ? Math.round(climate.frost_days_per_year) : null, ' days');
+  }
+
+  _updateEcoHydrology(hydrology) {
+    if (!hydrology) return;
+    const floodEl = document.getElementById('eco-flood');
+    if (!floodEl) return;
+    const valEl = floodEl.querySelector('.eco-stat__val');
+    if (!valEl) return;
+    valEl.classList.remove('skeleton-line');
+    valEl.style.width = '';
+    const risk = hydrology.flood_risk || null;
+    if (risk) {
+      const riskCls = risk === 'high' ? 'text-danger' : risk === 'medium' ? 'text-warning' : 'text-success';
+      valEl.innerHTML = `<span class="${riskCls} fw-medium text-capitalize">${risk}</span>`;
+    } else {
+      valEl.textContent = '—';
+    }
+  }
+
+  // Called by _onTaskComplete when generation result includes env_data but the
+  // map-click fetch didn't already populate the grid (e.g. on first load).
   _updateEcoData(envData) {
     if (!envData) return;
-    const soil = envData.soil || {};
-    const climate = envData.climate || {};
-    const hydrology = envData.hydrology || {};
-
-    const _set = (id, val, suffix = '') => {
-      const el = document.getElementById(id);
-      if (!el) return;
-      const valEl = el.querySelector('.eco-stat__val');
-      if (!valEl) return;
-      if (val != null && val !== '' && val !== undefined) {
-        valEl.textContent = `${val}${suffix}`;
-        valEl.classList.remove('skeleton-line');
-        valEl.style.width = '';
-      } else {
-        valEl.textContent = '—';
-        valEl.classList.remove('skeleton-line');
-        valEl.style.width = '';
-      }
-    };
-
-    _set('eco-ph', soil.ph != null ? soil.ph.toFixed(1) : null, '');
-    _set('eco-texture', soil.texture_class || soil.texture || null);
-    _set('eco-moisture', soil.moisture_class || null);
-    _set('eco-rain', climate.mean_annual_rainfall_mm != null ? Math.round(climate.mean_annual_rainfall_mm) : null, ' mm/yr');
-    _set('eco-temp', climate.mean_temp_c != null ? climate.mean_temp_c.toFixed(1) : null, ' °C');
-    _set('eco-organic', soil.organic_carbon != null ? soil.organic_carbon.toFixed(1) : null, '%');
-    _set('eco-frost', climate.frost_days_per_year != null ? Math.round(climate.frost_days_per_year) : null, ' days');
-
-    // Flood risk with colour-coded badge
-    const floodEl = document.getElementById('eco-flood');
-    if (floodEl) {
-      const valEl = floodEl.querySelector('.eco-stat__val');
-      const risk = hydrology.flood_risk || null;
-      if (valEl) {
-        valEl.classList.remove('skeleton-line');
-        valEl.style.width = '';
-        if (risk) {
-          const riskCls = risk === 'high' ? 'text-danger' : risk === 'medium' ? 'text-warning' : 'text-success';
-          valEl.innerHTML = `<span class="${riskCls} fw-medium text-capitalize">${risk}</span>`;
-        } else {
-          valEl.textContent = '—';
-        }
-      }
-    }
-
-    // Mark eco data as loaded so generation won't re-render and flicker the panel
+    this._updateEcoSoil(envData.soil || {});
+    this._updateEcoClimate(envData.climate || {});
+    this._updateEcoHydrology(envData.hydrology || {});
     this._ecoDataLoaded = true;
-    // Ensure blur overlay is hidden (in case it was shown)
-    document.getElementById('eco-blur-overlay')?.classList.add('d-none');
   }
 
   _renderInsights(insights, envSummary) {
@@ -1221,13 +1289,8 @@ class SpeciesMixer {
     this._ecoDataLoaded = false;
     this.mixId = null;
     this.mixItems = [];
-    // Reset eco data panel to skeleton state (hide overlay — user hasn't generated yet)
-    document.getElementById('eco-blur-overlay')?.classList.add('d-none');
-    document.querySelectorAll('.eco-stat__val').forEach(el => {
-      el.textContent = '';
-      el.className = 'eco-stat__val skeleton-line';
-      el.style.width = '3rem';
-    });
+    // Reset eco data panel to per-cell skeleton state
+    this._resetEcoCells();
 
     if (this.marker) { this.marker.remove(); this.marker = null; }
 

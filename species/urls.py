@@ -18,8 +18,11 @@ urlpatterns = [
     path('mixer/api/validate-species/', api_views.api_validate_species, name='api_validate_species'),
     path('mixer/api/task-status/<str:task_id>/', api_views.api_task_status, name='api_task_status'),
 
-    # Location lookup + immediate env data preview
+    # Location lookup + immediate env data (per-source for progressive loading)
     path('mixer/api/location/', api_views.api_location_data, name='api_location_data'),
+    path('mixer/api/env-data/soil/', api_views.api_env_data_soil, name='api_env_data_soil'),
+    path('mixer/api/env-data/climate/', api_views.api_env_data_climate, name='api_env_data_climate'),
+    path('mixer/api/env-data/hydrology/', api_views.api_env_data_hydrology, name='api_env_data_hydrology'),
     path('mixer/api/env-data/', api_views.api_env_data, name='api_env_data'),
 
     # Mix CRUD

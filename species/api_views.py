@@ -246,8 +246,47 @@ def api_location_data(request):
 
 
 # =============================================================================
-# Environmental data preview (immediate on map click)
+# Environmental data — three separate endpoints, one per source
+# Each is called independently by the frontend so cells populate as each
+# source responds rather than waiting for the slowest one.
 # =============================================================================
+
+def _parse_lat_lng(request):
+    try:
+        return float(request.GET['lat']), float(request.GET['lng'])
+    except (KeyError, ValueError):
+        return None, None
+
+
+@login_required
+@require_http_methods(['GET'])
+def api_env_data_soil(request):
+    """GET /species/mixer/api/env-data/soil/?lat=&lng=  →  SoilGrids data."""
+    lat, lng = _parse_lat_lng(request)
+    if lat is None:
+        return JsonResponse({'error': 'lat and lng are required'}, status=400)
+    return JsonResponse(fetch_soilgrids(lat, lng))
+
+
+@login_required
+@require_http_methods(['GET'])
+def api_env_data_climate(request):
+    """GET /species/mixer/api/env-data/climate/?lat=&lng=  →  Open-Meteo climate normals."""
+    lat, lng = _parse_lat_lng(request)
+    if lat is None:
+        return JsonResponse({'error': 'lat and lng are required'}, status=400)
+    return JsonResponse(fetch_climate(lat, lng))
+
+
+@login_required
+@require_http_methods(['GET'])
+def api_env_data_hydrology(request):
+    """GET /species/mixer/api/env-data/hydrology/?lat=&lng=  →  EA/SEPA flood risk."""
+    lat, lng = _parse_lat_lng(request)
+    if lat is None:
+        return JsonResponse({'error': 'lat and lng are required'}, status=400)
+    return JsonResponse(fetch_hydrology(lat, lng))
+
 
 @login_required
 @require_http_methods(['GET'])
@@ -255,45 +294,29 @@ def api_env_data(request):
     """
     GET /species/mixer/api/env-data/?lat=&lng=
 
-    Fetches soil, climate and hydrology data in parallel for immediate display
-    in the location card after a map click. All three sources are cached, so
-    repeat calls for the same location are fast.
-
-    Returns:
-        {
-            soil:     { ph, texture_class, moisture_class, organic_carbon, ... }
-            climate:  { mean_annual_rainfall_mm, mean_temp_c, frost_days_per_year, ... }
-            hydrology: { flood_risk, water_body_nearby }
-        }
+    Combined endpoint — fetches all three sources in parallel.
+    Used by the AI generation task to assemble full env_data in one call.
+    The frontend uses the three individual endpoints above for progressive loading.
     """
-    try:
-        lat = float(request.GET['lat'])
-        lng = float(request.GET['lng'])
-    except (KeyError, ValueError):
+    lat, lng = _parse_lat_lng(request)
+    if lat is None:
         return JsonResponse({'error': 'lat and lng are required query parameters'}, status=400)
 
     from concurrent.futures import ThreadPoolExecutor, as_completed
 
     results = {}
-    def _fetch_soil():
-        return 'soil', fetch_soilgrids(lat, lng)
-    def _fetch_climate():
-        return 'climate', fetch_climate(lat, lng)
-    def _fetch_hydrology():
-        return 'hydrology', fetch_hydrology(lat, lng)
-
     with ThreadPoolExecutor(max_workers=3) as executor:
-        futures = [
-            executor.submit(_fetch_soil),
-            executor.submit(_fetch_climate),
-            executor.submit(_fetch_hydrology),
-        ]
+        futures = {
+            executor.submit(fetch_soilgrids, lat, lng): 'soil',
+            executor.submit(fetch_climate, lat, lng): 'climate',
+            executor.submit(fetch_hydrology, lat, lng): 'hydrology',
+        }
         for future in as_completed(futures):
+            key = futures[future]
             try:
-                key, data = future.result()
-                results[key] = data
+                results[key] = future.result()
             except Exception as exc:
-                logger.warning('env-data fetch failed: %s', exc)
+                logger.warning('env-data fetch failed (%s): %s', key, exc)
 
     return JsonResponse(results)
 
