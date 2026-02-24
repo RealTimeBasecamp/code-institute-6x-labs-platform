@@ -127,7 +127,7 @@ class SpeciesMixer {
       container: 'species-mixer-map',
       style: this.config.maplibreStyleUrl,
       center: [-2.5, 54.5],   // UK centre
-      zoom: 5,
+      zoom: 4.5,              // show full UK comfortably in the narrow map panel
     });
 
     this.map.addControl(new maplibregl.NavigationControl(), 'top-right');
@@ -136,10 +136,14 @@ class SpeciesMixer {
       this._onMapClick(e.lngLat.lat, e.lngLat.lng);
     });
 
-    // Hide the map empty state once map loads
+    // Once the map style loads, force a resize so MapLibre correctly fills the
+    // split-pane container (CSS layout may not be complete when the Map object
+    // is constructed, leaving the canvas undersized until the first user click).
     this.map.on('load', () => {
-      const empty = document.getElementById('map-empty-state');
-      if (empty) empty.style.pointerEvents = 'none';
+      // Resize immediately, then once more after the next paint to catch any
+      // remaining layout shift from the flexbox split-pane settling.
+      this.map.resize();
+      requestAnimationFrame(() => this.map.resize());
     });
   }
 
@@ -748,6 +752,8 @@ class SpeciesMixer {
     }
 
     if (state === SpeciesMixer.STATE_4_GENERATING) {
+      // Activate shimmer on skeleton rows only during active generation
+      document.getElementById('species-mix-tbody')?.classList.add('is-generating');
       const stopHtml = '<i class="bi bi-stop-circle me-2"></i>Stop Generation';
       const goalsBtn = document.getElementById('generate-mix-btn');
       const mixBtn = document.getElementById('mix-generate-btn');
@@ -770,6 +776,8 @@ class SpeciesMixer {
     }
 
     if (state >= SpeciesMixer.STATE_5_MIX_READY) {
+      // Remove shimmer once generation is done
+      document.getElementById('species-mix-tbody')?.classList.remove('is-generating');
       hide('table-loading-state');
       const goalsBtn = document.getElementById('generate-mix-btn');
       const mixBtn = document.getElementById('mix-generate-btn');
@@ -1501,10 +1509,7 @@ class SpeciesMixer {
     tr.className = 'species-mixer-row';
     tr.dataset.speciesId = item.species_id;
 
-    // Characteristics pills: category + goal-alignment tags derived from family
-    const categoryPill = item.category
-      ? `<span class="badge species-cat-pill me-1 mb-1">${this._categoryIcon(item.category)} ${item.category}</span>`
-      : '';
+    // Characteristics pills: goal-alignment tags only (category shown via dot colour, not a pill)
     const goalTags = this._goalTagsFromFamily(item.family, item.ecological_benefits)
       .map(({ label, icon, key }) =>
         `<span class="badge species-goal-pill species-goal-pill--${key} me-1 mb-1">${icon} ${label}</span>`
@@ -1536,7 +1541,7 @@ class SpeciesMixer {
         ${item.is_manual ? '<span class="badge bg-info bg-opacity-10 text-info" style="font-size:.6rem;">Manual</span>' : ''}
       </td>
       <td class="col-chars">
-        <div class="d-flex flex-wrap gap-0">${categoryPill}${goalTags}</div>
+        <div class="d-flex flex-wrap gap-0">${goalTags}</div>
       </td>
       <td class="col-native suitability-cell" data-sort-value="${item.suitability_label || ''}">
         ${nativeBadge}
@@ -1708,14 +1713,16 @@ class SpeciesMixer {
     if (!valEl) return;
     valEl.classList.remove('skeleton-line');
     valEl.style.width = '';
-    valEl.textContent = (val != null && val !== '') ? `${val}${suffix}` : '—';
+    valEl.textContent = (val != null && val !== '') ? `${val}${suffix}` : 'N/A';
   }
 
   _updateEcoSoil(soil) {
     if (!soil) return;
+    // Sanitise API strings: replace underscores with spaces, title-case each word
+    const sanitise = v => v ? v.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase()) : null;
     this._setEcoVal('eco-ph', soil.ph != null ? soil.ph.toFixed(1) : null);
-    this._setEcoVal('eco-texture', soil.texture_class || soil.texture || null);
-    this._setEcoVal('eco-moisture', soil.moisture_class || null);
+    this._setEcoVal('eco-texture', sanitise(soil.texture_class || soil.texture || null));
+    this._setEcoVal('eco-moisture', sanitise(soil.moisture_class || null));
     this._setEcoVal('eco-organic', soil.organic_carbon != null ? soil.organic_carbon.toFixed(1) : null, '%');
   }
 
@@ -1845,10 +1852,6 @@ class SpeciesMixer {
       const benefitPills = (species.ecological_benefits || []).map(b =>
         `<span class="badge species-char-pill">${this._benefitLabel(b)}</span>`
       ).join(' ');
-      const catPill = species.category
-        ? `<span class="badge species-cat-pill">${this._categoryIcon(species.category)} ${species.category}</span>`
-        : '';
-
       const item = document.createElement('div');
       item.className = `add-species-item${alreadyInMix ? ' add-species-item--added' : ''}`;
       item.innerHTML = `
@@ -1856,7 +1859,7 @@ class SpeciesMixer {
           <div class="flex-grow-1 min-width-0">
             <div class="fw-medium">${species.common_name || species.scientific_name}</div>
             <div class="fst-italic text-muted small">${species.scientific_name || ''}</div>
-            <div class="d-flex flex-wrap gap-1 mt-1">${catPill}${nativePill}${benefitPills}</div>
+            <div class="d-flex flex-wrap gap-1 mt-1">${nativePill}${benefitPills}</div>
           </div>
           ${alreadyInMix ? '<span class="badge bg-secondary text-white flex-shrink-0">In mix</span>' : ''}
         </div>`;
@@ -2142,36 +2145,45 @@ class SpeciesMixer {
     return matched.slice(0, 3); // cap at 3 to keep cell compact
   }
 
-  _nativeBadge(item) {
-    // Priority: explicit suitability_label → native_regions field → blank
-    const label = (item.suitability_label || '').toLowerCase();
-    if (label === 'not_recommended') {
-      const tip = item.ai_reason || 'Not recommended for this location';
-      return `<span class="badge species-status-pill species-status-pill--invasive" title="${tip}">Invasive / Not recommended</span>`;
+  // Shared score badge — coloured circle icon + numeric score, tooltip explains environmental fit.
+  // Colour bands: 0–2 red, 3–5 orange, 6–8 yellow, 9–10 green.
+  // Used for both AI-generated mix rows and manual-add validation results.
+  _scoreBadge(score, reason) {
+    if (score == null) {
+      return '<span class="text-muted" style="font-size:.75rem;">—</span>';
     }
-    // If native_regions populated and non-empty, treat as native
-    if (item.native_regions && item.native_regions.length > 0) {
-      return `<span class="badge species-status-pill species-status-pill--native" title="Native to: ${item.native_regions.join(', ')}">Native</span>`;
-    }
-    // good/acceptable with no native data → just show "Suitable"
-    if (label === 'good' || label === 'acceptable') {
-      const tip = item.ai_reason || label;
-      return `<span class="badge species-status-pill species-status-pill--suitable" title="${tip}">${label === 'good' ? 'Recommended' : 'Suitable'}</span>`;
-    }
-    return '<span class="text-muted" style="font-size:.75rem;">—</span>';
+    const n = Math.round(Math.min(10, Math.max(0, score)));
+    let colour, label;
+    if      (n <= 2) { colour = 'var(--bs-danger,  #dc3545)'; label = 'Poor';      }
+    else if (n <= 5) { colour = 'var(--bs-orange,  #fd7e14)'; label = 'Fair';      }
+    else if (n <= 8) { colour = 'var(--bs-warning, #ffc107)'; label = 'Good';      }
+    else             { colour = 'var(--bs-success, #198754)'; label = 'Excellent'; }
+
+    const tip = reason ? `${label} (${n}/10) — ${reason}` : `${label} (${n}/10)`;
+    // Escape quotes in tooltip text
+    const safeTip = tip.replace(/"/g, '&quot;');
+    return `<span class="species-score-badge" style="color:${colour};" title="${safeTip}" data-bs-toggle="tooltip" data-bs-placement="left">
+      <i class="bi bi-circle-fill" style="font-size:0.55rem; vertical-align:middle;"></i>
+      <span style="font-size:0.78rem; font-weight:600; vertical-align:middle;">${n}<span style="font-size:0.65rem; font-weight:400; opacity:0.7;">/10</span></span>
+    </span>`;
   }
 
-  _suitabilityBadge(label, score, reason) {
-    const cfg = {
-      good: { cls: 'text-success', icon: 'bi-check-circle-fill' },
-      acceptable: { cls: 'text-warning', icon: 'bi-dash-circle-fill' },
-      not_recommended: { cls: 'text-danger', icon: 'bi-x-circle-fill' },
-    };
-    const c = cfg[label] || cfg.acceptable;
-    const labelText = label ? label.replace(/_/g, ' ') : '?';
-    const scoreStr = score != null ? ` · ${score}/10` : '';
-    const tip = reason ? `${labelText}${scoreStr} — ${reason}` : `${labelText}${scoreStr}`;
-    return `<i class="bi ${c.icon} ${c.cls}" title="${tip}" style="font-size:1rem;"></i>`;
+  // Legacy shim — called from row build; maps old suitability fields to score badge.
+  _nativeBadge(item) {
+    // If a numeric score is available, use it directly
+    if (item.suitability_score != null) {
+      return this._scoreBadge(item.suitability_score, item.ai_reason || null);
+    }
+    // Map label-only records (pre-score data) to an approximate numeric score
+    const label = (item.suitability_label || '').toLowerCase();
+    const scoreMap = { good: 8, acceptable: 5, not_recommended: 2 };
+    const fallbackScore = scoreMap[label] ?? null;
+    return this._scoreBadge(fallbackScore, item.ai_reason || null);
+  }
+
+  // Called when a validation result arrives for a manually added species.
+  _suitabilityBadge(_label, score, reason) {
+    return this._scoreBadge(score, reason);
   }
 
   _showToast(message, type = 'info') {

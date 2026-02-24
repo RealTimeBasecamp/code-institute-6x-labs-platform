@@ -46,12 +46,6 @@
   <div class="mixer-pane__map" id="mixer-map-panel">
     <div id="species-mixer-map" class="w-100 h-100"></div>
 
-    <!-- Prompt overlay before any map click -->
-    <div id="map-empty-state" class="mixer-map-empty position-absolute top-0 start-0 w-100 h-100 d-flex flex-column align-items-center justify-content-center" style="pointer-events:none;">
-      <i class="bi bi-cursor-fill" style="font-size:2rem; opacity:.35;"></i>
-      <p class="mt-3 mb-1 fw-medium small">Click to set location</p>
-      <small class="text-muted" style="font-size:.7rem;">Environmental data fetched automatically</small>
-    </div>
 
     <!-- Goals radar chart overlay (shown on Goals/Mix tabs) -->
     <div id="map-overlay-placeholder" class="mixer-map-placeholder d-none">
@@ -117,56 +111,56 @@
               <div class="eco-stat" id="eco-ph">
                 <i class="bi bi-eyedropper eco-stat__icon"></i>
                 <div class="eco-stat__body">
-                  <span class="eco-stat__label">Soil pH</span>
+                  <span class="eco-stat__label">Soil pH <i class="bi bi-info-circle eco-stat__info" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Soil acidity or alkalinity on a 0–14 scale. Most native UK plants thrive between pH 5.5–7. Below 5 favours heathland species; above 7.5 suits chalk downland plants."></i></span>
                   <span class="eco-stat__val skeleton-line" style="width:2.5rem;"></span>
                 </div>
               </div>
               <div class="eco-stat" id="eco-texture">
                 <i class="bi bi-layers eco-stat__icon"></i>
                 <div class="eco-stat__body">
-                  <span class="eco-stat__label">Texture</span>
+                  <span class="eco-stat__label">Texture <i class="bi bi-info-circle eco-stat__info" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Soil particle size composition. Clay retains moisture and nutrients; sandy soil drains quickly and suits drought-tolerant species; loam is ideal for most plants."></i></span>
                   <span class="eco-stat__val skeleton-line" style="width:3rem;"></span>
                 </div>
               </div>
               <div class="eco-stat" id="eco-moisture">
                 <i class="bi bi-droplet-half eco-stat__icon"></i>
                 <div class="eco-stat__body">
-                  <span class="eco-stat__label">Moisture</span>
+                  <span class="eco-stat__label">Moisture <i class="bi bi-info-circle eco-stat__info" data-bs-toggle="tooltip" data-bs-placement="bottom" title="How much water the soil typically holds. Wet soils suit alder and willow; dry soils favour gorse and pine; moist soils support the widest range of species."></i></span>
                   <span class="eco-stat__val skeleton-line" style="width:3rem;"></span>
                 </div>
               </div>
               <div class="eco-stat" id="eco-rain">
                 <i class="bi bi-cloud-rain eco-stat__icon"></i>
                 <div class="eco-stat__body">
-                  <span class="eco-stat__label">Rainfall</span>
+                  <span class="eco-stat__label">Rainfall <i class="bi bi-info-circle eco-stat__info" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Mean annual rainfall in millimetres. Above 1000 mm supports lush woodland; below 600 mm favours drought-tolerant grassland and scrub species."></i></span>
                   <span class="eco-stat__val skeleton-line" style="width:4rem;"></span>
                 </div>
               </div>
               <div class="eco-stat" id="eco-temp">
                 <i class="bi bi-thermometer-half eco-stat__icon"></i>
                 <div class="eco-stat__body">
-                  <span class="eco-stat__label">Temperature</span>
+                  <span class="eco-stat__label">Temperature <i class="bi bi-info-circle eco-stat__info" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Mean annual air temperature. Higher temperatures extend the growing season and allow more heat-loving species; lower temperatures limit choice to hardy native species."></i></span>
                   <span class="eco-stat__val skeleton-line" style="width:3.5rem;"></span>
                 </div>
               </div>
               <div class="eco-stat" id="eco-flood">
                 <i class="bi bi-water eco-stat__icon"></i>
                 <div class="eco-stat__body">
-                  <span class="eco-stat__label">Flood Risk</span>
+                  <span class="eco-stat__label">Flood Risk <i class="bi bi-info-circle eco-stat__info" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Likelihood of seasonal flooding based on Environment Agency and Scottish Environment Protection Agency flood maps. High flood risk favours riparian species such as willow, alder and reed; low risk allows a wider selection."></i></span>
                   <span class="eco-stat__val skeleton-line" style="width:3rem;"></span>
                 </div>
               </div>
               <div class="eco-stat" id="eco-frost">
                 <i class="bi bi-snow eco-stat__icon"></i>
                 <div class="eco-stat__body">
-                  <span class="eco-stat__label">Frost Days</span>
+                  <span class="eco-stat__label">Frost Days <i class="bi bi-info-circle eco-stat__info" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Estimated number of air-frost days per year. More frost days favour cold-hardy species and exclude tender broadleaves; fewer days allow a wider planting palette."></i></span>
                   <span class="eco-stat__val skeleton-line" style="width:2.5rem;"></span>
                 </div>
               </div>
               <div class="eco-stat" id="eco-organic">
                 <i class="bi bi-flower1 eco-stat__icon"></i>
                 <div class="eco-stat__body">
-                  <span class="eco-stat__label">Organic C</span>
+                  <span class="eco-stat__label">Organic Carbon <i class="bi bi-info-circle eco-stat__info" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Percentage of carbon stored in the soil from decomposed plant and animal matter. Higher values indicate richer, more fertile soil that retains moisture and supports greater biodiversity."></i></span>
                   <span class="eco-stat__val skeleton-line" style="width:3rem;"></span>
                 </div>
               </div>
@@ -189,10 +183,13 @@
           <small class="text-muted">Click the map to set your planting point</small>
         </div>
 
-        <!-- Reset goals button -->
+        <!-- Goals intro -->
+        <p class="text-muted small mb-2">Adjust the priorities below to guide the AI when selecting species. The generated mix will be weighted towards the goals you emphasise most, balanced against what the soil, climate and hydrology at your chosen location can support.</p>
+
+        <!-- Reset button -->
         <div class="d-flex justify-content-end mb-2">
           <button type="button" class="btn btn-secondary btn-sm" id="reset-goals-btn">
-            <i class="bi bi-arrow-counterclockwise me-1"></i>Reset to Default
+            <i class="bi bi-arrow-counterclockwise me-1"></i>Reset
           </button>
         </div>
 
@@ -263,9 +260,6 @@
           <button class="btn btn-primary w-100" id="generate-mix-btn" disabled>
             <i class="bi bi-magic me-2"></i>Generate Species Mix
           </button>
-          <p class="text-muted text-center small mt-2 mb-0">
-            <i class="bi bi-shield-check me-1"></i>SoilGrids &middot; NBN Atlas &middot; GBIF &middot; Open-Meteo &middot; EA / SEPA
-          </p>
         </div>
 
       </div><!-- /tab-goals -->
@@ -384,7 +378,7 @@
                     <!-- col 3: characteristics pills -->
                     <th class="col-chars" data-sortable>Characteristics</th>
                     <!-- col 4: native/invasive badge -->
-                    <th class="col-native" data-sortable title="Native or invasive status">Status</th>
+                    <th class="col-native" data-sortable title="Environmental suitability score — how well this species suits the soil, climate and hydrology at the selected location">Score</th>
                     <!-- col 5: ρ radius -->
                     <th class="col-rho" title="Point radius">
                       &#961;<sub><i style="font-size:.65em;">r</i></sub>

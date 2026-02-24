@@ -162,13 +162,15 @@
 /* ── Split-pane shell ────────────────────────────────────────── */
 .mixer-pane {
   display: flex;
-  height: calc(100vh - var(--header-height, 60px) - 3rem);
+  /* Fill viewport minus: page-content top padding (2rem) + page header + name bar + bottom gap.
+     --header-height is not set globally so we don't use it; the fixed 5rem covers everything above. */
+  height: calc(100dvh - 5rem);
   min-height: 500px;
   border: 1px solid var(--bs-border-color);
   border-radius: var(--bs-border-radius-lg);
   overflow: hidden;
   background: var(--bs-body-bg);
-  margin-bottom: 1.5rem;
+  margin-bottom: 1rem;
 }
 
 .mixer-pane__map {
@@ -252,7 +254,6 @@
 .mixer-panel-tabs {
   flex: 0 0 auto;
   padding: 0.5rem 0.75rem 0;
-  border-bottom: 1px solid var(--bs-border-color);
 }
 
 /* Customise the nav-pills component for the mixer tab bar using its own CSS variables.
@@ -276,7 +277,7 @@
   flex: 1 1 0;
   overflow-y: auto;
   overflow-x: hidden;
-  padding: 1rem 0.75rem;
+  padding: 0.75rem 0.75rem;
   min-width: 0;
 }
 
@@ -286,6 +287,12 @@
   min-width: 0;
   max-width: 100%;
 }
+
+/* Goals tab — reduce internal spacing so content fits without scrolling */
+#tab-goals .species-mixer-goal-slider { margin-bottom: 0.5rem !important; }
+#tab-goals .card { margin-bottom: 0.5rem !important; }
+#tab-goals > p.text-muted { margin-bottom: 0.4rem !important; }
+#tab-goals #generate-cta { margin-top: 0.5rem; }
 
 /* The results container in the Mix tab — lock overlay anchors here, not the whole pane */
 .mixer-mix-results {
@@ -495,6 +502,12 @@
 
 .species-mixer-table tbody td {
   padding: 0.4rem 0.35rem;
+}
+.species-mixer-table tbody td:first-child { padding-left: 0.6rem; }
+.species-mixer-table tbody td:last-child  { padding-right: 0.6rem; }
+.species-mixer-table thead th:first-child { padding-left: 0.6rem; }
+.species-mixer-table thead th:last-child  { padding-right: 0.6rem; }
+.species-mixer-table tbody td {
   vertical-align: middle;
   border-bottom: 1px solid var(--bs-border-color);
   overflow: hidden;
@@ -661,6 +674,12 @@
   height: 0.75em;
   border-radius: 4px;
   width: 3rem;
+  background: var(--bs-tertiary-bg, #e0e0e0);
+  /* No animation by default — shimmer only activates during active generation */
+}
+
+/* Shimmer fires only when the tbody has .is-generating (set by JS at generation start, removed on complete/error) */
+#species-mix-tbody.is-generating .skeleton-cell {
   background: linear-gradient(
     90deg,
     var(--bs-tertiary-bg, #f2f2f2) 25%,
@@ -863,6 +882,15 @@
   line-height: 1.2;
   white-space: nowrap;
 }
+
+.eco-stat__info {
+  font-size: 0.6rem;
+  opacity: 0.5;
+  cursor: pointer;
+  vertical-align: middle;
+  transition: opacity 0.15s;
+}
+.eco-stat__info:hover { opacity: 1; }
 
 .eco-stat__val {
   font-size: 0.8rem;
