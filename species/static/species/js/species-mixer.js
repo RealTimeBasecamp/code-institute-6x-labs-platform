@@ -104,6 +104,8 @@ class SpeciesMixer {
     this.marker = null;
 
     this._initMap();
+    this._initDivider();
+    this._initTabs();
     this._bindEvents();
     this._loadRecentMixes();
   }
@@ -160,7 +162,9 @@ class SpeciesMixer {
       }
     }
 
-    this._transitionTo(SpeciesMixer.STATE_2_LOCATION_SET);
+    this._transitionTo(SpeciesMixer.STATE_3_GOALS_SET);
+    // Map click IS the confirmation — unlock Goals tab (stay on Location tab)
+    this._unlockTab('goals');
     // Fire all four fetches in parallel — each resolves independently
     this._fetchLocationName(lat, lng);
     this._fetchEnvDataSoil(lat, lng);
@@ -190,6 +194,102 @@ class SpeciesMixer {
       valEl.className = 'eco-stat__val skeleton-line';
       valEl.style.width = width;
     });
+  }
+
+  // ──────────────────────────────────────────────────────────────────────────
+  // Divider drag
+  // ──────────────────────────────────────────────────────────────────────────
+
+  _initDivider() {
+    const pane      = document.getElementById('mixer-pane');
+    const mapPanel  = document.getElementById('mixer-map-panel');
+    const divider   = document.getElementById('mixer-divider');
+    if (!pane || !mapPanel || !divider) return;
+
+    // Restore saved position
+    const saved = parseFloat(localStorage.getItem('mixer-map-pct'));
+    if (saved && saved >= 10 && saved <= 80) {
+      mapPanel.style.flex  = `0 0 ${saved}%`;
+      mapPanel.style.width = `${saved}%`;
+    }
+
+    let dragging = false;
+    let startX   = 0;
+    let startPct = 0;
+
+    divider.addEventListener('mousedown', (e) => {
+      dragging = true;
+      startX   = e.clientX;
+      startPct = (mapPanel.offsetWidth / pane.offsetWidth) * 100;
+      divider.classList.add('dragging');
+      document.body.style.cursor    = 'col-resize';
+      document.body.style.userSelect = 'none';
+      e.preventDefault();
+    });
+
+    document.addEventListener('mousemove', (e) => {
+      if (!dragging) return;
+      const delta = e.clientX - startX;
+      const newPct = Math.min(80, Math.max(10, startPct + (delta / pane.offsetWidth) * 100));
+      mapPanel.style.flex  = `0 0 ${newPct}%`;
+      mapPanel.style.width = `${newPct}%`;
+    });
+
+    document.addEventListener('mouseup', () => {
+      if (!dragging) return;
+      dragging = false;
+      divider.classList.remove('dragging');
+      document.body.style.cursor    = '';
+      document.body.style.userSelect = '';
+      // Persist position
+      const pct = (mapPanel.offsetWidth / pane.offsetWidth) * 100;
+      localStorage.setItem('mixer-map-pct', pct.toFixed(1));
+      // Tell MapLibre about the new container size
+      this.map?.resize();
+    });
+  }
+
+  // ──────────────────────────────────────────────────────────────────────────
+  // Tab switching
+  // ──────────────────────────────────────────────────────────────────────────
+
+  _initTabs() {
+    // Listen for Bootstrap tab change events on component-generated button IDs:
+    // nav_pills.html generates: {nav_id}-{tab.id}-tab  → mixer-tabs-{tabId}-tab
+    ['location', 'goals', 'mix'].forEach(tabId => {
+      document.getElementById(`mixer-tabs-${tabId}-tab`)?.addEventListener('shown.bs.tab', (e) => {
+        const targetId = e.target.dataset.bsTarget?.replace('#', '');
+        this._onTabShown(targetId);
+      });
+    });
+  }
+
+  _onTabShown(tabId) {
+    const placeholder = document.getElementById('map-overlay-placeholder');
+    if (placeholder) {
+      // Show the blurred ECharts placeholder whenever we're NOT on the Location tab
+      if (tabId === 'tab-location') {
+        placeholder.classList.add('d-none');
+      } else {
+        placeholder.classList.remove('d-none');
+      }
+    }
+    // MapLibre needs resize after the pane reflows
+    this.map?.resize();
+  }
+
+  _switchTab(tabId) {
+    // tabId: 'location' | 'goals' | 'mix'
+    // nav_pills.html generates button IDs as: {nav_id}-{tab.id}-tab → mixer-tabs-{tabId}-tab
+    const btn = document.getElementById(`mixer-tabs-${tabId}-tab`);
+    if (!btn) return;
+    bootstrap.Tab.getOrCreateInstance(btn).show();
+  }
+
+  _unlockTab(tabId) {
+    // Hide the lock overlay inside the given tab pane
+    const overlay = document.getElementById(`${tabId}-lock-overlay`);
+    overlay?.classList.add('d-none');
   }
 
   async _fetchLocationName(lat, lng) {
@@ -273,17 +373,7 @@ class SpeciesMixer {
 
   _transitionTo(newState) {
     this.state = newState;
-    this._updateStepBar(newState);
     this._updateUI(newState);
-  }
-
-  _updateStepBar(state) {
-    document.querySelectorAll('.mixer-step').forEach((el) => {
-      const stepNum = parseInt(el.dataset.step, 10);
-      el.classList.remove('active', 'complete');
-      if (stepNum < state) el.classList.add('complete');
-      else if (stepNum === state) el.classList.add('active');
-    });
   }
 
   _updateUI(state) {
@@ -300,37 +390,50 @@ class SpeciesMixer {
 
     if (state >= SpeciesMixer.STATE_3_GOALS_SET) {
       enable('.goal-slider');
-      document.getElementById('goals-step-badge')?.classList.replace('bg-secondary', 'bg-primary');
       show('generate-cta');
-      document.getElementById('generate-mix-btn')?.removeAttribute('disabled');
+      const goalsBtn = document.getElementById('generate-mix-btn');
+      const mixBtn = document.getElementById('mix-generate-btn');
+      if (goalsBtn) { goalsBtn.disabled = false; goalsBtn.innerHTML = '<i class="bi bi-magic me-2"></i>Generate Species Mix'; goalsBtn.className = 'btn btn-primary w-100'; }
+      if (mixBtn) {
+        mixBtn.disabled = false;
+        mixBtn.innerHTML = '<i class="bi bi-magic me-2"></i>Generate Species Mix';
+        mixBtn.className = 'btn btn-primary w-100';
+      }
     }
 
     if (state === SpeciesMixer.STATE_4_GENERATING) {
-      disable('#generate-mix-btn');
-      document.getElementById('generate-mix-btn').innerHTML =
-        '<span class="spinner-border spinner-border-sm me-2" role="status"></span>Generating...';
-      // Show table section with loading state
-      const tableSection = document.getElementById('species-table-section');
-      if (tableSection) tableSection.style.removeProperty('display');
+      const stopHtml = '<i class="bi bi-stop-circle me-2"></i>Stop Generation';
+      const goalsBtn = document.getElementById('generate-mix-btn');
+      const mixBtn = document.getElementById('mix-generate-btn');
+      disable('.goal-slider');
+      if (goalsBtn) {
+        goalsBtn.disabled = false;
+        goalsBtn.innerHTML = stopHtml;
+        goalsBtn.className = 'btn btn-danger w-100';
+      }
+      if (mixBtn) {
+        mixBtn.disabled = false;
+        mixBtn.innerHTML = stopHtml;
+        mixBtn.className = 'btn btn-danger w-100';
+      }
       show('table-loading-state');
-      document.getElementById('species-table-wrapper')?.classList.add('d-none');
       show('insights-spinner');
       hide('insights-placeholder');
     }
 
     if (state >= SpeciesMixer.STATE_5_MIX_READY) {
       hide('table-loading-state');
-      document.getElementById('species-table-wrapper')?.classList.remove('d-none');
-      document.getElementById('generate-mix-btn').innerHTML =
-        '<i class="bi bi-arrow-repeat me-2"></i>Regenerate Mix';
-      document.getElementById('generate-mix-btn')?.removeAttribute('disabled');
-      // Enable map controls
+      const goalsBtn = document.getElementById('generate-mix-btn');
+      const mixBtn = document.getElementById('mix-generate-btn');
+      if (goalsBtn) { goalsBtn.disabled = false; goalsBtn.innerHTML = '<i class="bi bi-arrow-repeat me-2"></i>Regenerate Mix'; goalsBtn.className = 'btn btn-primary w-100'; }
+      if (mixBtn) {
+        mixBtn.disabled = false;
+        mixBtn.innerHTML = '<i class="bi bi-arrow-repeat me-2"></i>Regenerate Mix';
+        mixBtn.className = 'btn btn-primary w-100';
+      }
       enable('#map-visualisation, #map-filter');
-      enable('#species-search-input');
-      // Show save button in header
+      enable('#add-species-manually-btn');
       show('save-mix-btn');
-      // Update step badge
-      document.getElementById('insights-step-badge')?.classList.replace('bg-secondary', 'bg-primary');
       hide('insights-spinner');
     }
   }
@@ -340,23 +443,16 @@ class SpeciesMixer {
   // ──────────────────────────────────────────────────────────────────────────
 
   _bindEvents() {
-    // Confirm location button
-    document.getElementById('confirm-location-btn')?.addEventListener('click', () => {
-      this._transitionTo(SpeciesMixer.STATE_3_GOALS_SET);
-    });
-
-    // Change location button
+    // Change location button (pencil icon on map badge)
     document.getElementById('change-location-btn')?.addEventListener('click', () => {
       if (this.state < SpeciesMixer.STATE_4_GENERATING) {
-        this._transitionTo(SpeciesMixer.STATE_1_EMPTY);
-        document.getElementById('location-info-panel')?.classList.add('d-none');
-        document.getElementById('step1-prompt')?.classList.remove('d-none');
-        document.getElementById('map-location-badge')?.classList.add('d-none');
-        document.getElementById('generate-cta')?.classList.add('d-none');
+        this._resetMixer();
       }
     });
 
     // Goal sliders — update display value + debounce rescore
+    // Sliders are disabled during STATE_4 so clicks won't fire,
+    // but pointer-events on the wrapper may still reach the label — handled by generate-mix-btn guard
     document.querySelectorAll('.goal-slider').forEach((slider) => {
       slider.addEventListener('input', (e) => {
         const pct = e.target.value;
@@ -367,9 +463,35 @@ class SpeciesMixer {
       });
     });
 
-    // Generate Mix button
-    document.getElementById('generate-mix-btn')?.addEventListener('click', () => {
-      if (this.state >= SpeciesMixer.STATE_3_GOALS_SET) {
+    // Generate Mix button (Goals tab):
+    //   STATE_3 / STATE_5 → switch to Mix tab, start generation
+    //   STATE_4           → show stop-generation modal
+    document.getElementById('generate-mix-btn')?.addEventListener('click', (e) => {
+      if (this.state === SpeciesMixer.STATE_4_GENERATING) {
+        this._showStopModal();
+        return;
+      }
+      if (this.state !== SpeciesMixer.STATE_3_GOALS_SET && this.state !== SpeciesMixer.STATE_5_MIX_READY) return;
+      e.currentTarget.disabled = true;
+      this._switchTab('mix');
+      this._startGeneration();
+    });
+
+    // Stop-generation modal confirm button
+    document.getElementById('confirm-stop-generation-btn')?.addEventListener('click', () => {
+      this._hideStopModal();
+      this._stopGeneration();
+    });
+
+    // Mix tab button — same action as Goals button but stays on Mix tab;
+    // becomes "Stop Generation" while generating
+    document.getElementById('mix-generate-btn')?.addEventListener('click', (e) => {
+      if (this.state === SpeciesMixer.STATE_4_GENERATING) {
+        this._stopGeneration();
+        return;
+      }
+      if (this.state === SpeciesMixer.STATE_3_GOALS_SET || this.state === SpeciesMixer.STATE_5_MIX_READY) {
+        e.currentTarget.disabled = true;
         this._startGeneration();
       }
     });
@@ -384,19 +506,35 @@ class SpeciesMixer {
       this._saveMix();
     });
 
-    // Species search input
-    document.getElementById('species-search-input')?.addEventListener('input', (e) => {
+    // Add Species button → open modal
+    document.getElementById('add-species-manually-btn')?.addEventListener('click', () => {
+      this._openAddSpeciesModal();
+    });
+
+    // Add Species modal — search input
+    document.getElementById('add-species-search-input')?.addEventListener('input', (e) => {
       clearTimeout(this.searchTimer);
       this.searchTimer = setTimeout(() => {
-        this._searchSpecies(e.target.value);
+        this._searchSpeciesModal(e.target.value);
       }, SpeciesMixer.SEARCH_DEBOUNCE_MS);
     });
 
-    document.getElementById('species-search-input')?.addEventListener('blur', () => {
-      // Delay hide so click on dropdown item registers first
-      setTimeout(() => {
-        document.getElementById('species-search-dropdown')?.classList.add('d-none');
-      }, 200);
+    // Add Species modal — confirm button
+    document.getElementById('confirm-add-species-btn')?.addEventListener('click', () => {
+      if (this._pendingAddSpecies) {
+        this._addSpeciesManually(this._pendingAddSpecies);
+        bootstrap.Modal.getInstance(document.getElementById('addSpeciesModal'))?.hide();
+        this._pendingAddSpecies = null;
+      }
+    });
+
+    // Remove Species modal — confirm button
+    document.getElementById('confirm-remove-species-btn')?.addEventListener('click', () => {
+      if (this._pendingRemoveId != null) {
+        bootstrap.Modal.getInstance(document.getElementById('removeSpeciesModal'))?.hide();
+        this._removeSpecies(this._pendingRemoveId);
+        this._pendingRemoveId = null;
+      }
     });
 
     // Saved mix cards (load mix on click)
@@ -582,7 +720,8 @@ class SpeciesMixer {
 
   _consumeProgressEvents(events) {
     if (!Array.isArray(events)) return;
-    const newEvents = events.slice(this._seenProgressCount || 0);
+    const seen = this._seenProgressCount || 0;
+    const newEvents = events.slice(seen);
     newEvents.forEach(ev => {
       this._appendFeedLine(ev.msg);
       if (ev.count != null) {
@@ -593,11 +732,12 @@ class SpeciesMixer {
       const statusEl = document.getElementById('loading-status-text');
       if (statusEl) statusEl.textContent = ev.msg;
     });
-    // Advance progress bar proportionally to events received vs total expected (~10 phases)
-    const total = Math.max(events.length, 1);
-    const pct = Math.min(10 + Math.round((total / 10) * 85), 90);
-    this._setProgressBar(pct);
     this._seenProgressCount = events.length;
+    // Advance progress bar: 10 → 90% across ~10 expected phases
+    if (newEvents.length > 0) {
+      const pct = Math.min(10 + Math.round((events.length / 10) * 80), 90);
+      this._setProgressBar(pct);
+    }
   }
 
   _appendFeedLine(msg, type = '') {
@@ -626,6 +766,7 @@ class SpeciesMixer {
       if (!this._ecoDataLoaded) this._updateEcoData(result.env_data);
       this._renderMix(result.species_mix || []);
       this._renderInsights(result.insights, result.env_summary);
+      this._unlockTab('mix');
       this._transitionTo(SpeciesMixer.STATE_5_MIX_READY);
     } else if (mode === 'rescore') {
       this._updateRatiosInPlace(result.species_mix || []);
@@ -644,10 +785,37 @@ class SpeciesMixer {
     }
   }
 
+  _showStopModal() {
+    const el = document.getElementById('stopGenerationModal');
+    if (el) bootstrap.Modal.getOrCreateInstance(el).show();
+  }
+
+  _hideStopModal() {
+    const el = document.getElementById('stopGenerationModal');
+    if (el) bootstrap.Modal.getInstance(el)?.hide();
+  }
+
+  _stopGeneration() {
+    // Abandon the current generation — clear polling, discard task_id, return to STATE_3
+    clearInterval(this.pollTimer);
+    this.pollTimer = null;
+    this.currentTaskId = null;
+    this._seenProgressCount = 0;
+    this._transitionTo(SpeciesMixer.STATE_3_GOALS_SET);
+    // Clear loading UI
+    document.getElementById('table-loading-state')?.classList.add('d-none');
+    document.getElementById('insights-spinner')?.classList.add('d-none');
+    document.getElementById('insights-placeholder')?.classList.remove('d-none');
+    document.getElementById('insights-placeholder').innerHTML = `
+      <div class="text-center text-muted">
+        <i class="bi bi-stop-circle" style="font-size:1.5rem;opacity:.4;"></i>
+        <p class="mt-2 mb-0 small">Generation stopped</p>
+        <small>Adjust your goals and generate again when ready.</small>
+      </div>`;
+  }
+
   _onGenerationError(msg) {
     this._transitionTo(SpeciesMixer.STATE_3_GOALS_SET);
-    document.getElementById('generate-mix-btn').innerHTML =
-      '<i class="bi bi-magic me-2"></i>Generate Species Mix';
     // Show error in insights area
     document.getElementById('insights-placeholder')?.classList.remove('d-none');
     document.getElementById('insights-placeholder').innerHTML = `
@@ -664,8 +832,7 @@ class SpeciesMixer {
   // ──────────────────────────────────────────────────────────────────────────
 
   _renderMix(speciesMixData) {
-    // Assign colours by category so same-category species share a hue family,
-    // cycling through contrasting shades within that family.
+    // Map raw API data → internal mixItems (only called on fresh generation result)
     const catCounters = {};
     this.mixItems = speciesMixData.map((item) => {
       const cat = (item.category || 'other').toLowerCase();
@@ -680,9 +847,13 @@ class SpeciesMixer {
         is_manual: false,
       };
     });
+    this._renderTable();
+  }
 
+  _renderTable() {
+    // Re-render DOM from this.mixItems (called after any change: remove, add, rescore)
     const tbody = document.getElementById('species-mix-tbody');
-    // Dispose existing popovers before clearing rows to avoid memory leaks
+    // Dispose existing popovers to avoid memory leaks
     tbody.querySelectorAll('.species-name-cell').forEach(el => {
       const pop = bootstrap.Popover.getInstance(el);
       if (pop) pop.dispose();
@@ -691,32 +862,121 @@ class SpeciesMixer {
 
     if (!this.mixItems.length) {
       tbody.innerHTML = `
-        <tr><td colspan="8" class="text-center text-muted py-4">
-          <i class="bi bi-exclamation-circle me-2"></i>No species returned.
-          Check the species database has ecological data.
+        <tr><td colspan="9" class="text-center text-muted py-4">
+          <i class="bi bi-exclamation-circle me-2"></i>No species in the mix.
+          Use the Add button to add species manually.
         </td></tr>`;
+      this._reinitSortableTable();
       return;
     }
 
-    // Group by category
+    // Group by category, insert a header row before each group
+    const ORDER = ['tree', 'shrub', 'wildflower', 'grass', 'fern', 'moss', 'fungi', 'other'];
     const groups = {};
     this.mixItems.forEach(item => {
-      const cat = item.category || 'Other';
-      if (!groups[cat]) groups[cat] = [];
-      groups[cat].push(item);
+      const key = (item.category || 'other').toLowerCase();
+      (groups[key] = groups[key] || []).push(item);
     });
-
-    Object.entries(groups).forEach(([category, items]) => {
-      // Group header row
+    // Sort group keys by canonical order, unknown categories last
+    const sortedKeys = Object.keys(groups).sort((a, b) => {
+      const ai = ORDER.indexOf(a), bi = ORDER.indexOf(b);
+      return (ai === -1 ? 999 : ai) - (bi === -1 ? 999 : bi);
+    });
+    sortedKeys.forEach(key => {
       const headerRow = document.createElement('tr');
       headerRow.className = 'species-mixer-group-header';
-      headerRow.innerHTML = `<td colspan="8">${this._categoryIcon(category)} ${category}</td>`;
+      headerRow.setAttribute('data-group-header', key);
+      const displayName = key.charAt(0).toUpperCase() + key.slice(1);
+      headerRow.innerHTML = `<td colspan="9">${this._categoryIcon(key)}<span class="ms-1">${displayName}</span></td>`;
       tbody.appendChild(headerRow);
-
-      items.forEach(item => {
-        tbody.appendChild(this._buildRow(item));
-      });
+      groups[key].forEach(item => tbody.appendChild(this._buildRow(item)));
     });
+    this._reinitSortableTable();
+  }
+
+  _reinitSortableTable() {
+    // Re-initialise SortableTable so its internal row list stays in sync after DOM rebuild.
+    // The table has data-no-auto-init so sortable-table.js never creates its own search bar —
+    // we wire our hand-crafted #species-table-search + #species-category-filter to the instance.
+    const table = document.getElementById('species-mix-table');
+    if (!table) return;
+    const instance = new SortableTable(table);
+    // Exclude group header rows and skeleton rows from the sortable row list —
+    // they are structural rows that must not be sorted or filtered as data rows.
+    instance.rows = instance.rows.filter(
+      r => !r.hasAttribute('data-group-header') && !r.classList.contains('mix-skeleton-row')
+    );
+    table._sortableInstance = instance;
+    this._wireMixTableFilters(instance);
+  }
+
+  _wireMixTableFilters(sortable) {
+    const searchInput = document.getElementById('species-table-search');
+    const catFilter = document.getElementById('species-category-filter');
+    if (!searchInput || !catFilter) return;
+
+    // Remove previous listeners by replacing the elements' clones
+    const freshSearch = searchInput.cloneNode(true);
+    const freshCat = catFilter.cloneNode(true);
+    searchInput.replaceWith(freshSearch);
+    catFilter.replaceWith(freshCat);
+
+    const applyFilters = () => {
+      const term = freshSearch.value.toLowerCase().trim();
+      const cat = freshCat.value.toLowerCase().trim();
+
+      // Filter data rows (sortable.rows excludes group headers + skeletons)
+      sortable.rows.forEach(row => {
+        const rowText = Array.from(row.querySelectorAll('td'))
+          .map(td => td.textContent.toLowerCase()).join(' ');
+        const textMatch = !term || rowText.includes(term);
+
+        // Category match — check the group header key that precedes this row
+        const rowCat = row.closest('tbody')
+          ?.querySelector(`[data-group-header]`)  // fallback
+          ?.dataset?.groupHeader || '';
+        // More reliably: walk backwards from this row to find its group header
+        let prevSibling = row.previousElementSibling;
+        let groupKey = '';
+        while (prevSibling) {
+          if (prevSibling.hasAttribute('data-group-header')) {
+            groupKey = prevSibling.dataset.groupHeader;
+            break;
+          }
+          prevSibling = prevSibling.previousElementSibling;
+        }
+        const catMatch = !cat || groupKey === cat;
+
+        row.classList.toggle('filtered-out', !(textMatch && catMatch));
+      });
+
+      // Hide group header rows where ALL their species rows are filtered out
+      const tbody = document.getElementById('species-mix-tbody');
+      if (tbody) {
+        tbody.querySelectorAll('[data-group-header]').forEach(header => {
+          // Collect all species rows until next group header
+          const groupRows = [];
+          let next = header.nextElementSibling;
+          while (next && !next.hasAttribute('data-group-header')) {
+            if (!next.classList.contains('mix-skeleton-row')) groupRows.push(next);
+            next = next.nextElementSibling;
+          }
+          const allHidden = groupRows.length > 0 && groupRows.every(r => r.classList.contains('filtered-out'));
+          header.classList.toggle('filtered-out', allHidden);
+        });
+      }
+
+      sortable.updateRowNumbers();
+      const allHidden = sortable.rows.every(r => r.classList.contains('filtered-out'));
+      sortable.updateNoResultsMessage(allHidden && !!(term || cat));
+    };
+
+    let debounceTimer;
+    freshSearch.addEventListener('input', () => {
+      clearTimeout(debounceTimer);
+      debounceTimer = setTimeout(applyFilters, 150);
+    });
+    freshCat.addEventListener('change', applyFilters);
   }
 
   _buildRow(item) {
@@ -724,46 +984,49 @@ class SpeciesMixer {
     tr.className = 'species-mixer-row';
     tr.dataset.speciesId = item.species_id;
 
-    const ratioPct = Math.round((item.ratio || 0) * 100);
-    const spacingText = item.typical_spacing_m ? `${item.typical_spacing_m}m` : '—';
-    const suitabilityBadge = this._suitabilityBadge(item.suitability_label, item.suitability_score);
-    const benefitBadges = (item.ecological_benefits || []).slice(0, 2).map(b =>
-      `<span class="badge bg-secondary bg-opacity-10 text-secondary me-1">${this._benefitLabel(b)}</span>`
+    // Characteristics pills: ecological benefits + category pill
+    const benefitBadges = (item.ecological_benefits || []).map(b =>
+      `<span class="badge species-char-pill me-1 mb-1">${this._benefitLabel(b)}</span>`
     ).join('');
+    const categoryPill = item.category
+      ? `<span class="badge species-cat-pill me-1 mb-1">${this._categoryIcon(item.category)} ${item.category}</span>`
+      : '';
 
-    // Build hover popover content — sub-category, family, sources
-    const subcatLabel = item.subcategory || item.category || '';
+    // Native/invasive badge — uses suitability_label or native_regions if available
+    const nativeBadge = this._nativeBadge(item);
+
+    // Hover popover content — subcategory, family, AI reason, sources
+    const subcatLabel = item.subcategory || '';
     const familyLabel = item.family || '';
     const sourcePills = this._buildSourcePills(item);
     const popoverHtml = [
-      subcatLabel ? `<div class="text-muted small mb-1">${subcatLabel}${familyLabel ? ` &middot; ${familyLabel}` : ''}</div>` : '',
+      (subcatLabel || familyLabel) ? `<div class="text-muted small mb-1">${[subcatLabel, familyLabel].filter(Boolean).join(' &middot; ')}</div>` : '',
       item.reason ? `<div class="small mb-2">${item.reason}</div>` : '',
       sourcePills ? `<div class="mt-1">${sourcePills}</div>` : '',
     ].filter(Boolean).join('') || `<span class="text-muted small">No additional info</span>`;
 
     tr.innerHTML = `
-      <td><input class="form-check-input row-active-check" type="checkbox" ${item.is_active ? 'checked' : ''} title="Include in mix"></td>
-      <td><span class="species-colour-dot" style="background:${item.colour};"></span></td>
-      <td class="species-name-cell" style="cursor:pointer;">
-        <div class="fw-medium">${item.name}</div>
-        ${item.scientific_name ? `<small class="text-muted fst-italic">${item.scientific_name}</small>` : ''}
-        ${item.is_manual ? '<span class="badge bg-info bg-opacity-10 text-info ms-1" style="font-size:.65rem;">Manual</span>' : ''}
-      </td>
-      <td class="suitability-cell">
-        ${item.suitability_label ? suitabilityBadge : '<span class="text-muted">—</span>'}
-      </td>
-      <td>${benefitBadges}</td>
-      <td class="text-muted">${spacingText}</td>
-      <td>
-        <div class="d-flex align-items-center gap-2">
-          <input type="range" class="form-range form-range-sm ratio-slider"
-                 min="0" max="100" value="${ratioPct}"
-                 data-species-id="${item.species_id}"
-                 title="Adjust ratio">
-          <span class="text-muted small ratio-display" style="min-width:2.5rem;">${ratioPct}%</span>
+      <td class="col-check">
+        <div class="form-check mb-0">
+          <input class="form-check-input row-active-check" type="checkbox" ${item.is_active ? 'checked' : ''} title="Include in mix">
         </div>
       </td>
-      <td>
+      <td class="col-dot"><span class="species-colour-dot" style="background:${item.colour};"></span></td>
+      <td class="col-species species-name-cell" style="cursor:pointer;" data-sort-value="${item.name}">
+        <div class="fw-medium lh-sm">${item.name}</div>
+        ${item.scientific_name ? `<small class="text-muted fst-italic">${item.scientific_name}</small>` : ''}
+        ${item.is_manual ? '<span class="badge bg-info bg-opacity-10 text-info" style="font-size:.6rem;">Manual</span>' : ''}
+      </td>
+      <td class="col-chars">
+        <div class="d-flex flex-wrap gap-0">${categoryPill}${benefitBadges}</div>
+      </td>
+      <td class="col-native suitability-cell" data-sort-value="${item.suitability_label || ''}">
+        ${nativeBadge}
+      </td>
+      <td class="col-rho text-muted">—</td>
+      <td class="col-pi text-muted">—</td>
+      <td class="col-n text-muted">—</td>
+      <td class="col-del">
         <button class="btn btn-sm btn-link text-danger p-0 remove-species-btn"
                 data-species-id="${item.species_id}"
                 title="Remove from mix">
@@ -771,9 +1034,9 @@ class SpeciesMixer {
         </button>
       </td>`;
 
-    // Hover popover on name cell showing sub-category, family, reason, sources
+    // Hover popover on name cell
     const nameCell = tr.querySelector('.species-name-cell');
-    const popover = new bootstrap.Popover(nameCell, {
+    new bootstrap.Popover(nameCell, {
       trigger: 'hover focus',
       placement: 'right',
       html: true,
@@ -782,25 +1045,15 @@ class SpeciesMixer {
       container: 'body',
     });
 
-    // Ratio slider interaction
-    const ratioSlider = tr.querySelector('.ratio-slider');
-    const ratioDisplay = tr.querySelector('.ratio-display');
-    ratioSlider.addEventListener('input', () => {
-      const val = parseInt(ratioSlider.value, 10);
-      ratioDisplay.textContent = `${val}%`;
-      const mixItem = this.mixItems.find(m => m.species_id === item.species_id);
-      if (mixItem) mixItem.ratio = val / 100;
-    });
-
     // Active checkbox
     tr.querySelector('.row-active-check').addEventListener('change', (e) => {
       const mixItem = this.mixItems.find(m => m.species_id === item.species_id);
       if (mixItem) mixItem.is_active = e.target.checked;
     });
 
-    // Remove button
+    // Remove button → modal
     tr.querySelector('.remove-species-btn').addEventListener('click', () => {
-      this._removeSpecies(item.species_id);
+      this._promptRemoveSpecies(item.species_id, item.name);
     });
 
     return tr;
@@ -840,14 +1093,21 @@ class SpeciesMixer {
     }).join('');
   }
 
+  _promptRemoveSpecies(speciesId, name) {
+    this._pendingRemoveId = speciesId;
+    const nameEl = document.getElementById('remove-species-name');
+    if (nameEl) nameEl.textContent = name || `Species ${speciesId}`;
+    bootstrap.Modal.getOrCreateInstance(document.getElementById('removeSpeciesModal')).show();
+  }
+
   _removeSpecies(speciesId) {
     this.mixItems = this.mixItems.filter(m => m.species_id !== speciesId);
-    // Redistribute ratios proportionally
+    // Redistribute ratios proportionally among remaining items
     const total = this.mixItems.reduce((s, m) => s + m.ratio, 0);
     if (total > 0) {
       this.mixItems.forEach(m => { m.ratio = m.ratio / total; });
     }
-    this._renderMix(this.mixItems);
+    this._renderTable();
   }
 
   _updateRatiosInPlace(newMixData) {
@@ -972,14 +1232,42 @@ class SpeciesMixer {
   }
 
   // ──────────────────────────────────────────────────────────────────────────
-  // Species search (manual add)
+  // Species search (manual add — modal-based)
   // ──────────────────────────────────────────────────────────────────────────
 
-  async _searchSpecies(query) {
+  _openAddSpeciesModal() {
+    this._pendingAddSpecies = null;
+    // Reset modal state
+    const searchInput = document.getElementById('add-species-search-input');
+    const confirmBtn = document.getElementById('confirm-add-species-btn');
+    const resultsEl = document.getElementById('add-species-results');
+    if (searchInput) searchInput.value = '';
+    if (confirmBtn) confirmBtn.disabled = true;
+    if (resultsEl) {
+      resultsEl.innerHTML = `
+        <div class="text-center text-muted py-4 small" id="add-species-hint">
+          <i class="bi bi-search me-2"></i>Type to search the species database
+        </div>`;
+    }
+    bootstrap.Modal.getOrCreateInstance(document.getElementById('addSpeciesModal')).show();
+    // Auto-focus search input after modal animation
+    document.getElementById('addSpeciesModal').addEventListener('shown.bs.modal', () => {
+      searchInput?.focus();
+    }, { once: true });
+  }
+
+  async _searchSpeciesModal(query) {
+    const resultsEl = document.getElementById('add-species-results');
+    const confirmBtn = document.getElementById('confirm-add-species-btn');
+    if (!resultsEl) return;
+
     if (query.length < 2) {
-      document.getElementById('species-search-dropdown')?.classList.add('d-none');
+      resultsEl.innerHTML = `<div class="text-center text-muted py-4 small"><i class="bi bi-search me-2"></i>Type to search the species database</div>`;
+      if (confirmBtn) confirmBtn.disabled = true;
       return;
     }
+
+    resultsEl.innerHTML = `<div class="text-center text-muted py-3 small"><div class="spinner-border spinner-border-sm me-2"></div>Searching...</div>`;
 
     try {
       const resp = await fetch(
@@ -987,38 +1275,64 @@ class SpeciesMixer {
         { headers: { 'X-CSRFToken': this.config.csrfToken } }
       );
       const data = await resp.json();
-      this._renderSearchDropdown(data.results || []);
+      this._renderAddSpeciesResults(data.results || []);
     } catch {
-      document.getElementById('species-search-dropdown')?.classList.add('d-none');
+      resultsEl.innerHTML = `<div class="text-center text-muted py-3 small text-danger"><i class="bi bi-exclamation-triangle me-2"></i>Search failed</div>`;
     }
   }
 
-  _renderSearchDropdown(results) {
-    const dropdown = document.getElementById('species-search-dropdown');
-    if (!dropdown) return;
+  _renderAddSpeciesResults(results) {
+    const resultsEl = document.getElementById('add-species-results');
+    const confirmBtn = document.getElementById('confirm-add-species-btn');
+    if (!resultsEl) return;
 
-    dropdown.innerHTML = '';
     if (!results.length) {
-      dropdown.classList.add('d-none');
+      resultsEl.innerHTML = `<div class="text-center text-muted py-4 small">No species found. Try a different name.</div>`;
+      if (confirmBtn) confirmBtn.disabled = true;
       return;
     }
 
+    resultsEl.innerHTML = '';
+    const list = document.createElement('div');
+    list.className = 'add-species-list';
+
     results.forEach(species => {
-      const li = document.createElement('li');
-      li.className = 'list-group-item list-group-item-action py-2';
-      li.innerHTML = `
-        <div class="fw-medium">${species.common_name}</div>
-        <small class="text-muted fst-italic">${species.scientific_name || ''}</small>
-        <span class="badge bg-light text-dark ms-1" style="font-size:.65rem;">${species.category}</span>`;
-      li.addEventListener('mousedown', () => {
-        this._addSpeciesManually(species);
-        document.getElementById('species-search-input').value = '';
-        dropdown.classList.add('d-none');
-      });
-      dropdown.appendChild(li);
+      const alreadyInMix = !!this.mixItems.find(m => m.species_id === species.id);
+      const nativePill = (species.native_regions?.length)
+        ? `<span class="badge species-status-pill species-status-pill--native">Native</span>`
+        : '';
+      const benefitPills = (species.ecological_benefits || []).map(b =>
+        `<span class="badge species-char-pill">${this._benefitLabel(b)}</span>`
+      ).join(' ');
+      const catPill = species.category
+        ? `<span class="badge species-cat-pill">${this._categoryIcon(species.category)} ${species.category}</span>`
+        : '';
+
+      const item = document.createElement('div');
+      item.className = `add-species-item${alreadyInMix ? ' add-species-item--added' : ''}`;
+      item.innerHTML = `
+        <div class="d-flex align-items-start justify-content-between gap-2">
+          <div class="flex-grow-1 min-width-0">
+            <div class="fw-medium">${species.common_name || species.scientific_name}</div>
+            <div class="fst-italic text-muted small">${species.scientific_name || ''}</div>
+            <div class="d-flex flex-wrap gap-1 mt-1">${catPill}${nativePill}${benefitPills}</div>
+          </div>
+          ${alreadyInMix ? '<span class="badge bg-secondary text-white flex-shrink-0">In mix</span>' : ''}
+        </div>`;
+
+      if (!alreadyInMix) {
+        item.addEventListener('click', () => {
+          // Deselect any previous selection
+          list.querySelectorAll('.add-species-item').forEach(el => el.classList.remove('add-species-item--selected'));
+          item.classList.add('add-species-item--selected');
+          this._pendingAddSpecies = species;
+          if (confirmBtn) confirmBtn.disabled = false;
+        });
+      }
+      list.appendChild(item);
     });
 
-    dropdown.classList.remove('d-none');
+    resultsEl.appendChild(list);
   }
 
   _addSpeciesManually(species) {
@@ -1030,10 +1344,11 @@ class SpeciesMixer {
     const colour = SpeciesMixer.colourForItem(cat, catCount);
     const newItem = {
       species_id: species.id,
-      name: species.common_name,
+      name: species.common_name || species.scientific_name,
       scientific_name: species.scientific_name,
       category: species.category,
       ecological_benefits: species.ecological_benefits || [],
+      native_regions: species.native_regions || [],
       ratio: 0.1,
       colour,
       is_active: true,
@@ -1044,10 +1359,10 @@ class SpeciesMixer {
     };
 
     this.mixItems.push(newItem);
-    this._renderMix(this.mixItems);
+    this._renderTable();
 
     // Trigger AI validation
-    this._validateSpecies(species.id, species.common_name);
+    this._validateSpecies(species.id, newItem.name);
   }
 
   // ──────────────────────────────────────────────────────────────────────────
@@ -1171,12 +1486,9 @@ class SpeciesMixer {
       });
 
       this._updateEcoData(data.env_data);
-      this._renderMix(this.mixItems);
+      this._renderTable();
       this._renderInsights(data.ai_insights, data.env_summary);
       this._transitionTo(SpeciesMixer.STATE_5_MIX_READY);
-
-      const tableSection = document.getElementById('species-table-section');
-      if (tableSection) tableSection.style.removeProperty('display');
 
       this._showToast(`Mix "${data.name}" loaded.`, 'info');
     } catch (err) {
@@ -1234,18 +1546,36 @@ class SpeciesMixer {
     return labels[benefit] || benefit;
   }
 
+  _nativeBadge(item) {
+    // Priority: explicit suitability_label → native_regions field → blank
+    const label = (item.suitability_label || '').toLowerCase();
+    if (label === 'not_recommended') {
+      const tip = item.ai_reason || 'Not recommended for this location';
+      return `<span class="badge species-status-pill species-status-pill--invasive" title="${tip}">Invasive / Not recommended</span>`;
+    }
+    // If native_regions populated and non-empty, treat as native
+    if (item.native_regions && item.native_regions.length > 0) {
+      return `<span class="badge species-status-pill species-status-pill--native" title="Native to: ${item.native_regions.join(', ')}">Native</span>`;
+    }
+    // good/acceptable with no native data → just show "Suitable"
+    if (label === 'good' || label === 'acceptable') {
+      const tip = item.ai_reason || label;
+      return `<span class="badge species-status-pill species-status-pill--suitable" title="${tip}">${label === 'good' ? 'Recommended' : 'Suitable'}</span>`;
+    }
+    return '<span class="text-muted" style="font-size:.75rem;">—</span>';
+  }
+
   _suitabilityBadge(label, score, reason) {
     const cfg = {
-      good: { cls: 'bg-success bg-opacity-10 text-success', icon: 'bi-check-circle-fill' },
-      acceptable: { cls: 'bg-warning bg-opacity-10 text-warning', icon: 'bi-dash-circle-fill' },
-      not_recommended: { cls: 'bg-danger bg-opacity-10 text-danger', icon: 'bi-x-circle-fill' },
+      good: { cls: 'text-success', icon: 'bi-check-circle-fill' },
+      acceptable: { cls: 'text-warning', icon: 'bi-dash-circle-fill' },
+      not_recommended: { cls: 'text-danger', icon: 'bi-x-circle-fill' },
     };
     const c = cfg[label] || cfg.acceptable;
-    const scoreStr = score != null ? ` (${score}/10)` : '';
-    const titleAttr = reason ? ` title="${reason}"` : '';
-    return `<span class="badge ${c.cls}"${titleAttr}>
-      <i class="bi ${c.icon} me-1"></i>${label ? label.replace('_', ' ') : '?'}${scoreStr}
-    </span>`;
+    const labelText = label ? label.replace(/_/g, ' ') : '?';
+    const scoreStr = score != null ? ` · ${score}/10` : '';
+    const tip = reason ? `${labelText}${scoreStr} — ${reason}` : `${labelText}${scoreStr}`;
+    return `<i class="bi ${c.icon} ${c.cls}" title="${tip}" style="font-size:1rem;"></i>`;
   }
 
   _showToast(message, type = 'info') {
@@ -1280,6 +1610,26 @@ class SpeciesMixer {
     toast.show();
   }
 
+  _restoreSkeletonRows() {
+    const tbody = document.getElementById('species-mix-tbody');
+    if (!tbody) return;
+    // Dispose any existing popovers
+    tbody.querySelectorAll('.species-name-cell').forEach(el => {
+      bootstrap.Popover.getInstance(el)?.dispose();
+    });
+    tbody.innerHTML = [4, 3, 2, 3].map(w => `
+      <tr class="mix-skeleton-row">
+        <td><span class="skeleton-cell"></span></td>
+        <td><span class="skeleton-cell skeleton-dot"></span></td>
+        <td><span class="skeleton-cell" style="width:${w}rem;"></span></td>
+        <td><span class="skeleton-cell" style="width:${w + 4}rem;"></span></td>
+        <td><span class="skeleton-cell" style="width:${w - 1 > 0 ? w - 1 : 2}rem;"></span></td>
+        <td></td><td></td><td></td><td></td>
+      </tr>`).join('');
+    // Re-init sortable so it picks up the fresh rows
+    this._reinitSortableTable();
+  }
+
   _resetMixer() {
     this.lat = null;
     this.lng = null;
@@ -1294,15 +1644,12 @@ class SpeciesMixer {
 
     if (this.marker) { this.marker.remove(); this.marker = null; }
 
-    document.getElementById('species-mix-tbody').innerHTML = `
-      <tr id="table-empty-row"><td colspan="8" class="text-center text-muted py-4">
-        <i class="bi bi-magic me-2"></i>Generate a mix to see species recommendations
-      </td></tr>`;
+    // Restore skeleton rows in table
+    this._restoreSkeletonRows();
 
     document.getElementById('insights-text')?.classList.add('d-none');
     document.getElementById('env-summary-text')?.classList.add('d-none');
     document.getElementById('insights-placeholder')?.classList.remove('d-none');
-    document.getElementById('species-table-section')?.style.setProperty('display', 'none', 'important');
     document.getElementById('save-mix-btn')?.classList.add('d-none');
 
     this._transitionTo(SpeciesMixer.STATE_1_EMPTY);
@@ -1315,6 +1662,17 @@ class SpeciesMixer {
       s.value = 50;
     });
     document.querySelectorAll('.goal-value').forEach(el => { el.textContent = '50%'; });
+
+    // Reset both generate buttons to initial disabled state
+    const resetHtml = '<i class="bi bi-magic me-2"></i>Generate Species Mix';
+    const btn = document.getElementById('generate-mix-btn');
+    const mixBtn = document.getElementById('mix-generate-btn');
+    if (btn) { btn.disabled = true; btn.innerHTML = resetHtml; btn.className = 'btn btn-primary w-100'; }
+    if (mixBtn) { mixBtn.disabled = true; mixBtn.innerHTML = resetHtml; mixBtn.className = 'btn btn-primary w-100'; }
+
+    // Re-lock Goals tab, return to Location tab
+    document.getElementById('goals-lock-overlay')?.classList.remove('d-none');
+    this._switchTab('location');
   }
 }
 

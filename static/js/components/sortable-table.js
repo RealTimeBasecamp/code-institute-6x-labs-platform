@@ -39,6 +39,10 @@ class SortableTable {
     }
 
     createSearchBar() {
+        // Skip search bar creation for tables with data-no-auto-init
+        // (they wire their own filter UI externally)
+        if (this.table.hasAttribute('data-no-auto-init')) return;
+
         // Create search container
         const searchContainer = document.createElement('div');
         searchContainer.className = 'sortable-table-search';
@@ -322,8 +326,9 @@ class SortableTable {
 }
 
 // Auto-initialize all sortable tables on DOM load
+// Tables with data-no-auto-init are managed manually
 document.addEventListener('DOMContentLoaded', () => {
-    document.querySelectorAll('.sortable-table').forEach(table => {
+    document.querySelectorAll('.sortable-table:not([data-no-auto-init])').forEach(table => {
         new SortableTable(table);
     });
 });

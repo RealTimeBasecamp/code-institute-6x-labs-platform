@@ -1,5 +1,5 @@
 {% extends 'base.html' %}
-{% load static %}
+{% load static ui_tags %}
 
 {% block meta_title %}Species Mixer{% endblock %}
 {% block page_title %}Species Mixer{% endblock %}
@@ -19,110 +19,84 @@
 {% endblock %}
 
 {% block content %}
+{% make_tabs 'location:Location:bi-geo-alt,goals:Goals:bi-bullseye,mix:Mix:bi-diagram-3' as mixer_tabs %}
 
-<!-- Step progress bar -->
-<div class="mixer-step-bar mb-4">
-  <div class="mixer-step-bar__inner">
-    <div class="mixer-step active" data-step="1">
-      <span class="mixer-step__num">1</span>
-      <span class="mixer-step__label">Location</span>
+<!-- ═══════════════════════════════════════════════════════════════════════════
+     SPLIT-PANE SHELL
+     Left: MapLibre map (30% default, draggable)
+     Right: Nav-pill tabbed panel (70%)
+     ═══════════════════════════════════════════════════════════════════════ -->
+<div class="mixer-pane" id="mixer-pane">
+
+  <!-- ── LEFT: Map ──────────────────────────────────────────────────────── -->
+  <div class="mixer-pane__map" id="mixer-map-panel">
+    <div id="species-mixer-map" class="w-100 h-100"></div>
+
+    <!-- Prompt overlay before any map click -->
+    <div id="map-empty-state" class="mixer-map-empty position-absolute top-0 start-0 w-100 h-100 d-flex flex-column align-items-center justify-content-center" style="pointer-events:none;">
+      <i class="bi bi-cursor-fill" style="font-size:2rem; opacity:.35;"></i>
+      <p class="mt-3 mb-1 fw-medium small">Click to set location</p>
+      <small class="text-muted" style="font-size:.7rem;">Environmental data fetched automatically</small>
     </div>
-    <div class="mixer-step__connector"></div>
-    <div class="mixer-step" data-step="2">
-      <span class="mixer-step__num">2</span>
-      <span class="mixer-step__label">Goals</span>
+
+    <!-- Location badge (bottom-left after pin) -->
+    <div id="map-location-badge" class="mixer-location-badge d-none">
+      <i class="bi bi-geo-alt-fill me-1"></i>
+      <span id="map-location-name">Loading location...</span>
+      <button class="btn btn-link text-white p-0 ms-2" id="change-location-btn" title="Change location">
+        <i class="bi bi-pencil"></i>
+      </button>
     </div>
-    <div class="mixer-step__connector"></div>
-    <div class="mixer-step" data-step="3">
-      <span class="mixer-step__num">3</span>
-      <span class="mixer-step__label">Generate</span>
-    </div>
-    <div class="mixer-step__connector"></div>
-    <div class="mixer-step" data-step="4">
-      <span class="mixer-step__num">4</span>
-      <span class="mixer-step__label">Customise</span>
-    </div>
-    <div class="mixer-step__connector"></div>
-    <div class="mixer-step" data-step="5">
-      <span class="mixer-step__num">5</span>
-      <span class="mixer-step__label">Save</span>
+
+    <!-- ECharts species distribution placeholder (shown on Goals/Mix tabs) -->
+    <div id="map-overlay-placeholder" class="mixer-map-placeholder d-none">
+      <div class="text-center">
+        <i class="bi bi-diagram-3" style="font-size:2.5rem; opacity:.3;"></i>
+        <p class="mt-3 mb-1 fw-medium">Species distribution</p>
+        <small class="text-muted">ECharts point visualisation — coming soon</small>
+      </div>
     </div>
   </div>
-</div>
 
-<div class="container-fluid px-0">
-  <div class="row gx-4">
+  <!-- ── DIVIDER ────────────────────────────────────────────────────────── -->
+  <div class="mixer-pane__divider" id="mixer-divider" title="Drag to resize"></div>
 
-    <!-- LEFT: Interactive Map -->
-    <div class="col-lg-8">
-      <div class="card species-mixer-map-card">
-        <div class="card-header d-flex align-items-center justify-content-between">
-          <span><i class="bi bi-map me-2"></i>Planting Map</span>
-          <div class="d-flex gap-2">
-            <select class="form-select form-select-sm species-mixer-select" id="map-visualisation" disabled>
-              <option value="points" selected>Individual Points</option>
-              <option value="heatmap">Heatmap</option>
-            </select>
-            <select class="form-select form-select-sm species-mixer-select" id="map-filter" disabled>
-              <option value="all" selected>All Species</option>
-              <option value="pollinator">Pollinator</option>
-              <option value="erosion">Erosion Control</option>
-              <option value="wildlife">Wildlife Habitat</option>
-            </select>
-          </div>
-        </div>
-        <div class="card-body p-0 position-relative">
-          <div id="species-mixer-map" class="species-mixer-map-container"></div>
-          <div id="map-empty-state" class="species-mixer-map-empty position-absolute top-0 start-0 w-100 h-100 d-flex flex-column align-items-center justify-content-center" style="pointer-events:none;">
-            <i class="bi bi-cursor-fill" style="font-size:2.5rem; opacity:.4;"></i>
-            <p class="mt-3 mb-1 fw-medium">Click anywhere on the map</p>
-            <small class="text-muted">Select the GPS location you plan to plant in</small>
-          </div>
-          <div id="map-location-badge" class="mixer-location-badge d-none">
-            <i class="bi bi-geo-alt-fill me-1"></i>
-            <span id="map-location-name">Loading location...</span>
-            <button class="btn btn-link text-white p-0 ms-2" id="change-location-btn" title="Change location">
-              <i class="bi bi-pencil"></i>
-            </button>
-          </div>
-        </div>
-      </div>
+  <!-- ── RIGHT: Tabbed panel ───────────────────────────────────────────── -->
+  <div class="mixer-pane__panel" id="mixer-right-panel">
+
+    <!-- Tab nav -->
+    <div class="mixer-panel-tabs">
+      {% include 'components/nav_pills.html' with tabs=mixer_tabs id='mixer-tabs' variant='text' fill=True class='mixer-nav-pills' %}
     </div>
 
-    <!-- RIGHT: Controls -->
-    <div class="col-lg-4 d-flex flex-column gap-3">
+    <!-- Tab panes -->
+    <div class="tab-content mixer-tab-content">
 
-      <!-- Step 1 prompt -->
-      <div id="step1-prompt" class="card mixer-step-prompt">
-        <div class="card-body text-center py-4">
-          <i class="bi bi-mouse2" style="font-size:2rem; opacity:.5;"></i>
-          <p class="mt-2 mb-1 fw-medium">Select a location</p>
-          <small class="text-muted">Click anywhere on the map to set your planting location. Environmental data will be queried for that exact point.</small>
-        </div>
-      </div>
+      <!-- ─────────────────────────────────────────────────────────────────
+           TAB 1: LOCATION
+           ─────────────────────────────────────────────────────────────── -->
+      <div class="tab-pane fade show active" id="tab-location" role="tabpanel" aria-labelledby="mixer-tabs-location-tab">
 
-      <!-- Location info panel (shown after Step 1) -->
-      <div id="location-info-panel" class="card d-none">
-        <div class="card-header d-flex align-items-center justify-content-between">
-          <span><i class="bi bi-geo-alt me-2"></i>Location</span>
-          <button class="btn btn-sm btn-outline-secondary" id="confirm-location-btn">
-            <i class="bi bi-check-lg me-1"></i>Confirm
-          </button>
+        <!-- Step 1 prompt (before map click) -->
+        <div id="step1-prompt" class="text-center py-5 px-3">
+          <i class="bi bi-mouse2" style="font-size:2rem; opacity:.45;"></i>
+          <p class="mt-3 mb-1 fw-medium">Select a location</p>
+          <small class="text-muted">Click anywhere on the map to set your planting location. Soil, climate and hydrology data will be fetched automatically for that point.</small>
         </div>
-        <div class="card-body pb-2">
-          <!-- Place name + coordinates (visible immediately on map click) -->
-          <div class="d-flex align-items-start gap-2 mb-3">
-            <div class="flex-grow-1">
-              <p class="mb-0 fw-semibold lh-sm" id="location-display-name">
-                <span class="location-name-skeleton skeleton-line" style="width:70%;"></span>
-              </p>
-              <p class="text-muted small mb-0 mt-1" id="coord-display">-</p>
-            </div>
+
+        <!-- Location info (shown after map click) -->
+        <div id="location-info-panel" class="d-none">
+
+          <!-- Place name + coords -->
+          <div class="mb-3">
+            <p class="mb-0 fw-semibold lh-sm" id="location-display-name">
+              <span class="location-name-skeleton skeleton-line" style="width:70%;"></span>
+            </p>
+            <p class="text-muted small mb-0 mt-1" id="coord-display">-</p>
           </div>
 
-          <!-- Ecological data grid — each cell starts as skeleton, populated as each source API responds -->
-          <div class="eco-data-panel" id="eco-data-panel">
-            <!-- Ecological data grid (populated by JS after map click) -->
+          <!-- Ecological data grid (8 cells, each starts as skeleton) -->
+          <div class="eco-data-panel mb-3" id="eco-data-panel">
             <div class="eco-grid" id="eco-grid">
               <div class="eco-stat" id="eco-ph">
                 <i class="bi bi-eyedropper eco-stat__icon"></i>
@@ -180,18 +154,29 @@
                   <span class="eco-stat__val skeleton-line" style="width:3rem;"></span>
                 </div>
               </div>
-            </div><!-- /eco-grid -->
-          </div><!-- /eco-data-panel -->
-        </div>
-      </div>
+            </div>
+          </div>
 
-      <!-- Goal Sliders (locked until Step 2) -->
-      <div class="card" id="goals-card">
-        <div class="card-header d-flex align-items-center justify-content-between">
-          <span><i class="bi bi-bullseye me-2"></i>Project Goals</span>
-          <span class="badge bg-secondary rounded-pill" id="goals-step-badge">Step 2</span>
         </div>
-        <div class="card-body">
+
+      </div><!-- /tab-location -->
+
+      <!-- ─────────────────────────────────────────────────────────────────
+           TAB 2: GOALS
+           ─────────────────────────────────────────────────────────────── -->
+      <div class="tab-pane fade" id="tab-goals" role="tabpanel" aria-labelledby="mixer-tabs-goals-tab">
+
+        <!-- Lock overlay (until location confirmed) -->
+        <div id="goals-lock-overlay" class="mixer-tab-lock">
+          <i class="bi bi-geo-alt" style="font-size:1.5rem; opacity:.4;"></i>
+          <p class="mt-2 mb-0 small fw-medium">Select a location first</p>
+          <small class="text-muted">Click the map to set your planting point</small>
+        </div>
+
+        <!-- Goal sliders -->
+        <div class="mb-4">
+          <p class="text-muted small mb-3">Weight each goal from 0% (not important) to 100% (highest priority). The AI will balance the species mix accordingly.</p>
+
           <div class="species-mixer-goal-slider mb-3">
             <div class="d-flex justify-content-between mb-1">
               <label class="form-label mb-0 small" for="goal-erosion_control">Erosion Control</label>
@@ -233,65 +218,33 @@
                    data-goal="wildlife_habitat" min="0" max="100" value="50" disabled>
           </div>
         </div>
-      </div>
 
-      <!-- AI Insights -->
-      <div class="card" id="insights-card">
-        <div class="card-header d-flex align-items-center justify-content-between">
-          <span><i class="bi bi-stars me-2"></i>AI Mix Insights</span>
-          <div class="d-flex align-items-center gap-2">
-            <span class="badge bg-secondary rounded-pill" id="insights-step-badge">Step 3</span>
-            <div class="spinner-border spinner-border-sm text-primary d-none" id="insights-spinner"
-                 role="status" aria-label="Generating insights"></div>
-          </div>
-        </div>
-        <div class="card-body">
-          <div id="insights-placeholder" class="species-mixer-ai-placeholder d-flex align-items-center justify-content-center">
-            <div class="text-center text-muted">
-              <i class="bi bi-lightbulb" style="font-size:1.5rem;"></i>
-              <p class="mt-2 mb-0 small">Generate a mix to see ecological insights</p>
-              <small>Trade-offs and optimisation opportunities will appear here</small>
-            </div>
-          </div>
-          <p id="insights-text" class="mb-1 small d-none"></p>
-          <p id="env-summary-text" class="text-muted small mb-0 d-none"></p>
-        </div>
-      </div>
-
-      <!-- Generate Mix CTA (shown after Step 2) -->
-      <div id="generate-cta" class="d-none">
-        <button class="btn btn-primary w-100" id="generate-mix-btn" disabled>
-          <i class="bi bi-magic me-2"></i>Generate Species Mix
-        </button>
-        <p class="text-muted text-center small mt-2 mb-0">
-          <i class="bi bi-shield-check me-1"></i>SoilGrids &middot; NBN Atlas &middot; GBIF &middot; Met Office &middot; EA / SEPA
-        </p>
-      </div>
-
-    </div>
-  </div>
-
-  <!-- SPECIES TABLE (shown after generation) -->
-  <div class="row mt-4" id="species-table-section" style="display:none !important;">
-    <div class="col-12">
-      <div class="card">
-        <div class="card-header d-flex align-items-center justify-content-between">
-          <span><i class="bi bi-table me-2"></i>Species Mix</span>
-          <div class="d-flex align-items-center gap-2">
-            <div class="input-group input-group-sm species-mixer-search position-relative">
-              <button type="button" class="btn btn-outline-secondary" id="add-species-manually-btn" disabled><i class="bi bi-plus me-1"></i> Add species manually</button>
-              <ul class="species-search-dropdown list-group position-absolute d-none"
-                  id="species-search-dropdown"></ul>
-            </div>
-            <div class="d-flex align-items-center gap-1 text-muted small d-none" id="rescore-indicator">
-              <div class="spinner-border spinner-border-sm" role="status" aria-label="Re-scoring"></div>
-              <span>Updating...</span>
-            </div>
-          </div>
+        <!-- Generate CTA -->
+        <div id="generate-cta">
+          <button class="btn btn-primary w-100" id="generate-mix-btn" disabled>
+            <i class="bi bi-magic me-2"></i>Generate Species Mix
+          </button>
+          <p class="text-muted text-center small mt-2 mb-0">
+            <i class="bi bi-shield-check me-1"></i>SoilGrids &middot; NBN Atlas &middot; GBIF &middot; Open-Meteo &middot; EA / SEPA
+          </p>
         </div>
 
-        <!-- Generation loading state — live database query feed -->
-        <div id="table-loading-state" class="d-none">
+      </div><!-- /tab-goals -->
+
+      <!-- ─────────────────────────────────────────────────────────────────
+           TAB 3: MIX
+           ─────────────────────────────────────────────────────────────── -->
+      <div class="tab-pane fade" id="tab-mix" role="tabpanel" aria-labelledby="mixer-tabs-mix-tab">
+
+        <!-- Generate / Stop button (always visible at top) -->
+        <div class="mb-3">
+          <button class="btn btn-primary w-100" id="mix-generate-btn" disabled>
+            <i class="bi bi-magic me-2"></i>Generate Species Mix
+          </button>
+        </div>
+
+        <!-- Generation live feed (shown while generating) -->
+        <div id="table-loading-state" class="d-none mb-3">
           <div class="generation-feed-panel">
             <div class="generation-feed-header">
               <div class="spinner-border spinner-border-sm text-primary" role="status" aria-label="Generating mix"></div>
@@ -300,100 +253,231 @@
                 <span class="text-muted small" id="loading-species-count"></span>
               </div>
             </div>
-            <div class="generation-feed-log" id="generation-feed-log">
-              <!-- Progress events appended here by JS -->
-            </div>
+            <div class="generation-feed-log" id="generation-feed-log"></div>
             <div class="progress generation-progress" role="progressbar" aria-label="Generation progress">
               <div class="progress-bar progress-bar-striped progress-bar-animated" id="generation-progress-bar" style="width:5%"></div>
             </div>
           </div>
         </div>
 
-        <!-- Species table -->
-        <div class="table-responsive" id="species-table-wrapper">
-          <table class="table table-hover sortable-table species-mixer-table mb-0" id="species-mix-table">
-            <thead>
-              <tr>
-                <th style="width:2rem;"></th>
-                <th style="width:2rem;"></th>
-                <th data-sortable>Species</th>
-                <th style="width:9rem;">Suitability</th>
-                <th data-sortable>Characteristics</th>
-                <th data-sortable style="width:6rem;" title="Typical spacing">Spacing</th>
-                <th style="width:13rem;" title="Proportion in mix">
-                  Ratio (<span class="symbol">&#961;</span>)
-                </th>
-                <th style="width:3rem;"></th>
-              </tr>
-            </thead>
-            <tbody id="species-mix-tbody">
-              <tr id="table-empty-row">
-                <td colspan="9" class="text-center text-muted py-4">
-                  <i class="bi bi-magic me-2"></i>Generate a mix to see species recommendations
-                </td>
-              </tr>
-            </tbody>
-          </table>
+        <!-- AI Insights card -->
+        <div class="card mb-3" id="insights-card">
+          <div class="card-header d-flex align-items-center justify-content-between">
+            <span><i class="bi bi-stars me-2"></i>AI Mix Insights</span>
+            <div class="d-flex align-items-center gap-2">
+              <div class="spinner-border spinner-border-sm text-primary d-none" id="insights-spinner"
+                   role="status" aria-label="Generating insights"></div>
+              <div class="d-flex align-items-center gap-1 text-muted small d-none" id="rescore-indicator">
+                <div class="spinner-border spinner-border-sm" role="status" aria-label="Re-scoring"></div>
+                <span>Updating...</span>
+              </div>
+            </div>
+          </div>
+          <div class="card-body">
+            <div id="insights-placeholder" class="species-mixer-ai-placeholder d-flex align-items-center justify-content-center">
+              <div class="text-center text-muted">
+                <i class="bi bi-lightbulb" style="font-size:1.5rem;"></i>
+                <p class="mt-2 mb-0 small">Generate a mix to see ecological insights</p>
+              </div>
+            </div>
+            <p id="insights-text" class="mb-1 small d-none"></p>
+            <p id="env-summary-text" class="text-muted small mb-0 d-none"></p>
+          </div>
         </div>
-      </div>
-    </div>
-  </div>
 
-  <!-- RECENT & SAVED MIXES -->
-  <div class="row mt-4">
-    <div class="col-12">
-      <div class="card">
-        <div class="card-header d-flex align-items-center justify-content-between">
-          <span><i class="bi bi-clock-history me-2"></i>Recent &amp; Saved Mixes</span>
-          <button class="btn btn-link btn-sm text-muted p-0" id="refresh-mixes-btn" title="Refresh">
-            <i class="bi bi-arrow-clockwise"></i>
-          </button>
-        </div>
-        <div class="card-body">
-          <div class="row g-3" id="saved-mixes-grid">
-            {% for mix in recent_mixes %}
-            <div class="col-md-3">
-              <div class="card species-mixer-saved-mix"
-                   role="button"
-                   data-mix-id="{{ mix.id }}"
-                   title="Load {{ mix.name }}">
-                <div class="card-body p-3">
-                  <div class="d-flex align-items-start justify-content-between">
-                    <div>
-                      <h6 class="mb-1">{{ mix.name }}</h6>
-                      <small class="text-muted">
-                        {{ mix.items.count }} species
-                        {% if mix.location_name %}&middot; {{ mix.location_name|truncatechars:25 }}{% endif %}
-                        &middot; {{ mix.updated_at|timesince }} ago
-                      </small>
-                    </div>
-                    <i class="bi bi-arrow-up-right-square text-primary flex-shrink-0 ms-1"></i>
+        <!-- Species Mix card -->
+        <div class="card" id="species-mix-card">
+          <div class="card-header d-flex align-items-center justify-content-between gap-2">
+            <span class="fw-semibold"><i class="bi bi-diagram-3 me-2"></i>Species Mix</span>
+            <div class="d-flex align-items-center gap-2 ms-auto">
+              <!-- Map visualisation controls -->
+              <select class="form-select form-select-sm species-mixer-select" id="map-visualisation" disabled>
+                <option value="points" selected>Points</option>
+                <option value="heatmap">Heatmap</option>
+              </select>
+              <select class="form-select form-select-sm species-mixer-select" id="map-filter" disabled>
+                <option value="all" selected>All Species</option>
+                <option value="pollinator">Pollinator</option>
+                <option value="erosion">Erosion Control</option>
+                <option value="wildlife">Wildlife Habitat</option>
+              </select>
+              <!-- Add species button (opens modal) -->
+              <button type="button" class="btn btn-sm btn-outline-secondary flex-shrink-0" id="add-species-manually-btn" disabled>
+                <i class="bi bi-plus me-1"></i>Add Species
+              </button>
+            </div>
+          </div>
+          <div class="card-body p-0">
+            <!-- Search + filter toolbar -->
+            <div class="species-mix-toolbar px-3 pt-2 pb-2 d-flex align-items-center justify-content-end gap-2">
+              <select class="form-select form-select-sm species-mix-cat-filter" id="species-category-filter" style="max-width:10rem;">
+                <option value="">All categories</option>
+                <option value="tree">Tree</option>
+                <option value="shrub">Shrub</option>
+                <option value="wildflower">Wildflower</option>
+                <option value="grass">Grass</option>
+                <option value="fern">Fern</option>
+                <option value="moss">Moss</option>
+                <option value="fungi">Fungi</option>
+              </select>
+              <div class="position-relative" style="max-width:14rem; width:100%;">
+                <i class="bi bi-funnel position-absolute" style="left:.65rem;top:50%;transform:translateY(-50%);color:var(--bs-secondary-color);pointer-events:none;font-size:.8rem;"></i>
+                <input type="text" class="form-control form-control-sm ps-4" id="species-table-search"
+                       placeholder="Filter species..." autocomplete="off">
+              </div>
+            </div>
+
+            <!-- Species table -->
+            <div id="species-table-wrapper">
+              <table class="table table-hover sortable-table species-mixer-table mb-0"
+                     id="species-mix-table"
+                     data-no-auto-init>
+                <thead>
+                  <tr>
+                    <!-- col 0: active checkbox -->
+                    <th class="col-check" title="Include in mix">
+                      <i class="bi bi-check2-square" title="Active"></i>
+                    </th>
+                    <!-- col 1: colour dot -->
+                    <th class="col-dot"></th>
+                    <!-- col 2: species name -->
+                    <th class="col-species" data-sortable>Species</th>
+                    <!-- col 3: characteristics pills -->
+                    <th class="col-chars" data-sortable>Characteristics</th>
+                    <!-- col 4: native/invasive badge -->
+                    <th class="col-native" data-sortable title="Native or invasive status">Status</th>
+                    <!-- col 5: ρ radius -->
+                    <th class="col-rho" title="Point radius">
+                      &#961;<sub><i style="font-size:.65em;">r</i></sub>
+                    </th>
+                    <!-- col 6: π proportion -->
+                    <th class="col-pi" title="Proportion in mix">
+                      &#960;<sub><i style="font-size:.65em;">p</i></sub>
+                    </th>
+                    <!-- col 7: n final count -->
+                    <th class="col-n" title="Final plant count">
+                      n<sub><i style="font-size:.65em;">&#963;</i></sub>
+                    </th>
+                    <!-- col 8: delete -->
+                    <th class="col-del"></th>
+                  </tr>
+                </thead>
+                <tbody id="species-mix-tbody">
+                  <!-- Skeleton rows shown before generation (blurred via CSS) -->
+                  <tr class="mix-skeleton-row">
+                    <td><span class="skeleton-cell"></span></td>
+                    <td><span class="skeleton-cell skeleton-dot"></span></td>
+                    <td><span class="skeleton-cell" style="width:8rem;"></span></td>
+                    <td><span class="skeleton-cell" style="width:10rem;"></span></td>
+                    <td><span class="skeleton-cell" style="width:4rem;"></span></td>
+                    <td><span class="skeleton-cell" style="width:2rem;"></span></td>
+                    <td><span class="skeleton-cell" style="width:2rem;"></span></td>
+                    <td><span class="skeleton-cell" style="width:2rem;"></span></td>
+                    <td></td>
+                  </tr>
+                  <tr class="mix-skeleton-row">
+                    <td><span class="skeleton-cell"></span></td>
+                    <td><span class="skeleton-cell skeleton-dot"></span></td>
+                    <td><span class="skeleton-cell" style="width:7rem;"></span></td>
+                    <td><span class="skeleton-cell" style="width:12rem;"></span></td>
+                    <td><span class="skeleton-cell" style="width:5rem;"></span></td>
+                    <td><span class="skeleton-cell" style="width:2rem;"></span></td>
+                    <td><span class="skeleton-cell" style="width:2rem;"></span></td>
+                    <td><span class="skeleton-cell" style="width:2rem;"></span></td>
+                    <td></td>
+                  </tr>
+                  <tr class="mix-skeleton-row">
+                    <td><span class="skeleton-cell"></span></td>
+                    <td><span class="skeleton-cell skeleton-dot"></span></td>
+                    <td><span class="skeleton-cell" style="width:9rem;"></span></td>
+                    <td><span class="skeleton-cell" style="width:9rem;"></span></td>
+                    <td><span class="skeleton-cell" style="width:4rem;"></span></td>
+                    <td><span class="skeleton-cell" style="width:2rem;"></span></td>
+                    <td><span class="skeleton-cell" style="width:2rem;"></span></td>
+                    <td><span class="skeleton-cell" style="width:2rem;"></span></td>
+                    <td></td>
+                  </tr>
+                  <tr class="mix-skeleton-row">
+                    <td><span class="skeleton-cell"></span></td>
+                    <td><span class="skeleton-cell skeleton-dot"></span></td>
+                    <td><span class="skeleton-cell" style="width:6rem;"></span></td>
+                    <td><span class="skeleton-cell" style="width:11rem;"></span></td>
+                    <td><span class="skeleton-cell" style="width:6rem;"></span></td>
+                    <td><span class="skeleton-cell" style="width:2rem;"></span></td>
+                    <td><span class="skeleton-cell" style="width:2rem;"></span></td>
+                    <td><span class="skeleton-cell" style="width:2rem;"></span></td>
+                    <td></td>
+                  </tr>
+                </tbody>
+              </table>
+            </div><!-- /species-table-wrapper -->
+          </div><!-- /card-body -->
+        </div><!-- /species-mix-card -->
+
+      </div><!-- /tab-mix -->
+
+    </div><!-- /tab-content -->
+  </div><!-- /mixer-pane__panel -->
+
+</div><!-- /mixer-pane -->
+
+
+<!-- ═══════════════════════════════════════════════════════════════════════
+     RECENT & SAVED MIXES (below the pane, full width)
+     ═══════════════════════════════════════════════════════════════════ -->
+<div class="row mt-0">
+  <div class="col-12">
+    <div class="card">
+      <div class="card-header d-flex align-items-center justify-content-between">
+        <span><i class="bi bi-clock-history me-2"></i>Recent &amp; Saved Mixes</span>
+        <button class="btn btn-link btn-sm text-muted p-0" id="refresh-mixes-btn" title="Refresh">
+          <i class="bi bi-arrow-clockwise"></i>
+        </button>
+      </div>
+      <div class="card-body">
+        <div class="row g-3" id="saved-mixes-grid">
+          {% for mix in recent_mixes %}
+          <div class="col-md-3">
+            <div class="card species-mixer-saved-mix"
+                 role="button"
+                 data-mix-id="{{ mix.id }}"
+                 title="Load {{ mix.name }}">
+              <div class="card-body p-3">
+                <div class="d-flex align-items-start justify-content-between">
+                  <div>
+                    <h6 class="mb-1">{{ mix.name }}</h6>
+                    <small class="text-muted">
+                      {{ mix.items.count }} species
+                      {% if mix.location_name %}&middot; {{ mix.location_name|truncatechars:25 }}{% endif %}
+                      &middot; {{ mix.updated_at|timesince }} ago
+                    </small>
                   </div>
-                  {% if mix.env_summary %}
-                  <p class="text-muted mt-1 mb-2" style="font-size:.75rem;">{{ mix.env_summary|truncatechars:60 }}</p>
-                  {% endif %}
-                  <div class="mt-1 d-flex gap-1 flex-wrap">
-                    {% if mix.goal_erosion >= 60 %}<span class="badge bg-success bg-opacity-10 text-success">Erosion</span>{% endif %}
-                    {% if mix.goal_pollinator >= 60 %}<span class="badge bg-danger bg-opacity-10 text-danger">Pollinator</span>{% endif %}
-                    {% if mix.goal_carbon >= 60 %}<span class="badge bg-info bg-opacity-10 text-info">Carbon</span>{% endif %}
-                    {% if mix.goal_wildlife >= 60 %}<span class="badge bg-warning bg-opacity-10 text-warning">Wildlife</span>{% endif %}
-                    {% if mix.goal_biodiversity >= 60 %}<span class="badge bg-primary bg-opacity-10 text-primary">Biodiversity</span>{% endif %}
-                  </div>
+                  <i class="bi bi-arrow-up-right-square text-primary flex-shrink-0 ms-1"></i>
+                </div>
+                {% if mix.env_summary %}
+                <p class="text-muted mt-1 mb-2" style="font-size:.75rem;">{{ mix.env_summary|truncatechars:60 }}</p>
+                {% endif %}
+                <div class="mt-1 d-flex gap-1 flex-wrap">
+                  {% if mix.goal_erosion >= 60 %}<span class="badge bg-success bg-opacity-10 text-success">Erosion</span>{% endif %}
+                  {% if mix.goal_pollinator >= 60 %}<span class="badge bg-danger bg-opacity-10 text-danger">Pollinator</span>{% endif %}
+                  {% if mix.goal_carbon >= 60 %}<span class="badge bg-info bg-opacity-10 text-info">Carbon</span>{% endif %}
+                  {% if mix.goal_wildlife >= 60 %}<span class="badge bg-warning bg-opacity-10 text-warning">Wildlife</span>{% endif %}
+                  {% if mix.goal_biodiversity >= 60 %}<span class="badge bg-primary bg-opacity-10 text-primary">Biodiversity</span>{% endif %}
                 </div>
               </div>
             </div>
-            {% empty %}
-            <div class="col-12 text-center text-muted py-3">
-              <i class="bi bi-collection me-2"></i>No saved mixes yet. Generate your first mix above.
-            </div>
-            {% endfor %}
-            <div class="col-md-3">
-              <div class="card species-mixer-saved-mix species-mixer-saved-mix--empty d-flex align-items-center justify-content-center"
-                   role="button" id="new-mix-card" title="Start a new mix">
-                <div class="card-body p-3 text-center text-muted">
-                  <i class="bi bi-plus-circle" style="font-size:1.5rem;"></i>
-                  <p class="mb-0 mt-1 small">New Mix</p>
-                </div>
+          </div>
+          {% empty %}
+          <div class="col-12 text-center text-muted py-3">
+            <i class="bi bi-collection me-2"></i>No saved mixes yet. Generate your first mix above.
+          </div>
+          {% endfor %}
+          <div class="col-md-3">
+            <div class="card species-mixer-saved-mix species-mixer-saved-mix--empty d-flex align-items-center justify-content-center"
+                 role="button" id="new-mix-card" title="Start a new mix">
+              <div class="card-body p-3 text-center text-muted">
+                <i class="bi bi-plus-circle" style="font-size:1.5rem;"></i>
+                <p class="mb-0 mt-1 small">New Mix</p>
               </div>
             </div>
           </div>
@@ -401,7 +485,83 @@
       </div>
     </div>
   </div>
+</div>
 
+<!-- Add Species Modal -->
+<div class="modal fade" id="addSpeciesModal" tabindex="-1" aria-labelledby="addSpeciesModalLabel">
+  <div class="modal-dialog modal-dialog-centered modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="addSpeciesModalLabel">
+          <i class="bi bi-plus-circle me-2"></i>Add Species
+        </h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <!-- Search input -->
+        <div class="position-relative mb-3">
+          <i class="bi bi-search position-absolute" style="left:.75rem;top:50%;transform:translateY(-50%);color:var(--bs-secondary-color);pointer-events:none;"></i>
+          <input type="text" class="form-control ps-4" id="add-species-search-input"
+                 placeholder="Search by common or scientific name..."
+                 autocomplete="off">
+        </div>
+        <!-- Results list -->
+        <div id="add-species-results" class="add-species-results">
+          <div class="text-center text-muted py-4 small" id="add-species-hint">
+            <i class="bi bi-search me-2"></i>Type to search the species database
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer border-0 pt-0">
+        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+        <button type="button" class="btn btn-primary" id="confirm-add-species-btn" disabled>
+          <i class="bi bi-plus me-1"></i>Add to Mix
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Remove Species Modal -->
+<div class="modal fade" id="removeSpeciesModal" tabindex="-1" aria-labelledby="removeSpeciesModalLabel">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header border-0 pb-0">
+        <h5 class="modal-title" id="removeSpeciesModalLabel">
+          <i class="bi bi-trash text-danger me-2"></i>Remove species?
+        </h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body pt-2">
+        <p class="mb-0">Remove <strong id="remove-species-name"></strong> from the mix? Ratios will be redistributed across the remaining species.</p>
+      </div>
+      <div class="modal-footer border-0">
+        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+        <button type="button" class="btn btn-danger" id="confirm-remove-species-btn">Remove</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Stop Generation Modal -->
+<div class="modal fade" id="stopGenerationModal" tabindex="-1" aria-labelledby="stopGenerationModalLabel">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header border-0 pb-0">
+        <h5 class="modal-title" id="stopGenerationModalLabel">
+          <i class="bi bi-stop-circle text-danger me-2"></i>Stop generation?
+        </h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body pt-2">
+        <p class="mb-0">The mix is still generating. Stopping now will discard the current run — you'll need to generate again after changing your goals.</p>
+      </div>
+      <div class="modal-footer border-0">
+        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Keep generating</button>
+        <button type="button" class="btn btn-danger" id="confirm-stop-generation-btn">Stop &amp; edit goals</button>
+      </div>
+    </div>
+  </div>
 </div>
 
 <!-- Save Mix Modal -->
@@ -443,19 +603,19 @@
   window.speciesMixerConfig = {
     csrfToken: '{{ csrf_token }}',
     apiUrls: {
-      generate:        '{% url "species:api_generate_mix" %}',
-      rescore:         '{% url "species:api_rescore_mix" %}',
-      validateSpecies: '{% url "species:api_validate_species" %}',
-      taskStatus:      '/species/mixer/api/task-status/',
-      location:        '{% url "species:api_location_data" %}',
-      envDataSoil:     '{% url "species:api_env_data_soil" %}',
-      envDataClimate:  '{% url "species:api_env_data_climate" %}',
-      envDataHydrology:'{% url "species:api_env_data_hydrology" %}',
-      envData:         '{% url "species:api_env_data" %}',
-      save:            '{% url "species:api_save_mix" %}',
-      mixes:           '{% url "species:api_list_mixes" %}',
-      getMix:          '/species/mixer/api/mixes/',
-      speciesSearch:   '{% url "species:api_species_search" %}',
+      generate:         '{% url "species:api_generate_mix" %}',
+      rescore:          '{% url "species:api_rescore_mix" %}',
+      validateSpecies:  '{% url "species:api_validate_species" %}',
+      taskStatus:       '/species/mixer/api/task-status/',
+      location:         '{% url "species:api_location_data" %}',
+      envDataSoil:      '{% url "species:api_env_data_soil" %}',
+      envDataClimate:   '{% url "species:api_env_data_climate" %}',
+      envDataHydrology: '{% url "species:api_env_data_hydrology" %}',
+      envData:          '{% url "species:api_env_data" %}',
+      save:             '{% url "species:api_save_mix" %}',
+      mixes:            '{% url "species:api_list_mixes" %}',
+      getMix:           '/species/mixer/api/mixes/',
+      speciesSearch:    '{% url "species:api_species_search" %}',
     },
     maplibreStyleUrl: 'https://demotiles.maplibre.org/style.json',
   };

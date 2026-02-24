@@ -18,11 +18,13 @@ Endpoints:
 
 import json
 import logging
+import threading
 import uuid
 
 from django.conf import settings
 from django.contrib.auth.decorators import login_required
 from django.core.cache import cache
+from django.db import close_old_connections
 from django.http import JsonResponse
 from django.utils import timezone
 from django.views.decorators.http import require_http_methods
@@ -41,6 +43,18 @@ logger = logging.getLogger(__name__)
 
 # True when Redis is up and Dramatiq workers are available
 _ASYNC = getattr(settings, 'SPECIES_MIXER_ASYNC', False)
+
+
+def _run_in_thread(fn, *args):
+    """Run fn(*args) in a daemon thread, closing DB connections when done."""
+    def _wrapper():
+        try:
+            fn(*args)
+        finally:
+            close_old_connections()
+    t = threading.Thread(target=_wrapper, daemon=True)
+    t.start()
+    return t
 
 # =============================================================================
 # Task dispatch helpers
@@ -94,10 +108,11 @@ def api_generate_mix(request):
                 status=503,
             )
     else:
-        # No Redis — run synchronously in-request (dev mode)
-        from species.tasks import run_mix_generation as _task
+        # No Redis — run in a background thread so the POST returns immediately
+        # and the frontend can poll for live progress events.
+        # DatabaseCache is shared across threads in the same process.
         cache.set(_task_key(task_id), {'status': 'queued'}, timeout=600)
-        _task(task_id, lat, lng, goals)
+        _run_in_thread(run_mix_generation, task_id, lat, lng, goals)
     return JsonResponse({'task_id': task_id})
 
 
@@ -134,9 +149,8 @@ def api_rescore_mix(request):
         cache.set(_task_key(task_id), {'status': 'queued'}, timeout=300)
         run_mix_rescore.send(task_id, cached_env_data, cached_candidates, goals, current_mix)
     else:
-        from species.tasks import run_mix_rescore as _task
         cache.set(_task_key(task_id), {'status': 'queued'}, timeout=300)
-        _task(task_id, cached_env_data, cached_candidates, goals, current_mix)
+        _run_in_thread(run_mix_rescore, task_id, cached_env_data, cached_candidates, goals, current_mix)
     return JsonResponse({'task_id': task_id})
 
 
@@ -191,9 +205,8 @@ def api_validate_species(request):
         cache.set(_task_key(task_id), {'status': 'queued'}, timeout=180)
         run_species_validation.send(task_id, species_data, cached_env_data, current_mix)
     else:
-        from species.tasks import run_species_validation as _task
         cache.set(_task_key(task_id), {'status': 'queued'}, timeout=180)
-        _task(task_id, species_data, cached_env_data, current_mix)
+        _run_in_thread(run_species_validation, task_id, species_data, cached_env_data, current_mix)
     return JsonResponse({'task_id': task_id})
 
 

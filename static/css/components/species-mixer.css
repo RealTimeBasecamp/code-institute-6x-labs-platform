@@ -1,85 +1,140 @@
 /* ===== Species Mixer Component ===== */
 
-/* ── Step Progress Bar ───────────────────────────────────────── */
-.mixer-step-bar {
-  overflow-x: auto;
-  -webkit-overflow-scrolling: touch;
-}
-
-.mixer-step-bar__inner {
+/* ── Split-pane shell ────────────────────────────────────────── */
+.mixer-pane {
   display: flex;
-  align-items: center;
-  min-width: max-content;
-  padding: 0.5rem 0;
+  height: calc(100vh - var(--header-height, 60px) - 3rem);
+  min-height: 500px;
+  border: 1px solid var(--bs-border-color);
+  border-radius: var(--bs-border-radius-lg);
+  overflow: hidden;
+  background: var(--bs-body-bg);
+  margin-bottom: 1.5rem;
 }
 
-.mixer-step {
+.mixer-pane__map {
+  position: relative;
+  flex: 0 0 30%;
+  width: 30%;
+  min-width: 200px;
+  overflow: hidden;
+}
+
+.mixer-pane__divider {
+  flex: 0 0 5px;
+  cursor: col-resize;
+  background: var(--bs-border-color);
+  transition: background 0.15s;
+  user-select: none;
+}
+
+.mixer-pane__divider:hover,
+.mixer-pane__divider.dragging {
+  background: var(--bs-primary, #059acc);
+}
+
+.mixer-pane__panel {
+  flex: 1 1 0;
   display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  opacity: 0.4;
-  transition: opacity 0.2s ease;
+  flex-direction: column;
+  min-width: 280px;
+  overflow: hidden;
 }
 
-.mixer-step.active {
-  opacity: 1;
-}
-
-.mixer-step.complete {
-  opacity: 0.8;
-}
-
-.mixer-step__num {
+/* ── Map placeholder overlay (Goals / Mix tabs) ──────────────── */
+.mixer-map-placeholder {
+  position: absolute;
+  inset: 0;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  background: color-mix(in srgb, var(--bs-body-bg) 55%, transparent);
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 1.75rem;
-  height: 1.75rem;
-  border-radius: 50%;
-  font-size: 0.8rem;
-  font-weight: 600;
-  background-color: var(--bs-secondary-bg);
-  color: var(--bs-secondary-color);
-  border: 2px solid var(--bs-border-color);
-  transition: background-color 0.2s, border-color 0.2s, color 0.2s;
-  flex-shrink: 0;
-}
-
-.mixer-step.active .mixer-step__num {
-  background-color: var(--bs-primary, #059acc);
-  border-color: var(--bs-primary, #059acc);
-  color: #fff;
-}
-
-.mixer-step.complete .mixer-step__num {
-  background-color: var(--bs-success, #198754);
-  border-color: var(--bs-success, #198754);
-  color: #fff;
-}
-
-/* Override Unicode content for complete steps */
-.mixer-step.complete .mixer-step__num::after {
-  content: '✓';
-  font-size: 0.7rem;
-  position: absolute;
-}
-.mixer-step.complete .mixer-step__num {
-  position: relative;
-  font-size: 0; /* hide number when showing checkmark */
-}
-
-.mixer-step__label {
-  font-size: 0.8rem;
-  font-weight: 500;
-  white-space: nowrap;
+  z-index: 10;
   color: var(--bs-body-color);
 }
 
-.mixer-step__connector {
-  flex: 0 0 3rem;
-  height: 2px;
-  background-color: var(--bs-border-color);
-  margin: 0 0.25rem;
+/* ── Right panel tab bar ─────────────────────────────────────── */
+.mixer-panel-tabs {
+  flex: 0 0 auto;
+  padding: 0.5rem 0.75rem 0;
+  border-bottom: 1px solid var(--bs-border-color);
+}
+
+/* Override the component's floating-capsule defaults for the full-width bar context */
+.mixer-nav-pills {
+  /* Reset component's capsule shape to flat tab bar */
+  background: transparent;
+  border-radius: 0;
+  height: auto;
+  padding: 0;
+  gap: 0.25rem;
+  margin-bottom: 0;
+  /* Undo overflow:hidden that clips tab underlines */
+  overflow: visible;
+}
+
+/* Hide the sliding indicator — we use active background instead */
+.mixer-nav-pills::before {
+  display: none;
+}
+
+.mixer-nav-pills .nav-link {
+  font-size: 0.875rem !important;
+  padding: 0.4rem 0.75rem;
+  border-radius: var(--bs-border-radius);
+  color: var(--bs-body-color);
+  background: transparent !important;
+  height: auto;
+}
+
+.mixer-nav-pills .nav-link:not(.active):hover {
+  background: var(--bs-tertiary-bg) !important;
+  opacity: 1;
+}
+
+.mixer-nav-pills .nav-link.active {
+  background: var(--bs-primary, #059acc) !important;
+  color: #fff !important;
+}
+
+/* ── Scrollable tab content area ─────────────────────────────── */
+.mixer-tab-content {
+  flex: 1 1 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 1rem 0.75rem;
+  min-width: 0;
+}
+
+/* Tab panes need position:relative for the Goals lock overlay to anchor */
+.mixer-tab-content .tab-pane {
+  position: relative;
+  min-width: 0;
+  max-width: 100%;
+}
+
+/* The results container in the Mix tab — lock overlay anchors here, not the whole pane */
+.mixer-mix-results {
+  position: relative;
+  min-height: 12rem; /* ensures lock overlay is visible even before content loads */
+}
+
+/* ── Lock overlay — blurs content + shows message ────────────── */
+.mixer-tab-lock {
+  position: absolute;
+  inset: 0;
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  background: color-mix(in srgb, var(--bs-body-bg) 60%, transparent);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  z-index: 5;
+  text-align: center;
+  border-radius: var(--bs-border-radius);
 }
 
 /* ── Step prompt card ────────────────────────────────────────── */
@@ -88,17 +143,7 @@
   background-color: var(--bs-tertiary-bg);
 }
 
-/* ── Map Card ────────────────────────────────────────────────── */
-.species-mixer-map-card {
-  height: 100%;
-}
-
-.species-mixer-map-container {
-  min-height: 55vh;
-  background-color: var(--bs-body-bg);
-  border-radius: 0 0 var(--bs-border-radius) var(--bs-border-radius);
-}
-
+/* ── Map empty state (centred over map) ──────────────────────── */
 .species-mixer-map-empty {
   padding: 2rem;
   text-align: center;
@@ -162,82 +207,244 @@
 }
 
 /* ── Species Table ───────────────────────────────────────────── */
-.species-mixer-table {
-  font-size: 0.875rem;
+#species-mix-card {
+  min-width: 0;
+  max-width: 100%;
 }
+
+#species-table-wrapper {
+  width: 100%;
+  max-width: 100%;
+  overflow: hidden;
+}
+
+.species-mixer-table {
+  font-size: 0.8rem;
+  table-layout: fixed;
+  width: 100%;
+  max-width: 100%;
+}
+
+/* Column widths — % so all columns scale with the table */
+.species-mixer-table .col-check  { width: 4%; }
+.species-mixer-table .col-dot    { width: 3%; }
+.species-mixer-table .col-species { width: 22%; }
+.species-mixer-table .col-chars  { width: 27%; }
+.species-mixer-table .col-native { width: 15%; }
+.species-mixer-table .col-rho   { width: 7%; }
+.species-mixer-table .col-pi    { width: 7%; }
+.species-mixer-table .col-n     { width: 7%; }
+.species-mixer-table .col-del   { width: 4%; }
 
 .species-mixer-table thead th {
   background-color: var(--bs-tertiary-bg);
   border-bottom: 2px solid var(--bs-border-color);
   font-weight: 600;
-  font-size: 0.8rem;
+  font-size: 0.75rem;
   text-transform: uppercase;
   letter-spacing: 0.03em;
   color: var(--bs-secondary-color);
-  padding: 0.6rem 0.75rem;
-  white-space: nowrap;
+  padding: 0.4rem 0.35rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
-.species-mixer-table thead th .symbol {
+.species-mixer-table thead .col-rho,
+.species-mixer-table thead .col-pi,
+.species-mixer-table thead .col-n {
+  text-align: center;
+  font-family: 'Georgia', serif;
+  font-style: italic;
   text-transform: none;
+  letter-spacing: 0;
+  font-size: 0.9rem;
 }
 
 .species-mixer-table tbody td {
-  padding: 0.5rem 0.75rem;
+  padding: 0.4rem 0.35rem;
   vertical-align: middle;
   border-bottom: 1px solid var(--bs-border-color);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: normal;
 }
 
-/* Group header rows */
+
+/* Species name — allow two-line wrap */
+.species-mixer-table .species-name-cell {
+  white-space: normal;
+  line-height: 1.3;
+}
+
+/* Numeric columns — centered */
+.species-mixer-table .col-rho,
+.species-mixer-table .col-pi,
+.species-mixer-table .col-n {
+  text-align: center;
+}
+
+/* Delete column — never clip */
+.species-mixer-table .col-del {
+  overflow: visible;
+  text-align: center;
+  padding: 0.25rem 0.35rem;
+}
+
+/* Group header rows — left-aligned category dividers */
 .species-mixer-group-header td {
   background-color: var(--bs-tertiary-bg);
   font-weight: 600;
-  font-size: 0.8rem;
+  font-size: 0.72rem;
   text-transform: uppercase;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.05em;
   color: var(--bs-secondary-color);
-  padding: 0.4rem 0.75rem !important;
+  padding: 0.3rem 0.6rem !important;
   border-bottom: 1px solid var(--bs-border-color);
+  text-align: left;
 }
 
 /* Species rows — subtle hover */
 .species-mixer-row {
   transition: background-color 0.1s ease;
 }
-
 .species-mixer-row:hover {
-  background-color: var(--bs-hover-bg);
+  background-color: var(--bs-tertiary-bg);
 }
 
 /* Colour dot matching map point */
 .species-colour-dot {
   display: inline-block;
-  width: 0.75rem;
-  height: 0.75rem;
+  width: 0.7rem;
+  height: 0.7rem;
   border-radius: 50%;
   vertical-align: middle;
-  border: 1px solid rgba(0, 0, 0, 0.1);
+  border: 1px solid rgba(0, 0, 0, 0.12);
 }
 
-/* Inline density slider */
-.species-mixer-table .form-range {
-  height: 0.35rem;
-  min-width: 4rem;
-}
-
-/* Search input in header */
-.species-mixer-search {
-  max-width: 14rem;
-}
-
-.species-mixer-search .input-group-text {
-  background-color: var(--bs-tertiary-bg);
-  border-color: var(--bs-border-color);
+/* ── Characteristic pills (benefits + category) ──────────────── */
+.species-char-pill {
+  font-size: 0.65rem;
+  font-weight: 500;
+  padding: 0.2em 0.55em;
+  border-radius: 999px;
+  background-color: color-mix(in srgb, var(--bs-secondary) 12%, transparent);
   color: var(--bs-secondary-color);
+  border: 1px solid color-mix(in srgb, var(--bs-secondary) 20%, transparent);
+  white-space: nowrap; /* individual pill stays on one line, but the flex container wraps */
 }
 
-.species-mixer-search .form-control {
-  border-color: var(--bs-border-color);
+.species-cat-pill {
+  font-size: 0.65rem;
+  font-weight: 500;
+  padding: 0.2em 0.55em;
+  border-radius: 999px;
+  background-color: color-mix(in srgb, var(--bs-primary) 10%, transparent);
+  color: var(--bs-primary);
+  border: 1px solid color-mix(in srgb, var(--bs-primary) 20%, transparent);
+  white-space: nowrap;
+}
+
+/* ── Native / Invasive status badges ─────────────────────────── */
+.species-status-pill {
+  font-size: 0.65rem;
+  font-weight: 600;
+  padding: 0.2em 0.6em;
+  border-radius: 999px;
+  letter-spacing: 0.01em;
+  white-space: nowrap;
+}
+
+.species-status-pill--native {
+  background-color: color-mix(in srgb, var(--bs-success) 12%, transparent);
+  color: var(--bs-success);
+  border: 1px solid color-mix(in srgb, var(--bs-success) 25%, transparent);
+}
+
+.species-status-pill--invasive {
+  background-color: color-mix(in srgb, var(--bs-danger) 12%, transparent);
+  color: var(--bs-danger);
+  border: 1px solid color-mix(in srgb, var(--bs-danger) 25%, transparent);
+}
+
+.species-status-pill--suitable {
+  background-color: color-mix(in srgb, var(--bs-info) 12%, transparent);
+  color: var(--bs-info);
+  border: 1px solid color-mix(in srgb, var(--bs-info) 25%, transparent);
+}
+
+/* ── Skeleton rows (pre-generation blur) ─────────────────────── */
+.mix-skeleton-row {
+  filter: blur(4px);
+  pointer-events: none;
+  user-select: none;
+  opacity: 0.5;
+}
+
+.skeleton-cell {
+  display: inline-block;
+  height: 0.75em;
+  border-radius: 4px;
+  width: 3rem;
+  background: linear-gradient(
+    90deg,
+    var(--bs-tertiary-bg, #f2f2f2) 25%,
+    var(--bs-secondary-bg, #e0e0e0) 50%,
+    var(--bs-tertiary-bg, #f2f2f2) 75%
+  );
+  background-size: 40rem 100%;
+  animation: skeleton-shimmer 1.4s ease-in-out infinite;
+}
+
+.skeleton-cell.skeleton-dot {
+  width: 0.7rem;
+  height: 0.7rem;
+  border-radius: 50%;
+}
+
+/* ── Add Species modal list ──────────────────────────────────── */
+.add-species-results {
+  max-height: 22rem;
+  overflow-y: auto;
+}
+
+.add-species-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.add-species-item {
+  padding: 0.6rem 0.75rem;
+  border-radius: var(--bs-border-radius);
+  border: 1px solid var(--bs-border-color);
+  cursor: pointer;
+  transition: background-color 0.1s, border-color 0.1s;
+}
+
+.add-species-item:hover {
+  background-color: var(--bs-tertiary-bg);
+  border-color: var(--bs-primary);
+}
+
+.add-species-item--selected {
+  background-color: color-mix(in srgb, var(--bs-primary) 10%, transparent);
+  border-color: var(--bs-primary);
+}
+
+.add-species-item--added {
+  opacity: 0.55;
+  cursor: not-allowed;
+  background-color: var(--bs-tertiary-bg);
+}
+
+/* ── Species mix table toolbar (search + category filter) ────── */
+.species-mix-toolbar {
+  border-bottom: 1px solid var(--bs-border-color);
+}
+
+.species-mix-toolbar .form-control-sm,
+.species-mix-toolbar .form-select-sm {
+  font-size: 0.8rem;
 }
 
 /* ── AI Insights placeholder ─────────────────────────────────── */
@@ -462,19 +669,24 @@
 }
 
 /* ── Responsive adjustments ──────────────────────────────────── */
-@media (max-width: 991.98px) {
-  .species-mixer-map-container {
-    min-height: 40vh;
+@media (max-width: 767.98px) {
+  /* Stack pane vertically on mobile */
+  .mixer-pane {
+    flex-direction: column;
+    height: auto;
+  }
+
+  .mixer-pane__map {
+    flex: 0 0 45vh;
+    width: 100% !important;
+  }
+
+  .mixer-pane__divider {
+    display: none;
   }
 
   .species-mixer-select {
     max-width: 7rem;
-  }
-
-  /* Stack the map header controls */
-  .species-mixer-map-card .card-header {
-    flex-wrap: wrap;
-    gap: 0.5rem;
   }
 }
 

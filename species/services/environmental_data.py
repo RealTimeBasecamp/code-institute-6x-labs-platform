@@ -84,6 +84,7 @@ SPECIES DATABASES (what species grow at this location?):
 
 import logging
 import math
+from concurrent.futures import ThreadPoolExecutor, as_completed
 
 import requests
 from django.core.cache import cache
@@ -971,16 +972,25 @@ class SpeciesCandidateTool:
         # --- Step 3: Sort by evidence weight, cap at limit ---
         candidates = sorted(merged.values(), key=lambda x: x['observation_count'], reverse=True)[:limit]
 
-        # --- Step 4: Enrich ALL candidates with GBIF trait data ---
+        # --- Step 4: Enrich ALL candidates with GBIF trait data (parallel) ---
         # Must fetch traits for every candidate so that trees, grasses, and ferns
         # (which tend to have lower citizen-science observation counts and often fall
         # outside the top 30) still receive family data and score correctly.
-        for candidate in candidates:
+        # Parallelise with up to 10 workers — GBIF is rate-limit tolerant but
+        # avoid hammering it with 60 simultaneous requests.
+        def _enrich(candidate):
             traits = fetch_gbif_species_traits(candidate['scientific_name'])
             candidate['gbif_traits'] = traits
             candidate['family'] = traits.get('family')
-            # Fill in vernacular name if we don't have one
             if not candidate['common_name'] and traits.get('vernacular_names'):
                 candidate['common_name'] = traits['vernacular_names'][0]
+            return candidate
+
+        with ThreadPoolExecutor(max_workers=10) as pool:
+            futures = {pool.submit(_enrich, c): c for c in candidates}
+            candidates = [f.result() for f in as_completed(futures)]
+
+        # Restore sort order (as_completed returns in completion order, not submission order)
+        candidates.sort(key=lambda x: x['observation_count'], reverse=True)
 
         return candidates
