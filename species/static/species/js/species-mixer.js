@@ -1154,7 +1154,7 @@ class SpeciesMixer {
   // Mode C: Validate manually added species
   // ──────────────────────────────────────────────────────────────────────────
 
-  async _validateSpecies(speciesId, speciesName) {
+  async _validateSpecies(speciesId, _speciesName) {
     const currentMix = this.mixItems.map(item => ({
       species_id: item.species_id,
       name: item.name,
@@ -1224,6 +1224,14 @@ class SpeciesMixer {
             }
             this._setProgressBar(100);
             this._appendFeedLine('Mix generation complete.', 'success');
+            // Attribution lines — shown once at the end of the feed log
+            this._appendFeedLine('Soil data', '', { label: 'ISRIC SoilGrids · CC-BY 4.0', url: 'https://soilgrids.org' });
+            this._appendFeedLine('Climate data', '', { label: 'Open-Meteo · CC-BY 4.0', url: 'https://open-meteo.com' });
+            this._appendFeedLine('Flood &amp; hydrology data — Environment Agency', '', { label: 'EA · OGL', url: 'https://environment.data.gov.uk/flood-monitoring/doc/reference' });
+            this._appendFeedLine('Flood &amp; hydrology data — SEPA', '', { label: 'SEPA · OGL', url: 'https://www.sepa.org.uk/environment/water/flooding/' });
+            this._appendFeedLine('Species occurrence records', '', { label: 'GBIF · CC0 &amp; CC-BY 4.0', url: 'https://www.gbif.org' });
+            this._appendFeedLine('UK native species records', '', { label: 'NBN Atlas · CC-BY &amp; CC0', url: 'https://nbnatlas.org' });
+            this._appendFeedLine('Citizen science observations', '', { label: 'iNaturalist · CC0, CC-BY &amp; CC-BY-SA', url: 'https://www.inaturalist.org' });
           }
           this._onTaskComplete(mode, data.result, extra);
         } else if (data.status === 'error' || data.status === 'not_found') {
@@ -1263,15 +1271,20 @@ class SpeciesMixer {
     }
   }
 
-  _appendFeedLine(msg, type = '') {
+  _appendFeedLine(msg, type = '', source = null) {
     const log = document.getElementById('generation-feed-log');
     if (!log) return;
     const line = document.createElement('div');
     line.className = `feed-line${type ? ` feed-line--${type}` : ''}`;
-    line.innerHTML = `<i class="bi bi-check2 feed-line__icon"></i><span>${msg}</span>`;
+
+    // Optional attribution tag — shown inline with the log entry
+    const sourceAttr = source
+      ? `<a href="${source.url}" target="_blank" rel="noopener" class="feed-line__source">${source.label}</a>`
+      : '';
+    line.innerHTML = `<i class="bi bi-check2 feed-line__icon"></i><span>${msg}</span>${sourceAttr}`;
     log.appendChild(line);
-    // Keep at most 5 lines — silently drop the oldest when a 6th arrives
-    while (log.children.length > 5) {
+    // Keep at most 6 lines — silently drop the oldest when a 7th arrives
+    while (log.children.length > 6) {
       log.removeChild(log.firstChild);
     }
   }
@@ -1457,7 +1470,7 @@ class SpeciesMixer {
         const textMatch = !term || rowText.includes(term);
 
         // Category match — check the group header key that precedes this row
-        const rowCat = row.closest('tbody')
+        row.closest('tbody')
           ?.querySelector(`[data-group-header]`)  // fallback
           ?.dataset?.groupHeader || '';
         // More reliably: walk backwards from this row to find its group header
@@ -2050,8 +2063,8 @@ class SpeciesMixer {
       const resp = await fetch(this.config.apiUrls.mixes, {
         headers: { 'X-CSRFToken': this.config.csrfToken },
       });
-      const data = await resp.json();
-      // TODO: re-render #saved-mixes-grid from data.mixes
+      await resp.json();
+      // TODO: re-render #saved-mixes-grid from response mixes
       // For now, the Django template renders initial state.
     } catch { /* silent */ }
   }

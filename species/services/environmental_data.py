@@ -639,6 +639,8 @@ def fetch_gbif_occurrences(lat: float, lng: float, radius_km: int = 10) -> list[
             'limit': 100,
             'hasCoordinate': 'true',
             'occurrenceStatus': 'PRESENT',
+            # Only CC0 and CC-BY records — excludes CC-BY-NC (non-commercial only)
+            'license': ['CC0_1_0', 'CC_BY_4_0'],
         }
     )
 
@@ -757,6 +759,10 @@ def fetch_inaturalist(lat: float, lng: float, radius_km: int = 10) -> list[dict]
     # 'iconic_taxa=Plantae' filters to the Plantae kingdom.
     # 'taxon_name=Plantae' does NOT work for kingdom-level filtering.
     # Only 'research' grade = community-confirmed IDs (not casual/needs-ID).
+    # license + photo_license: CC0/CC-BY/CC-BY-SA only — excludes all NC variants.
+    # Both params are required: an observation record and its attached photos can
+    # carry different licences; filtering only 'license' still allows CC-BY-NC photos.
+    _COMMERCIAL_LICENCES = 'cc0,cc-by,cc-by-sa'
     data = _get(
         'https://api.inaturalist.org/v1/observations',
         params={
@@ -767,6 +773,8 @@ def fetch_inaturalist(lat: float, lng: float, radius_km: int = 10) -> list[dict]
             'quality_grade': 'research',
             'per_page': 100,
             'order_by': 'votes',
+            'license': _COMMERCIAL_LICENCES,
+            'photo_license': _COMMERCIAL_LICENCES,
         },
         headers={'User-Agent': 'SpeciesMixer/1.0'}
     )
@@ -825,6 +833,9 @@ def fetch_nbn_atlas(lat: float, lng: float, radius_km: int = 10) -> list[str]:
             'radius': radius_km,
             'pageSize': 100,
             'facet': 'false',
+            # Exclude CC-BY-NC records — server-side Solr filter, not post-processing.
+            # NBN Atlas stores the value as 'CC-BY-NC' (hyphenated, no spaces).
+            'fq': '-license:"CC-BY-NC"',
         }
     )
 
