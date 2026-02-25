@@ -1,4 +1,3 @@
-from typing import Any
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib.admin.views.decorators import staff_member_required
 from django.shortcuts import get_object_or_404, render
@@ -6,7 +5,7 @@ from django.http import HttpResponse
 from django.urls import reverse
 from django.utils.decorators import method_decorator
 from django.views.generic import ListView
-from core.card_utils import render_card_groups
+from core.utils.api_usage import get_all_usage, get_summary
 from users.models import User
 
 """
@@ -88,7 +87,8 @@ def customers_usage(request):
     Global usage analytics view. Accessible at path 'customers/usage/'.
     """
     context = {
-        'usage_data': {}
+        'api_usage': get_all_usage(),
+        'api_summary': get_summary(),
     }
     return render(request, 'customers/customers_usage.html', context)
 

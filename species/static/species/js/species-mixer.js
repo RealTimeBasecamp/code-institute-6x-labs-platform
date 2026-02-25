@@ -1231,7 +1231,7 @@ class SpeciesMixer {
             this._appendFeedLine('Flood &amp; hydrology data — SEPA', '', { label: 'SEPA · OGL', url: 'https://www.sepa.org.uk/environment/water/flooding/' });
             this._appendFeedLine('Species occurrence records', '', { label: 'GBIF · CC0 &amp; CC-BY 4.0', url: 'https://www.gbif.org' });
             this._appendFeedLine('UK native species records', '', { label: 'NBN Atlas · CC-BY &amp; CC0', url: 'https://nbnatlas.org' });
-            this._appendFeedLine('Citizen science observations', '', { label: 'iNaturalist · CC0, CC-BY &amp; CC-BY-SA', url: 'https://www.inaturalist.org' });
+
           }
           this._onTaskComplete(mode, data.result, extra);
         } else if (data.status === 'error' || data.status === 'not_found') {
@@ -1626,9 +1626,8 @@ class SpeciesMixer {
     const sciName = encodeURIComponent(item.scientific_name || '');
 
     const SOURCE_META = {
-      gbif:        { label: 'GBIF',        colour: '#4CAF50' },
-      inaturalist: { label: 'iNaturalist', colour: '#74AC00' },
-      nbn:         { label: 'NBN Atlas',   colour: '#003087' },
+      gbif: { label: 'GBIF',      colour: '#4CAF50' },
+      nbn:  { label: 'NBN Atlas', colour: '#003087' },
     };
 
     return sources.map(src => {
@@ -1638,8 +1637,6 @@ class SpeciesMixer {
         href = gbifKey
           ? `https://www.gbif.org/species/${gbifKey}`
           : `https://www.gbif.org/species/search?q=${sciName}`;
-      } else if (src === 'inaturalist') {
-        href = `https://www.inaturalist.org/taxa/search?q=${sciName}`;
       } else if (src === 'nbn') {
         href = `https://records.nbnatlas.org/occurrences/search?q=${sciName}`;
       }

@@ -62,12 +62,12 @@ ENVIRONMENTAL DATA (soil, climate, hydrology):
 SPECIES DATABASES (what species grow at this location?):
   ✅  GBIF Occurrence API        https://api.gbif.org/v1/occurrence/search
       Free, no auth. Find plant species observed near lat/lng.
+      Note: GBIF ingests all iNaturalist research-grade observations weekly
+      (dataset 50c9509d-22c7-4a22-a47d-8c48425ef4a7), so iNaturalist is not
+      called separately — GBIF already contains that data.
 
   ✅  GBIF Species API           https://api.gbif.org/v1/species/
       Free, no auth. Species name match, taxonomy, vernacular names, trait data.
-
-  ✅  iNaturalist                https://api.inaturalist.org/v1/
-      Free, no auth (read-only). Research-grade plant observations near lat/lng.
 
   🔷  NBN Atlas                  https://records-ws.nbnatlas.org/
       Free, no auth. UK-specific plant records (BSBI data included). ALA query syntax.
@@ -83,13 +83,13 @@ SPECIES DATABASES (what species grow at this location?):
 """
 
 import logging
-import math
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
 import requests
 from django.core.cache import cache
 
 from core.utils.gis import wgs84_to_bng
+from core.utils.api_usage import increment as _track
 
 logger = logging.getLogger(__name__)
 
@@ -158,6 +158,7 @@ def fetch_soilgrids(lat: float, lng: float) -> dict:
         params.append(('property', prop))
 
     data = _get('https://rest.isric.org/soilgrids/v2.0/properties/query', params=params)
+    _track('soilgrids')
 
     result = {}
     if data and 'properties' in data:
@@ -306,6 +307,7 @@ def _fetch_ea_flood_risk(lat: float, lng: float) -> dict:
     Free, no auth required.
     """
     result = {'flood_risk': 'low', 'water_body_nearby': False, 'source': 'ea'}
+    _track('ea_flood')
     try:
         # Check for active flood warnings first (high risk)
         warnings = _get(
@@ -348,6 +350,7 @@ def _fetch_sepa_flood_risk(lat: float, lng: float) -> dict:
     Note: the old domain maps.sepa.org.uk no longer exists in DNS.
     """
     result = {'flood_risk': 'low', 'water_body_nearby': False, 'source': 'sepa'}
+    _track('sepa')
 
     try:
         easting, northing = wgs84_to_bng(lat, lng)
@@ -458,6 +461,7 @@ def _fetch_open_meteo_climate(lat: float, lng: float) -> dict:
             timeout=20,
         )
         resp.raise_for_status()
+        _track('open_meteo')
         data = resp.json()
         daily = data.get('daily', {})
         precip = daily.get('precipitation_sum', [])
@@ -586,6 +590,7 @@ def fetch_location_name(lat: float, lng: float) -> str:
         params={'lat': lat, 'lon': lng, 'format': 'json', 'zoom': 10},
         headers={'User-Agent': 'SpeciesMixer/1.0 (ecological-planting-tool)'}
     )
+    _track('nominatim')
 
     if data and 'display_name' in data:
         addr = data.get('address', {})
@@ -624,25 +629,25 @@ def fetch_gbif_occurrences(lat: float, lng: float, radius_km: int = 10) -> list[
     if cached is not None:
         return cached
 
-    # GBIF uses bounding box, not radius — approximate radius in degrees
-    lat_delta = radius_km / 111.0
-    lng_delta = radius_km / (111.0 * math.cos(math.radians(lat)))
-
+    # GBIF supports geo_distance for true circular radius search:
+    # geo_distance={radius_km}km,{lat},{lng}  (GBIF uses km unit)
+    # This replaces the old bounding-box approximation which over-counted
+    # corner records and under-reported species density accurately.
     # kingdom=Plantae filter is unreliable in GBIF — animals still appear.
     # kingdomKey=6 is the GBIF taxon key for Plantae (more reliable).
     data = _get(
         'https://api.gbif.org/v1/occurrence/search',
         params={
-            'kingdomKey': 6,  # Plantae — more reliable than kingdom=Plantae string
-            'decimalLatitude': f'{lat - lat_delta},{lat + lat_delta}',
-            'decimalLongitude': f'{lng - lng_delta},{lng + lng_delta}',
+            'kingdomKey': 6,  # Plantae — more reliable than kingdom=Plantae
+            'geo_distance': f'{radius_km}km,{lat},{lng}',
             'limit': 100,
             'hasCoordinate': 'true',
             'occurrenceStatus': 'PRESENT',
-            # Only CC0 and CC-BY records — excludes CC-BY-NC (non-commercial only)
+            # Only CC0 and CC-BY records — excludes CC-BY-NC (non-commercial)
             'license': ['CC0_1_0', 'CC_BY_4_0'],
         }
     )
+    _track('gbif')
 
     # Aggregate by species, filter to plants only as a safety net
     _PLANT_KINGDOMS = {'plantae', 'fungi', 'chromista'}  # include fungi/algae, exclude animals
@@ -704,6 +709,7 @@ def fetch_gbif_species_traits(scientific_name: str) -> dict:
         'https://api.gbif.org/v1/species/match',
         params={'name': scientific_name, 'kingdom': 'Plantae', 'verbose': 'false'}
     )
+    _track('gbif')
 
     result = {
         'gbif_key': None,
@@ -738,76 +744,6 @@ def fetch_gbif_species_traits(scientific_name: str) -> dict:
 
 
 # =============================================================================
-# ✅ INATURALIST — https://api.inaturalist.org/v1/
-# Free, no auth (read-only). Research-grade plant observations near lat/lng.
-# Complements GBIF: more recent data, photo-verified, community-identified.
-# =============================================================================
-def fetch_inaturalist(lat: float, lng: float, radius_km: int = 10) -> list[dict]:
-    """
-    Find research-grade plant observations near a location via iNaturalist.
-
-    Returns list of dicts: [{ scientific_name, common_name, observation_count }, ...]
-    sorted by observation count descending.
-
-    Only 'research' quality_grade observations are returned (community-confirmed IDs).
-    """
-    key = _cache_key(f'inat:{radius_km}', lat, lng)
-    cached = cache.get(key)
-    if cached is not None:
-        return cached
-
-    # 'iconic_taxa=Plantae' filters to the Plantae kingdom.
-    # 'taxon_name=Plantae' does NOT work for kingdom-level filtering.
-    # Only 'research' grade = community-confirmed IDs (not casual/needs-ID).
-    # license + photo_license: CC0/CC-BY/CC-BY-SA only — excludes all NC variants.
-    # Both params are required: an observation record and its attached photos can
-    # carry different licences; filtering only 'license' still allows CC-BY-NC photos.
-    _COMMERCIAL_LICENCES = 'cc0,cc-by,cc-by-sa'
-    data = _get(
-        'https://api.inaturalist.org/v1/observations',
-        params={
-            'iconic_taxa': 'Plantae',
-            'lat': lat,
-            'lng': lng,
-            'radius': radius_km,
-            'quality_grade': 'research',
-            'per_page': 100,
-            'order_by': 'votes',
-            'license': _COMMERCIAL_LICENCES,
-            'photo_license': _COMMERCIAL_LICENCES,
-        },
-        headers={'User-Agent': 'SpeciesMixer/1.0'}
-    )
-
-    # Filter to plants/fungi only — iconic_taxa=Plantae should already do this,
-    # but some observations can slip through at higher ranks
-    _PLANT_ICONIC = {'plantae', 'fungi', 'chromista', 'protozoa'}
-    species_counts: dict[str, dict] = {}
-    if data and 'results' in data:
-        for obs in data['results']:
-            taxon = obs.get('taxon') or {}
-            # Skip if iconic taxon is not plant-related
-            iconic = (taxon.get('iconic_taxon_name') or '').lower()
-            if iconic and iconic not in _PLANT_ICONIC:
-                continue
-            name = taxon.get('name')
-            common = taxon.get('preferred_common_name') or taxon.get('english_common_name')
-            if name:
-                if name not in species_counts:
-                    species_counts[name] = {
-                        'scientific_name': name,
-                        'common_name': common,
-                        'observation_count': 0,
-                    }
-                species_counts[name]['observation_count'] += 1
-
-    result = sorted(species_counts.values(), key=lambda x: x['observation_count'], reverse=True)
-
-    cache.set(key, result, _CACHE_TTL)
-    return result
-
-
-# =============================================================================
 # ✅ NBN ATLAS (UK National Biodiversity Network) — https://nbnatlas.org
 # Free, no auth. UK-specific plant records including BSBI data.
 # Best source for UK native plant presence/absence near a point.
@@ -838,6 +774,7 @@ def fetch_nbn_atlas(lat: float, lng: float, radius_km: int = 10) -> list[str]:
             'fq': '-license:"CC-BY-NC"',
         }
     )
+    _track('nbn')
 
     names = []
     if data and 'occurrences' in data:
@@ -887,12 +824,14 @@ class SpeciesCandidateTool:
     Aggregate species candidates from external databases for a given location.
 
     Logic:
-      1. Fetch GBIF occurrence records near the location (what's been recorded here)
-      2. Fetch iNaturalist research-grade observations (recent, photo-verified)
-      3. Fetch NBN Atlas records (UK-authoritative, includes BSBI data)
-      4. Merge and deduplicate by scientific name
-      5. For each unique species, fetch GBIF trait data (family, vernacular names)
-      6. Return a unified list ordered by observation evidence weight
+      1. Fetch GBIF occurrence records near the location (what's been recorded here).
+         Note: GBIF already ingests all iNaturalist research-grade observations weekly
+         (dataset 50c9509d-22c7-4a22-a47d-8c48425ef4a7), so iNaturalist is not
+         called separately — GBIF already contains that data.
+      2. Fetch NBN Atlas records (UK-authoritative, includes BSBI data)
+      3. Merge and deduplicate by scientific name
+      4. For each unique species, fetch GBIF trait data (family, vernacular names)
+      5. Return a unified list ordered by observation evidence weight
 
     The AI agent then cross-references this list against the environmental data
     (soil pH, flood risk, rainfall, texture) to produce suitability scores.
@@ -929,8 +868,9 @@ class SpeciesCandidateTool:
             env_data = {}
 
         # --- Step 1: Collect raw occurrence records ---
+        # GBIF already ingests iNaturalist research-grade records weekly, so
+        # we do not call iNaturalist separately — it would be double-counting.
         gbif_records = fetch_gbif_occurrences(lat, lng, radius_km)
-        inat_records = fetch_inaturalist(lat, lng, radius_km)
         nbn_names = fetch_nbn_atlas(lat, lng, radius_km)
 
         # Convert NBN names to the same dict format
@@ -948,22 +888,6 @@ class SpeciesCandidateTool:
                 'observation_count': rec['observation_count'],
                 'sources': ['gbif'],
             }
-
-        for rec in inat_records:
-            name = rec['scientific_name']
-            if name in merged:
-                merged[name]['observation_count'] += rec['observation_count']
-                merged[name]['sources'].append('inaturalist')
-                if not merged[name]['common_name'] and rec.get('common_name'):
-                    merged[name]['common_name'] = rec['common_name']
-            else:
-                merged[name] = {
-                    'scientific_name': name,
-                    'common_name': rec.get('common_name'),
-                    'gbif_key': None,
-                    'observation_count': rec['observation_count'],
-                    'sources': ['inaturalist'],
-                }
 
         for rec in nbn_records:
             name = rec['scientific_name']

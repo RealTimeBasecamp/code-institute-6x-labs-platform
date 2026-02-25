@@ -1,24 +1,140 @@
 {% extends 'base.html' %}
-{% load static %}
+{% load static ui_tags %}
 
 {% block meta_title %}Usage{% endblock %}
 {% block page_title %}Usage{% endblock %}
 
 {% block extra_css %}
-<link rel="stylesheet" href="{% static 'css/components/sortable-table.css' %}">
-{% endblock %}
-
-{% block header_contents %}
-
+<link rel="stylesheet" href="{% static 'css/components/nav-pills.css' %}">
 {% endblock %}
 
 {% block content %}
-<p>Content</p>
+{% make_tabs 'customers:Customers:bi-people,api:API Usage:bi-plug' as usage_tabs %}
 
+<div class="mb-3">
+  {% include 'components/nav_pills.html' with tabs=usage_tabs id='usage-tabs' variant='text' %}
+</div>
+
+<div class="tab-content">
+
+  <!-- ── TAB: CUSTOMERS ─────────────────────────────────────────────────── -->
+  <div class="tab-pane fade show active" id="tab-customers" role="tabpanel">
+    <p class="text-muted">Customer analytics coming soon.</p>
+  </div>
+
+  <!-- ── TAB: API USAGE ─────────────────────────────────────────────────── -->
+  <div class="tab-pane fade" id="tab-api" role="tabpanel">
+
+    <!-- Summary stat cards -->
+    <div class="row g-3 mb-4">
+      <div class="col-6 col-md-3">
+        <div class="card text-center h-100">
+          <div class="card-body py-3">
+            <div class="fs-2 fw-bold">{{ api_summary.total_calls }}</div>
+            <div class="text-muted small">Total calls today</div>
+          </div>
+        </div>
+      </div>
+      <div class="col-6 col-md-3">
+        <div class="card text-center h-100">
+          <div class="card-body py-3">
+            <div class="fs-2 fw-bold">{{ api_summary.api_count }}</div>
+            <div class="text-muted small">APIs monitored</div>
+          </div>
+        </div>
+      </div>
+      <div class="col-6 col-md-3">
+        <div class="card text-center h-100">
+          <div class="card-body py-3">
+            <div class="fs-2 fw-bold">{{ api_summary.limited_count }}</div>
+            <div class="text-muted small">APIs with daily limits</div>
+          </div>
+        </div>
+      </div>
+      <div class="col-6 col-md-3">
+        <div class="card text-center h-100">
+          <div class="card-body py-3">
+            <div class="fs-2 fw-bold {% if api_summary.at_risk_count > 0 %}text-warning{% endif %}">
+              {{ api_summary.at_risk_count }}
+            </div>
+            <div class="text-muted small">APIs above 60% limit</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- API rows -->
+    <div class="card">
+      <div class="card-header d-flex align-items-center justify-content-between">
+        <span><i class="bi bi-plug me-2"></i>External API Calls — Today</span>
+        <small class="text-muted">Resets at midnight · Cache-miss calls only</small>
+      </div>
+      <div class="card-body p-0">
+        {% for api in api_usage %}
+        <div class="px-4 py-3 {% if not forloop.last %}border-bottom{% endif %}">
+          <div class="d-flex align-items-center justify-content-between gap-3 mb-2">
+            <div class="d-flex align-items-center gap-2">
+              <i class="bi {{ api.icon }} text-muted"></i>
+              <span class="fw-semibold">{{ api.label }}</span>
+              <span class="text-muted small">{{ api.flag }} {{ api.location }}</span>
+              {% if api.warning %}
+              <span class="badge text-bg-warning" style="font-size:.65rem;"
+                    title="{{ api.warning }}">
+                <i class="bi bi-exclamation-triangle me-1"></i>{{ api.warning }}
+              </span>
+              {% endif %}
+            </div>
+            <div class="d-flex align-items-center gap-3 flex-shrink-0">
+              <span class="badge bg-secondary bg-opacity-10 text-secondary" style="font-size:.65rem;">
+                {{ api.licence }}
+              </span>
+              {% if api.daily_limit %}
+              <span class="fw-semibold small {% if api.bar_colour == 'danger' %}text-danger{% elif api.bar_colour == 'warning' %}text-warning{% else %}text-success{% endif %}">
+                {{ api.count }} / {{ api.daily_limit }} today
+              </span>
+              {% else %}
+              <span class="text-muted small">{{ api.count }} today</span>
+              {% endif %}
+            </div>
+          </div>
+
+          {% if api.daily_limit %}
+          <!-- Rate-limited API — colour-coded progress bar -->
+          <div class="progress" style="height:6px;" title="{{ api.pct }}% of daily limit used">
+            <div class="progress-bar bg-{{ api.bar_colour }}"
+                 role="progressbar"
+                 style="width:{{ api.display_pct }}%"
+                 aria-valuenow="{{ api.count }}"
+                 aria-valuemin="0"
+                 aria-valuemax="{{ api.daily_limit }}"></div>
+          </div>
+          <div class="d-flex justify-content-between mt-1">
+            <small class="text-muted">0</small>
+            <small class="text-muted">{{ api.daily_limit }} limit</small>
+          </div>
+          {% else %}
+          <!-- Unlimited API — fills against soft cap of 50 calls, empty at 0 -->
+          <div class="progress" style="height:4px;" title="{{ api.count }} calls today (no hard limit)">
+            <div class="progress-bar bg-{{ api.bar_colour }} bg-opacity-50"
+                 role="progressbar"
+                 style="width:{{ api.display_pct }}%"
+                 aria-valuenow="{{ api.count }}"
+                 aria-valuemin="0"
+                 aria-valuemax="50"></div>
+          </div>
+          <small class="text-muted">No hard limit</small>
+          {% endif %}
+        </div>
+        {% empty %}
+        <div class="px-4 py-3 text-muted small">No API definitions found.</div>
+        {% endfor %}
+      </div>
+    </div>
+
+  </div><!-- /tab-api -->
+</div><!-- /tab-content -->
 {% endblock %}
 
 {% block extra_js %}
-<script src="{% static 'js/components/sortable-table.js' %}" defer></script>
+<script src="{% static 'js/components/nav-pills.js' %}" defer></script>
 {% endblock %}
-
-

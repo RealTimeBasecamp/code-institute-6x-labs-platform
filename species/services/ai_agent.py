@@ -6,16 +6,20 @@ BLOOM model (bigscience/bloomz-7b1-mt recommended) to orchestrate
 environmental data collection and generate an ecologically sound species mix.
 
 SPECIES SOURCE: External biodiversity databases (no local species DB required).
-The agent queries GBIF, iNaturalist, and NBN Atlas to find species observed
-near the target location, fetches trait data from the GBIF Species API,
-then cross-references those traits against environmental conditions (soil pH,
-flood risk, rainfall, texture) to produce a ranked suitability score.
+The agent queries GBIF and NBN Atlas to find species observed near the target
+location, fetches trait data from the GBIF Species API, then cross-references
+those traits against environmental conditions (soil pH, flood risk, rainfall,
+texture) to produce a ranked suitability score.
+
+Note: iNaturalist is NOT called separately. GBIF ingests all iNaturalist
+research-grade observations weekly (dataset 50c9509d-22c7-4a22-a47d-8c48425ef4a7),
+so the data is already included in GBIF occurrence results.
 
 Example: high flood risk (EA/SEPA data) + Salix sp. (flood-tolerant trait) → high score.
          low rainfall + Cistus sp. (drought-tolerant) → high score.
 
 The LLM uses tool-calling (function-use) in a loop:
-  1. Agent queries SoilGrids, GBIF occurrences, iNaturalist, NBN Atlas,
+  1. Agent queries SoilGrids, GBIF occurrences, NBN Atlas,
      climate heuristics, and EA/SEPA hydrology APIs
   2. Agent calls search_species_candidates to get cross-referenced candidates
   3. Agent reasons over env conditions vs species traits → ranked species mix
@@ -377,7 +381,7 @@ _TOOLS = [
         'function': {
             'name': 'search_species_candidates',
             'description': (
-                'Search external species databases (GBIF, iNaturalist, NBN Atlas) for '
+                'Search external species databases (GBIF, NBN Atlas) for '
                 'plant species recorded near the location, then fetch trait data for each '
                 'species from GBIF Species API. Returns candidates with trait profiles so '
                 'you can cross-reference them against the environmental conditions '
@@ -406,7 +410,7 @@ _TOOL_HANDLERS = {
     'query_gbif': lambda args: fetch_gbif(**args),
     'query_climate': lambda args: fetch_climate(**args),
     'query_hydrology': lambda args: fetch_hydrology(**args),
-    # search_species_candidates queries GBIF, iNaturalist, NBN Atlas externally
+    # search_species_candidates queries GBIF and NBN Atlas externally
     # and cross-references species trait data — no local DB required
     'search_species_candidates': lambda args: SpeciesCandidateTool.search(**args),
 }
@@ -679,7 +683,6 @@ class SpeciesMixAgent:
 
         _p('Searching NBN Atlas — native species observed nearby...')
         _p('Searching GBIF — global biodiversity occurrence records...')
-        _p('Searching iNaturalist — citizen-science observations...')
 
         # Larger radius (25 km) to cast a wide net.  SpeciesCandidateTool
         # already de-duplicates across sources and enriches every candidate
@@ -696,9 +699,9 @@ class SpeciesMixAgent:
                 'species_mix': [],
                 'env_summary': self._format_env_summary(env_data),
                 'insights': (
-                    'No species records found in external databases (GBIF, iNaturalist, '
-                    'NBN Atlas) near this location. Try a location with more biodiversity '
-                    'survey coverage, or increase the search radius.'
+                    'No species records found in external databases (GBIF, NBN Atlas) '
+                    'near this location. Try a location with more biodiversity survey '
+                    'coverage, or increase the search radius.'
                 ),
             }
 
@@ -1074,7 +1077,7 @@ class SpeciesMixAgent:
 
         insights = (
             f"Screened {n_candidates} plant species recorded within 25 km of this location "
-            f"(GBIF, iNaturalist, NBN Atlas). "
+            f"(GBIF, NBN Atlas). "
             f"{n_eliminated} eliminated as ecologically incompatible with site conditions "
             f"({env_summary.lower()}). "
             f"The {len(species_mix)} selected species all survived cross-referencing against "
@@ -1222,8 +1225,8 @@ class SpeciesMixAgent:
             '3. Call query_hydrology — assess flood risk\n'
             '4. Call query_nbn_atlas — find native plant species observed locally (UK only)\n'
             '5. Call query_gbif — cross-reference with global occurrence data\n'
-            '6. Call search_species_candidates with the lat/lng — this queries GBIF, '
-            'iNaturalist, and NBN Atlas for species recorded near the location, '
+            '6. Call search_species_candidates with the lat/lng — this queries GBIF '
+            'and NBN Atlas for species recorded near the location, '
             'then fetches trait data (family, vernacular names) from GBIF Species API. '
             'Returns a ranked candidate list ordered by observation evidence.\n'
             '7. Cross-reference each candidate\'s traits against the environmental conditions:\n'
