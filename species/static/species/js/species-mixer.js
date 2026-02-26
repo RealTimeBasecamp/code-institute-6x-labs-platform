@@ -318,11 +318,21 @@ class SpeciesMixer {
       activeRequest = thisRequest;
 
       try {
-        const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query)}&format=json&limit=5&addressdetails=0`;
-        const resp = await fetch(url, { headers: { 'Accept-Language': 'en' } });
+        // Forward geocode via Photon (photon.komoot.io) — EU-hosted, no API key,
+        // ODbL licence, commercial use permitted.
+        const url = `https://photon.komoot.io/api/?q=${encodeURIComponent(query)}&limit=5&lang=en`;
+        const resp = await fetch(url);
         if (activeRequest !== thisRequest) return; // stale — a newer request has taken over
-        const results = await resp.json();
+        const geojson = await resp.json();
         if (activeRequest !== thisRequest) return;
+
+        // Normalise Photon GeoJSON features → {lat, lon, display_name}
+        const results = (geojson.features || []).map((f) => {
+          const p = f.properties;
+          const [lon, lat] = f.geometry.coordinates;
+          const parts = [p.name, p.county || p.district, p.state, p.country];
+          return { lat, lon, display_name: parts.filter(Boolean).join(', ') };
+        });
 
         if (!results.length) { closeDropdown(); return; }
 

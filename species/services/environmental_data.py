@@ -39,6 +39,12 @@ ENVIRONMENTAL DATA (soil, climate, hydrology):
       Download-only GeoTIFF rasters (no API). Pre-download + cache server-side.
       Currently approximated by coordinate heuristics (see fetch_climate).
 
+  ⚠️  Open-Meteo                 https://open-meteo.com
+      Currently used for climate normals (10-year ERA5 reanalysis).
+      FREE TIER IS NON-COMMERCIAL ONLY. Commercial use requires paid plan
+      (~€19/month). Replace with Met Office DataHub (UK, OGL, commercial OK,
+      free API key) before going to production.
+
   ⛔  Copernicus CDS (ERA5)      https://cds.climate.copernicus.eu/
       Python `cdsapi` library + async raster download. Requires free account + API key.
       Not practical as a real-time REST call.
@@ -571,38 +577,42 @@ def _estimate_climate_from_coords(lat: float, lng: float) -> dict:
 
 
 # =============================================================================
-# ✅ REVERSE GEOCODING — Nominatim / OpenStreetMap
-# Free, no auth. Must include User-Agent per OSM policy.
+# ✅ REVERSE GEOCODING — Photon (Komoot)
+# https://photon.komoot.io/reverse
+# Free, no API key. EU-hosted (Germany). Apache 2.0 + ODbL.
+# Commercial use permitted. Fair-use throttling applies for heavy usage.
+# Built on OSM data. No API key required.
 # =============================================================================
 def fetch_location_name(lat: float, lng: float) -> str:
     """
-    Reverse geocode lat/lng to a human-readable place name.
+    Reverse geocode lat/lng to a human-readable place name via Photon (Komoot).
 
-    Returns e.g. "Drumnadrochit, Highland, Scotland" or "51.5, -0.1" as fallback.
+    Returns e.g. "Drumnadrochit, Highland, Scotland" or "51.5, -0.1"
+    as a coordinate fallback if Photon returns no result.
     """
-    key = _cache_key('nominatim', lat, lng)
+    key = _cache_key('photon', lat, lng)
     cached = cache.get(key)
     if cached is not None:
         return cached
 
     data = _get(
-        'https://nominatim.openstreetmap.org/reverse',
-        params={'lat': lat, 'lon': lng, 'format': 'json', 'zoom': 10},
-        headers={'User-Agent': 'SpeciesMixer/1.0 (ecological-planting-tool)'}
+        'https://photon.komoot.io/reverse',
+        params={'lat': lat, 'lon': lng, 'lang': 'en'},
     )
-    _track('nominatim')
+    _track('photon')
 
-    if data and 'display_name' in data:
-        addr = data.get('address', {})
+    name = None
+    if data and data.get('features'):
+        props = data['features'][0].get('properties', {})
         parts = [
-            addr.get('village') or addr.get('town') or addr.get('city') or addr.get('hamlet'),
-            addr.get('county') or addr.get('state_district'),
-            addr.get('state') or addr.get('country'),
+            props.get('name'),
+            props.get('county') or props.get('district'),
+            props.get('state'),
         ]
-        name = ', '.join(p for p in parts if p)
-        if not name:
-            name = data['display_name'].split(',')[0]
-    else:
+        # Keep first 3 parts — Photon puts city/town in 'name'
+        name = ', '.join(p for p in parts[:3] if p) or None
+
+    if name is None:
         name = f'{round(lat, 4)}, {round(lng, 4)}'
 
     cache.set(key, name, _CACHE_TTL)

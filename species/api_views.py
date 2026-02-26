@@ -245,7 +245,7 @@ def api_location_data(request):
     """
     GET /species/mixer/api/location/?lat=&lng=
 
-    Reverse geocodes a lat/lng to a human-readable place name using Nominatim.
+    Reverse geocodes a lat/lng to a human-readable place name using Photon.
     Cached for 30 days.
     """
     try:
