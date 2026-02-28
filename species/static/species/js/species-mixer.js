@@ -687,7 +687,7 @@ class SpeciesMixer {
   }
 
   async _fetchEnvDataClimate(lat, lng) {
-    // Open-Meteo — fetches 10yrs of daily data, can take 5-15s on first call
+    // OpenLandMap — monthly climate normals, typically fast
     // (cached for 30 days so repeat calls for the same area are instant)
     if (!this.config.apiUrls.envDataClimate) return;
     try {
@@ -1236,7 +1236,7 @@ class SpeciesMixer {
             this._appendFeedLine('Mix generation complete.', 'success');
             // Attribution lines — shown once at the end of the feed log
             this._appendFeedLine('Soil data', '', { label: 'ISRIC SoilGrids · CC-BY 4.0', url: 'https://soilgrids.org' });
-            this._appendFeedLine('Climate data', '', { label: 'Open-Meteo · CC-BY 4.0', url: 'https://open-meteo.com' });
+            this._appendFeedLine('Climate data', '', { label: 'OpenLandMap · CC BY-SA 4.0', url: 'https://openlandmap.org' });
             this._appendFeedLine('Flood &amp; hydrology data — Environment Agency', '', { label: 'EA · OGL', url: 'https://environment.data.gov.uk/flood-monitoring/doc/reference' });
             this._appendFeedLine('Flood &amp; hydrology data — SEPA', '', { label: 'SEPA · OGL', url: 'https://www.sepa.org.uk/environment/water/flooding/' });
             this._appendFeedLine('Species occurrence records', '', { label: 'GBIF · CC0 &amp; CC-BY 4.0', url: 'https://www.gbif.org' });

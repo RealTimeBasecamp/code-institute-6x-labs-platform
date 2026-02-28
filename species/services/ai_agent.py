@@ -642,7 +642,7 @@ class SpeciesMixAgent:
           radius (25 km) from GBIF, iNaturalist, and NBN Atlas. This builds
           the broadest possible candidate pool of locally-recorded species.
 
-        Phase 2 — Cross-reference: fetch soil (SoilGrids), climate (Open-Meteo),
+        Phase 2 — Cross-reference: fetch soil (SoilGrids), climate (OpenLandMap),
           and hydrology (EA/SEPA) data independently in parallel-ish calls.
 
         Phase 3 — Eliminate: iteratively remove candidates that are incompatible
@@ -669,7 +669,7 @@ class SpeciesMixAgent:
         _p('Querying SoilGrids — soil pH, texture and moisture data...')
         soil = fetch_soilgrids(lat, lng)
 
-        _p('Querying Open-Meteo — climate normals (rainfall, temperature, frost days)...')
+        _p('Querying OpenLandMap — climate normals (rainfall, temperature, frost days)...')
         climate = fetch_climate(lat, lng)
 
         _p('Querying EA / SEPA — flood risk assessment...')
@@ -801,7 +801,7 @@ class SpeciesMixAgent:
         } if rainfall > 1500 else set()
         pool, _ = _eliminate(pool, 'high_rainfall', rainfall > 1500, HIGH_RAINFALL_INTOLERANT)
 
-        # Filter 5 — Temperature (only if real data from Open-Meteo, not heuristic)
+        # Filter 5 — Temperature (only if real data from OpenLandMap, not heuristic)
         # Sub-alpine / boreal (mean temp < 3°C): remove warm-climate obligates
         COLD_INTOLERANT = {
             'oleaceae',    # olive family — frost-sensitive

@@ -284,7 +284,7 @@ def api_env_data_soil(request):
 @login_required
 @require_http_methods(['GET'])
 def api_env_data_climate(request):
-    """GET /species/mixer/api/env-data/climate/?lat=&lng=  →  Open-Meteo climate normals."""
+    """GET /species/mixer/api/env-data/climate/?lat=&lng=  →  OpenLandMap climate normals."""
     lat, lng = _parse_lat_lng(request)
     if lat is None:
         return JsonResponse({'error': 'lat and lng are required'}, status=400)

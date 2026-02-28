@@ -25,8 +25,9 @@ ENVIRONMENTAL DATA (soil, climate, hydrology):
   ✅  SoilGrids ISRIC            https://rest.isric.org/soilgrids/v2.0/
       Free, no auth. Global soil pH, texture, organic carbon at any lat/lng.
 
-  🔶  OpenLandMap                https://api.openlandmap.org/query/point
-      Free, no auth. Soil + land cover point query. Complements SoilGrids.
+  ✅  OpenLandMap                https://api.openlandmap.org/query/point
+      Free, no auth. CC BY-SA 4.0 (commercial use permitted). EU-hosted (Netherlands).
+      Monthly precipitation + land surface temperature. Used for climate normals.
 
   ✅  EA Flood Map (England)     https://environment.data.gov.uk/spatialdata/
       Free WFS, no auth. Flood zone 2/3 for England.
@@ -36,14 +37,7 @@ ENVIRONMENTAL DATA (soil, climate, hydrology):
       Layer 0=High, 1=Medium, 2=Low. inSR=4326 required for WGS84 input.
 
   ⛔  WorldClim v2.1             https://worldclim.org/data/index.html
-      Download-only GeoTIFF rasters (no API). Pre-download + cache server-side.
-      Currently approximated by coordinate heuristics (see fetch_climate).
-
-  ⚠️  Open-Meteo                 https://open-meteo.com
-      Currently used for climate normals (10-year ERA5 reanalysis).
-      FREE TIER IS NON-COMMERCIAL ONLY. Commercial use requires paid plan
-      (~€19/month). Replace with Met Office DataHub (UK, OGL, commercial OK,
-      free API key) before going to production.
+      Download-only GeoTIFF rasters (no API). Superseded by OpenLandMap for climate.
 
   ⛔  Copernicus CDS (ERA5)      https://cds.climate.copernicus.eu/
       Python `cdsapi` library + async raster download. Requires free account + API key.
@@ -405,121 +399,136 @@ def _fetch_sepa_flood_risk(lat: float, lng: float) -> dict:
 
 
 # =============================================================================
-# ✅ CLIMATE — Coordinate heuristics (WorldClim approximation)
-# WorldClim v2.1 (https://worldclim.org) is download-only (GeoTIFF rasters).
-# Open-Meteo (https://open-meteo.com) — free, no API key, global coverage.
-# Uses ERA5 reanalysis data (1940–present). Returns accurate historical climate
-# normals for any GPS coordinate without registration.
+# ✅ CLIMATE — OpenLandMap (OpenGeoHub Foundation, Netherlands)
+# https://api.openlandmap.org/query/point
+# CC BY-SA 4.0 — commercial use permitted with attribution. No API key required.
+# Precipitation: clm_precipitation_imerge monthly layers (2014–2018 median, 1km)
+# Temperature:   clm_lst_mod11a2 monthly land surface temp (2000–2017 median, 1km)
+# Fallback: coordinate heuristics if the API is unreachable at runtime.
 # =============================================================================
+
+_OLM_MONTHS = ['jan', 'feb', 'mar', 'apr', 'may', 'jun',
+               'jul', 'aug', 'sep', 'oct', 'nov', 'dec']
+
+_OLM_BASE = 'https://api.openlandmap.org/query/point'
+
+
 def fetch_climate(lat: float, lng: float) -> dict:
     """
-    Get climate normals for a location via Open-Meteo historical weather API.
+    Return climate normals for a location via OpenLandMap.
 
-    Uses a rolling 10-year window (current year − 10 to current year − 1)
-    to compute mean annual values. Falls back to coordinate heuristics if the
-    API is unavailable.
+    OpenLandMap (OpenGeoHub Foundation, Netherlands) provides 1km-resolution
+    monthly precipitation and land surface temperature derived from satellite
+    and reanalysis data. Licence: CC BY-SA 4.0 (commercial use permitted).
 
     Returns dict with keys:
-      mean_annual_rainfall_mm (int)     — total annual precipitation
-      mean_temp_c (float)               — mean annual temperature
-      climate_zone (str)                — arctic / temperate / continental /
-                                          mediterranean / tropical
-      frost_days_per_year (int)         — days with min temp < 0°C
-      growing_season_days (int)         — days with mean temp > 5°C
-      summer_drought_risk (bool)        — True if mean Jul-Aug rainfall < 50mm
+      mean_annual_rainfall_mm (int)   — sum of 12 monthly precipitation values
+      mean_temp_c (float)             — mean of 12 monthly LST values
+      climate_zone (str)              — arctic / temperate / continental /
+                                        mediterranean / tropical
+      frost_days_per_year (int|None)  — estimated from months below 0 °C
+      growing_season_days (int|None)  — estimated from months above 5 °C
+      summer_drought_risk (bool|None) — True if Jul+Aug precipitation < 100 mm
+      source (str)                    — 'openlandmap' or 'heuristic'
     """
     key = _cache_key('climate', lat, lng)
     cached = cache.get(key)
     if cached is not None:
         return cached
 
-    result = _fetch_open_meteo_climate(lat, lng)
+    result = _fetch_openlandmap_climate(lat, lng)
     cache.set(key, result, _CACHE_TTL)
     return result
 
 
-def _fetch_open_meteo_climate(lat: float, lng: float) -> dict:
+def _fetch_openlandmap_climate(lat: float, lng: float) -> dict:
     """
-    Fetch 10-year climate normals from Open-Meteo archive API.
+    Query OpenLandMap for monthly precipitation and land surface temperature.
 
-    Queries ERA5 reanalysis data — accurate to ~10 km² globally.
-    Falls back to coordinate heuristics on network failure.
+    Two separate requests (precipitation layers + temperature layers) are made
+    to https://api.openlandmap.org/query/point using regex layer selection.
+
+    Precipitation layers:
+      clm_precipitation_imerge.{month}_m_1km_s0..0cm_2014..2018_v0.1.tif
+      Values: mm/month (median 2014–2018)
+
+    Temperature layers (MODIS LST daytime):
+      clm_lst_mod11a2.{month}.day_u.975_1km_s0..0cm_2000..2017_v1.0.tif
+      Values: Kelvin × 50  →  convert: value * 0.02 − 273.15 = °C
+
+    Falls back to coordinate heuristics on any failure.
     """
-    import datetime
-    end_year = datetime.date.today().year - 1
-    start_year = end_year - 9  # 10-year window
-
     try:
-        resp = requests.get(
-            'https://archive-api.open-meteo.com/v1/archive',
-            params={
-                'latitude': round(lat, 4),
-                'longitude': round(lng, 4),
-                'start_date': f'{start_year}-01-01',
-                'end_date': f'{end_year}-12-31',
-                'daily': (
-                    'precipitation_sum,'
-                    'temperature_2m_mean,'
-                    'temperature_2m_min'
-                ),
-                'timezone': 'auto',
-            },
-            timeout=20,
+        month_alt = '|'.join(_OLM_MONTHS)
+
+        # --- Precipitation ---
+        precip_regex = (
+            f'clm_precipitation_imerge.({month_alt})'
+            '_m_1km_s0..0cm_2014..2018_v0.1.tif'
         )
-        resp.raise_for_status()
-        _track('open_meteo')
-        data = resp.json()
-        daily = data.get('daily', {})
-        precip = daily.get('precipitation_sum', [])
-        temp_mean = daily.get('temperature_2m_mean', [])
-        temp_min = daily.get('temperature_2m_min', [])
-
-        # Filter out None values (missing days in archive)
-        precip = [p for p in precip if p is not None]
-        temp_mean = [t for t in temp_mean if t is not None]
-        temp_min = [t for t in temp_min if t is not None]
-
-        if not precip or not temp_mean:
-            raise ValueError('Empty data from Open-Meteo')
-
-        # Annual rainfall: sum all daily precip, divide by years
-        total_precip = sum(precip)
-        years = (end_year - start_year + 1)
-        mean_annual_rainfall = int(total_precip / years)
-
-        # Mean annual temperature
-        mean_temp = round(sum(temp_mean) / len(temp_mean), 1)
-
-        # Frost days: count days where min temp < 0°C, normalise per year
-        frost_days = int(sum(1 for t in temp_min if t < 0.0) / years)
-
-        # Growing season: days where mean temp > 5°C, per year
-        growing_days = int(sum(1 for t in temp_mean if t > 5.0) / years)
-
-        # Summer drought risk: mean Jul+Aug daily rainfall < 2mm/day (≈ < 60mm/month)
-        # Use index position to identify Jul/Aug — approximate (every ~365 days cycle)
-        # Use the last complete year's Jul-Aug window for simplicity
-        jul_aug_precip = [
-            p for i, p in enumerate(precip[-365:])
-            if 180 <= (i % 365) <= 243  # approx Jul 1 – Sep 1
-        ]
-        summer_drought = bool(
-            jul_aug_precip and (sum(jul_aug_precip) / len(jul_aug_precip)) < 2.0
+        precip_data = _get(
+            _OLM_BASE,
+            params={'lat': lat, 'lon': lng, 'coll': 'layers1km',
+                    'regex': precip_regex},
         )
 
-        # Climate zone from mean temperature
+        # --- Temperature ---
+        temp_regex = (
+            f'clm_lst_mod11a2.({month_alt})'
+            '.day_u.975_1km_s0..0cm_2000..2017_v1.0.tif'
+        )
+        temp_data = _get(
+            _OLM_BASE,
+            params={'lat': lat, 'lon': lng, 'coll': 'layers1km',
+                    'regex': temp_regex},
+        )
+
+        _track('openlandmap')
+
+        if not precip_data or not temp_data:
+            raise ValueError('Empty response from OpenLandMap')
+
+        # Parse precipitation — sum 12 monthly values for annual total
+        precip_values = [v for v in precip_data.values()
+                         if isinstance(v, (int, float))]
+        if len(precip_values) < 12:
+            raise ValueError(
+                f'Expected 12 precipitation layers, got {len(precip_values)}'
+            )
+        mean_annual_rainfall = int(sum(precip_values))
+
+        # Parse temperature — MODIS scale: raw × 0.02 − 273.15 = °C
+        temp_values_raw = [v for v in temp_data.values()
+                           if isinstance(v, (int, float))]
+        if len(temp_values_raw) < 12:
+            raise ValueError(
+                f'Expected 12 temperature layers, got {len(temp_values_raw)}'
+            )
+        temp_celsius = [round(v * 0.02 - 273.15, 2) for v in temp_values_raw]
+        mean_temp = round(sum(temp_celsius) / 12, 1)
+
+        # Frost days: months below 0 °C × 30 days each
+        frost_months = sum(1 for t in temp_celsius if t < 0.0)
+        frost_days = frost_months * 30
+
+        # Growing season: months above 5 °C × 30 days each
+        growing_months = sum(1 for t in temp_celsius if t > 5.0)
+        growing_days = growing_months * 30
+
+        # Summer drought: Jul (index 6) + Aug (index 7) total < 100 mm
+        jul_aug = precip_values[6] + precip_values[7]
+        summer_drought = jul_aug < 100.0
+
+        # Climate zone
         if mean_temp < 0:
             zone = 'arctic'
-        elif mean_temp < 8:
-            zone = 'temperate'
         elif mean_temp < 14:
-            zone = 'temperate'  # keep temperate for mild oceanic climates
+            zone = 'temperate'
         elif mean_temp < 20:
             zone = 'mediterranean'
         else:
             zone = 'tropical'
 
-        # Override zone for high-rainfall temperate (oceanic) vs continental
         if zone == 'temperate' and mean_annual_rainfall < 500:
             zone = 'continental'
 
@@ -530,16 +539,20 @@ def _fetch_open_meteo_climate(lat: float, lng: float) -> dict:
             'frost_days_per_year': frost_days,
             'growing_season_days': growing_days,
             'summer_drought_risk': summer_drought,
+            'source': 'openlandmap',
         }
 
     except Exception as exc:
-        logger.warning('Open-Meteo climate fetch failed (%s) — using heuristic fallback', exc)
+        logger.warning(
+            'OpenLandMap climate fetch failed (%.4f,%.4f): %s — using heuristic fallback',
+            lat, lng, exc,
+        )
         return _estimate_climate_from_coords(lat, lng)
 
 
 def _estimate_climate_from_coords(lat: float, lng: float) -> dict:
     """
-    Fallback: estimate climate normals from lat/lng when Open-Meteo is unavailable.
+    Fallback: estimate climate normals from lat/lng when OpenLandMap is unavailable.
     For UK (lat 49–61, lng -8 to 2): uses region-specific estimates.
     """
     is_uk = (49 <= lat <= 61) and (-8 <= lng <= 2)
