@@ -35,6 +35,9 @@ urlpatterns = [
     # Species search (for manual add)
     path('mixer/api/species-search/', api_views.api_species_search, name='api_species_search'),
 
+    # Virtual grid preview (point generation for ECharts visualiser)
+    path('mixer/api/generate-preview/', api_views.api_generate_preview, name='api_generate_preview'),
+
     # Named mix page (after all api/ routes so it doesn't swallow them)
     path('mixer/<str:name>/', views.species_mix, name='species_mix'),
 ]

@@ -572,3 +572,173 @@ def api_species_search(request):
             for s in results
         ]
     })
+
+
+# =============================================================================
+# VIRTUAL GRID PREVIEW — point generation for the species mixer visualiser
+# =============================================================================
+
+# Category-based radius defaults (metres) — procedural, not hardcoded per species.
+# Based on realistic mature plant sizes for UK native species.
+_CATEGORY_RADIUS_M = {
+    'tree':       3.0,   # Broadleaf tree mature canopy half-width
+    'broadleaf':  3.0,
+    'conifer':    2.5,
+    'shrub':      1.5,   # Typical shrub spread
+    'wildflower': 0.15,  # Ground-layer forb
+    'grass':      0.2,   # Grass clump
+    'fern':       0.3,   # Fern frond spread
+    'moss':       0.1,   # Moss patch
+    'fungi':      0.15,  # Fungal fruiting body
+    'other':      0.5,
+}
+_DEFAULT_RADIUS_M = 0.5
+
+
+@login_required
+@require_http_methods(['POST'])
+def api_generate_preview(request):
+    """
+    POST /species/mixer/api/generate-preview/
+
+    Run the sample-elimination point generation algorithm for a virtual
+    non-georeferenced hectare grid and return scatter points for ECharts.
+
+    Body:
+    {
+        "mix_items": [
+            { "species_id": 1, "name": "Oak", "category": "tree",
+              "ratio": 0.3, "colour": "#1B5E20", "is_active": true }
+        ],
+        "hectares": 1.0
+    }
+
+    Response:
+    {
+        "points": [{ "x": 12.5, "y": 34.2, "name": "Oak",
+                     "colour": "#1B5E20", "radius": 3.0 }],
+        "total": 847,
+        "per_species": { "Oak": 120, ... },
+        "hectares": 1.0,
+        "side_m": 100.0,
+        "execution_time_s": 0.34
+    }
+    """
+    try:
+        data = json.loads(request.body)
+        mix_items = data.get('mix_items', [])
+        hectares = float(data.get('hectares', 1.0))
+    except (ValueError, json.JSONDecodeError) as exc:
+        return JsonResponse({'error': f'Invalid request body: {exc}'}, status=400)
+
+    # Clamp hectares to a sensible range to prevent abuse / timeout
+    hectares = max(0.1, min(hectares, 100_000.0))
+
+    # Only include active species
+    active_items = [m for m in mix_items if m.get('is_active', True)]
+    if not active_items:
+        return JsonResponse({
+            'points': [], 'total': 0, 'per_species': {},
+            'hectares': hectares, 'side_m': 0.0, 'execution_time_s': 0.0,
+        })
+
+    try:
+        from planting.point_generation.data_types import (
+            PlantType, AreaBounds, BoundaryConfig, GenerationConfig,
+        )
+        from planting.point_generation.algorithms.sample_elimination import (
+            generate_points_sample_elimination,
+        )
+    except ImportError as exc:
+        logger.error('Point generation package not available: %s', exc)
+        return JsonResponse(
+            {'error': 'Point generation algorithm unavailable.'},
+            status=503,
+        )
+
+    # Build square bounding box in metres: side = sqrt(hectares * 10000)
+    import math
+    side_m = math.sqrt(hectares * 10_000.0)
+
+    bounds = AreaBounds(min_x=0.0, max_x=side_m, min_y=0.0, max_y=side_m)
+    boundary_config = BoundaryConfig(
+        use_simple_rectangle=True,
+        simple_bounds=bounds,
+    )
+
+    # Normalise ratios so they sum to 1
+    total_ratio = sum(float(m.get('ratio', 1.0)) for m in active_items)
+    if total_ratio <= 0:
+        total_ratio = len(active_items)
+
+    plant_types = []
+    item_map = {}  # name → mix item (for colour lookup after generation)
+    for item in active_items:
+        raw_name = (
+            item.get('name')
+            or item.get('common_name')
+            or f"Species {item.get('species_id', '?')}"
+        )
+        cat = (item.get('category') or 'other').lower()
+        radius = _CATEGORY_RADIUS_M.get(cat, _DEFAULT_RADIUS_M)
+        ratio = float(item.get('ratio', 1.0)) / total_ratio
+
+        pt = PlantType(
+            name=raw_name,
+            radius=radius,
+            spawn_ratio=max(ratio, 0.001),
+            color=item.get('colour', '#888888'),
+            species_id=item.get('species_id'),
+        )
+        plant_types.append(pt)
+        item_map[raw_name] = item
+
+    config = GenerationConfig(
+        allow_boundary_overlap=False,
+        random_seed=42,
+        randomness_factor=0.4,
+        relaxation_iterations=0,
+        target_candidates_per_hectare=8000,
+        candidate_density_factor=1.0,
+        max_workers=4,
+    )
+
+    try:
+        result = generate_points_sample_elimination(
+            plant_types, bounds, config, boundary_config
+        )
+    except Exception as exc:
+        logger.error('Point generation failed: %s', exc, exc_info=True)
+        return JsonResponse({'error': 'Point generation failed.'}, status=500)
+
+    # Serialise points — x/y in metres within the virtual grid
+    points_out = []
+    for pt in result.points:
+        name = pt.plant_type.name
+        colour = pt.plant_type.color or '#888888'
+        points_out.append({
+            'x': round(pt.x, 3),
+            'y': round(pt.y, 3),
+            'name': name,
+            'colour': colour,
+            'radius': pt.plant_type.radius,
+        })
+
+    total_pts = result.total_points or 1  # guard against /0
+    per_species = {
+        pd.plant_name: {
+            'count': pd.count,
+            'radius': round(pd.radius, 2),
+            'proportion_pct': round(pd.count / total_pts * 100, 1),
+        }
+        for pd in result.plot_data
+    }
+
+    return JsonResponse({
+        'points': points_out,
+        'total': result.total_points,
+        'per_species': per_species,
+        'hectares': hectares,
+        'side_m': round(side_m, 2),
+        'execution_time_s': round(result.execution_time, 3),
+    })

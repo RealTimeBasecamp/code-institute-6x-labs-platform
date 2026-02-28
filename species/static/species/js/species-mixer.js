@@ -103,6 +103,13 @@ class SpeciesMixer {
     this.map = null;
     this.marker = null;
 
+    // Virtual grid (ECharts scatter — shown on Mix tab)
+    this.gridChart = null;
+    this.previewResult = null;  // { per_species: {...}, total: N, side_m: N }
+    this._previewDebounceTimer = null;
+    this._currentHectares = 1;
+    this._currentEnv = 'blank';  // active static environment key
+
     this._initMap();
     this._initDivider();
     this._initTabs();
@@ -110,6 +117,7 @@ class SpeciesMixer {
     this._bindEvents();
     this._initMixNameField();
     this._initRadar();
+    this._initVirtualGrid();
     this._loadRecentMixes();
   }
 
@@ -262,6 +270,7 @@ class SpeciesMixer {
       // Tell MapLibre and ECharts about the new container size
       this.map?.resize();
       this.radarChart?.resize();
+      this.gridChart?.resize();
       this._positionRadarHandle?.();
     });
   }
@@ -374,19 +383,43 @@ class SpeciesMixer {
 
   _onTabShown(tabId) {
     const placeholder = document.getElementById('map-overlay-placeholder');
+    const radarWrap   = document.getElementById('goal-radar-wrap');
+    const gridWrap    = document.getElementById('virtual-grid-wrap');
+
     if (placeholder) {
       if (tabId === 'tab-location') {
         placeholder.classList.add('d-none');
-        // Map is now visible again — let MapLibre recalculate its canvas size
+        radarWrap?.classList.add('d-none');
+        gridWrap?.classList.add('d-none');
         this.map?.resize();
-      } else {
+      } else if (tabId === 'tab-goals') {
         placeholder.classList.remove('d-none');
-        // Radar becomes visible — resize first so getWidth/getHeight return real
-        // dimensions, then redraw so the handle lands at the correct pixel position.
+        radarWrap?.classList.remove('d-none');
+        gridWrap?.classList.add('d-none');
         requestAnimationFrame(() => {
           this.radarChart?.resize();
           this._positionRadarHandle?.();
         });
+      } else if (tabId === 'tab-mix') {
+        // Grid is always visible on the Mix tab — empty placeholder before generation,
+        // populated with points once STATE_5_MIX_READY is reached.
+        placeholder.classList.remove('d-none');
+        radarWrap?.classList.add('d-none');
+        gridWrap?.classList.remove('d-none');
+        // Double rAF: first frame applies layout (d-none removal); second frame
+        // lets the browser measure the now-visible container before ECharts renders.
+        requestAnimationFrame(() => requestAnimationFrame(() => {
+          this.gridChart?.resize();
+          if (this.previewResult) {
+            this._renderPreview(this.previewResult);
+          } else {
+            this._renderGridPlaceholder();
+          }
+          // Auto-generate preview if we have a mix but haven't run it yet
+          if (this.state >= SpeciesMixer.STATE_5_MIX_READY && !this.previewResult) {
+            this._requestPreview(this._currentHectares);
+          }
+        }));
       }
     } else {
       this.map?.resize();
@@ -557,6 +590,420 @@ class SpeciesMixer {
 
     // Initial position (centre)
     positionHandle();
+  }
+
+  // ──────────────────────────────────────────────────────────────────────────
+  // Virtual 1-hectare grid (ECharts scatter — Mix tab)
+  // ──────────────────────────────────────────────────────────────────────────
+
+  // Static environment definitions — each has a sideM (grid size) and optional
+  // inclusion/exclusion polygon arrays. Coordinates are in grid units (0–sideM).
+  // Colours follow the drawing-manager.js convention: green=inclusion, red=exclusion.
+  static ENVIRONMENTS = {
+    blank: {
+      label: 'Blank (1 ha)',
+      sideM: 100,
+      inclusion: [
+        // Single full-grid inclusion zone (entire 100×100 m square)
+        [[0,0],[100,0],[100,100],[0,100],[0,0]],
+      ],
+      exclusion: [],
+    },
+
+    complex_polygons: {
+      label: 'Complex Polygons',
+      sideM: 100,
+      // Two separate forest patches from test_complex_polygons.py
+      inclusion: [
+        // Forest Patch 1 — NW irregular pentagon
+        [[0,50],[0,100],[50,100],[45,70],[30,50],[0,50]],
+        // Forest Patch 2 — E rectangle
+        [[60,0],[100,0],[100,90],[60,90],[60,0]],
+      ],
+      exclusion: [
+        // Lake in patch 1
+        [[15,75],[20,78],[25,75],[20,72],[15,75]],
+        // Road through patch 2
+        [[65,0],[70,0],[70,90],[65,90],[65,0]],
+        // Building in patch 2
+        [[80,50],[90,50],[90,60],[80,60],[80,50]],
+      ],
+    },
+
+    patchy: {
+      label: 'Patchy Environment',
+      sideM: 100,
+      inclusion: [
+        // Four scattered woodland patches
+        [[5,5],[30,5],[30,35],[5,35],[5,5]],
+        [[40,10],[60,10],[60,40],[40,40],[40,10]],
+        [[10,55],[35,55],[35,80],[10,80],[10,55]],
+        [[55,60],[80,60],[85,85],[50,90],[55,60]],
+      ],
+      exclusion: [
+        // Central open area / field
+        [[35,35],[65,35],[65,60],[35,60],[35,35]],
+        // Small pond in bottom-right patch
+        [[62,68],[68,65],[72,70],[66,74],[62,68]],
+      ],
+    },
+
+    forest_clearing: {
+      label: 'Forest with Clearing',
+      sideM: 100,
+      inclusion: [
+        // Near-full forest — L-shaped with one big gap cut out by exclusion
+        [[0,0],[100,0],[100,100],[0,100],[0,0]],
+      ],
+      exclusion: [
+        // Central circular-ish clearing (octagon approximation)
+        [[38,25],[62,25],[75,38],[75,62],[62,75],[38,75],[25,62],[25,38],[38,25]],
+        // Track/ride cutting N–S from top to clearing
+        [[47,0],[53,0],[53,25],[47,25],[47,0]],
+        // Track/ride cutting E from clearing to right edge
+        [[75,47],[100,47],[100,53],[75,53],[75,47]],
+      ],
+    },
+
+    river: {
+      label: 'River Example',
+      sideM: 100,
+      inclusion: [
+        // West bank riparian strip
+        [[0,0],[30,0],[35,20],[30,50],[25,80],[20,100],[0,100],[0,0]],
+        // East bank riparian strip
+        [[55,0],[100,0],[100,100],[70,100],[65,80],[60,50],[55,20],[55,0]],
+      ],
+      exclusion: [
+        // River channel (sinuous trapezoid)
+        [[30,0],[55,0],[55,20],[50,50],[45,80],[40,100],[25,100],[20,80],[25,50],[30,20],[30,0]],
+        // Small island / gravel bar mid-river
+        [[37,42],[45,38],[48,48],[40,54],[37,42]],
+      ],
+    },
+  };
+
+  _initVirtualGrid() {
+    if (typeof echarts === 'undefined') return;
+
+    const el = document.getElementById('virtual-grid-chart');
+    if (!el) return;
+
+    this.gridChart = echarts.init(el, null, { renderer: 'canvas' });
+
+    // Resize chart whenever the container element changes size (window resize
+    // or pane-divider drag). Uses ResizeObserver so it fires continuously during
+    // drag without touching any point-generation logic.
+    if (typeof ResizeObserver !== 'undefined') {
+      new ResizeObserver(() => this.gridChart?.resize()).observe(el);
+    } else {
+      window.addEventListener('resize', () => this.gridChart?.resize());
+    }
+
+    // Hectare slider
+    const slider   = document.getElementById('hectare-slider');
+    const sliderLb = document.getElementById('hectare-label');
+    if (slider) {
+      slider.addEventListener('input', () => {
+        const ha = parseInt(slider.value, 10);
+        this._currentHectares = ha;
+        sliderLb.textContent = ha >= 10000
+          ? `${(ha / 10000).toFixed(1)} km²`
+          : ha >= 1000
+            ? `${(ha / 1000).toFixed(1)}k ha`
+            : `${ha} ha`;
+        clearTimeout(this._previewDebounceTimer);
+        this._previewDebounceTimer = setTimeout(() => {
+          this._requestPreview(ha);
+        }, 500);
+      });
+    }
+
+    // Environment selector — changing it re-renders zones + re-requests preview
+    const envSel = document.getElementById('grid-environment');
+    if (envSel) {
+      envSel.addEventListener('change', () => {
+        this._currentEnv = envSel.value;
+        if (this.previewResult) {
+          this._renderPreview(this.previewResult);
+        } else {
+          this._renderGridPlaceholder();
+        }
+        // Re-request preview so points respect the new environment's bounds
+        if (this.state >= SpeciesMixer.STATE_5_MIX_READY) {
+          this._requestPreview(this._currentHectares);
+        }
+      });
+    }
+
+    // Defer initial render — the Mix tab container may still be hidden (d-none)
+    // at init time. _onTabShown will trigger the real resize + render when shown.
+  }
+
+  // Build ECharts 'custom' series for one set of polygons (inclusion or exclusion).
+  // Each polygon becomes a filled+stroked shape rendered behind the scatter points.
+  _buildZoneSeries(polygons, type) {
+    if (!polygons || !polygons.length) return [];
+    const isExclusion = type === 'exclusion';
+    const fillColor  = isExclusion ? 'rgba(239,68,68,0.18)'  : 'rgba(34,197,94,0.15)';
+    const lineColor  = isExclusion ? 'rgba(239,68,68,0.7)'   : 'rgba(34,197,94,0.7)';
+
+    return polygons.map((verts, i) => ({
+      name: `${type}-${i}`,
+      type: 'custom',
+      silent: true,          // not interactive — zones are read-only overlays
+      z: 1,                  // behind scatter points (default z=2)
+      renderItem(_params, api) {
+        const pts = verts.map(([x, y]) => api.coord([x, y]));
+        return {
+          type: 'polygon',
+          shape: { points: pts },
+          style: {
+            fill: fillColor,
+            stroke: lineColor,
+            lineWidth: 1.5,
+            lineDash: isExclusion ? [4, 3] : null,
+          },
+          z2: 1,
+        };
+      },
+      // data must be non-empty for ECharts to call renderItem; one dummy row suffices
+      data: [[0, 0]],
+      // clip to the grid area so polygons don't bleed into axis labels
+      clip: true,
+      encode: { x: 0, y: 1 },
+    }));
+  }
+
+  _renderGridPlaceholder() {
+    if (!this.gridChart) return;
+
+    const style = getComputedStyle(document.documentElement);
+    const resolve = (prop, fallback) => style.getPropertyValue(prop).trim() || fallback;
+    const gridColor = resolve('--bs-border-color-translucent', 'rgba(0,0,0,.1)');
+    const axisColor = resolve('--bs-secondary-color', '#6c757d');
+    const bgColor   = resolve('--bs-body-bg', '#fff');
+
+    const env      = SpeciesMixer.ENVIRONMENTS[this._currentEnv] || SpeciesMixer.ENVIRONMENTS.blank;
+    const zoneSide = env.sideM;
+    const zoneSeries = [
+      ...this._buildZoneSeries(env.inclusion, 'inclusion'),
+      ...this._buildZoneSeries(env.exclusion, 'exclusion'),
+    ];
+
+    this.gridChart.setOption({
+      backgroundColor: bgColor,
+      grid: { left: 42, right: 16, top: 16, bottom: 40 },
+      xAxis: {
+        type: 'value', min: 0, max: zoneSide, name: 'm',
+        nameLocation: 'end', nameTextStyle: { color: axisColor, fontSize: 11 },
+        axisLine: { lineStyle: { color: axisColor } },
+        axisTick: { lineStyle: { color: axisColor } },
+        axisLabel: { color: axisColor, fontSize: 10 },
+        splitLine: { lineStyle: { color: gridColor } },
+      },
+      yAxis: {
+        type: 'value', min: 0, max: zoneSide, name: 'm',
+        nameLocation: 'end', nameTextStyle: { color: axisColor, fontSize: 11 },
+        axisLine: { lineStyle: { color: axisColor } },
+        axisTick: { lineStyle: { color: axisColor } },
+        axisLabel: { color: axisColor, fontSize: 10 },
+        splitLine: { lineStyle: { color: gridColor } },
+      },
+      series: zoneSeries,
+      animation: false,
+    }, true);
+  }
+
+  async _requestPreview(hectares) {
+    if (!this.mixItems || !this.mixItems.length) return;
+    if (!this.config.apiUrls?.generatePreview) return;
+
+    // Cancel any previous debounced request
+    clearTimeout(this._previewDebounceTimer);
+
+    const payload = {
+      mix_items: this.mixItems.map(m => ({
+        species_id: m.species_id,
+        name: m.name,
+        category: m.category || 'other',
+        ratio: m.ratio || (1 / this.mixItems.length),
+        colour: m.colour || '#888888',
+        is_active: m.is_active !== false,
+      })),
+      hectares,
+    };
+
+    // Show loading state on the grid
+    if (this.gridChart) {
+      this.gridChart.showLoading('default', {
+        text: 'Generating points…',
+        fontSize: 12,
+        maskColor: 'rgba(255,255,255,0.6)',
+      });
+    }
+
+    try {
+      const resp = await fetch(this.config.apiUrls.generatePreview, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRFToken': this.config.csrfToken,
+        },
+        body: JSON.stringify(payload),
+      });
+
+      if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+      const data = await resp.json();
+      this._renderPreview(data);
+    } catch (err) {
+      console.warn('Preview generation failed:', err);
+      this.gridChart?.hideLoading();
+    }
+  }
+
+  _renderPreview(data) {
+    if (!this.gridChart) return;
+    this.gridChart.hideLoading();
+
+    // Cache result for table column updates
+    this.previewResult = data;
+
+    const sideM = data.side_m || 100;
+
+    // Build one ECharts scatter series per species
+    const grouped = {};
+    for (const pt of (data.points || [])) {
+      if (!grouped[pt.name]) {
+        grouped[pt.name] = { name: pt.name, colour: pt.colour, radius: pt.radius, pts: [] };
+      }
+      grouped[pt.name].pts.push([pt.x, pt.y]);
+    }
+
+    const style = getComputedStyle(document.documentElement);
+    const resolve = (prop, fallback) => style.getPropertyValue(prop).trim() || fallback;
+    const gridColor   = resolve('--bs-border-color-translucent', 'rgba(0,0,0,.1)');
+    const axisColor   = resolve('--bs-secondary-color', '#6c757d');
+    const bgColor     = resolve('--bs-body-bg', '#fff');
+
+    const env     = SpeciesMixer.ENVIRONMENTS[this._currentEnv] || SpeciesMixer.ENVIRONMENTS.blank;
+    const zoneSide = env.sideM;
+    const axisMax  = Math.max(sideM, zoneSide);
+
+    const scatterSeries = Object.values(grouped).map(g => ({
+      name: g.name,
+      type: 'scatter',
+      data: g.pts,
+      symbolSize: Math.max(3, Math.min(12, g.radius * 120 / axisMax)),
+      itemStyle: { color: g.colour, opacity: 0.85 },
+      emphasis: { itemStyle: { opacity: 1 } },
+      large: true,
+      largeThreshold: 2000,
+    }));
+
+    const zoneSeries = [
+      ...this._buildZoneSeries(env.inclusion, 'inclusion'),
+      ...this._buildZoneSeries(env.exclusion, 'exclusion'),
+    ];
+
+    // Build legend from scatter series only (zone overlays are not labelled)
+    const legendData = Object.keys(grouped);
+    const showLegend = legendData.length <= 12;
+
+    this.gridChart.setOption({
+      backgroundColor: bgColor,
+      legend: showLegend ? {
+        data: legendData,
+        bottom: 0,
+        type: 'scroll',
+        textStyle: { fontSize: 10, color: axisColor },
+        itemWidth: 8, itemHeight: 8,
+      } : { show: false },
+      tooltip: {
+        trigger: 'item',
+        formatter: (params) => {
+          if (params.seriesType !== 'scatter') return null;
+          const [x, y] = params.data;
+          return `<strong>${params.seriesName}</strong><br>${x.toFixed(1)}m, ${y.toFixed(1)}m`;
+        },
+        textStyle: { fontSize: 11 },
+      },
+      grid: {
+        left: 42, right: 16, top: 16,
+        bottom: showLegend ? 60 : 40,
+      },
+      xAxis: {
+        type: 'value', min: 0, max: axisMax, name: 'm',
+        nameLocation: 'end', nameTextStyle: { color: axisColor, fontSize: 11 },
+        axisLine: { lineStyle: { color: axisColor } },
+        axisTick: { lineStyle: { color: axisColor } },
+        axisLabel: { color: axisColor, fontSize: 10 },
+        splitLine: { lineStyle: { color: gridColor } },
+      },
+      yAxis: {
+        type: 'value', min: 0, max: axisMax, name: 'm',
+        nameLocation: 'end', nameTextStyle: { color: axisColor, fontSize: 11 },
+        axisLine: { lineStyle: { color: axisColor } },
+        axisTick: { lineStyle: { color: axisColor } },
+        axisLabel: { color: axisColor, fontSize: 10 },
+        splitLine: { lineStyle: { color: gridColor } },
+      },
+      series: [...zoneSeries, ...scatterSeries],
+      animation: false,
+    }, true);
+
+    // Update the n column in the species table
+    this._updateTableNColumn();
+  }
+
+  _updateTableNColumn() {
+    if (!this.previewResult) return;
+
+    const tbody = document.getElementById('species-mix-tbody');
+    if (!tbody) return;
+
+    tbody.querySelectorAll('tr.species-mixer-row').forEach(row => {
+      const speciesId = parseInt(row.dataset.speciesId, 10);
+      const item = this.mixItems.find(m => m.species_id === speciesId);
+      if (!item) return;
+
+      const rhoCell = row.querySelector('.col-rho');
+      const piCell  = row.querySelector('.col-pi');
+      const nCell   = row.querySelector('.col-n');
+      if (rhoCell) rhoCell.textContent = this._previewCellRho(item);
+      if (piCell)  piCell.textContent  = this._previewCellPi(item);
+      if (nCell)   nCell.textContent   = this._previewCellN(item);
+    });
+  }
+
+  // ── Preview column helpers ───────────────────────────────────────────────
+
+  _previewCellRho(item) {
+    if (!this.previewResult) return '—';
+    const ps = this.previewResult.per_species || {};
+    const entry = ps[item.name];
+    if (!entry) return '—';
+    const r = entry.radius ?? entry;  // numeric (legacy) or object with .radius
+    if (typeof r === 'number') return `${r.toFixed(1)} m`;
+    return typeof r?.radius === 'number' ? `${r.radius.toFixed(1)} m` : '—';
+  }
+
+  _previewCellPi(item) {
+    if (!this.previewResult) return '—';
+    const ps = this.previewResult.per_species || {};
+    const entry = ps[item.name];
+    if (!entry) return '—';
+    const pct = typeof entry === 'object' ? entry.proportion_pct : null;
+    return pct != null ? `${pct.toFixed(1)}%` : '—';
+  }
+
+  _previewCellN(item) {
+    if (!this.previewResult) return '—';
+    const ps = this.previewResult.per_species || {};
+    const entry = ps[item.name];
+    if (entry == null) return '0';
+    const count = typeof entry === 'object' ? entry.count : entry;
+    return count > 0 ? count.toLocaleString() : '0';
   }
 
   _updateRadar() {
@@ -1316,6 +1763,16 @@ class SpeciesMixer {
       this._renderInsights(result.insights, result.env_summary);
       this._unlockTab('mix');
       this._transitionTo(SpeciesMixer.STATE_5_MIX_READY);
+      // Kick off preview generation — covers the case where the user
+      // is already on the Mix tab (so _onTabShown won't fire again).
+      this.previewResult = null;
+      document.getElementById('map-overlay-placeholder')?.classList.remove('d-none');
+      document.getElementById('goal-radar-wrap')?.classList.add('d-none');
+      document.getElementById('virtual-grid-wrap')?.classList.remove('d-none');
+      requestAnimationFrame(() => requestAnimationFrame(() => {
+        this.gridChart?.resize();
+        this._requestPreview(this._currentHectares);
+      }));
     } else if (mode === 'rescore') {
       this._updateRatiosInPlace(result.species_mix || []);
       this._renderInsights(result.insights, null);
@@ -1569,9 +2026,9 @@ class SpeciesMixer {
       <td class="col-native suitability-cell" data-sort-value="${item.suitability_label || ''}">
         ${nativeBadge}
       </td>
-      <td class="col-rho text-muted">—</td>
-      <td class="col-pi text-muted">—</td>
-      <td class="col-n text-muted">—</td>
+      <td class="col-rho text-muted">${this._previewCellRho(item)}</td>
+      <td class="col-pi text-muted">${this._previewCellPi(item)}</td>
+      <td class="col-n text-muted">${this._previewCellN(item)}</td>
       <td class="col-del">
         <button class="btn btn-sm btn-link text-danger p-0 remove-species-btn"
                 data-species-id="${item.species_id}"
@@ -2266,6 +2723,16 @@ class SpeciesMixer {
     this.cachedCandidates = [];
     this._ecoDataLoaded = false;
     this.mixId = null;
+    this.previewResult = null;
+    this._currentHectares = 1;
+    clearTimeout(this._previewDebounceTimer);
+    const slider = document.getElementById('hectare-slider');
+    if (slider) slider.value = 1;
+    const sliderLb = document.getElementById('hectare-label');
+    if (sliderLb) sliderLb.textContent = '1 ha';
+    this._renderGridPlaceholder();
+    // Hide the virtual grid wrap — no mix yet
+    document.getElementById('virtual-grid-wrap')?.classList.add('d-none');
 
     // Auto-create a new blank mix record for the fresh session
     this._createNewMix();

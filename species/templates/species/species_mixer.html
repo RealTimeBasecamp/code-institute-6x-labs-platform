@@ -47,12 +47,52 @@
     <div id="species-mixer-map" class="w-100 h-100"></div>
 
 
-    <!-- Goals radar chart overlay (shown on Goals/Mix tabs) -->
+    <!-- Goals radar chart overlay (shown on Goals tab) -->
     <div id="map-overlay-placeholder" class="mixer-map-placeholder d-none">
-      <div class="mixer-radar-wrap">
+
+      <!-- Radar wrap — shown on Goals tab -->
+      <div id="goal-radar-wrap" class="mixer-radar-wrap">
         <div id="goal-radar-chart" class="mixer-radar-chart"></div>
         <div id="goal-radar-handle" class="mixer-radar-handle" title="Drag to adjust goals"></div>
       </div>
+
+      <!-- Virtual grid wrap — always shown on Mix tab (empty before generation) -->
+      <div id="virtual-grid-wrap" class="mixer-virtual-grid-wrap d-none">
+
+        <div class="mixer-grid-controls mixer-grid-controls--top">
+          <!-- Environment selector (left) -->
+          <select class="form-select form-select-sm species-mixer-select" id="grid-environment">
+            <option value="blank">Blank (1 ha)</option>
+            <option value="complex_polygons">Complex Polygons</option>
+            <option value="patchy">Patchy Environment</option>
+            <option value="forest_clearing">Forest with Clearing</option>
+            <option value="river">River Example</option>
+          </select>
+          <!-- Visualisation mode + filter controls (right) -->
+          <div class="ms-auto d-flex gap-2">
+            <select class="form-select form-select-sm species-mixer-select" id="map-visualisation" disabled>
+              <option value="points" selected>Points</option>
+              <option value="heatmap">Heatmap</option>
+            </select>
+            <select class="form-select form-select-sm species-mixer-select" id="map-filter" disabled>
+              <option value="all" selected>All Species</option>
+              <option value="pollinator">Pollinator</option>
+              <option value="erosion">Erosion Control</option>
+              <option value="wildlife">Wildlife Habitat</option>
+            </select>
+          </div>
+        </div>
+
+        <div id="virtual-grid-chart" class="mixer-virtual-grid-chart"></div>
+
+        <div class="mixer-grid-controls">
+          <label class="small text-muted me-2 text-nowrap" for="hectare-slider">Scale</label>
+          <input type="range" id="hectare-slider" min="1" max="100000" step="1" value="1"
+                 class="form-range flex-grow-1 mx-2">
+          <span id="hectare-label" class="small text-muted text-nowrap">1 ha</span>
+        </div>
+      </div>
+
     </div>
   </div>
 
@@ -323,17 +363,6 @@
           <div class="card-header d-flex align-items-center justify-content-between gap-2">
             <span class="fw-semibold"><i class="bi bi-diagram-3 me-2"></i>Species Mix</span>
             <div class="d-flex align-items-center gap-2 ms-auto">
-              <!-- Map visualisation controls -->
-              <select class="form-select form-select-sm species-mixer-select" id="map-visualisation" disabled>
-                <option value="points" selected>Points</option>
-                <option value="heatmap">Heatmap</option>
-              </select>
-              <select class="form-select form-select-sm species-mixer-select" id="map-filter" disabled>
-                <option value="all" selected>All Species</option>
-                <option value="pollinator">Pollinator</option>
-                <option value="erosion">Erosion Control</option>
-                <option value="wildlife">Wildlife Habitat</option>
-              </select>
               <!-- Add species button (opens modal) -->
               <button type="button" class="btn btn-sm btn-outline-secondary flex-shrink-0" id="add-species-manually-btn" disabled>
                 <i class="bi bi-plus me-1"></i>Add Species
@@ -651,6 +680,7 @@
       mixes:            '{% url "species:api_list_mixes" %}',
       getMix:           '/species/mixer/api/mixes/',
       speciesSearch:    '{% url "species:api_species_search" %}',
+      generatePreview:  '{% url "species:api_generate_preview" %}',
     },
     maplibreStyleUrl: 'https://demotiles.maplibre.org/style.json',
   };
