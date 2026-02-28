@@ -107,8 +107,10 @@ class SpeciesMixer {
     this.gridChart = null;
     this.previewResult = null;  // { per_species: {...}, total: N, side_m: N }
     this._previewDebounceTimer = null;
+    this._previewAbortCtrl = null;  // AbortController for in-flight preview fetch
     this._currentHectares = 1;
-    this._currentEnv = 'blank';  // active static environment key
+    this._currentEnv = 'blank';                     // active static environment key
+    this._currentAlgorithm = 'sample_elimination';  // active point algorithm
 
     this._initMap();
     this._initDivider();
@@ -700,26 +702,32 @@ class SpeciesMixer {
       window.addEventListener('resize', () => this.gridChart?.resize());
     }
 
-    // Hectare slider
+    // Hectare slider — logarithmic mapping over 0–100 index → 1–1 000 000 ha.
+    // index 0 → 1 ha, index 100 → 1 000 000 ha.
+    const _haFromIndex = idx => Math.round(Math.pow(10, idx * 6 / 100));
+    const _haLabel = ha => {
+      if (ha >= 10000) return `${(ha / 10000).toFixed(ha >= 100000 ? 0 : 1)} km²`;
+      if (ha >= 1000)  return `${(ha / 1000).toFixed(1)}k ha`;
+      return `${ha} ha`;
+    };
+
     const slider   = document.getElementById('hectare-slider');
     const sliderLb = document.getElementById('hectare-label');
     if (slider) {
       slider.addEventListener('input', () => {
-        const ha = parseInt(slider.value, 10);
+        const ha = _haFromIndex(parseInt(slider.value, 10));
         this._currentHectares = ha;
-        sliderLb.textContent = ha >= 10000
-          ? `${(ha / 10000).toFixed(1)} km²`
-          : ha >= 1000
-            ? `${(ha / 1000).toFixed(1)}k ha`
-            : `${ha} ha`;
+        if (sliderLb) sliderLb.textContent = _haLabel(ha);
         clearTimeout(this._previewDebounceTimer);
+        // Longer debounce at large scales to let the user settle on a value
+        const debounceMs = ha > 10000 ? 1000 : ha > 1000 ? 700 : 500;
         this._previewDebounceTimer = setTimeout(() => {
           this._requestPreview(ha);
-        }, 500);
+        }, debounceMs);
       });
     }
 
-    // Environment selector — changing it re-renders zones + re-requests preview
+    // Environment selector — re-renders zones immediately, then re-requests preview
     const envSel = document.getElementById('grid-environment');
     if (envSel) {
       envSel.addEventListener('change', () => {
@@ -729,7 +737,17 @@ class SpeciesMixer {
         } else {
           this._renderGridPlaceholder();
         }
-        // Re-request preview so points respect the new environment's bounds
+        if (this.state >= SpeciesMixer.STATE_5_MIX_READY) {
+          this._requestPreview(this._currentHectares);
+        }
+      });
+    }
+
+    // Algorithm selector — re-requests preview with the new algorithm
+    const algSel = document.getElementById('grid-algorithm');
+    if (algSel) {
+      algSel.addEventListener('change', () => {
+        this._currentAlgorithm = algSel.value;
         if (this.state >= SpeciesMixer.STATE_5_MIX_READY) {
           this._requestPreview(this._currentHectares);
         }
@@ -742,19 +760,21 @@ class SpeciesMixer {
 
   // Build ECharts 'custom' series for one set of polygons (inclusion or exclusion).
   // Each polygon becomes a filled+stroked shape rendered behind the scatter points.
-  _buildZoneSeries(polygons, type) {
+  // scale: multiply every vertex coordinate by this factor so zone polygons
+  // (always defined in 0–100 space) fill the actual axis range (e.g. 316 m at 10 ha).
+  _buildZoneSeries(polygons, type, scale = 1) {
     if (!polygons || !polygons.length) return [];
     const isExclusion = type === 'exclusion';
-    const fillColor  = isExclusion ? 'rgba(239,68,68,0.18)'  : 'rgba(34,197,94,0.15)';
+    const fillColor  = isExclusion ? 'rgba(239,68,68,0.25)'  : 'rgba(34,197,94,0.25)';
     const lineColor  = isExclusion ? 'rgba(239,68,68,0.7)'   : 'rgba(34,197,94,0.7)';
 
     return polygons.map((verts, i) => ({
       name: `${type}-${i}`,
       type: 'custom',
-      silent: true,          // not interactive — zones are read-only overlays
-      z: 1,                  // behind scatter points (default z=2)
+      silent: true,
+      z: 1,
       renderItem(_params, api) {
-        const pts = verts.map(([x, y]) => api.coord([x, y]));
+        const pts = verts.map(([x, y]) => api.coord([x * scale, y * scale]));
         return {
           type: 'polygon',
           shape: { points: pts },
@@ -767,9 +787,7 @@ class SpeciesMixer {
           z2: 1,
         };
       },
-      // data must be non-empty for ECharts to call renderItem; one dummy row suffices
       data: [[0, 0]],
-      // clip to the grid area so polygons don't bleed into axis labels
       clip: true,
       encode: { x: 0, y: 1 },
     }));
@@ -819,8 +837,13 @@ class SpeciesMixer {
     if (!this.mixItems || !this.mixItems.length) return;
     if (!this.config.apiUrls?.generatePreview) return;
 
-    // Cancel any previous debounced request
-    clearTimeout(this._previewDebounceTimer);
+    // Abort any in-flight request so only the latest one resolves
+    this._previewAbortCtrl?.abort();
+    this._previewAbortCtrl = new AbortController();
+    const signal = this._previewAbortCtrl.signal;
+
+    // Get current environment's inclusion/exclusion zones
+    const env = SpeciesMixer.ENVIRONMENTS[this._currentEnv] || SpeciesMixer.ENVIRONMENTS.blank;
 
     const payload = {
       mix_items: this.mixItems.map(m => ({
@@ -832,16 +855,18 @@ class SpeciesMixer {
         is_active: m.is_active !== false,
       })),
       hectares,
+      algorithm: this._currentAlgorithm,
+      inclusion_zones: env.inclusion || [],
+      exclusion_zones: env.exclusion || [],
+      side_m: env.sideM || 100,
     };
 
-    // Show loading state on the grid
-    if (this.gridChart) {
-      this.gridChart.showLoading('default', {
-        text: 'Generating points…',
-        fontSize: 12,
-        maskColor: 'rgba(255,255,255,0.6)',
-      });
-    }
+    // Defer to next task to avoid rAF violations
+    await new Promise(r => setTimeout(r, 0));
+    if (signal.aborted) return;
+
+    const activeCount = payload.mix_items.filter(m => m.is_active).length;
+    this._showChartLoading(`Plotting ${activeCount} species at ${hectares} ha`);
 
     try {
       const resp = await fetch(this.config.apiUrls.generatePreview, {
@@ -851,20 +876,41 @@ class SpeciesMixer {
           'X-CSRFToken': this.config.csrfToken,
         },
         body: JSON.stringify(payload),
+        signal,
       });
 
       if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+
+      this._updateChartLoading('Rendering points');
       const data = await resp.json();
       this._renderPreview(data);
     } catch (err) {
+      if (err.name === 'AbortError') return;
       console.warn('Preview generation failed:', err);
-      this.gridChart?.hideLoading();
+      this._hideChartLoading();
     }
+  }
+
+  _showChartLoading(text) {
+    const overlay = document.getElementById('chart-loading-overlay');
+    const textEl = document.getElementById('chart-loading-text');
+    if (overlay) overlay.classList.remove('d-none');
+    if (textEl) textEl.textContent = text;
+  }
+
+  _updateChartLoading(text) {
+    const textEl = document.getElementById('chart-loading-text');
+    if (textEl) textEl.textContent = text;
+  }
+
+  _hideChartLoading() {
+    const overlay = document.getElementById('chart-loading-overlay');
+    if (overlay) overlay.classList.add('d-none');
   }
 
   _renderPreview(data) {
     if (!this.gridChart) return;
-    this.gridChart.hideLoading();
+    this._hideChartLoading();
 
     // Cache result for table column updates
     this.previewResult = data;
@@ -886,15 +932,16 @@ class SpeciesMixer {
     const axisColor   = resolve('--bs-secondary-color', '#6c757d');
     const bgColor     = resolve('--bs-body-bg', '#fff');
 
-    const env     = SpeciesMixer.ENVIRONMENTS[this._currentEnv] || SpeciesMixer.ENVIRONMENTS.blank;
-    const zoneSide = env.sideM;
-    const axisMax  = Math.max(sideM, zoneSide);
+    const env      = SpeciesMixer.ENVIRONMENTS[this._currentEnv] || SpeciesMixer.ENVIRONMENTS.blank;
+    // Zone polygons are defined in 0–100 space (env.sideM = 100).
+    // Scale them up to match the actual grid size returned by the API.
+    const zoneScale = sideM / env.sideM;
 
     const scatterSeries = Object.values(grouped).map(g => ({
       name: g.name,
       type: 'scatter',
       data: g.pts,
-      symbolSize: Math.max(3, Math.min(12, g.radius * 120 / axisMax)),
+      symbolSize: Math.max(3, Math.min(12, g.radius * 120 / sideM)),
       itemStyle: { color: g.colour, opacity: 0.85 },
       emphasis: { itemStyle: { opacity: 1 } },
       large: true,
@@ -902,8 +949,8 @@ class SpeciesMixer {
     }));
 
     const zoneSeries = [
-      ...this._buildZoneSeries(env.inclusion, 'inclusion'),
-      ...this._buildZoneSeries(env.exclusion, 'exclusion'),
+      ...this._buildZoneSeries(env.inclusion, 'inclusion', zoneScale),
+      ...this._buildZoneSeries(env.exclusion, 'exclusion', zoneScale),
     ];
 
     // Build legend from scatter series only (zone overlays are not labelled)
@@ -933,7 +980,7 @@ class SpeciesMixer {
         bottom: showLegend ? 60 : 40,
       },
       xAxis: {
-        type: 'value', min: 0, max: axisMax, name: 'm',
+        type: 'value', min: 0, max: sideM, name: 'm',
         nameLocation: 'end', nameTextStyle: { color: axisColor, fontSize: 11 },
         axisLine: { lineStyle: { color: axisColor } },
         axisTick: { lineStyle: { color: axisColor } },
@@ -941,7 +988,7 @@ class SpeciesMixer {
         splitLine: { lineStyle: { color: gridColor } },
       },
       yAxis: {
-        type: 'value', min: 0, max: axisMax, name: 'm',
+        type: 'value', min: 0, max: sideM, name: 'm',
         nameLocation: 'end', nameTextStyle: { color: axisColor, fontSize: 11 },
         axisLine: { lineStyle: { color: axisColor } },
         axisTick: { lineStyle: { color: axisColor } },
@@ -952,19 +999,23 @@ class SpeciesMixer {
       animation: false,
     }, true);
 
+    // Update point total display
+    const totalEl = document.getElementById('point-total-count');
+    if (totalEl) {
+      totalEl.textContent = (data.total || 0).toLocaleString();
+    }
+
     // Update the n column in the species table
     this._updateTableNColumn();
   }
 
   _updateTableNColumn() {
-    if (!this.previewResult) return;
-
     const tbody = document.getElementById('species-mix-tbody');
     if (!tbody) return;
 
     tbody.querySelectorAll('tr.species-mixer-row').forEach(row => {
-      const speciesId = parseInt(row.dataset.speciesId, 10);
-      const item = this.mixItems.find(m => m.species_id === speciesId);
+      const speciesName = row.dataset.speciesName;
+      const item = this.mixItems.find(m => m.name === speciesName);
       if (!item) return;
 
       const rhoCell = row.querySelector('.col-rho');
@@ -978,29 +1029,37 @@ class SpeciesMixer {
 
   // ── Preview column helpers ───────────────────────────────────────────────
 
+  // Category → radius mapping (must match backend _CATEGORY_RADIUS_M)
+  static CATEGORY_RADIUS_M = {
+    tree: 3.0, broadleaf: 3.0, conifer: 2.5, shrub: 1.5,
+    wildflower: 0.15, grass: 0.2, fern: 0.3, moss: 0.1, fungi: 0.15, other: 0.5,
+  };
+
+  // Look up species data by name first, then fall back to species_id
+  _getSpeciesEntry(item) {
+    if (!this.previewResult) return null;
+    const ps = this.previewResult.per_species || {};
+    const psById = this.previewResult.per_species_by_id || {};
+    return ps[item.name] || psById[item.species_id] || null;
+  }
+
+  // ρ = radius from category (INPUT data, always available)
   _previewCellRho(item) {
-    if (!this.previewResult) return '—';
-    const ps = this.previewResult.per_species || {};
-    const entry = ps[item.name];
-    if (!entry) return '—';
-    const r = entry.radius ?? entry;  // numeric (legacy) or object with .radius
-    if (typeof r === 'number') return `${r.toFixed(1)} m`;
-    return typeof r?.radius === 'number' ? `${r.radius.toFixed(1)} m` : '—';
+    const cat = (item.category || 'other').toLowerCase();
+    const r = SpeciesMixer.CATEGORY_RADIUS_M[cat] || 0.5;
+    return `${r.toFixed(1)} m`;
   }
 
+  // π = target ratio (INPUT data, always available)
   _previewCellPi(item) {
-    if (!this.previewResult) return '—';
-    const ps = this.previewResult.per_species || {};
-    const entry = ps[item.name];
-    if (!entry) return '—';
-    const pct = typeof entry === 'object' ? entry.proportion_pct : null;
-    return pct != null ? `${pct.toFixed(1)}%` : '—';
+    const ratio = item.ratio || 0;
+    const pct = ratio * 100;
+    return `${pct.toFixed(1)}%`;
   }
 
+  // n = actual count from generation (OUTPUT data, may be 0)
   _previewCellN(item) {
-    if (!this.previewResult) return '—';
-    const ps = this.previewResult.per_species || {};
-    const entry = ps[item.name];
+    const entry = this._getSpeciesEntry(item);
     if (entry == null) return '0';
     const count = typeof entry === 'object' ? entry.count : entry;
     return count > 0 ? count.toLocaleString() : '0';
@@ -1988,6 +2047,7 @@ class SpeciesMixer {
     const tr = document.createElement('tr');
     tr.className = 'species-mixer-row';
     tr.dataset.speciesId = item.species_id;
+    tr.dataset.speciesName = item.name;
 
     // Characteristics pills: goal-alignment tags only (category shown via dot colour, not a pill)
     const goalTags = this._goalTagsFromFamily(item.family, item.ecological_benefits)
@@ -2726,8 +2786,10 @@ class SpeciesMixer {
     this.previewResult = null;
     this._currentHectares = 1;
     clearTimeout(this._previewDebounceTimer);
+    this._previewAbortCtrl?.abort();
+    this._previewAbortCtrl = null;
     const slider = document.getElementById('hectare-slider');
-    if (slider) slider.value = 1;
+    if (slider) slider.value = 0;  // index 0 = 1 ha on the log scale
     const sliderLb = document.getElementById('hectare-label');
     if (sliderLb) sliderLb.textContent = '1 ha';
     this._renderGridPlaceholder();

@@ -1038,3 +1038,49 @@
     max-width: 100%;
   }
 }
+
+/* ── Chart loading overlay ────────────────────────────────────── */
+.chart-loading-overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  z-index: 10;
+  border-radius: var(--bs-border-radius);
+}
+
+/* Dark mode support */
+[data-bs-theme="dark"] .chart-loading-overlay {
+  background: rgba(33, 37, 41, 0.85);
+}
+
+.chart-loading-content {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.75rem 1.25rem;
+  background: var(--bs-body-bg);
+  border: 1px solid var(--bs-border-color);
+  border-radius: var(--bs-border-radius);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+  font-size: 0.875rem;
+  color: var(--bs-body-color);
+}
+
+/* Animated ellipsis */
+.loading-ellipsis::after {
+  content: '';
+  animation: ellipsis 1.5s infinite;
+}
+
+@keyframes ellipsis {
+  0%   { content: ''; }
+  25%  { content: '.'; }
+  50%  { content: '..'; }
+  75%  { content: '...'; }
+  100% { content: ''; }
+}

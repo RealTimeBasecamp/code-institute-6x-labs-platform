@@ -248,7 +248,10 @@ def generate_multi_species_sample_elimination(
 
     area_width = bounds.max_x - bounds.min_x
     area_height = bounds.max_y - bounds.min_y
-    area_m2 = area_width * area_height
+    # Use override when bounds are raw metres (not GPS coords); fall back to
+    # simple Cartesian area so the GPS Haversine path is not incorrectly triggered.
+    area_m2 = config.area_m2_override if config.area_m2_override is not None \
+        else area_width * area_height
     area_hectares = area_m2 / 10000
 
     base_candidates = config.target_candidates_per_hectare * area_hectares

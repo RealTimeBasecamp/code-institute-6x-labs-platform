@@ -415,6 +415,9 @@ class GenerationConfig:
     max_workers: int = 7
     target_candidates_per_hectare: int = 10000
     candidate_density_factor: float = 1.0
+    # Override the area used to compute total candidates when bounds contain raw
+    # metre coordinates rather than GPS coordinates (avoids Haversine mis-scaling).
+    area_m2_override: Optional[float] = None
 
     def __post_init__(self):
         if not 0.0 <= self.randomness_factor <= 1.0:

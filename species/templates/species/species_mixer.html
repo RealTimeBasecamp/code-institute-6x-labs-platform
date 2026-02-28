@@ -68,6 +68,11 @@
             <option value="forest_clearing">Forest with Clearing</option>
             <option value="river">River Example</option>
           </select>
+          <!-- Algorithm selector -->
+          <select class="form-select form-select-sm species-mixer-select" id="grid-algorithm">
+            <option value="sample_elimination" selected>Sample Elimination</option>
+            <option value="poisson">Poisson Disk</option>
+          </select>
           <!-- Visualisation mode + filter controls (right) -->
           <div class="ms-auto d-flex gap-2">
             <select class="form-select form-select-sm species-mixer-select" id="map-visualisation" disabled>
@@ -83,11 +88,23 @@
           </div>
         </div>
 
-        <div id="virtual-grid-chart" class="mixer-virtual-grid-chart"></div>
+        <div id="point-total-display" class="border rounded px-3 py-2 mb-2 text-center bg-body-tertiary">
+          <span class="text-muted small">Total points:</span>
+          <span id="point-total-count" class="fw-semibold ms-1">—</span>
+        </div>
+        <div class="position-relative">
+          <div id="virtual-grid-chart" class="mixer-virtual-grid-chart"></div>
+          <div id="chart-loading-overlay" class="chart-loading-overlay">
+            <div class="chart-loading-content">
+              <div class="spinner-border spinner-border-sm text-primary me-2" role="status"></div>
+              <span id="chart-loading-text">Waiting for species mix</span><span class="loading-ellipsis"></span>
+            </div>
+          </div>
+        </div>
 
         <div class="mixer-grid-controls">
           <label class="small text-muted me-2 text-nowrap" for="hectare-slider">Scale</label>
-          <input type="range" id="hectare-slider" min="1" max="100000" step="1" value="1"
+          <input type="range" id="hectare-slider" min="0" max="100" step="1" value="0"
                  class="form-range flex-grow-1 mx-2">
           <span id="hectare-label" class="small text-muted text-nowrap">1 ha</span>
         </div>

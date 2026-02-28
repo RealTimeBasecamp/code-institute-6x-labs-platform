@@ -628,11 +628,18 @@ def api_generate_preview(request):
         data = json.loads(request.body)
         mix_items = data.get('mix_items', [])
         hectares = float(data.get('hectares', 1.0))
+        algorithm = data.get('algorithm', 'sample_elimination')
+        inclusion_zones = data.get('inclusion_zones', [])
+        exclusion_zones = data.get('exclusion_zones', [])
+        env_side_m = float(data.get('side_m', 100))
     except (ValueError, json.JSONDecodeError) as exc:
         return JsonResponse({'error': f'Invalid request body: {exc}'}, status=400)
 
-    # Clamp hectares to a sensible range to prevent abuse / timeout
-    hectares = max(0.1, min(hectares, 100_000.0))
+    if algorithm not in ('sample_elimination', 'poisson'):
+        algorithm = 'sample_elimination'
+
+    # Clamp hectares — allow up to 1 000 000 ha (100 km²)
+    hectares = max(0.1, min(hectares, 1_000_000.0))
 
     # Only include active species
     active_items = [m for m in mix_items if m.get('is_active', True)]
@@ -645,10 +652,15 @@ def api_generate_preview(request):
     try:
         from planting.point_generation.data_types import (
             PlantType, AreaBounds, BoundaryConfig, GenerationConfig,
+            PolygonRegion,
         )
         from planting.point_generation.algorithms.sample_elimination import (
             generate_points_sample_elimination,
         )
+        if algorithm == 'poisson':
+            from planting.point_generation.algorithms.poisson import (
+                generate_points_poisson,
+            )
     except ImportError as exc:
         logger.error('Point generation package not available: %s', exc)
         return JsonResponse(
@@ -661,9 +673,45 @@ def api_generate_preview(request):
     side_m = math.sqrt(hectares * 10_000.0)
 
     bounds = AreaBounds(min_x=0.0, max_x=side_m, min_y=0.0, max_y=side_m)
-    boundary_config = BoundaryConfig(
-        use_simple_rectangle=True,
-        simple_bounds=bounds,
+
+    # Build boundary config with inclusion/exclusion zones if provided
+    # Zones from frontend are in env coordinates (0 to env_side_m), scale to actual side_m
+    scale = side_m / env_side_m if env_side_m > 0 else 1.0
+
+    def parse_zones(zones, region_type):
+        regions = []
+        for polygon in zones:
+            if not polygon or len(polygon) < 3:
+                continue
+            # Scale vertices from env coords to actual metres
+            vertices = [(pt[0] * scale, pt[1] * scale) for pt in polygon]
+            regions.append(PolygonRegion(vertices=vertices, region_type=region_type))
+        return regions
+
+    inclusion_regions = parse_zones(inclusion_zones, 'inclusion')
+    exclusion_regions = parse_zones(exclusion_zones, 'exclusion')
+
+    if inclusion_regions:
+        boundary_config = BoundaryConfig(
+            use_simple_rectangle=False,
+            simple_bounds=bounds,
+            inclusion_regions=inclusion_regions,
+            exclusion_regions=exclusion_regions,
+        )
+    else:
+        boundary_config = BoundaryConfig(
+            use_simple_rectangle=True,
+            simple_bounds=bounds,
+        )
+
+    # Target a fixed total candidate budget regardless of area so generation
+    # time stays O(1) rather than O(area). Cap per-hectare density to avoid
+    # excessive processing on small areas.
+    _CANDIDATE_BUDGET = 50_000
+    _MAX_CANDIDATES_PER_HA = 10_000
+    candidates_per_ha = min(
+        _MAX_CANDIDATES_PER_HA,
+        max(100, int(_CANDIDATE_BUDGET / max(1.0, hectares)))
     )
 
     # Normalise ratios so they sum to 1
@@ -693,27 +741,43 @@ def api_generate_preview(request):
         plant_types.append(pt)
         item_map[raw_name] = item
 
+    area_m2 = side_m * side_m  # raw metre bounds — pass explicitly to bypass GPS Haversine
     config = GenerationConfig(
         allow_boundary_overlap=False,
         random_seed=42,
         randomness_factor=0.4,
         relaxation_iterations=0,
-        target_candidates_per_hectare=8000,
+        target_candidates_per_hectare=candidates_per_ha,
         candidate_density_factor=1.0,
         max_workers=4,
+        area_m2_override=area_m2,
     )
 
     try:
-        result = generate_points_sample_elimination(
-            plant_types, bounds, config, boundary_config
-        )
+        if algorithm == 'poisson':
+            result = generate_points_poisson(
+                plant_types, bounds, config, boundary_config
+            )
+        else:
+            result = generate_points_sample_elimination(
+                plant_types, bounds, config, boundary_config
+            )
     except Exception as exc:
         logger.error('Point generation failed: %s', exc, exc_info=True)
         return JsonResponse({'error': 'Point generation failed.'}, status=500)
 
-    # Serialise points — x/y in metres within the virtual grid
+    # Serialise points — x/y in metres within the virtual grid.
+    # Cap at 5 000 rendered points so ECharts stays responsive at large scales;
+    # per_species counts always reflect the full result regardless of this cap.
+    _RENDER_CAP = 5_000
+    source_points = result.points
+    if len(source_points) > _RENDER_CAP:
+        import random as _random
+        rng = _random.Random(42)
+        source_points = rng.sample(source_points, _RENDER_CAP)
+
     points_out = []
-    for pt in result.points:
+    for pt in source_points:
         name = pt.plant_type.name
         colour = pt.plant_type.color or '#888888'
         points_out.append({
@@ -725,19 +789,27 @@ def api_generate_preview(request):
         })
 
     total_pts = result.total_points or 1  # guard against /0
-    per_species = {
-        pd.plant_name: {
+
+    # Build per_species dict keyed by name; also build a species_id → data map
+    # so the frontend can look up by either key.
+    per_species = {}
+    per_species_by_id = {}
+    for pd in result.plot_data:
+        pt = next((p for p in plant_types if p.name == pd.plant_name), None)
+        entry = {
             'count': pd.count,
             'radius': round(pd.radius, 2),
             'proportion_pct': round(pd.count / total_pts * 100, 1),
         }
-        for pd in result.plot_data
-    }
+        per_species[pd.plant_name] = entry
+        if pt and pt.species_id:
+            per_species_by_id[pt.species_id] = entry
 
     return JsonResponse({
         'points': points_out,
         'total': result.total_points,
         'per_species': per_species,
+        'per_species_by_id': per_species_by_id,
         'hectares': hectares,
         'side_m': round(side_m, 2),
         'execution_time_s': round(result.execution_time, 3),

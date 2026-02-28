@@ -83,6 +83,7 @@ SPECIES DATABASES (what species grow at this location?):
 """
 
 import logging
+import math
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
 import requests
@@ -611,6 +612,7 @@ def fetch_location_name(lat: float, lng: float) -> str:
     data = _get(
         'https://photon.komoot.io/reverse',
         params={'lat': lat, 'lon': lng, 'lang': 'en'},
+        headers={'User-Agent': 'PlantingPlatform/1.0 (educational project; contact via github)'},
     )
     _track('photon')
 
@@ -652,17 +654,19 @@ def fetch_gbif_occurrences(lat: float, lng: float, radius_km: int = 10) -> list[
     if cached is not None:
         return cached
 
-    # GBIF supports geo_distance for true circular radius search:
-    # geo_distance={radius_km}km,{lat},{lng}  (GBIF uses km unit)
-    # This replaces the old bounding-box approximation which over-counted
-    # corner records and under-reported species density accurately.
+    # GBIF v1 occurrence/search does not support `geo_distance`.
+    # Use a lat/lng bounding box derived from the radius instead.
+    # 1 degree latitude ≈ 111 km; longitude degree shrinks with cos(lat).
     # kingdom=Plantae filter is unreliable in GBIF — animals still appear.
     # kingdomKey=6 is the GBIF taxon key for Plantae (more reliable).
+    lat_delta = radius_km / 111.0
+    lng_delta = radius_km / (111.0 * math.cos(math.radians(lat))) if lat != 90 else radius_km / 111.0
     data = _get(
         'https://api.gbif.org/v1/occurrence/search',
         params={
             'kingdomKey': 6,  # Plantae — more reliable than kingdom=Plantae
-            'geo_distance': f'{radius_km}km,{lat},{lng}',
+            'decimalLatitude': f'{lat - lat_delta},{lat + lat_delta}',
+            'decimalLongitude': f'{lng - lng_delta},{lng + lng_delta}',
             'limit': 100,
             'hasCoordinate': 'true',
             'occurrenceStatus': 'PRESENT',
