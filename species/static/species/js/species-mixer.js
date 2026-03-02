@@ -207,8 +207,9 @@ class SpeciesMixer {
       if (!el) return;
       const valEl = el.querySelector('.eco-stat__val');
       if (!valEl) return;
-      valEl.textContent = '';
-      valEl.className = 'eco-stat__val skeleton-line';
+      valEl.textContent = '—';
+      // Preserve mix-data-stat__value class while adding skeleton state
+      valEl.classList.add('skeleton-line');
       valEl.style.width = width;
     });
   }

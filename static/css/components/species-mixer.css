@@ -331,7 +331,11 @@
 #tab-goals .species-mixer-goal-slider { margin-bottom: 0.5rem !important; }
 #tab-goals .card { margin-bottom: 0.5rem !important; }
 #tab-goals > p.text-muted { margin-bottom: 0.4rem !important; }
-#tab-goals #generate-cta { margin-top: 0.5rem; }
+
+/* Consistent generate button positioning across tabs */
+.generate-cta-wrap {
+  /* No extra margin — button sits flush at top of tab content */
+}
 
 /* The results container in the Mix tab — lock overlay anchors here, not the whole pane */
 .mixer-mix-results {
