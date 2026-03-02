@@ -102,6 +102,7 @@ class SpeciesMixer {
     // Map
     this.map = null;
     this.marker = null;
+    this.searchRadiusKm = 25;  // default, matches AI agent; updated by location range slider
 
     // Virtual grid (ECharts scatter — shown on Mix tab)
     this.gridChart = null;
@@ -116,6 +117,7 @@ class SpeciesMixer {
     this._initDivider();
     this._initTabs();
     this._initLocationSearch();
+    this._initLocationRange();
     this._bindEvents();
     this._initMixNameField();
     this._initRadar();
@@ -182,6 +184,8 @@ class SpeciesMixer {
     this._transitionTo(SpeciesMixer.STATE_3_GOALS_SET);
     // Map click IS the confirmation — unlock Goals tab (stay on Location tab)
     this._unlockTab('goals');
+    // Draw / update the search radius circle around the new pin
+    this._updateRadiusCircle();
     // Fire all four fetches in parallel — each resolves independently
     this._fetchLocationName(lat, lng);
     this._fetchEnvDataSoil(lat, lng);
@@ -190,7 +194,7 @@ class SpeciesMixer {
   }
 
   _resetEcoCells() {
-    // Return all 8 eco stat value elements to skeleton loading state.
+    // Put all 8 eco stat cells into skeleton loading state (no text — shimmer only).
     // Called on every new map click so stale data from a previous location is cleared.
     const skeletonWidths = {
       'eco-ph':       '2.5rem',
@@ -207,10 +211,23 @@ class SpeciesMixer {
       if (!el) return;
       const valEl = el.querySelector('.eco-stat__val');
       if (!valEl) return;
-      valEl.textContent = '—';
-      // Preserve mix-data-stat__value class while adding skeleton state
+      // Clear text so skeleton shimmer shows alone (no — alongside the animation)
+      valEl.textContent = '';
+      valEl.innerHTML = '';
       valEl.classList.add('skeleton-line');
       valEl.style.width = width;
+    });
+  }
+
+  _clearEcoCells() {
+    // Reset eco cells to idle state: dash, no skeleton. Used on full mixer reset.
+    ['eco-ph', 'eco-texture', 'eco-moisture', 'eco-rain',
+     'eco-temp', 'eco-flood', 'eco-frost', 'eco-organic'].forEach(id => {
+      const valEl = document.getElementById(id)?.querySelector('.eco-stat__val');
+      if (!valEl) return;
+      valEl.classList.remove('skeleton-line');
+      valEl.style.width = '';
+      valEl.textContent = '—';
     });
   }
 
@@ -382,6 +399,140 @@ class SpeciesMixer {
     input.addEventListener('blur', () => {
       setTimeout(closeDropdown, 150);
     });
+  }
+
+  // ──────────────────────────────────────────────────────────────────────────
+  // Location range slider
+  // ──────────────────────────────────────────────────────────────────────────
+
+  _initLocationRange() {
+    const slider  = document.getElementById('location-range-slider');
+    const inputEl = document.getElementById('location-range-value');
+    if (!slider || !inputEl) return;
+
+    const RADIUS_MIN = 1;
+    const RADIUS_MAX = 250;
+
+    const sync = (km) => {
+      this.searchRadiusKm = km;
+      slider.value   = km;
+      inputEl.value  = km;
+      this._updateRadiusCircle();
+    };
+
+    // Set initial state
+    sync(this.searchRadiusKm);
+
+    // Slider → input
+    slider.addEventListener('input', () => {
+      sync(parseInt(slider.value, 10));
+    });
+
+    // Input → slider (on change / Enter)
+    inputEl.addEventListener('change', () => {
+      const raw = parseInt(inputEl.value, 10);
+      const clamped = isNaN(raw) ? this.searchRadiusKm : Math.min(RADIUS_MAX, Math.max(RADIUS_MIN, raw));
+      sync(clamped);
+    });
+
+    // Live clamp while typing so the value display tracks immediately
+    inputEl.addEventListener('input', () => {
+      const raw = parseInt(inputEl.value, 10);
+      if (!isNaN(raw)) {
+        const clamped = Math.min(RADIUS_MAX, Math.max(RADIUS_MIN, raw));
+        this.searchRadiusKm = clamped;
+        slider.value = clamped;
+        this._updateRadiusCircle();
+      }
+    });
+
+    // On blur, fix any incomplete/invalid value
+    inputEl.addEventListener('blur', () => {
+      const raw = parseInt(inputEl.value, 10);
+      const clamped = isNaN(raw) ? this.searchRadiusKm : Math.min(RADIUS_MAX, Math.max(RADIUS_MIN, raw));
+      sync(clamped);
+    });
+  }
+
+  /**
+   * Adds/updates a filled translucent circle on the map showing the current
+   * search radius around the selected pin.
+   *
+   * Uses a GeoJSON polygon approximation (64-point circle) so it works with
+   * any MapLibre base style without needing Turf.js.
+   */
+  _updateRadiusCircle() {
+    if (!this.map || this.lat == null || this.lng == null) return;
+
+    const radiusM  = this.searchRadiusKm * 1000;
+    const steps    = 64;
+    const coords   = [];
+    // Earth radius in metres
+    const R = 6378137;
+
+    for (let i = 0; i <= steps; i++) {
+      const angle = (i / steps) * 2 * Math.PI;
+      // Angular distance in radians
+      const d = radiusM / R;
+      const lat1 = (this.lat * Math.PI) / 180;
+      const lng1 = (this.lng * Math.PI) / 180;
+
+      const lat2 = Math.asin(
+        Math.sin(lat1) * Math.cos(d) +
+        Math.cos(lat1) * Math.sin(d) * Math.cos(angle)
+      );
+      const lng2 =
+        lng1 +
+        Math.atan2(
+          Math.sin(angle) * Math.sin(d) * Math.cos(lat1),
+          Math.cos(d) - Math.sin(lat1) * Math.sin(lat2)
+        );
+
+      coords.push([(lng2 * 180) / Math.PI, (lat2 * 180) / Math.PI]);
+    }
+
+    const geojson = {
+      type: 'Feature',
+      geometry: { type: 'Polygon', coordinates: [coords] },
+    };
+
+    if (this.map.getSource('search-radius')) {
+      this.map.getSource('search-radius').setData(geojson);
+    } else {
+      // Wait until style is loaded before adding source/layer
+      const addToMap = () => {
+        this.map.addSource('search-radius', { type: 'geojson', data: geojson });
+
+        // Fill
+        this.map.addLayer({
+          id: 'search-radius-fill',
+          type: 'fill',
+          source: 'search-radius',
+          paint: {
+            'fill-color': '#198754',
+            'fill-opacity': 0.08,
+          },
+        });
+
+        // Outline
+        this.map.addLayer({
+          id: 'search-radius-outline',
+          type: 'line',
+          source: 'search-radius',
+          paint: {
+            'line-color': '#198754',
+            'line-width': 1.5,
+            'line-dasharray': [4, 3],
+          },
+        });
+      };
+
+      if (this.map.isStyleLoaded()) {
+        addToMap();
+      } else {
+        this.map.once('load', addToMap);
+      }
+    }
   }
 
   _onTabShown(tabId) {
@@ -705,28 +856,61 @@ class SpeciesMixer {
 
     // Hectare slider — logarithmic mapping over 0–100 index → 1–1 000 000 ha.
     // index 0 → 1 ha, index 100 → 1 000 000 ha.
+    const HA_MIN = 1;
+    const HA_MAX = 1000000;
     const _haFromIndex = idx => Math.round(Math.pow(10, idx * 6 / 100));
-    const _haLabel = ha => {
-      if (ha >= 10000) return `${(ha / 10000).toFixed(ha >= 100000 ? 0 : 1)} km²`;
-      if (ha >= 1000)  return `${(ha / 1000).toFixed(1)}k Hectares`;
-      if (ha === 1)    return '1 Hectare';
-      return `${ha} Hectares`;
+    const _indexFromHa = ha => Math.round(Math.log10(Math.max(HA_MIN, Math.min(HA_MAX, ha))) / 6 * 100);
+
+    const slider  = document.getElementById('hectare-slider');
+    const haInput = document.getElementById('hectare-value-input');
+
+    const _requestPreviewDebounced = (ha) => {
+      clearTimeout(this._previewDebounceTimer);
+      const debounceMs = ha > 10000 ? 1000 : ha > 1000 ? 700 : 500;
+      this._previewDebounceTimer = setTimeout(() => this._requestPreview(ha), debounceMs);
     };
 
-    const slider   = document.getElementById('hectare-slider');
-    const sliderLb = document.getElementById('hectare-label');
+    const _formatHa = ha => ha >= 1000 ? `${(ha / 1000).toFixed(0)}k ha` : `${ha} ha`;
+    const _scaleLbl = document.getElementById('scale-btn-label');
+
+    const _syncHectare = (ha, source) => {
+      this._currentHectares = ha;
+      if (slider && source !== 'slider') slider.value = _indexFromHa(ha);
+      if (haInput && source !== 'input') haInput.value = ha;
+      if (_scaleLbl) _scaleLbl.textContent = _formatHa(ha);
+    };
+
     if (slider) {
       slider.addEventListener('input', () => {
         const ha = _haFromIndex(parseInt(slider.value, 10));
-        this._currentHectares = ha;
-        if (sliderLb) sliderLb.textContent = _haLabel(ha);
-        clearTimeout(this._previewDebounceTimer);
-        // Longer debounce at large scales to let the user settle on a value
-        const debounceMs = ha > 10000 ? 1000 : ha > 1000 ? 700 : 500;
-        this._previewDebounceTimer = setTimeout(() => {
-          this._requestPreview(ha);
-        }, debounceMs);
+        _syncHectare(ha, 'slider');
+        // Update chart axes/grid immediately as slider is dragged
+        if (this.previewResult) {
+          this._renderPreview(this.previewResult);
+        } else {
+          this._renderGridPlaceholder();
+        }
+        _requestPreviewDebounced(ha);
       });
+    }
+
+    if (haInput) {
+      haInput.addEventListener('input', () => {
+        const raw = parseInt(haInput.value, 10);
+        if (!isNaN(raw) && raw > HA_MAX) haInput.value = HA_MAX;
+        if (!isNaN(raw) && raw < HA_MIN) haInput.value = HA_MIN;
+      });
+
+      const applyHaInput = () => {
+        const raw = parseInt(haInput.value, 10);
+        const ha = isNaN(raw) ? this._currentHectares : Math.min(HA_MAX, Math.max(HA_MIN, raw));
+        _syncHectare(ha, 'input');
+        haInput.value = ha; // normalise (e.g. empty string → current value)
+        _requestPreviewDebounced(ha);
+      };
+
+      haInput.addEventListener('change', applyHaInput);
+      haInput.addEventListener('blur', applyHaInput);
     }
 
     // Environment selector — re-renders zones immediately, then re-requests preview
@@ -756,8 +940,216 @@ class SpeciesMixer {
       });
     }
 
+    this._initGridToolbar();
+    this._initTimeline();
+
     // Defer initial render — the Mix tab container may still be hidden (d-none)
     // at init time. _onTabShown will trigger the real resize + render when shown.
+  }
+
+  // ── Timeline scrubber ──────────────────────────────────────────────────────
+  // Placeholder: play button animates the handle from 0 → endYear over 5s.
+  // Dragging the handle or clicking the track sets the position manually.
+  _initTimeline() {
+    const playBtn    = document.getElementById('timeline-play-btn');
+    const playIcon   = document.getElementById('timeline-play-icon');
+    const track      = document.getElementById('timeline-track');
+    const progress   = document.getElementById('timeline-progress');
+    const handle     = document.getElementById('timeline-handle');
+    const endYearEl  = document.getElementById('timeline-end-year');
+    if (!playBtn || !track || !handle) return;
+
+    const PLAY_DURATION_MS = 5000;
+    let _playing     = false;
+    let _rafId       = null;
+    let _startTime   = null;
+    let _startPct    = 0;   // 0–1 fraction at play-start
+    let _currentPct  = 0;
+
+    const _setPosition = (pct) => {
+      _currentPct = Math.max(0, Math.min(1, pct));
+      const pctStr = `${(_currentPct * 100).toFixed(2)}%`;
+      progress.style.width  = pctStr;
+      handle.style.left     = pctStr;
+      const endYear = parseInt(endYearEl.value, 10) || 30;
+      handle.setAttribute('aria-valuenow', Math.round(_currentPct * endYear));
+    };
+
+    const _stop = () => {
+      _playing = false;
+      cancelAnimationFrame(_rafId);
+      playBtn.classList.remove('is-playing');
+      playIcon.className = 'bi bi-play-fill';
+      playBtn.setAttribute('aria-label', 'Play timeline');
+    };
+
+    const _play = () => {
+      _playing = true;
+      _startPct = _currentPct >= 1 ? 0 : _currentPct;  // restart from 0 if at end
+      _setPosition(_startPct);
+      _startTime = null;
+      playBtn.classList.add('is-playing');
+      playIcon.className = 'bi bi-pause-fill';
+      playBtn.setAttribute('aria-label', 'Pause timeline');
+
+      const _tick = (timestamp) => {
+        if (!_playing) return;
+        if (!_startTime) _startTime = timestamp;
+        const elapsed = timestamp - _startTime;
+        const remaining = 1 - _startPct;
+        const pct = _startPct + (elapsed / PLAY_DURATION_MS) * remaining;
+        _setPosition(pct);
+        if (pct >= 1) { _setPosition(1); _stop(); return; }
+        _rafId = requestAnimationFrame(_tick);
+      };
+      _rafId = requestAnimationFrame(_tick);
+    };
+
+    // Play/pause toggle
+    playBtn.addEventListener('click', () => {
+      if (_playing) { _stop(); } else { _play(); }
+    });
+
+    // Click on track — jump to position
+    track.addEventListener('pointerdown', (e) => {
+      if (e.target === handle) return;  // let handle drag handle it
+      const rect = track.getBoundingClientRect();
+      _stop();
+      _setPosition((e.clientX - rect.left) / rect.width);
+    });
+
+    // Drag handle
+    handle.addEventListener('pointerdown', (e) => {
+      e.preventDefault();
+      _stop();
+      const rect = track.getBoundingClientRect();
+      const onMove = (me) => _setPosition((me.clientX - rect.left) / rect.width);
+      const onUp   = () => {
+        window.removeEventListener('pointermove', onMove);
+        window.removeEventListener('pointerup',   onUp);
+      };
+      window.addEventListener('pointermove', onMove);
+      window.addEventListener('pointerup',   onUp);
+    });
+
+    // Keyboard on handle (arrow keys)
+    handle.addEventListener('keydown', (e) => {
+      const endYear = parseInt(endYearEl.value, 10) || 30;
+      const step = 1 / endYear;
+      if (e.key === 'ArrowRight' || e.key === 'ArrowUp')   { _stop(); _setPosition(_currentPct + step); e.preventDefault(); }
+      if (e.key === 'ArrowLeft'  || e.key === 'ArrowDown')  { _stop(); _setPosition(_currentPct - step); e.preventDefault(); }
+    });
+
+    // End-year change updates aria-valuemax
+    endYearEl.addEventListener('change', () => {
+      const v = parseInt(endYearEl.value, 10);
+      if (isNaN(v) || v < 1) { endYearEl.value = 30; }
+      handle.setAttribute('aria-valuemax', endYearEl.value);
+      _setPosition(_currentPct);
+    });
+    endYearEl.addEventListener('blur', () => {
+      const v = parseInt(endYearEl.value, 10);
+      if (isNaN(v) || v < 1) endYearEl.value = 30;
+    });
+  }
+
+  // Icon-button toolbar above the visualiser — dropdowns for env/algo/vis/filter,
+  // scale button that expands to a full-width slider panel.
+  //
+  // NOTE on DRY: The editor's equivalent functionality lives in
+  // planting/static/planting/js/utils/toolbar-renderer.js (ToolbarRenderer class),
+  // which is editor-only and not loaded on species pages. The pattern here is
+  // intentionally the same (is-open toggle, getBoundingClientRect positioning,
+  // outside-click close) but self-contained so the species app has no dependency
+  // on the planting app's static assets.
+  _initGridToolbar() {
+    // Generic dropdown open/close logic.
+    // Positions each menu using getBoundingClientRect so it's never clipped.
+    const openDropdown = (btn, menu) => {
+      // Close all others first
+      document.querySelectorAll('.grid-toolbar-menu.is-open').forEach(m => {
+        if (m !== menu) m.classList.remove('is-open');
+      });
+      document.querySelectorAll('.grid-toolbar-btn.is-open').forEach(b => {
+        if (b !== btn) b.classList.remove('is-open');
+      });
+
+      const wasOpen = menu.classList.contains('is-open');
+      if (wasOpen) {
+        menu.classList.remove('is-open');
+        btn.classList.remove('is-open');
+        btn.setAttribute('aria-expanded', 'false');
+        return;
+      }
+
+      // Position before showing so we can measure
+      menu.style.visibility = 'hidden';
+      menu.classList.add('is-open');
+      const btnRect  = btn.getBoundingClientRect();
+      const menuRect = menu.getBoundingClientRect();
+      let left = btnRect.left;
+      let top  = btnRect.bottom + 2;
+      // Keep within viewport
+      if (left + menuRect.width > window.innerWidth - 8) {
+        left = btnRect.right - menuRect.width;
+      }
+      if (top + menuRect.height > window.innerHeight - 8) {
+        top = btnRect.top - menuRect.height - 2;
+      }
+      menu.style.left = `${left}px`;
+      menu.style.top  = `${top}px`;
+      menu.style.visibility = '';
+      btn.classList.add('is-open');
+      btn.setAttribute('aria-expanded', 'true');
+    };
+
+    // Close all dropdowns when clicking outside
+    document.addEventListener('click', (e) => {
+      if (!e.target.closest('.grid-toolbar-dropdown')) {
+        document.querySelectorAll('.grid-toolbar-menu.is-open').forEach(m => m.classList.remove('is-open'));
+        document.querySelectorAll('.grid-toolbar-btn.is-open').forEach(b => {
+          b.classList.remove('is-open');
+          b.setAttribute('aria-expanded', 'false');
+        });
+      }
+    }, true);
+
+    // Helper: wire an icon-button dropdown to a hidden <select>
+    const wireDropdown = (btnId, menuId, dataAttr, selectId) => {
+      const btn    = document.getElementById(btnId);
+      const menu   = document.getElementById(menuId);
+      const select = document.getElementById(selectId);
+      if (!btn || !menu) return;
+
+      btn.addEventListener('click', (e) => { e.stopPropagation(); openDropdown(btn, menu); });
+
+      menu.querySelectorAll('.grid-toolbar-item').forEach(item => {
+        item.addEventListener('click', () => {
+          const val = item.dataset[dataAttr];
+          menu.querySelectorAll('.grid-toolbar-item').forEach(i => i.classList.remove('is-selected'));
+          item.classList.add('is-selected');
+          menu.classList.remove('is-open');
+          btn.classList.remove('is-open');
+          btn.setAttribute('aria-expanded', 'false');
+          if (select && select.value !== val) {
+            select.value = val;
+            select.dispatchEvent(new Event('change'));
+          }
+        });
+      });
+    };
+
+    wireDropdown('env-dropdown-btn',    'env-dropdown-menu',    'gridEnv',    'grid-environment');
+    wireDropdown('algo-dropdown-btn',   'algo-dropdown-menu',   'gridAlgo',   'grid-algorithm');
+    wireDropdown('vis-dropdown-btn',    'vis-dropdown-menu',    'gridVis',    'map-visualisation');
+    wireDropdown('filter-dropdown-btn', 'filter-dropdown-menu', 'gridFilter', 'map-filter');
+
+    // Scale button — opens wide slider panel
+    const scaleBtn  = document.getElementById('scale-dropdown-btn');
+    const scaleMenu = document.getElementById('scale-dropdown-menu');
+    if (scaleBtn && scaleMenu) {
+      scaleBtn.addEventListener('click', (e) => { e.stopPropagation(); openDropdown(scaleBtn, scaleMenu); });
+    }
   }
 
   // Build ECharts 'custom' series for one set of polygons (inclusion or exclusion).
@@ -795,6 +1187,21 @@ class SpeciesMixer {
     }));
   }
 
+  // Returns a "nice" tick interval for an axis that spans 0..maxVal metres,
+  // targeting roughly 4–6 grid lines. Uses powers-of-10 steps (1, 2, 5, 10, 20, 50…).
+  _niceTickInterval(maxVal) {
+    const targetTicks = 5;
+    const rough = maxVal / targetTicks;
+    const mag   = Math.pow(10, Math.floor(Math.log10(rough)));
+    const norm  = rough / mag;
+    let step;
+    if (norm < 1.5)       step = 1;
+    else if (norm < 3.5)  step = 2;
+    else if (norm < 7.5)  step = 5;
+    else                  step = 10;
+    return step * mag;
+  }
+
   _renderGridPlaceholder() {
     if (!this.gridChart) return;
 
@@ -811,24 +1218,31 @@ class SpeciesMixer {
       ...this._buildZoneSeries(env.exclusion, 'exclusion'),
     ];
 
+    const haLabel = this._currentHectares >= 1000
+      ? `${(this._currentHectares / 1000).toFixed(0)}k ha`
+      : `${this._currentHectares} ha`;
+    // Compute a clean tick interval based on the zone side length
+    const tickInterval = this._niceTickInterval(zoneSide);
     this.gridChart.setOption({
       backgroundColor: bgColor,
-      grid: { left: 50, right: 20, top: 20, bottom: 45 },
+      grid: { left: 44, right: 12, top: 12, bottom: 28 },
       xAxis: {
-        type: 'value', min: 0, max: zoneSide, name: 'metres',
-        nameLocation: 'end', nameTextStyle: { color: axisColor, fontSize: 11, padding: [0, 0, 0, 6] },
+        type: 'value', min: 0, max: zoneSide, name: `m · ${haLabel}`,
+        nameLocation: 'end', nameTextStyle: { color: axisColor, fontSize: 10, padding: [0, 0, 0, 6] },
         axisLine: { lineStyle: { color: axisColor } },
         axisTick: { lineStyle: { color: axisColor } },
-        axisLabel: { color: axisColor, fontSize: 10, margin: 8 },
+        axisLabel: { color: axisColor, fontSize: 9, margin: 3 },
         splitLine: { lineStyle: { color: gridColor } },
+        interval: tickInterval,
       },
       yAxis: {
-        type: 'value', min: 0, max: zoneSide, name: 'metres',
-        nameLocation: 'end', nameTextStyle: { color: axisColor, fontSize: 11, padding: [0, 0, 6, 0] },
+        type: 'value', min: 0, max: zoneSide, name: 'm',
+        nameLocation: 'end', nameTextStyle: { color: axisColor, fontSize: 10, padding: [0, 0, 4, 0] },
         axisLine: { lineStyle: { color: axisColor } },
         axisTick: { lineStyle: { color: axisColor } },
-        axisLabel: { color: axisColor, fontSize: 10, margin: 8 },
+        axisLabel: { color: axisColor, fontSize: 9, margin: 3 },
         splitLine: { lineStyle: { color: gridColor } },
+        interval: tickInterval,
       },
       series: zoneSeries,
       animation: false,
@@ -978,24 +1392,26 @@ class SpeciesMixer {
         textStyle: { fontSize: 11 },
       },
       grid: {
-        left: 50, right: 20, top: 20,
-        bottom: showLegend ? 65 : 45,
+        left: 44, right: 12, top: 12,
+        bottom: showLegend ? 58 : 28,
       },
       xAxis: {
-        type: 'value', min: 0, max: sideM, name: 'metres',
-        nameLocation: 'end', nameTextStyle: { color: axisColor, fontSize: 11, padding: [0, 0, 0, 6] },
+        type: 'value', min: 0, max: sideM, name: `m · ${this._currentHectares >= 1000 ? `${(this._currentHectares / 1000).toFixed(0)}k ha` : `${this._currentHectares} ha`}`,
+        nameLocation: 'end', nameTextStyle: { color: axisColor, fontSize: 10, padding: [0, 0, 0, 6] },
         axisLine: { lineStyle: { color: axisColor } },
         axisTick: { lineStyle: { color: axisColor } },
-        axisLabel: { color: axisColor, fontSize: 10, margin: 8 },
+        axisLabel: { color: axisColor, fontSize: 9, margin: 3 },
         splitLine: { lineStyle: { color: gridColor } },
+        interval: this._niceTickInterval(sideM),
       },
       yAxis: {
-        type: 'value', min: 0, max: sideM, name: 'metres',
-        nameLocation: 'end', nameTextStyle: { color: axisColor, fontSize: 11, padding: [0, 0, 6, 0] },
+        type: 'value', min: 0, max: sideM, name: 'm',
+        nameLocation: 'end', nameTextStyle: { color: axisColor, fontSize: 10, padding: [0, 0, 4, 0] },
         axisLine: { lineStyle: { color: axisColor } },
         axisTick: { lineStyle: { color: axisColor } },
-        axisLabel: { color: axisColor, fontSize: 10, margin: 8 },
+        axisLabel: { color: axisColor, fontSize: 9, margin: 3 },
         splitLine: { lineStyle: { color: gridColor } },
+        interval: this._niceTickInterval(sideM),
       },
       series: [...zoneSeries, ...scatterSeries],
       animation: false,
@@ -1251,11 +1667,24 @@ class SpeciesMixer {
 
     if (state >= SpeciesMixer.STATE_2_LOCATION_SET) {
       hide('step1-prompt');
-      show('location-info-panel');
+      document.getElementById('coord-copy-btn')?.classList.remove('coord-copy-btn--empty');
+
+      // Expand the environmental data card on first location set
+      const ecoCard = document.getElementById('location-eco-card');
+      if (ecoCard?._expandableCard && !ecoCard._expandableCard.isExpanded) {
+        ecoCard._expandableCard.expand();
+      }
+
+      // Enable location settings fields and auto-expand the settings card
+      enable('#location-settings-fields input, #location-settings-fields select');
+      const settingsCard = document.getElementById('location-settings-card');
+      if (settingsCard?._expandableCard && !settingsCard._expandableCard.isExpanded) {
+        settingsCard._expandableCard.expand();
+      }
     }
 
     if (state >= SpeciesMixer.STATE_3_GOALS_SET) {
-      enable('.goal-slider');
+      enable('.goal-slider, .goal-value');
       document.getElementById('goals-generating-shield')?.classList.add('d-none');
       document.getElementById('goals-sliders-card')?.classList.remove('goals-generating');
       show('generate-cta');
@@ -1275,7 +1704,7 @@ class SpeciesMixer {
       const stopHtml = '<i class="bi bi-stop-circle me-2"></i>Stop Generation';
       const goalsBtn = document.getElementById('generate-mix-btn');
       const mixBtn = document.getElementById('mix-generate-btn');
-      disable('.goal-slider');
+      disable('.goal-slider, .goal-value');
       document.getElementById('goals-generating-shield')?.classList.remove('d-none');
       document.getElementById('goals-sliders-card')?.classList.add('goals-generating');
       if (goalsBtn) {
@@ -1308,6 +1737,10 @@ class SpeciesMixer {
         mixBtn.className = 'btn btn-primary w-100';
       }
       enable('#map-visualisation, #map-filter');
+      ['vis-dropdown-btn', 'filter-dropdown-btn'].forEach(id => {
+        const b = document.getElementById(id);
+        if (b) { b.disabled = false; b.classList.remove('grid-toolbar-btn--disabled'); }
+      });
       enable('#add-species-manually-btn');
       show('save-mix-btn');
       hide('insights-spinner');
@@ -1397,13 +1830,57 @@ class SpeciesMixer {
     this._goalWeights = {};
     GOALS.forEach(g => { this._goalWeights[g] = 50; });
 
+    // Range slider input
     document.querySelectorAll('.goal-slider').forEach((slider) => {
       slider.addEventListener('input', (e) => {
         if (this.state === SpeciesMixer.STATE_4_GENERATING) return;
         this._goalWeights[e.target.dataset.goal] = Math.max(0, parseInt(e.target.value, 10));
-        this._computeHandleFromWeights(); // reposition handle to match new weights
+        this._computeHandleFromWeights();
         this._syncGoalSliders();
         this._debouncedRescore();
+      });
+    });
+
+    // Number input — user types a target % (0-100). We treat the typed value as
+    // the desired normalised share and back-calculate a raw weight that achieves it.
+    // Strategy: set this goal's raw weight so that pct/(sum) = desired/100.
+    //   => raw = desired * (sum_of_others) / (100 - desired)
+    // Caps: desired clamped to [0, 100].
+    document.querySelectorAll('.goal-value[data-goal]').forEach((input) => {
+      const applyGoalInput = () => {
+        if (this.state === SpeciesMixer.STATE_4_GENERATING) return;
+        const goal = input.dataset.goal;
+        const raw = parseInt(input.value, 10);
+        const desired = isNaN(raw) ? null : Math.min(100, Math.max(0, raw));
+        if (desired === null) { this._syncGoalSliders(); return; }
+
+        if (desired === 100) {
+          // This goal takes everything
+          GOALS.forEach(g => { this._goalWeights[g] = g === goal ? 100 : 0; });
+        } else if (desired === 0) {
+          this._goalWeights[goal] = 0;
+        } else {
+          // Sum of other goals' raw weights
+          const othersSum = GOALS.reduce((s, g) => g === goal ? s : s + (this._goalWeights[g] ?? 0), 0) || 1;
+          // Desired: desired / 100 = raw / (raw + othersSum)
+          // => raw = desired * othersSum / (100 - desired)
+          const newRaw = Math.round((desired * othersSum) / (100 - desired));
+          this._goalWeights[goal] = Math.max(0, newRaw);
+        }
+
+        this._computeHandleFromWeights();
+        this._syncGoalSliders();
+        this._debouncedRescore();
+      };
+
+      input.addEventListener('change', applyGoalInput);
+      input.addEventListener('blur', applyGoalInput);
+
+      // While typing: clamp to 100 immediately so the input never shows > 100
+      input.addEventListener('input', () => {
+        const raw = parseInt(input.value, 10);
+        if (!isNaN(raw) && raw > 100) input.value = 100;
+        if (!isNaN(raw) && raw < 0)   input.value = 0;
       });
     });
 
@@ -1419,7 +1896,8 @@ class SpeciesMixer {
       const slider = document.getElementById(`goal-${g}`);
       if (slider) slider.value = raw;
       const disp = document.getElementById(`goal-val-${g}`);
-      if (disp) disp.textContent = `${pct}%`;
+      // disp is now a number <input> — only update if the user is not actively editing it
+      if (disp && document.activeElement !== disp) disp.value = pct;
       const seg = document.getElementById(`alloc-${g}`);
       if (seg) seg.style.width = `${pct}%`;
     });
@@ -2621,6 +3099,7 @@ class SpeciesMixer {
                .setLngLat([this.lng, this.lat])
                .addTo(this.map);
         this.map.flyTo({ center: [this.lng, this.lat], zoom: 11 });
+        this._updateRadiusCircle();
       }
 
       // Restore location display
@@ -2859,8 +3338,8 @@ class SpeciesMixer {
     this._previewAbortCtrl = null;
     const slider = document.getElementById('hectare-slider');
     if (slider) slider.value = 0;  // index 0 = 1 ha on the log scale
-    const sliderLb = document.getElementById('hectare-label');
-    if (sliderLb) sliderLb.textContent = '1 ha';
+    const haInput = document.getElementById('hectare-value-input');
+    if (haInput) haInput.value = 1;
     this._renderGridPlaceholder();
     // Hide the virtual grid wrap — no mix yet
     document.getElementById('virtual-grid-wrap')?.classList.add('d-none');
@@ -2868,10 +3347,25 @@ class SpeciesMixer {
     // Auto-create a new blank mix record for the fresh session
     this._createNewMix();
     this.mixItems = [];
-    // Reset eco data panel to per-cell skeleton state
-    this._resetEcoCells();
+    // Clear eco cells to idle dash state (no skeleton — no active fetch)
+    this._clearEcoCells();
 
     if (this.marker) { this.marker.remove(); this.marker = null; }
+
+    // Remove search radius circle
+    if (this.map) {
+      if (this.map.getLayer('search-radius-fill'))    this.map.removeLayer('search-radius-fill');
+      if (this.map.getLayer('search-radius-outline')) this.map.removeLayer('search-radius-outline');
+      if (this.map.getSource('search-radius'))        this.map.removeSource('search-radius');
+    }
+
+    // Collapse + disable location settings
+    const locationSettingsCard = document.getElementById('location-settings-card');
+    if (locationSettingsCard?._expandableCard) locationSettingsCard._expandableCard.collapse();
+    const rangeSlider = document.getElementById('location-range-slider');
+    if (rangeSlider) rangeSlider.disabled = true;
+    const rangeInput = document.getElementById('location-range-value');
+    if (rangeInput) rangeInput.disabled = true;
 
     // Restore skeleton rows in table
     this._restoreSkeletonRows();
@@ -2896,7 +3390,14 @@ class SpeciesMixer {
     });
 
     this._transitionTo(SpeciesMixer.STATE_1_EMPTY);
-    document.getElementById('location-info-panel')?.classList.add('d-none');
+    // Reset coord button to inert empty state
+    const coordBtn = document.getElementById('coord-copy-btn');
+    if (coordBtn) {
+      coordBtn.classList.add('coord-copy-btn--empty');
+      coordBtn.querySelector('#coord-display').textContent = '—';
+    }
+    // Collapse eco card but keep it in DOM
+    document.getElementById('location-eco-card')?._expandableCard?.collapse();
     document.getElementById('step1-prompt')?.classList.remove('d-none');
     const resetSearch = document.getElementById('location-search-input');
     if (resetSearch) resetSearch.value = '';
@@ -2904,7 +3405,7 @@ class SpeciesMixer {
     // Reset goal weights to equal raw values (50 each → 20% normalised share)
     const GOALS = ['erosion_control','biodiversity','pollinator','carbon_sequestration','wildlife_habitat'];
     if (this._goalWeights) GOALS.forEach(g => { this._goalWeights[g] = 50; });
-    document.querySelectorAll('.goal-slider').forEach(s => { s.setAttribute('disabled', ''); });
+    document.querySelectorAll('.goal-slider, .goal-value').forEach(s => { s.setAttribute('disabled', ''); });
     this._syncGoalSliders();
 
     // Reset both generate buttons to initial disabled state
