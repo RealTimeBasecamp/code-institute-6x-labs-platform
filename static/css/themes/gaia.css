@@ -4,6 +4,8 @@
 /* ===== LIGHT MODE ===== */
 [data-theme="gaia"][data-bs-theme="light"] {
   --primary-color: #16a34a;
+  --bs-primary: var(--primary-color);
+  --bs-primary-rgb: 22, 163, 74;
   --bs-body-bg: #f5f9f7;
   --bs-body-color: #1e4d3d;
   --bs-secondary-color: #4a7c5d;
@@ -15,6 +17,8 @@
 /* ===== DARK MODE ===== */
 [data-theme="gaia"][data-bs-theme="dark"] {
   --primary-color: #22c55e;
+  --bs-primary: var(--primary-color);
+  --bs-primary-rgb: 34, 197, 94;
   --bs-body-bg: #0d1f1a;
   --bs-body-color: #c7dfd1;
   --bs-secondary-color: #7ba88a;

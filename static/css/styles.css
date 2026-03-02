@@ -284,6 +284,64 @@ h1, h2, h3, h4, h5, h6, p, span, div, a, button, input, textarea, select{
   --bs-btn-color: var(--bs-body-color);
 }
 
+.btn-outline-primary {
+  --bs-btn-color: var(--primary-color);
+  --bs-btn-border-color: var(--primary-color);
+  --bs-btn-hover-bg: var(--primary-color);
+  --bs-btn-hover-border-color: var(--primary-color);
+  --bs-btn-active-bg: color-mix(in srgb, var(--primary-color) 85%, black);
+  --bs-btn-active-border-color: color-mix(in srgb, var(--primary-color) 85%, black);
+  --bs-btn-focus-shadow-rgb: var(--primary-color-rgb, 5, 154, 204);
+  --bs-btn-disabled-color: var(--primary-color);
+  --bs-btn-disabled-border-color: var(--primary-color);
+}
+
+/* Checkboxes, radio buttons, range sliders — use primary colour */
+.form-check-input:checked,
+.form-check-input:focus {
+  --bs-form-check-bg: var(--primary-color);
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 0.2rem color-mix(in srgb, var(--primary-color) 25%, transparent);
+}
+
+.form-check-input:checked {
+  background-color: var(--primary-color);
+}
+
+.form-range {
+  accent-color: var(--primary-color);
+}
+
+/* Override Bootstrap's hardcoded #0d6efd thumb colour on range inputs */
+.form-range::-webkit-slider-thumb {
+  background-color: var(--primary-color) !important;
+}
+
+.form-range::-moz-range-thumb {
+  background-color: var(--primary-color) !important;
+}
+
+/* Spinners inherit colour from text colour — use text-primary class fix */
+/* Also override Bootstrap's --bs-primary-text-emphasis which is used in some contexts */
+.text-primary {
+  color: var(--primary-color) !important;
+}
+
+/* Ensure spinner-border picks up primary colour */
+.spinner-border.text-primary,
+.spinner-grow.text-primary {
+  color: var(--primary-color) !important;
+}
+
+/* Links */
+a {
+  color: var(--primary-color);
+}
+
+a:hover {
+  color: color-mix(in srgb, var(--primary-color) 80%, black);
+}
+
 
 .bi,
 svg {
