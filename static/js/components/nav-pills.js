@@ -30,6 +30,8 @@
   constructor(element) {
     this.container = element;
     this.links = element.querySelectorAll('.nav-link');
+    this._lastActiveLink = null;
+    this._updatePending = false;
 
     if (this.links.length === 0) return;
 
@@ -40,9 +42,19 @@
    * Set up event listeners and initial indicator position.
    */
   init() {
-    // Defer the initial measurement until after first paint so getBoundingClientRect()
-    // returns real dimensions (elements may not be laid out yet at DOMContentLoaded).
-    requestAnimationFrame(() => this.updateIndicator());
+    // Disable transitions for initial position to prevent animation from wrong spot
+    this.container.style.setProperty('--pill-transition', '0s');
+
+    // Initial update - use multiple frames to ensure layout is complete
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        this.updateIndicator(true);
+        // Re-enable transitions after initial position is set
+        requestAnimationFrame(() => {
+          this.container.style.removeProperty('--pill-transition');
+        });
+      });
+    });
 
     // Listen for tab changes (Bootstrap events)
     this.container.addEventListener('shown.bs.tab', () => {
@@ -59,8 +71,47 @@
       });
     });
 
-    // Update on window resize
+    // Update on window resize (debounced)
+    let resizeTimer;
     window.addEventListener('resize', () => {
+      clearTimeout(resizeTimer);
+      resizeTimer = setTimeout(() => this.updateIndicator(), 50);
+    });
+
+    // Use MutationObserver to detect class changes (for programmatic tab switches)
+    this._observer = new MutationObserver((mutations) => {
+      for (const mutation of mutations) {
+        if (mutation.type === 'attributes' && mutation.attributeName === 'class') {
+          this._scheduleUpdate();
+          break;
+        }
+      }
+    });
+
+    this.links.forEach(link => {
+      this._observer.observe(link, { attributes: true, attributeFilter: ['class'] });
+    });
+
+    // Use IntersectionObserver to detect when container becomes visible
+    this._intersectionObserver = new IntersectionObserver((entries) => {
+      for (const entry of entries) {
+        if (entry.isIntersecting) {
+          this.updateIndicator();
+        }
+      }
+    }, { threshold: 0.1 });
+
+    this._intersectionObserver.observe(this.container);
+  }
+
+  /**
+   * Schedule an update on the next animation frame (debounced).
+   */
+  _scheduleUpdate() {
+    if (this._updatePending) return;
+    this._updatePending = true;
+    requestAnimationFrame(() => {
+      this._updatePending = false;
       this.updateIndicator();
     });
   }
@@ -68,29 +119,76 @@
   /**
    * Calculate and update the sliding indicator position and width.
    * Uses CSS custom properties to animate the pseudo-element.
+   * @param {boolean} force - Force update even if active link hasn't changed
    */
-  updateIndicator() {
+  updateIndicator(force = false) {
     const activeLink = this.container.querySelector('.nav-link.active');
 
     if (!activeLink) {
       // Hide indicator if no active link
       this.container.style.setProperty('--indicator-width', '0px');
+      this._lastActiveLink = null;
       return;
+    }
+
+    // Skip if active link hasn't changed and not forced (prevents redundant updates)
+    if (!force && activeLink === this._lastActiveLink) {
+      // Still verify dimensions are correct (container might have resized)
+      const currentWidth = this.container.style.getPropertyValue('--indicator-width');
+      if (currentWidth && currentWidth !== '0px') {
+        return;
+      }
     }
 
     // Get the active link's position relative to the container
     const containerRect = this.container.getBoundingClientRect();
     const linkRect = activeLink.getBoundingClientRect();
 
-    // The indicator starts at left: var(--pill-padding) in CSS
-    // So offset is just the distance from container left to link left
-    // No need to subtract padding since CSS already positions at padding
+    // Skip if container is not visible (has no dimensions)
+    if (containerRect.width === 0 || containerRect.height === 0) {
+      return;
+    }
+
+    // Skip if link has no dimensions (still being laid out)
+    if (linkRect.width === 0) {
+      // Retry on next frame
+      requestAnimationFrame(() => this.updateIndicator(force));
+      return;
+    }
+
     const offset = linkRect.left - containerRect.left;
     const width = linkRect.width;
 
     // Set CSS custom properties for the sliding indicator
     this.container.style.setProperty('--indicator-offset', `${offset}px`);
     this.container.style.setProperty('--indicator-width', `${width}px`);
+
+    this._lastActiveLink = activeLink;
+  }
+
+  /**
+   * Public method to refresh the indicator position.
+   * Call this after programmatically changing the active tab.
+   */
+  refresh() {
+    // Disable transition for immediate snap, then re-enable
+    this.container.style.setProperty('--pill-transition', '0s');
+    this.updateIndicator(true);
+    requestAnimationFrame(() => {
+      this.container.style.removeProperty('--pill-transition');
+    });
+  }
+
+  /**
+   * Clean up observers when component is destroyed.
+   */
+  destroy() {
+    if (this._observer) {
+      this._observer.disconnect();
+    }
+    if (this._intersectionObserver) {
+      this._intersectionObserver.disconnect();
+    }
   }
 }
 

@@ -1,0 +1,50 @@
+{% comment %}
+Expandable Card Component - Accordion-style collapsible card.
+
+A card with a clickable header that expands/collapses the body content.
+Uses smooth CSS transitions for responsive animation.
+
+Parameters:
+  - id: Unique identifier for the card (required for JS functionality)
+  - title: Header title text
+  - icon: Bootstrap icon class (e.g., 'bi bi-stars')
+  - expanded: Initial state - 'true' to start expanded (default: collapsed)
+  - width: 'full' for 100% width, or a CSS value like '400px', '20rem' (default: auto)
+  - class: Additional CSS classes for the container
+  - header_class: Additional CSS classes for the header
+  - body_class: Additional CSS classes for the body
+
+Usage:
+  {% include 'components/expandable_card.html' with id='my-card' title='Card Title' icon='bi bi-star' %}
+    <p>Card body content here</p>
+  {% endinclude %}
+
+  Or with card_body variable:
+  {% include 'components/expandable_card.html' with id='insights' title='AI Insights' icon='bi bi-stars' card_body=insights_html expanded='true' width='full' %}
+{% endcomment %}
+
+<div class="expandable-card{% if expanded == 'true' %} expandable-card--expanded{% endif %}{% if width == 'full' %} expandable-card--full{% endif %}{% if class %} {{ class }}{% endif %}"
+     id="{{ id }}"
+     {% if width and width != 'full' %}style="width: {{ width }};"{% endif %}
+     data-expandable-card>
+
+  <button type="button"
+          class="expandable-card__header{% if header_class %} {{ header_class }}{% endif %}"
+          aria-expanded="{% if expanded == 'true' %}true{% else %}false{% endif %}"
+          aria-controls="{{ id }}-body">
+    <span class="expandable-card__title">
+      {% if icon %}<i class="{{ icon }} expandable-card__icon" aria-hidden="true"></i>{% endif %}
+      {{ title }}
+    </span>
+    <span class="expandable-card__header-actions">
+      {% if header_actions %}{{ header_actions|safe }}{% endif %}
+      <i class="bi bi-chevron-down expandable-card__chevron" aria-hidden="true"></i>
+    </span>
+  </button>
+
+  <div class="expandable-card__body-wrapper" id="{{ id }}-body">
+    <div class="expandable-card__body{% if body_class %} {{ body_class }}{% endif %}">
+      {{ card_body|safe }}
+    </div>
+  </div>
+</div>

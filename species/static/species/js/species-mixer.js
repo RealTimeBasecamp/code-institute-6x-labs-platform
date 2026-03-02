@@ -707,8 +707,9 @@ class SpeciesMixer {
     const _haFromIndex = idx => Math.round(Math.pow(10, idx * 6 / 100));
     const _haLabel = ha => {
       if (ha >= 10000) return `${(ha / 10000).toFixed(ha >= 100000 ? 0 : 1)} km²`;
-      if (ha >= 1000)  return `${(ha / 1000).toFixed(1)}k ha`;
-      return `${ha} ha`;
+      if (ha >= 1000)  return `${(ha / 1000).toFixed(1)}k Hectares`;
+      if (ha === 1)    return '1 Hectare';
+      return `${ha} Hectares`;
     };
 
     const slider   = document.getElementById('hectare-slider');
@@ -811,21 +812,21 @@ class SpeciesMixer {
 
     this.gridChart.setOption({
       backgroundColor: bgColor,
-      grid: { left: 42, right: 16, top: 16, bottom: 40 },
+      grid: { left: 50, right: 20, top: 20, bottom: 45 },
       xAxis: {
-        type: 'value', min: 0, max: zoneSide, name: 'm',
-        nameLocation: 'end', nameTextStyle: { color: axisColor, fontSize: 11 },
+        type: 'value', min: 0, max: zoneSide, name: 'metres',
+        nameLocation: 'end', nameTextStyle: { color: axisColor, fontSize: 11, padding: [0, 0, 0, 6] },
         axisLine: { lineStyle: { color: axisColor } },
         axisTick: { lineStyle: { color: axisColor } },
-        axisLabel: { color: axisColor, fontSize: 10 },
+        axisLabel: { color: axisColor, fontSize: 10, margin: 8 },
         splitLine: { lineStyle: { color: gridColor } },
       },
       yAxis: {
-        type: 'value', min: 0, max: zoneSide, name: 'm',
-        nameLocation: 'end', nameTextStyle: { color: axisColor, fontSize: 11 },
+        type: 'value', min: 0, max: zoneSide, name: 'metres',
+        nameLocation: 'end', nameTextStyle: { color: axisColor, fontSize: 11, padding: [0, 0, 6, 0] },
         axisLine: { lineStyle: { color: axisColor } },
         axisTick: { lineStyle: { color: axisColor } },
-        axisLabel: { color: axisColor, fontSize: 10 },
+        axisLabel: { color: axisColor, fontSize: 10, margin: 8 },
         splitLine: { lineStyle: { color: gridColor } },
       },
       series: zoneSeries,
@@ -976,31 +977,31 @@ class SpeciesMixer {
         textStyle: { fontSize: 11 },
       },
       grid: {
-        left: 42, right: 16, top: 16,
-        bottom: showLegend ? 60 : 40,
+        left: 50, right: 20, top: 20,
+        bottom: showLegend ? 65 : 45,
       },
       xAxis: {
-        type: 'value', min: 0, max: sideM, name: 'm',
-        nameLocation: 'end', nameTextStyle: { color: axisColor, fontSize: 11 },
+        type: 'value', min: 0, max: sideM, name: 'metres',
+        nameLocation: 'end', nameTextStyle: { color: axisColor, fontSize: 11, padding: [0, 0, 0, 6] },
         axisLine: { lineStyle: { color: axisColor } },
         axisTick: { lineStyle: { color: axisColor } },
-        axisLabel: { color: axisColor, fontSize: 10 },
+        axisLabel: { color: axisColor, fontSize: 10, margin: 8 },
         splitLine: { lineStyle: { color: gridColor } },
       },
       yAxis: {
-        type: 'value', min: 0, max: sideM, name: 'm',
-        nameLocation: 'end', nameTextStyle: { color: axisColor, fontSize: 11 },
+        type: 'value', min: 0, max: sideM, name: 'metres',
+        nameLocation: 'end', nameTextStyle: { color: axisColor, fontSize: 11, padding: [0, 0, 6, 0] },
         axisLine: { lineStyle: { color: axisColor } },
         axisTick: { lineStyle: { color: axisColor } },
-        axisLabel: { color: axisColor, fontSize: 10 },
+        axisLabel: { color: axisColor, fontSize: 10, margin: 8 },
         splitLine: { lineStyle: { color: gridColor } },
       },
       series: [...zoneSeries, ...scatterSeries],
       animation: false,
     }, true);
 
-    // Update point total display
-    const totalEl = document.getElementById('point-total-count');
+    // Update point total in mix data card
+    const totalEl = document.getElementById('mix-data-points');
     if (totalEl) {
       totalEl.textContent = (data.total || 0).toLocaleString();
     }
@@ -1286,7 +1287,8 @@ class SpeciesMixer {
         mixBtn.innerHTML = stopHtml;
         mixBtn.className = 'btn btn-danger w-100';
       }
-      show('table-loading-state');
+      // Expand generation settings card and show progress
+      this._showGenerationProgress(true);
       show('insights-spinner');
       hide('insights-placeholder');
     }
@@ -1294,7 +1296,8 @@ class SpeciesMixer {
     if (state >= SpeciesMixer.STATE_5_MIX_READY) {
       // Remove shimmer once generation is done
       document.getElementById('species-mix-tbody')?.classList.remove('is-generating');
-      hide('table-loading-state');
+      // Collapse generation settings card
+      this._showGenerationProgress(false);
       const goalsBtn = document.getElementById('generate-mix-btn');
       const mixBtn = document.getElementById('mix-generate-btn');
       if (goalsBtn) { goalsBtn.disabled = false; goalsBtn.innerHTML = '<i class="bi bi-arrow-repeat me-2"></i>Regenerate Mix'; goalsBtn.className = 'btn btn-primary w-100'; }
@@ -1490,6 +1493,25 @@ class SpeciesMixer {
     // Goal sliders — linked proportional system: all 5 always sum to 100%
     // Moving one slider scales the others proportionally.
     this._initGoalSliders();
+
+    // Generation settings card — "Use recommended" button
+    document.getElementById('use-recommended-btn')?.addEventListener('click', () => {
+      document.querySelectorAll('.api-toggle-item input[type="checkbox"]').forEach(cb => {
+        cb.checked = true;
+      });
+    });
+
+    // Generation settings card — "Clear history" button
+    document.getElementById('clear-history-btn')?.addEventListener('click', () => {
+      const log = document.getElementById('generation-feed-log');
+      if (log) {
+        log.innerHTML = `<div class="text-muted small text-center py-2" id="generation-log-empty">
+          <i class="bi bi-clock-history me-1"></i>No generation history yet
+        </div>`;
+      }
+      // Hide complete badge
+      document.getElementById('generation-complete-badge')?.classList.add('d-none');
+    });
 
     // Generate Mix button (Goals tab):
     //   STATE_3 / STATE_5 → switch to Mix tab, start generation
@@ -1790,6 +1812,10 @@ class SpeciesMixer {
   _appendFeedLine(msg, type = '', source = null) {
     const log = document.getElementById('generation-feed-log');
     if (!log) return;
+
+    // Remove the empty placeholder if present
+    document.getElementById('generation-log-empty')?.remove();
+
     const line = document.createElement('div');
     line.className = `feed-line${type ? ` feed-line--${type}` : ''}`;
 
@@ -1799,8 +1825,8 @@ class SpeciesMixer {
       : '';
     line.innerHTML = `<i class="bi bi-check2 feed-line__icon"></i><span>${msg}</span>${sourceAttr}`;
     log.appendChild(line);
-    // Keep at most 6 lines — silently drop the oldest when a 7th arrives
-    while (log.children.length > 6) {
+    // Keep at most 12 lines in history
+    while (log.children.length > 12) {
       log.removeChild(log.firstChild);
     }
   }
@@ -1808,6 +1834,33 @@ class SpeciesMixer {
   _setProgressBar(pct) {
     const bar = document.getElementById('generation-progress-bar');
     if (bar) bar.style.width = `${pct}%`;
+  }
+
+  /**
+   * Show or hide the generation progress UI and expand/collapse the settings card.
+   * @param {boolean} show - true to show progress (expand card), false to hide (collapse)
+   */
+  _showGenerationProgress(show) {
+    const card = document.getElementById('generation-settings-card');
+    const progressSection = document.getElementById('generation-progress-section');
+    const spinner = document.getElementById('generation-spinner');
+    const completeBadge = document.getElementById('generation-complete-badge');
+
+    if (show) {
+      // Expand the card and show progress
+      if (card?._expandableCard) card._expandableCard.expand();
+      progressSection?.classList.remove('d-none');
+      spinner?.classList.remove('d-none');
+      completeBadge?.classList.add('d-none');
+      // Remove the empty placeholder from the log
+      document.getElementById('generation-log-empty')?.remove();
+    } else {
+      // Collapse the card and hide progress
+      if (card?._expandableCard) card._expandableCard.collapse();
+      progressSection?.classList.add('d-none');
+      spinner?.classList.add('d-none');
+      completeBadge?.classList.remove('d-none');
+    }
   }
 
   _onTaskComplete(mode, result, extra) {
@@ -1867,7 +1920,7 @@ class SpeciesMixer {
     this._seenProgressCount = 0;
     this._transitionTo(SpeciesMixer.STATE_3_GOALS_SET);
     // Clear loading UI
-    document.getElementById('table-loading-state')?.classList.add('d-none');
+    this._showGenerationProgress(false);
     document.getElementById('insights-spinner')?.classList.add('d-none');
     document.getElementById('insights-placeholder')?.classList.remove('d-none');
     document.getElementById('insights-placeholder').innerHTML = `
@@ -2301,12 +2354,27 @@ class SpeciesMixer {
     const placeholder = document.getElementById('insights-placeholder');
     const insightsText = document.getElementById('insights-text');
     const envSummaryText = document.getElementById('env-summary-text');
+    const insightsCard = document.getElementById('insights-card');
 
     if (insights) {
       placeholder?.classList.add('d-none');
       if (insightsText) {
         insightsText.textContent = insights;
         insightsText.classList.remove('d-none');
+      }
+      // Auto-expand the insights card when insights are available
+      if (insightsCard?._expandableCard) {
+        insightsCard._expandableCard.expand();
+      }
+      // Auto-expand the mix data card
+      const mixDataCard = document.getElementById('mix-data-card');
+      if (mixDataCard?._expandableCard) {
+        mixDataCard._expandableCard.expand();
+      }
+      // Auto-expand the species mix card
+      const speciesMixCard = document.getElementById('species-mix-card');
+      if (speciesMixCard?._expandableCard) {
+        speciesMixCard._expandableCard.expand();
       }
     }
 
@@ -2811,6 +2879,20 @@ class SpeciesMixer {
     document.getElementById('env-summary-text')?.classList.add('d-none');
     document.getElementById('insights-placeholder')?.classList.remove('d-none');
     document.getElementById('save-mix-btn')?.classList.add('d-none');
+    // Collapse insights card
+    const insightsCard = document.getElementById('insights-card');
+    if (insightsCard?._expandableCard) insightsCard._expandableCard.collapse();
+    // Collapse and reset mix data card
+    const mixDataCard = document.getElementById('mix-data-card');
+    if (mixDataCard?._expandableCard) mixDataCard._expandableCard.collapse();
+    // Collapse species mix card
+    const speciesMixCard = document.getElementById('species-mix-card');
+    if (speciesMixCard?._expandableCard) speciesMixCard._expandableCard.collapse();
+    // Reset mix data values
+    ['mix-data-points', 'mix-data-co2', 'mix-data-biodiversity', 'mix-data-nature', 'mix-data-cost', 'mix-data-carbon-credit'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.textContent = '—';
+    });
 
     this._transitionTo(SpeciesMixer.STATE_1_EMPTY);
     document.getElementById('location-info-panel')?.classList.add('d-none');

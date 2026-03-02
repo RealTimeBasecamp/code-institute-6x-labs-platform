@@ -7,6 +7,7 @@
 {% block extra_css %}
 <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css">
 <link rel="stylesheet" href="{% static 'css/components/sortable-table.css' %}">
+<link rel="stylesheet" href="{% static 'css/components/expandable-card.css' %}">
 <link rel="stylesheet" href="{% static 'css/components/species-mixer.css' %}">
 {% endblock %}
 
@@ -60,7 +61,12 @@
       <div id="virtual-grid-wrap" class="mixer-virtual-grid-wrap d-none">
 
         <div class="mixer-grid-controls mixer-grid-controls--top">
-          <!-- Environment selector (left) -->
+          <!-- Scale slider -->
+          <label class="small text-muted me-1 text-nowrap" for="hectare-slider">Scale</label>
+          <input type="range" id="hectare-slider" min="0" max="100" step="1" value="0"
+                 class="form-range mx-2" style="width: 6rem;">
+          <span id="hectare-label" class="small text-muted text-nowrap me-3">1 Hectare</span>
+          <!-- Environment selector -->
           <select class="form-select form-select-sm species-mixer-select" id="grid-environment">
             <option value="blank">Blank (1 ha)</option>
             <option value="complex_polygons">Complex Polygons</option>
@@ -88,10 +94,6 @@
           </div>
         </div>
 
-        <div id="point-total-display" class="border rounded px-3 py-2 mb-2 text-center bg-body-tertiary">
-          <span class="text-muted small">Total points:</span>
-          <span id="point-total-count" class="fw-semibold ms-1">—</span>
-        </div>
         <div class="position-relative">
           <div id="virtual-grid-chart" class="mixer-virtual-grid-chart"></div>
           <div id="chart-loading-overlay" class="chart-loading-overlay">
@@ -102,12 +104,6 @@
           </div>
         </div>
 
-        <div class="mixer-grid-controls">
-          <label class="small text-muted me-2 text-nowrap" for="hectare-slider">Scale</label>
-          <input type="range" id="hectare-slider" min="0" max="100" step="1" value="0"
-                 class="form-range flex-grow-1 mx-2">
-          <span id="hectare-label" class="small text-muted text-nowrap">1 ha</span>
-        </div>
       </div>
 
     </div>
@@ -162,63 +158,109 @@
             </button>
           </div>
 
-          <!-- Ecological data grid (8 cells, each starts as skeleton) -->
-          <div class="eco-data-panel mb-3" id="eco-data-panel">
-            <div class="eco-grid" id="eco-grid">
-              <div class="eco-stat" id="eco-ph">
-                <i class="bi bi-eyedropper eco-stat__icon"></i>
-                <div class="eco-stat__body">
-                  <span class="eco-stat__label">Soil pH <i class="bi bi-info-circle eco-stat__info" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Soil acidity or alkalinity on a 0–14 scale. Most native UK plants thrive between pH 5.5–7. Below 5 favours heathland species; above 7.5 suits chalk downland plants."></i></span>
-                  <span class="eco-stat__val skeleton-line" style="width:2.5rem;"></span>
+          <!-- Settings expandable section -->
+          <div class="expandable-card expandable-card--full mb-3" id="location-settings-card" data-expandable-card>
+            <button type="button"
+                    class="expandable-card__header"
+                    aria-expanded="false"
+                    aria-controls="location-settings-body">
+              <span class="expandable-card__title">
+                <i class="bi bi-sliders expandable-card__icon" aria-hidden="true"></i>
+                Settings
+              </span>
+              <span class="expandable-card__header-actions">
+                <i class="bi bi-chevron-down expandable-card__chevron" aria-hidden="true"></i>
+              </span>
+            </button>
+            <div class="expandable-card__body-wrapper" id="location-settings-body">
+              <div class="expandable-card__body">
+                <div class="text-muted small text-center py-3">
+                  <i class="bi bi-gear" style="font-size:1.25rem; opacity:0.4;"></i>
+                  <p class="mt-2 mb-0">Location settings coming soon</p>
                 </div>
               </div>
-              <div class="eco-stat" id="eco-texture">
-                <i class="bi bi-layers eco-stat__icon"></i>
-                <div class="eco-stat__body">
-                  <span class="eco-stat__label">Texture <i class="bi bi-info-circle eco-stat__info" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Soil particle size composition. Clay retains moisture and nutrients; sandy soil drains quickly and suits drought-tolerant species; loam is ideal for most plants."></i></span>
-                  <span class="eco-stat__val skeleton-line" style="width:3rem;"></span>
+            </div>
+          </div>
+
+          <!-- Ecological data grid -->
+          <div class="row g-2 mb-3" id="eco-data-panel">
+            <!-- Soil pH -->
+            <div class="col-6 col-md-3" id="eco-ph">
+              <div class="mix-data-stat">
+                <i class="bi bi-eyedropper mix-data-stat__icon"></i>
+                <div class="mix-data-stat__content">
+                  <span class="mix-data-stat__value eco-stat__val skeleton-line" style="width:2.5rem;">—</span>
+                  <span class="mix-data-stat__label">Soil pH <i class="bi bi-info-circle text-muted" style="font-size:0.6rem;cursor:help;" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Soil acidity or alkalinity on a 0–14 scale. Most native UK plants thrive between pH 5.5–7."></i></span>
                 </div>
               </div>
-              <div class="eco-stat" id="eco-moisture">
-                <i class="bi bi-droplet-half eco-stat__icon"></i>
-                <div class="eco-stat__body">
-                  <span class="eco-stat__label">Moisture <i class="bi bi-info-circle eco-stat__info" data-bs-toggle="tooltip" data-bs-placement="bottom" title="How much water the soil typically holds. Wet soils suit alder and willow; dry soils favour gorse and pine; moist soils support the widest range of species."></i></span>
-                  <span class="eco-stat__val skeleton-line" style="width:3rem;"></span>
+            </div>
+            <!-- Texture -->
+            <div class="col-6 col-md-3" id="eco-texture">
+              <div class="mix-data-stat">
+                <i class="bi bi-layers mix-data-stat__icon"></i>
+                <div class="mix-data-stat__content">
+                  <span class="mix-data-stat__value eco-stat__val skeleton-line" style="width:3rem;">—</span>
+                  <span class="mix-data-stat__label">Texture <i class="bi bi-info-circle text-muted" style="font-size:0.6rem;cursor:help;" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Soil particle size composition. Clay retains moisture; sandy soil drains quickly; loam is ideal."></i></span>
                 </div>
               </div>
-              <div class="eco-stat" id="eco-rain">
-                <i class="bi bi-cloud-rain eco-stat__icon"></i>
-                <div class="eco-stat__body">
-                  <span class="eco-stat__label">Rainfall <i class="bi bi-info-circle eco-stat__info" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Mean annual rainfall in millimetres. Above 1000 mm supports lush woodland; below 600 mm favours drought-tolerant grassland and scrub species."></i></span>
-                  <span class="eco-stat__val skeleton-line" style="width:4rem;"></span>
+            </div>
+            <!-- Moisture -->
+            <div class="col-6 col-md-3" id="eco-moisture">
+              <div class="mix-data-stat">
+                <i class="bi bi-droplet-half mix-data-stat__icon"></i>
+                <div class="mix-data-stat__content">
+                  <span class="mix-data-stat__value eco-stat__val skeleton-line" style="width:3rem;">—</span>
+                  <span class="mix-data-stat__label">Moisture <i class="bi bi-info-circle text-muted" style="font-size:0.6rem;cursor:help;" data-bs-toggle="tooltip" data-bs-placement="bottom" title="How much water the soil typically holds. Wet soils suit alder and willow; dry soils favour gorse and pine."></i></span>
                 </div>
               </div>
-              <div class="eco-stat" id="eco-temp">
-                <i class="bi bi-thermometer-half eco-stat__icon"></i>
-                <div class="eco-stat__body">
-                  <span class="eco-stat__label">Temperature <i class="bi bi-info-circle eco-stat__info" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Mean annual air temperature. Higher temperatures extend the growing season and allow more heat-loving species; lower temperatures limit choice to hardy native species."></i></span>
-                  <span class="eco-stat__val skeleton-line" style="width:3.5rem;"></span>
+            </div>
+            <!-- Rainfall -->
+            <div class="col-6 col-md-3" id="eco-rain">
+              <div class="mix-data-stat">
+                <i class="bi bi-cloud-rain mix-data-stat__icon"></i>
+                <div class="mix-data-stat__content">
+                  <span class="mix-data-stat__value eco-stat__val skeleton-line" style="width:4rem;">—</span>
+                  <span class="mix-data-stat__label">Rainfall <i class="bi bi-info-circle text-muted" style="font-size:0.6rem;cursor:help;" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Mean annual rainfall in millimetres. Above 1000 mm supports woodland; below 600 mm favours drought-tolerant species."></i></span>
                 </div>
               </div>
-              <div class="eco-stat" id="eco-flood">
-                <i class="bi bi-water eco-stat__icon"></i>
-                <div class="eco-stat__body">
-                  <span class="eco-stat__label">Flood Risk <i class="bi bi-info-circle eco-stat__info" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Likelihood of seasonal flooding based on Environment Agency and Scottish Environment Protection Agency flood maps. High flood risk favours riparian species such as willow, alder and reed; low risk allows a wider selection."></i></span>
-                  <span class="eco-stat__val skeleton-line" style="width:3rem;"></span>
+            </div>
+            <!-- Temperature -->
+            <div class="col-6 col-md-3" id="eco-temp">
+              <div class="mix-data-stat">
+                <i class="bi bi-thermometer-half mix-data-stat__icon"></i>
+                <div class="mix-data-stat__content">
+                  <span class="mix-data-stat__value eco-stat__val skeleton-line" style="width:3.5rem;">—</span>
+                  <span class="mix-data-stat__label">Temperature <i class="bi bi-info-circle text-muted" style="font-size:0.6rem;cursor:help;" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Mean annual air temperature. Higher temperatures extend the growing season."></i></span>
                 </div>
               </div>
-              <div class="eco-stat" id="eco-frost">
-                <i class="bi bi-snow eco-stat__icon"></i>
-                <div class="eco-stat__body">
-                  <span class="eco-stat__label">Frost Days <i class="bi bi-info-circle eco-stat__info" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Estimated number of air-frost days per year. More frost days favour cold-hardy species and exclude tender broadleaves; fewer days allow a wider planting palette."></i></span>
-                  <span class="eco-stat__val skeleton-line" style="width:2.5rem;"></span>
+            </div>
+            <!-- Flood Risk -->
+            <div class="col-6 col-md-3" id="eco-flood">
+              <div class="mix-data-stat">
+                <i class="bi bi-water mix-data-stat__icon"></i>
+                <div class="mix-data-stat__content">
+                  <span class="mix-data-stat__value eco-stat__val skeleton-line" style="width:3rem;">—</span>
+                  <span class="mix-data-stat__label">Flood Risk <i class="bi bi-info-circle text-muted" style="font-size:0.6rem;cursor:help;" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Likelihood of seasonal flooding. High flood risk favours riparian species like willow and alder."></i></span>
                 </div>
               </div>
-              <div class="eco-stat" id="eco-organic">
-                <i class="bi bi-flower1 eco-stat__icon"></i>
-                <div class="eco-stat__body">
-                  <span class="eco-stat__label">Organic Carbon <i class="bi bi-info-circle eco-stat__info" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Percentage of carbon stored in the soil from decomposed plant and animal matter. Higher values indicate richer, more fertile soil that retains moisture and supports greater biodiversity."></i></span>
-                  <span class="eco-stat__val skeleton-line" style="width:3rem;"></span>
+            </div>
+            <!-- Frost Days -->
+            <div class="col-6 col-md-3" id="eco-frost">
+              <div class="mix-data-stat">
+                <i class="bi bi-snow mix-data-stat__icon"></i>
+                <div class="mix-data-stat__content">
+                  <span class="mix-data-stat__value eco-stat__val skeleton-line" style="width:2.5rem;">—</span>
+                  <span class="mix-data-stat__label">Frost Days <i class="bi bi-info-circle text-muted" style="font-size:0.6rem;cursor:help;" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Estimated air-frost days per year. More frost days favour cold-hardy species."></i></span>
+                </div>
+              </div>
+            </div>
+            <!-- Organic Carbon -->
+            <div class="col-6 col-md-3" id="eco-organic">
+              <div class="mix-data-stat">
+                <i class="bi bi-flower1 mix-data-stat__icon"></i>
+                <div class="mix-data-stat__content">
+                  <span class="mix-data-stat__value eco-stat__val skeleton-line" style="width:3rem;">—</span>
+                  <span class="mix-data-stat__label">Organic C <i class="bi bi-info-circle text-muted" style="font-size:0.6rem;cursor:help;" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Percentage of carbon stored in soil. Higher values indicate richer, more fertile soil."></i></span>
                 </div>
               </div>
             </div>
@@ -240,8 +282,33 @@
           <small class="text-muted">Click the map to set your planting point</small>
         </div>
 
-        <!-- Goals intro -->
-        <p class="text-muted small mb-2">Adjust the priorities below to guide the AI when selecting species. The generated mix will be weighted towards the goals you emphasise most, balanced against what the soil, climate and hydrology at your chosen location can support.</p>
+        <!-- Generate CTA (at top for consistent UX) -->
+        <div id="generate-cta" class="mb-3">
+          <button class="btn btn-primary w-100" id="generate-mix-btn" disabled>
+            <i class="bi bi-magic me-2"></i>Generate Species Mix
+          </button>
+        </div>
+
+        <!-- Instructions expandable section -->
+        <div class="expandable-card expandable-card--full expandable-card--expanded mb-3" id="goals-instructions-card" data-expandable-card>
+          <button type="button"
+                  class="expandable-card__header"
+                  aria-expanded="true"
+                  aria-controls="goals-instructions-body">
+            <span class="expandable-card__title">
+              <i class="bi bi-info-circle expandable-card__icon" aria-hidden="true"></i>
+              Instructions
+            </span>
+            <span class="expandable-card__header-actions">
+              <i class="bi bi-chevron-down expandable-card__chevron" aria-hidden="true"></i>
+            </span>
+          </button>
+          <div class="expandable-card__body-wrapper" id="goals-instructions-body">
+            <div class="expandable-card__body">
+              <p class="text-muted small mb-0">Adjust the priorities below to guide the AI when selecting species. The generated mix will be weighted towards the goals you emphasise most, balanced against what the soil, climate and hydrology at your chosen location can support.</p>
+            </div>
+          </div>
+        </div>
 
         <!-- Reset button -->
         <div class="d-flex justify-content-end mb-2">
@@ -312,13 +379,6 @@
           </div>
         </div>
 
-        <!-- Generate CTA -->
-        <div id="generate-cta">
-          <button class="btn btn-primary w-100" id="generate-mix-btn" disabled>
-            <i class="bi bi-magic me-2"></i>Generate Species Mix
-          </button>
-        </div>
-
       </div><!-- /tab-goals -->
 
       <!-- ─────────────────────────────────────────────────────────────────
@@ -333,78 +393,293 @@
           </button>
         </div>
 
-        <!-- Generation live feed (shown while generating) -->
-        <div id="table-loading-state" class="d-none mb-3">
-          <div class="generation-feed-panel">
-            <div class="generation-feed-header">
-              <div class="spinner-border spinner-border-sm text-primary" role="status" aria-label="Generating mix"></div>
-              <div class="generation-feed-header__text">
-                <span class="fw-semibold" id="loading-status-text">Starting analysis...</span>
-                <span class="text-muted small" id="loading-species-count"></span>
+        <!-- Generation settings & history expandable card -->
+        <div class="expandable-card expandable-card--full expandable-card--expanded mb-3" id="generation-settings-card" data-expandable-card>
+          <button type="button"
+                  class="expandable-card__header"
+                  aria-expanded="true"
+                  aria-controls="generation-settings-body">
+            <span class="expandable-card__title">
+              <i class="bi bi-gear expandable-card__icon" aria-hidden="true"></i>
+              Data Sources &amp; Generation Log
+            </span>
+            <span class="expandable-card__header-actions">
+              <div class="spinner-border spinner-border-sm text-primary d-none" id="generation-spinner"
+                   role="status" aria-label="Generating"></div>
+              <span class="badge bg-success bg-opacity-10 text-success small d-none" id="generation-complete-badge">
+                <i class="bi bi-check2 me-1"></i>Complete
+              </span>
+              <i class="bi bi-chevron-down expandable-card__chevron" aria-hidden="true"></i>
+            </span>
+          </button>
+          <div class="expandable-card__body-wrapper" id="generation-settings-body">
+            <div class="expandable-card__body">
+              <!-- Recommended settings button -->
+              <div class="d-flex justify-content-between align-items-center mb-3">
+                <span class="small text-muted">Toggle data sources for mix generation</span>
+                <button type="button" class="btn btn-sm btn-outline-primary" id="use-recommended-btn">
+                  <i class="bi bi-magic me-1"></i>Use recommended
+                </button>
               </div>
-            </div>
-            <div class="generation-feed-log" id="generation-feed-log"></div>
-            <div class="progress generation-progress" role="progressbar" aria-label="Generation progress">
-              <div class="progress-bar progress-bar-striped progress-bar-animated" id="generation-progress-bar" style="width:5%"></div>
+
+              <!-- API toggle checkboxes -->
+              <div class="api-toggles mb-3">
+                <div class="row g-2">
+                  <!-- Soil Data -->
+                  <div class="col-md-6">
+                    <div class="form-check api-toggle-item">
+                      <input class="form-check-input" type="checkbox" id="api-toggle-soil" checked data-api="soil">
+                      <label class="form-check-label d-flex align-items-center gap-1" for="api-toggle-soil">
+                        <i class="bi bi-layers" style="font-size:0.9rem;"></i>
+                        <span>Soil Data</span>
+                        <i class="bi bi-info-circle text-muted api-toggle-info"
+                           data-bs-toggle="tooltip" data-bs-placement="top"
+                           title="ISRIC SoilGrids - Provides pH, texture, moisture class and organic carbon data for accurate species matching."></i>
+                      </label>
+                    </div>
+                  </div>
+                  <!-- Climate Data -->
+                  <div class="col-md-6">
+                    <div class="form-check api-toggle-item">
+                      <input class="form-check-input" type="checkbox" id="api-toggle-climate" checked data-api="climate">
+                      <label class="form-check-label d-flex align-items-center gap-1" for="api-toggle-climate">
+                        <i class="bi bi-thermometer-half" style="font-size:0.9rem;"></i>
+                        <span>Climate Data</span>
+                        <i class="bi bi-info-circle text-muted api-toggle-info"
+                           data-bs-toggle="tooltip" data-bs-placement="top"
+                           title="OpenLandMap - Monthly temperature and precipitation data to estimate rainfall, frost days and growing conditions."></i>
+                      </label>
+                    </div>
+                  </div>
+                  <!-- Flood/Hydrology Data -->
+                  <div class="col-md-6">
+                    <div class="form-check api-toggle-item">
+                      <input class="form-check-input" type="checkbox" id="api-toggle-hydrology" checked data-api="hydrology">
+                      <label class="form-check-label d-flex align-items-center gap-1" for="api-toggle-hydrology">
+                        <i class="bi bi-water" style="font-size:0.9rem;"></i>
+                        <span>Hydrology Data</span>
+                        <i class="bi bi-info-circle text-muted api-toggle-info"
+                           data-bs-toggle="tooltip" data-bs-placement="top"
+                           title="Environment Agency &amp; SEPA - Flood risk and water table data to match species with appropriate moisture tolerance."></i>
+                      </label>
+                    </div>
+                  </div>
+                  <!-- GBIF Species Records -->
+                  <div class="col-md-6">
+                    <div class="form-check api-toggle-item">
+                      <input class="form-check-input" type="checkbox" id="api-toggle-gbif" checked data-api="gbif">
+                      <label class="form-check-label d-flex align-items-center gap-1" for="api-toggle-gbif">
+                        <i class="bi bi-globe" style="font-size:0.9rem;"></i>
+                        <span>GBIF Records</span>
+                        <i class="bi bi-info-circle text-muted api-toggle-info"
+                           data-bs-toggle="tooltip" data-bs-placement="top"
+                           title="Global Biodiversity Information Facility - Species occurrence records to identify plants observed near your location."></i>
+                      </label>
+                    </div>
+                  </div>
+                  <!-- NBN Atlas -->
+                  <div class="col-md-6">
+                    <div class="form-check api-toggle-item">
+                      <input class="form-check-input" type="checkbox" id="api-toggle-nbn" checked data-api="nbn">
+                      <label class="form-check-label d-flex align-items-center gap-1" for="api-toggle-nbn">
+                        <i class="bi bi-flower1" style="font-size:0.9rem;"></i>
+                        <span>NBN Atlas</span>
+                        <i class="bi bi-info-circle text-muted api-toggle-info"
+                           data-bs-toggle="tooltip" data-bs-placement="top"
+                           title="National Biodiversity Network - UK-specific plant records including BSBI botanical surveys for native species identification."></i>
+                      </label>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Generation progress (shown while generating) -->
+              <div id="generation-progress-section" class="d-none">
+                <div class="generation-feed-header mb-2">
+                  <div class="spinner-border spinner-border-sm text-primary" role="status" aria-label="Generating mix"></div>
+                  <div class="generation-feed-header__text">
+                    <span class="fw-semibold" id="loading-status-text">Starting analysis...</span>
+                    <span class="text-muted small" id="loading-species-count"></span>
+                  </div>
+                </div>
+                <div class="progress generation-progress mb-3" role="progressbar" aria-label="Generation progress">
+                  <div class="progress-bar progress-bar-striped progress-bar-animated" id="generation-progress-bar" style="width:5%"></div>
+                </div>
+              </div>
+
+              <!-- History log -->
+              <div class="generation-history">
+                <div class="d-flex align-items-center justify-content-between mb-2">
+                  <span class="small fw-medium text-muted">Generation History</span>
+                  <button type="button" class="btn btn-link btn-sm text-muted p-0" id="clear-history-btn" title="Clear history">
+                    <i class="bi bi-trash3"></i>
+                  </button>
+                </div>
+                <div class="generation-feed-log" id="generation-feed-log">
+                  <div class="text-muted small text-center py-2" id="generation-log-empty">
+                    <i class="bi bi-clock-history me-1"></i>No generation history yet
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         </div>
 
-        <!-- AI Insights card -->
-        <div class="card mb-3" id="insights-card">
-          <div class="card-header d-flex align-items-center justify-content-between">
-            <span><i class="bi bi-stars me-2"></i>AI Mix Insights</span>
-            <div class="d-flex align-items-center gap-2">
+        <!-- AI Insights expandable card -->
+        <div class="expandable-card expandable-card--full mb-3" id="insights-card" data-expandable-card>
+          <button type="button"
+                  class="expandable-card__header"
+                  aria-expanded="false"
+                  aria-controls="insights-card-body">
+            <span class="expandable-card__title">
+              <i class="bi bi-stars expandable-card__icon" aria-hidden="true"></i>
+              Mix Insights
+            </span>
+            <span class="expandable-card__header-actions">
               <div class="spinner-border spinner-border-sm text-primary d-none" id="insights-spinner"
                    role="status" aria-label="Generating insights"></div>
               <div class="d-flex align-items-center gap-1 text-muted small d-none" id="rescore-indicator">
                 <div class="spinner-border spinner-border-sm" role="status" aria-label="Re-scoring"></div>
                 <span>Updating...</span>
               </div>
-            </div>
-          </div>
-          <div class="card-body">
-            <div id="insights-placeholder" class="species-mixer-ai-placeholder d-flex align-items-center justify-content-center">
-              <div class="text-center text-muted">
-                <i class="bi bi-lightbulb" style="font-size:1.5rem;"></i>
-                <p class="mt-2 mb-0 small">Generate a mix to see ecological insights</p>
+              <i class="bi bi-chevron-down expandable-card__chevron" aria-hidden="true"></i>
+            </span>
+          </button>
+          <div class="expandable-card__body-wrapper" id="insights-card-body">
+            <div class="expandable-card__body">
+              <div id="insights-placeholder" class="species-mixer-ai-placeholder d-flex align-items-center justify-content-center">
+                <div class="text-center text-muted">
+                  <i class="bi bi-lightbulb" style="font-size:1.5rem;"></i>
+                  <p class="mt-2 mb-0 small">Generate a mix to see ecological insights</p>
+                </div>
               </div>
+              <p id="insights-text" class="mb-1 small d-none"></p>
+              <p id="env-summary-text" class="text-muted small mb-0 d-none"></p>
             </div>
-            <p id="insights-text" class="mb-1 small d-none"></p>
-            <p id="env-summary-text" class="text-muted small mb-0 d-none"></p>
           </div>
         </div>
 
-        <!-- Species Mix card -->
-        <div class="card" id="species-mix-card">
-          <div class="card-header d-flex align-items-center justify-content-between gap-2">
-            <span class="fw-semibold"><i class="bi bi-diagram-3 me-2"></i>Species Mix</span>
-            <div class="d-flex align-items-center gap-2 ms-auto">
-              <!-- Add species button (opens modal) -->
-              <button type="button" class="btn btn-sm btn-outline-secondary flex-shrink-0" id="add-species-manually-btn" disabled>
-                <i class="bi bi-plus me-1"></i>Add Species
-              </button>
-            </div>
-          </div>
-          <div class="card-body p-0">
-            <!-- Search + filter toolbar -->
-            <div class="species-mix-toolbar px-3 pt-2 pb-2 d-flex align-items-center justify-content-end gap-2">
-              <select class="form-select form-select-sm species-mix-cat-filter" id="species-category-filter" style="max-width:10rem;">
-                <option value="">All categories</option>
-                <option value="tree">Tree</option>
-                <option value="shrub">Shrub</option>
-                <option value="wildflower">Wildflower</option>
-                <option value="grass">Grass</option>
-                <option value="fern">Fern</option>
-                <option value="moss">Moss</option>
-                <option value="fungi">Fungi</option>
-              </select>
-              <div class="position-relative" style="max-width:14rem; width:100%;">
-                <i class="bi bi-funnel position-absolute" style="left:.65rem;top:50%;transform:translateY(-50%);color:var(--bs-secondary-color);pointer-events:none;font-size:.8rem;"></i>
-                <input type="text" class="form-control form-control-sm ps-4" id="species-table-search"
-                       placeholder="Filter species..." autocomplete="off">
+        <!-- Species Mix Data expandable card -->
+        <div class="expandable-card expandable-card--full mb-3" id="mix-data-card" data-expandable-card>
+          <button type="button"
+                  class="expandable-card__header"
+                  aria-expanded="false"
+                  aria-controls="mix-data-body">
+            <span class="expandable-card__title">
+              <i class="bi bi-graph-up expandable-card__icon" aria-hidden="true"></i>
+              Species Mix Data
+            </span>
+            <span class="expandable-card__header-actions">
+              <i class="bi bi-chevron-down expandable-card__chevron" aria-hidden="true"></i>
+            </span>
+          </button>
+          <div class="expandable-card__body-wrapper" id="mix-data-body">
+            <div class="expandable-card__body">
+              <div class="row g-2" id="mix-data-grid">
+                <!-- Total Points -->
+                <div class="col-6 col-md-4">
+                  <div class="mix-data-stat">
+                    <i class="bi bi-ui-radios-grid mix-data-stat__icon"></i>
+                    <div class="mix-data-stat__content">
+                      <span class="mix-data-stat__value" id="mix-data-points">—</span>
+                      <span class="mix-data-stat__label">Total Points</span>
+                    </div>
+                  </div>
+                </div>
+                <!-- Total CO2 Captured -->
+                <div class="col-6 col-md-4">
+                  <div class="mix-data-stat">
+                    <i class="bi bi-cloud mix-data-stat__icon"></i>
+                    <div class="mix-data-stat__content">
+                      <span class="mix-data-stat__value" id="mix-data-co2">—</span>
+                      <span class="mix-data-stat__label">CO2 Captured</span>
+                    </div>
+                  </div>
+                </div>
+                <!-- Biodiversity Score -->
+                <div class="col-6 col-md-4">
+                  <div class="mix-data-stat">
+                    <i class="bi bi-tree mix-data-stat__icon"></i>
+                    <div class="mix-data-stat__content">
+                      <span class="mix-data-stat__value" id="mix-data-biodiversity">—</span>
+                      <span class="mix-data-stat__label">Biodiversity Score</span>
+                    </div>
+                  </div>
+                </div>
+                <!-- Nature Friendly Score -->
+                <div class="col-6 col-md-4">
+                  <div class="mix-data-stat">
+                    <i class="bi bi-flower2 mix-data-stat__icon"></i>
+                    <div class="mix-data-stat__content">
+                      <span class="mix-data-stat__value" id="mix-data-nature">—</span>
+                      <span class="mix-data-stat__label">Nature Friendly</span>
+                    </div>
+                  </div>
+                </div>
+                <!-- Total Cost -->
+                <div class="col-6 col-md-4">
+                  <div class="mix-data-stat">
+                    <i class="bi bi-currency-pound mix-data-stat__icon"></i>
+                    <div class="mix-data-stat__content">
+                      <span class="mix-data-stat__value" id="mix-data-cost">—</span>
+                      <span class="mix-data-stat__label">Estimated Cost</span>
+                    </div>
+                  </div>
+                </div>
+                <!-- Carbon Credit Value -->
+                <div class="col-6 col-md-4">
+                  <div class="mix-data-stat">
+                    <i class="bi bi-bank mix-data-stat__icon"></i>
+                    <div class="mix-data-stat__content">
+                      <span class="mix-data-stat__value" id="mix-data-carbon-credit">—</span>
+                      <span class="mix-data-stat__label">Carbon Credit Value</span>
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
+          </div>
+        </div>
+
+        <!-- Species Mix expandable card -->
+        <div class="expandable-card expandable-card--full mb-3" id="species-mix-card" data-expandable-card>
+          <button type="button"
+                  class="expandable-card__header"
+                  aria-expanded="false"
+                  aria-controls="species-mix-body">
+            <span class="expandable-card__title">
+              <i class="bi bi-diagram-3 expandable-card__icon" aria-hidden="true"></i>
+              Species Mix
+            </span>
+            <span class="expandable-card__header-actions">
+              <i class="bi bi-chevron-down expandable-card__chevron" aria-hidden="true"></i>
+            </span>
+          </button>
+          <div class="expandable-card__body-wrapper" id="species-mix-body">
+            <div class="expandable-card__body p-0">
+              <!-- Search + filter toolbar -->
+              <div class="species-mix-toolbar px-3 pt-2 pb-2 d-flex align-items-center gap-2">
+                <select class="form-select form-select-sm species-mix-cat-filter" id="species-category-filter" style="max-width:10rem;">
+                  <option value="">All categories</option>
+                  <option value="tree">Tree</option>
+                  <option value="shrub">Shrub</option>
+                  <option value="wildflower">Wildflower</option>
+                  <option value="grass">Grass</option>
+                  <option value="fern">Fern</option>
+                  <option value="moss">Moss</option>
+                  <option value="fungi">Fungi</option>
+                </select>
+                <div class="position-relative" style="max-width:14rem; width:100%;">
+                  <i class="bi bi-funnel position-absolute" style="left:.65rem;top:50%;transform:translateY(-50%);color:var(--bs-secondary-color);pointer-events:none;font-size:.8rem;"></i>
+                  <input type="text" class="form-control form-control-sm ps-4" id="species-table-search"
+                         placeholder="Filter species..." autocomplete="off">
+                </div>
+                <div class="ms-auto">
+                  <button type="button" class="btn btn-sm btn-outline-secondary flex-shrink-0" id="add-species-manually-btn" disabled>
+                    <i class="bi bi-plus me-1"></i>Add Species
+                  </button>
+                </div>
+              </div>
 
             <!-- Species table -->
             <div id="species-table-wrapper">
@@ -490,7 +765,8 @@
                 </tbody>
               </table>
             </div><!-- /species-table-wrapper -->
-          </div><!-- /card-body -->
+            </div><!-- /expandable-card__body -->
+          </div><!-- /expandable-card__body-wrapper -->
         </div><!-- /species-mix-card -->
 
       </div><!-- /tab-mix -->
@@ -709,5 +985,6 @@
 <script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/echarts@5/dist/echarts.min.js"></script>
 <script src="{% static 'js/components/sortable-table.js' %}" defer></script>
+<script src="{% static 'js/components/expandable-card.js' %}" defer></script>
 <script src="{% static 'species/js/species-mixer.js' %}" defer></script>
 {% endblock %}
