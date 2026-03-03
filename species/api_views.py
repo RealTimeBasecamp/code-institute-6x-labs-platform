@@ -254,8 +254,11 @@ def api_location_data(request):
     except (KeyError, ValueError):
         return JsonResponse({'error': 'lat and lng are required query parameters'}, status=400)
 
-    location_name = fetch_location_name(lat, lng)
-    return JsonResponse({'location_name': location_name})
+    result = fetch_location_name(lat, lng)
+    return JsonResponse({
+        'location_name': result['location_name'],
+        'country_code':  result.get('country_code'),
+    })
 
 
 # =============================================================================

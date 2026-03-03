@@ -194,17 +194,17 @@ class SpeciesMixer {
   }
 
   _resetEcoCells() {
-    // Put all 8 eco stat cells into skeleton loading state (no text — shimmer only).
+    // Put all eco stat cells into skeleton loading state (no text — shimmer only).
     // Called on every new map click so stale data from a previous location is cleared.
     const skeletonWidths = {
-      'eco-ph':       '2.5rem',
-      'eco-texture':  '3rem',
-      'eco-moisture': '3rem',
-      'eco-rain':     '4rem',
-      'eco-temp':     '3.5rem',
-      'eco-flood':    '3rem',
-      'eco-frost':    '2.5rem',
-      'eco-organic':  '3rem',
+      'eco-ph':        '2.5rem',
+      'eco-texture':   '3rem',
+      'eco-moisture':  '3rem',
+      'eco-rain':      '4rem',
+      'eco-temp':      '3.5rem',
+      'eco-flood':     '3rem',
+      'eco-frost':     '2.5rem',
+      'eco-organic':   '3rem',
     };
     Object.entries(skeletonWidths).forEach(([id, width]) => {
       const el = document.getElementById(id);
@@ -237,6 +237,8 @@ class SpeciesMixer {
     document.getElementById('site-summary-loading')?.classList.add('d-none');
     document.getElementById('site-summary-text')?.classList.add('d-none');
     document.getElementById('site-summary-placeholder')?.classList.remove('d-none');
+    // Hide coverage warning
+    document.getElementById('location-coverage-warning')?.classList.add('d-none');
   }
 
   // ──────────────────────────────────────────────────────────────────────────
@@ -1593,12 +1595,50 @@ class SpeciesMixer {
       const resp = await fetch(url, { headers: { 'X-CSRFToken': this.config.csrfToken } });
       const data = await resp.json();
       this.locationName = data.location_name || `${lat}, ${lng}`;
+      this._updateLocationWarning(data.country_code || null);
     } catch {
       this.locationName = `${lat}, ${lng}`;
+      this._updateLocationWarning(null);
     }
     // Update location search input with place name
     const searchInput = document.getElementById('location-search-input');
     if (searchInput) searchInput.value = this.locationName;
+  }
+
+  _updateLocationWarning(countryCode) {
+    // ISO 3166-1 alpha-2 codes for European countries (EU + wider geographic Europe).
+    // Photon correctly returns 'GB' for all UK territory including islands,
+    // so no bounding-box fallback needed.
+    const EUROPE = new Set([
+      'AD','AL','AT','BA','BE','BG','BY','CH','CY','CZ','DE','DK','EE','ES',
+      'FI','FR','GB','GI','GR','HR','HU','IE','IS','IT','LI','LT','LU','LV',
+      'MC','MD','ME','MK','MT','NL','NO','PL','PT','RO','RS','RU','SE','SI',
+      'SK','SM','TR','UA','VA','XK',
+    ]);
+
+    const wrap        = document.getElementById('location-coverage-warning');
+    const warnEurope  = document.getElementById('coverage-warn-europe');
+    const warnOutside = document.getElementById('coverage-warn-outside');
+    if (!wrap) return;
+
+    // Reset both alerts (re-show in case user previously dismissed one)
+    warnEurope?.classList.add('d-none');
+    warnOutside?.classList.add('d-none');
+
+    if (countryCode === 'GB') {
+      // UK — no warning
+      wrap.classList.add('d-none');
+      return;
+    }
+
+    wrap.classList.remove('d-none');
+    if (countryCode && EUROPE.has(countryCode)) {
+      // Tier 1: Europe but not UK
+      warnEurope?.classList.remove('d-none');
+    } else {
+      // Tier 2: Outside Europe, or null (ocean/unrecognised region)
+      warnOutside?.classList.remove('d-none');
+    }
   }
 
   async _fetchEnvDataSoil(lat, lng) {

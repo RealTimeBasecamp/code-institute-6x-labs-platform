@@ -597,14 +597,20 @@ def _estimate_climate_from_coords(lat: float, lng: float) -> dict:
 # Commercial use permitted. Fair-use throttling applies for heavy usage.
 # Built on OSM data. No API key required.
 # =============================================================================
-def fetch_location_name(lat: float, lng: float) -> str:
+def fetch_location_name(lat: float, lng: float) -> dict:
     """
     Reverse geocode lat/lng to a human-readable place name via Photon (Komoot).
 
-    Returns e.g. "Drumnadrochit, Highland, Scotland" or "51.5, -0.1"
-    as a coordinate fallback if Photon returns no result.
+    Returns a dict:
+        {
+            'location_name': str,   e.g. "Drumnadrochit, Highland, Scotland"
+            'country_code':  str,   ISO 3166-1 alpha-2, e.g. "GB", "DE", or None
+        }
+    Falls back to coordinate string if Photon returns no result.
+    country_code is the raw Photon `countryCode` field — correctly identifies
+    all UK islands (Outer Hebrides, Shetland, IoM, etc.) as "GB".
     """
-    key = _cache_key('photon', lat, lng)
+    key = _cache_key('photon_v2', lat, lng)
     cached = cache.get(key)
     if cached is not None:
         return cached
@@ -617,6 +623,7 @@ def fetch_location_name(lat: float, lng: float) -> str:
     _track('photon')
 
     name = None
+    country_code = None
     if data and data.get('features'):
         props = data['features'][0].get('properties', {})
         parts = [
@@ -626,12 +633,16 @@ def fetch_location_name(lat: float, lng: float) -> str:
         ]
         # Keep first 3 parts — Photon puts city/town in 'name'
         name = ', '.join(p for p in parts[:3] if p) or None
+        country_code = props.get('countrycode') or props.get('country_code')
+        if country_code:
+            country_code = country_code.upper()
 
     if name is None:
         name = f'{round(lat, 4)}, {round(lng, 4)}'
 
-    cache.set(key, name, _CACHE_TTL)
-    return name
+    result = {'location_name': name, 'country_code': country_code}
+    cache.set(key, result, _CACHE_TTL)
+    return result
 
 
 # =============================================================================
