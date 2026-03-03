@@ -295,6 +295,62 @@
   color: var(--bs-body-color);
 }
 
+/* Outliner right-click context menu */
+.outliner-context-menu {
+  position: fixed;
+  z-index: 9999;
+  min-width: 10rem;
+  background-color: var(--bs-tertiary-bg);
+  border: 1px solid var(--bs-border-color);
+  border-radius: 0.25rem;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  padding: 0.25rem 0;
+  display: none;
+}
+
+.outliner-context-menu.is-visible {
+  display: block;
+}
+
+.context-menu-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.3rem 0.75rem;
+  font-size: var(--editor-font-base);
+  cursor: pointer;
+  user-select: none;
+  white-space: nowrap;
+}
+
+.context-menu-item:hover {
+  background-color: color-mix(in srgb, var(--primary-color) 12%, var(--bs-body-bg));
+}
+
+.context-menu-item.is-disabled {
+  opacity: 0.4;
+  pointer-events: none;
+}
+
+.context-menu-item i {
+  width: 1rem;
+  text-align: center;
+  flex-shrink: 0;
+}
+
+.context-menu-shortcut {
+  margin-left: auto;
+  padding-left: 1.5rem;
+  font-size: 0.75em;
+  color: var(--bs-secondary-color);
+}
+
+.context-menu-separator {
+  height: 1px;
+  background-color: var(--bs-border-color);
+  margin: 0.25rem 0;
+}
+
 /* ============================================
    Panel Content - Property Grid (Details)
    UE5-style divider: a single --property-divider-pos
