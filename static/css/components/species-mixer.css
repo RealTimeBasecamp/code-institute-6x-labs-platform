@@ -374,18 +374,21 @@
   inset: 0;
   background: var(--bs-body-bg);
   display: flex;
+  flex-direction: column;
   align-items: stretch;
-  justify-content: center;
+  justify-content: flex-start;
   z-index: 10;
   color: var(--bs-body-color);
   padding: 0.5rem;
+  overflow: hidden;
 }
 
 /* Wrapper so the handle can be absolutely positioned over the canvas */
 .mixer-radar-wrap {
   position: relative;
   width: 100%;
-  height: 100%;
+  flex: 1 1 0;
+  min-height: 0;
 }
 
 /* ECharts radar chart — fills the wrapper */
@@ -418,7 +421,10 @@
 /* ── Virtual grid (ECharts scatter on Mix tab) ───────────────── */
 .mixer-virtual-grid-wrap {
   width: 100%;
-  align-self: flex-start;
+  /* Fill the full height of the overlay so cards + scrubber are never clipped */
+  flex: 1 1 0;
+  align-self: stretch;
+  min-height: 0;
   display: flex;
   flex-direction: column;
   background: var(--bs-body-bg);
@@ -427,14 +433,44 @@
   overflow: hidden;
 }
 
-/* ECharts canvas — square aspect ratio enforced via aspect-ratio so it always
-   reads as a spatial grid regardless of panel width. The flex parent scrolls if
-   the panel is shorter than the square. */
-.mixer-virtual-grid-chart {
-  flex: 0 0 auto;
-  width: 100%;
-  aspect-ratio: 1 / 1;
+/* Wrapper div (position-relative) around chart + loading overlay — grows to fill */
+.mixer-virtual-grid-wrap > .position-relative {
+  flex: 1 1 0;
   min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ECharts canvas — takes all remaining vertical space after toolbar/cards/scrubber.
+   aspect-ratio removed: the chart fills its flex cell instead of dictating height. */
+.mixer-virtual-grid-chart {
+  flex: 1 1 0;
+  width: 100%;
+  min-height: 0;
+}
+
+/* Mix data stats inside the visualiser panel */
+#mix-data-card {
+  flex: 0 0 auto;
+  border-top: 1px solid var(--bs-border-color);
+  padding: 0.5rem;
+  background: var(--bs-body-bg);
+}
+
+#mix-data-card .mix-data-stat {
+  padding: 0.4rem 0.5rem;
+}
+
+#mix-data-card .mix-data-stat__icon {
+  font-size: 1rem;
+}
+
+#mix-data-card .mix-data-stat__value {
+  font-size: 0.9rem;
+}
+
+#mix-data-card .mix-data-stat__label {
+  font-size: 0.6rem;
 }
 
 /* ── Timeline scrubber ───────────────────────────────────────── */
@@ -1547,6 +1583,20 @@
 .api-toggle-item .form-check-label {
   font-size: 0.8rem;
   cursor: pointer;
+  min-width: 0;
+  flex-wrap: nowrap;
+  overflow: hidden;
+}
+
+.api-toggle-item .form-check-label span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+}
+
+.api-toggle-item .api-toggle-info {
+  flex-shrink: 0;
 }
 
 .api-toggle-info {
