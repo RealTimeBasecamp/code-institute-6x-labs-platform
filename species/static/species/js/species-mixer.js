@@ -855,14 +855,32 @@ class SpeciesMixer {
 
     this.gridChart = echarts.init(el, null, { renderer: 'canvas' });
 
-    // Resize chart whenever the container element changes size (window resize
-    // or pane-divider drag). Uses ResizeObserver so it fires continuously during
-    // drag without touching any point-generation logic.
+    // Keep the chart container square at all times.
+    // Measures the wrap, subtracts fixed-height siblings (toolbar, stats, timeline),
+    // then sets the chart wrapper to min(wrapWidth, remainingHeight) × that value.
+    const chartWrap = el.closest('.position-relative');
+    const gridWrap  = document.getElementById('virtual-grid-wrap');
+    const syncSquare = () => {
+      if (!gridWrap || !chartWrap) return;
+      const wrapW = gridWrap.clientWidth;
+      // Sum heights of all flex siblings that are NOT the chart wrapper
+      let siblingsH = 0;
+      for (const child of gridWrap.children) {
+        if (child !== chartWrap) siblingsH += child.offsetHeight;
+      }
+      const available = gridWrap.clientHeight - siblingsH;
+      const side = Math.max(0, Math.min(wrapW, available));
+      chartWrap.style.width  = side + 'px';
+      chartWrap.style.height = side + 'px';
+      this.gridChart?.resize();
+    };
+
     if (typeof ResizeObserver !== 'undefined') {
-      new ResizeObserver(() => this.gridChart?.resize()).observe(el);
+      new ResizeObserver(syncSquare).observe(gridWrap);
     } else {
-      window.addEventListener('resize', () => this.gridChart?.resize());
+      window.addEventListener('resize', syncSquare);
     }
+    syncSquare();
 
     // Hectare slider — logarithmic mapping over 0–100 index → 1–1 000 000 ha.
     // index 0 → 1 ha, index 100 → 1 000 000 ha.
@@ -1214,6 +1232,9 @@ class SpeciesMixer {
 
   _renderGridPlaceholder() {
     if (!this.gridChart) return;
+
+    // Hide the loading overlay so the environment axes/zones are visible
+    this._hideChartLoading();
 
     const style = getComputedStyle(document.documentElement);
     const resolve = (prop, fallback) => style.getPropertyValue(prop).trim() || fallback;
@@ -2434,7 +2455,6 @@ class SpeciesMixer {
       if (card?._expandableCard) card._expandableCard.collapse();
       progressSection?.classList.add('d-none');
       spinner?.classList.add('d-none');
-      completeBadge?.classList.remove('d-none');
     }
   }
 

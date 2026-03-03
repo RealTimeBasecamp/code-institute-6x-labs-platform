@@ -421,9 +421,7 @@
 /* ── Virtual grid (ECharts scatter on Mix tab) ───────────────── */
 .mixer-virtual-grid-wrap {
   width: 100%;
-  /* Fill the full height of the overlay so cards + scrubber are never clipped */
   flex: 1 1 0;
-  align-self: stretch;
   min-height: 0;
   display: flex;
   flex-direction: column;
@@ -433,20 +431,17 @@
   overflow: hidden;
 }
 
-/* Wrapper div (position-relative) around chart + loading overlay — grows to fill */
+/* Square chart area — JS sets explicit px width/height via _syncChartSquare().
+   CSS just makes the element a block; the ResizeObserver in JS drives the size. */
 .mixer-virtual-grid-wrap > .position-relative {
-  flex: 1 1 0;
-  min-height: 0;
-  display: flex;
-  flex-direction: column;
+  flex-shrink: 0;
+  align-self: center;
 }
 
-/* ECharts canvas — takes all remaining vertical space after toolbar/cards/scrubber.
-   aspect-ratio removed: the chart fills its flex cell instead of dictating height. */
+/* ECharts canvas — fills the square wrapper */
 .mixer-virtual-grid-chart {
-  flex: 1 1 0;
   width: 100%;
-  min-height: 0;
+  height: 100%;
 }
 
 /* Mix data stats inside the visualiser panel */
@@ -721,6 +716,18 @@
 .grid-toolbar-menu--wide {
   min-width: 16rem;
   padding: 0.5rem 0.75rem;
+}
+
+/* Dropdown menu header */
+.grid-toolbar-menu-header {
+  padding: 0.35rem 0.75rem 0.2rem;
+  font-size: 0.7rem !important;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--bs-secondary-color);
+  user-select: none;
+  pointer-events: none;
 }
 
 /* Dropdown items */
