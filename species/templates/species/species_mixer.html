@@ -289,6 +289,36 @@
           </div>
         </div>
 
+        <!-- Site Summary expandable card (always visible; populated from env data on map click) -->
+        <div class="expandable-card expandable-card--full mb-3" id="site-summary-card" data-expandable-card>
+          <button type="button"
+                  class="expandable-card__header"
+                  aria-expanded="false"
+                  aria-controls="site-summary-body">
+            <span class="expandable-card__title">
+              <i class="bi bi-card-text expandable-card__icon" aria-hidden="true"></i>
+              Site Summary
+            </span>
+            <span class="expandable-card__header-actions">
+              <i class="bi bi-chevron-down expandable-card__chevron" aria-hidden="true"></i>
+            </span>
+          </button>
+          <div class="expandable-card__body-wrapper" id="site-summary-body">
+            <div class="expandable-card__body">
+              <div id="site-summary-placeholder" class="text-center text-muted py-2">
+                <i class="bi bi-card-text" style="font-size:1.5rem;"></i>
+                <p class="mt-2 mb-0 small">Click on the map to see a summary of your site conditions</p>
+              </div>
+              <div id="site-summary-loading" class="d-none" aria-hidden="true">
+                <span class="skeleton-line" style="width:92%"></span>
+                <span class="skeleton-line mt-1" style="width:78%"></span>
+                <span class="skeleton-line mt-1" style="width:85%"></span>
+              </div>
+              <p id="site-summary-text" class="mb-0 small d-none"></p>
+            </div>
+          </div>
+        </div>
+
         <!-- Environmental Data expandable card (always present; dashes until location set) -->
         <div class="expandable-card expandable-card--full mb-3" id="location-eco-card" data-expandable-card>
           <button type="button"
@@ -640,10 +670,10 @@
                       <input class="form-check-input" type="checkbox" id="api-toggle-gbif" checked data-api="gbif">
                       <label class="form-check-label d-flex align-items-center gap-1" for="api-toggle-gbif">
                         <i class="bi bi-globe" style="font-size:0.9rem;"></i>
-                        <span>GBIF Records</span>
+                        <span>Nearby Species Observations</span>
                         <i class="bi bi-info-circle text-muted api-toggle-info"
                            data-bs-toggle="tooltip" data-bs-placement="top"
-                           title="Global Biodiversity Information Facility - Species occurrence records to identify plants observed near your location."></i>
+                           title="GBIF (Global Biodiversity Information Facility) — worldwide species occurrence records showing plants observed near your location."></i>
                       </label>
                     </div>
                   </div>
@@ -653,10 +683,10 @@
                       <input class="form-check-input" type="checkbox" id="api-toggle-nbn" checked data-api="nbn">
                       <label class="form-check-label d-flex align-items-center gap-1" for="api-toggle-nbn">
                         <i class="bi bi-flower1" style="font-size:0.9rem;"></i>
-                        <span>NBN Atlas</span>
+                        <span>UK Botanical Survey Records</span>
                         <i class="bi bi-info-circle text-muted api-toggle-info"
                            data-bs-toggle="tooltip" data-bs-placement="top"
-                           title="National Biodiversity Network - UK-specific plant records including BSBI botanical surveys for native species identification."></i>
+                           title="NBN Atlas (National Biodiversity Network) — UK-specific plant records including BSBI botanical surveys for native species identification."></i>
                       </label>
                     </div>
                   </div>
@@ -723,8 +753,7 @@
                   <p class="mt-2 mb-0 small">Generate a mix to see ecological insights</p>
                 </div>
               </div>
-              <p id="insights-text" class="mb-1 small d-none"></p>
-              <p id="env-summary-text" class="text-muted small mb-0 d-none"></p>
+              <p id="insights-text" class="mb-0 small d-none"></p>
             </div>
           </div>
         </div>

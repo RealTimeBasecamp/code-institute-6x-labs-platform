@@ -217,6 +217,10 @@ class SpeciesMixer {
       valEl.classList.add('skeleton-line');
       valEl.style.width = width;
     });
+    // Show skeleton lines in site summary while env data loads
+    document.getElementById('site-summary-placeholder')?.classList.add('d-none');
+    document.getElementById('site-summary-text')?.classList.add('d-none');
+    document.getElementById('site-summary-loading')?.classList.remove('d-none');
   }
 
   _clearEcoCells() {
@@ -229,6 +233,10 @@ class SpeciesMixer {
       valEl.style.width = '';
       valEl.textContent = '—';
     });
+    // Reset site summary to placeholder state
+    document.getElementById('site-summary-loading')?.classList.add('d-none');
+    document.getElementById('site-summary-text')?.classList.add('d-none');
+    document.getElementById('site-summary-placeholder')?.classList.remove('d-none');
   }
 
   // ──────────────────────────────────────────────────────────────────────────
@@ -1224,7 +1232,7 @@ class SpeciesMixer {
     // Compute a clean tick interval based on the zone side length
     const tickInterval = this._niceTickInterval(zoneSide);
     this.gridChart.setOption({
-      backgroundColor: bgColor,
+      backgroundColor: 'transparent',
       grid: { left: 44, right: 12, top: 12, bottom: 28 },
       xAxis: {
         type: 'value', min: 0, max: zoneSide, name: `m · ${haLabel}`,
@@ -1374,7 +1382,7 @@ class SpeciesMixer {
     const showLegend = legendData.length <= 12;
 
     this.gridChart.setOption({
-      backgroundColor: bgColor,
+      backgroundColor: 'transparent',
       legend: showLegend ? {
         data: legendData,
         bottom: 0,
@@ -1647,7 +1655,55 @@ class SpeciesMixer {
     // Mark eco data as fully loaded once all three sources have responded
     if (this.envData.soil && this.envData.climate && this.envData.hydrology) {
       this._ecoDataLoaded = true;
+      this._renderSiteSummaryFromEnvData();
     }
+  }
+
+  _renderSiteSummaryFromEnvData() {
+    const { soil, climate, hydrology } = this.envData;
+    const parts = [];
+
+    // Soil
+    if (soil) {
+      const sanitise = v => v ? v.replace(/_/g, ' ') : null;
+      const ph     = soil.ph != null ? `pH ${soil.ph.toFixed(1)}` : null;
+      const tex    = sanitise(soil.texture);
+      const moist  = sanitise(soil.moisture_class);
+      const oc     = soil.organic_carbon != null ? `${soil.organic_carbon.toFixed(1)}% organic carbon` : null;
+      const soilDesc = [ph, tex ? `${tex} texture` : null, moist ? `${moist} moisture` : null, oc].filter(Boolean).join(', ');
+      if (soilDesc) parts.push(`Soil: ${soilDesc}.`);
+    }
+
+    // Climate
+    if (climate) {
+      const rain   = climate.mean_annual_rainfall_mm != null ? `${Math.round(climate.mean_annual_rainfall_mm)} mm/yr rainfall` : null;
+      const temp   = climate.mean_temp_c != null ? `${climate.mean_temp_c.toFixed(1)} °C mean temperature` : null;
+      const frost  = climate.frost_days_per_year != null ? `${Math.round(climate.frost_days_per_year)} frost days/yr` : null;
+      const zone   = climate.climate_zone ? `${climate.climate_zone} climate` : null;
+      const climDesc = [zone, rain, temp, frost].filter(Boolean).join(', ');
+      if (climDesc) parts.push(`Climate: ${climDesc}.`);
+    }
+
+    // Hydrology
+    if (hydrology) {
+      const flood  = hydrology.flood_risk ? `${hydrology.flood_risk} flood risk` : null;
+      const water  = hydrology.water_body_nearby ? 'water body nearby' : null;
+      const hydroDesc = [flood, water].filter(Boolean).join(', ');
+      if (hydroDesc) parts.push(`Hydrology: ${hydroDesc}.`);
+    }
+
+    if (!parts.length) return;
+
+    const siteSummaryText = document.getElementById('site-summary-text');
+    const siteSummaryPlaceholder = document.getElementById('site-summary-placeholder');
+    const siteSummaryCard = document.getElementById('site-summary-card');
+    document.getElementById('site-summary-loading')?.classList.add('d-none');
+    siteSummaryPlaceholder?.classList.add('d-none');
+    if (siteSummaryText) {
+      siteSummaryText.textContent = parts.join(' ');
+      siteSummaryText.classList.remove('d-none');
+    }
+    if (siteSummaryCard?._expandableCard) siteSummaryCard._expandableCard.expand();
   }
 
   // ──────────────────────────────────────────────────────────────────────────
@@ -1777,7 +1833,7 @@ class SpeciesMixer {
             cached_candidates: this.cachedCandidates,
             goals: this._getGoals(),
             ai_insights: document.getElementById('insights-text')?.textContent || '',
-            env_summary: document.getElementById('env-summary-text')?.textContent || '',
+            env_summary: document.getElementById('site-summary-text')?.textContent || '',
             species_items: this.mixItems.map((item, i) => ({
               species_id: item.species_id,
               ratio: item.ratio,
@@ -2832,7 +2888,6 @@ class SpeciesMixer {
   _renderInsights(insights, envSummary) {
     const placeholder = document.getElementById('insights-placeholder');
     const insightsText = document.getElementById('insights-text');
-    const envSummaryText = document.getElementById('env-summary-text');
     const insightsCard = document.getElementById('insights-card');
 
     if (insights) {
@@ -2857,9 +2912,17 @@ class SpeciesMixer {
       }
     }
 
-    if (envSummary && envSummaryText) {
-      envSummaryText.textContent = envSummary;
-      envSummaryText.classList.remove('d-none');
+    // Upgrade the site summary with richer AI prose if the mix generation provides one
+    if (envSummary) {
+      const siteSummaryText = document.getElementById('site-summary-text');
+      const siteSummaryPlaceholder = document.getElementById('site-summary-placeholder');
+      const siteSummaryCard = document.getElementById('site-summary-card');
+      if (siteSummaryText) {
+        siteSummaryText.textContent = envSummary;
+        siteSummaryText.classList.remove('d-none');
+      }
+      siteSummaryPlaceholder?.classList.add('d-none');
+      if (siteSummaryCard?._expandableCard) siteSummaryCard._expandableCard.expand();
     }
   }
 
@@ -3023,7 +3086,7 @@ class SpeciesMixer {
       cached_candidates: this.cachedCandidates,
       goals: this._getGoals(),
       ai_insights: document.getElementById('insights-text')?.textContent || '',
-      env_summary: document.getElementById('env-summary-text')?.textContent || '',
+      env_summary: document.getElementById('site-summary-text')?.textContent || '',
       species_items: this.mixItems.map((item, i) => ({
         species_id: item.species_id,
         ratio: item.ratio,
@@ -3371,8 +3434,10 @@ class SpeciesMixer {
     this._restoreSkeletonRows();
 
     document.getElementById('insights-text')?.classList.add('d-none');
-    document.getElementById('env-summary-text')?.classList.add('d-none');
     document.getElementById('insights-placeholder')?.classList.remove('d-none');
+    // Reset site summary back to placeholder state on reset
+    document.getElementById('site-summary-text')?.classList.add('d-none');
+    document.getElementById('site-summary-placeholder')?.classList.remove('d-none');
     document.getElementById('save-mix-btn')?.classList.add('d-none');
     // Collapse insights card
     const insightsCard = document.getElementById('insights-card');
