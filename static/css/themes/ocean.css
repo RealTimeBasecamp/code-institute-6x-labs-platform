@@ -11,7 +11,7 @@
   --bs-secondary-color: #64748b;
   --bs-tertiary-bg: #e2e8f0;
   --bs-border-color: #cbd5e1;
-  --bs-hover-bg: #e2e8f0;
+  --bs-hover-bg: color-mix(in srgb, var(--primary-color) 10%, var(--bs-body-bg));
 }
 
 /* ===== DARK MODE ===== */
@@ -24,5 +24,5 @@
   --bs-secondary-color: #94a3b8;
   --bs-tertiary-bg: #1e293b;
   --bs-border-color: #334155;
-  --bs-hover-bg: #334155;
+  --bs-hover-bg: color-mix(in srgb, var(--primary-color) 12%, var(--bs-body-bg));
 }

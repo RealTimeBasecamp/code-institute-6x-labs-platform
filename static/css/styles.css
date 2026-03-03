@@ -279,8 +279,12 @@ h1, h2, h3, h4, h5, h6, p, span, div, a, button, input, textarea, select{
 .btn-secondary {
   --bs-btn-bg: var(--bs-body-bg);
   --bs-btn-border-color: var(--bs-border-color);
-  --bs-btn-hover-bg: var(--bs-hover-bg);
-  --bs-btn-hover-border-color: var(--bs-border-color);
+  --bs-btn-hover-bg: color-mix(in srgb, var(--primary-color, var(--bs-primary)) 10%, var(--bs-body-bg));
+  --bs-btn-hover-border-color: var(--primary-color, var(--bs-primary));
+  --bs-btn-hover-color: var(--primary-color, var(--bs-primary));
+  --bs-btn-active-bg: color-mix(in srgb, var(--primary-color, var(--bs-primary)) 18%, var(--bs-body-bg));
+  --bs-btn-active-border-color: var(--primary-color, var(--bs-primary));
+  --bs-btn-active-color: var(--primary-color, var(--bs-primary));
   --bs-btn-color: var(--bs-body-color);
 }
 

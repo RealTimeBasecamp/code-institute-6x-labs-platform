@@ -478,10 +478,6 @@
       const href = link.getAttribute('href');
       if (href && currentPath === href) {
         link.classList.add('active', 'fw-bold');
-        const hoverBg = getComputedStyle(root).getPropertyValue('--bs-hover-bg').trim();
-        if (hoverBg) {
-          link.style.backgroundColor = hoverBg;
-        }
 
         // Expand parent menu if this is a child item and persist state
         const parentItem = link.closest('.sidebar-submenu')?.closest('.sidebar-item.has-children');
