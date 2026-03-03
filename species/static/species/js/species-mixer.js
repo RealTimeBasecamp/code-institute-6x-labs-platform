@@ -129,6 +129,8 @@ class SpeciesMixer {
   // Map initialisation
   // ──────────────────────────────────────────────────────────────────────────
 
+  // Map style constants and builders are provided by map-styles.js (window.MapStyles).
+
   _initMap() {
     if (typeof maplibregl === 'undefined') {
       console.warn('MapLibre GL not loaded — map will not be interactive.');
@@ -137,7 +139,7 @@ class SpeciesMixer {
 
     this.map = new maplibregl.Map({
       container: 'species-mixer-map',
-      style: this.config.maplibreStyleUrl,
+      style: window.MapStyles.buildStreetStyle(),  // bare street, no terrain
       center: [-2.5, 54.5],   // UK centre
       zoom: 4.5,              // show full UK comfortably in the narrow map panel
     });

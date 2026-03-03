@@ -3,7 +3,7 @@
  * MapLibre GL JS with 3D terrain + Apache ECharts overlay for data visualization
  * 
  * @description A modular map component that supports:
- *   - 3D terrain visualization with AWS elevation tiles
+ *   - 3D terrain visualization with Mapterhorn elevation tiles (ESA Copernicus DEM)
  *   - ECharts data overlay for custom visualizations
  *   - Fill-extrusion layers for 3D polygon rendering
  *   - Configurable settings via external JSON config
@@ -19,33 +19,7 @@
     const DEPENDENCY_CHECK_INTERVAL = 100;
     const DEPENDENCY_MAX_ATTEMPTS = 50;
 
-    const TILE_SOURCES = {
-        osm: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-        terrain: 'https://s3.amazonaws.com/elevation-tiles-prod/terrarium/{z}/{x}/{y}.png',
-        satellite: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}'
-    };
-
-    // The Natural Earth / Political style URL (MapLibre demo tiles — country colour fills)
-    const POLITICAL_STYLE_URL = 'https://demotiles.maplibre.org/style.json';
-
-    // Map style definitions — used by render-mode toolbar dropdown
-    const MAP_STYLES = {
-        street: {
-            label: 'Street',
-            icon: 'bi-map',
-            buildStyle: (config) => buildMapStyle(config)
-        },
-        satellite: {
-            label: 'Satellite',
-            icon: 'bi-globe',
-            buildStyle: (config) => buildSatelliteStyle(config)
-        },
-        political: {
-            label: 'Political',
-            icon: 'bi-flag',
-            buildStyle: () => POLITICAL_STYLE_URL
-        }
-    };
+    // Map style constants and builders are provided by map-styles.js (window.MapStyles).
 
     const DEFAULT_CONFIG = {
         project: { name: 'My Project', description: '' },
@@ -105,100 +79,6 @@
     }
 
     // ============================================
-    // Map Style Builder
-    // ============================================
-    
-    function buildMapStyle(config) {
-        return {
-            version: 8,
-            glyphs: 'https://demotiles.maplibre.org/font/{fontstack}/{range}.pbf',
-            sources: {
-                'osm-tiles': {
-                    type: 'raster',
-                    tiles: [TILE_SOURCES.osm],
-                    tileSize: 256,
-                    attribution: '&copy; OpenStreetMap contributors'
-                },
-                'terrainSource': {
-                    type: 'raster-dem',
-                    tiles: [TILE_SOURCES.terrain],
-                    tileSize: 256,
-                    encoding: 'terrarium',
-                    maxzoom: 15
-                },
-                'hillshadeSource': {
-                    type: 'raster-dem',
-                    tiles: [TILE_SOURCES.terrain],
-                    tileSize: 256,
-                    encoding: 'terrarium',
-                    maxzoom: 15
-                }
-            },
-            layers: [
-                {
-                    id: 'osm-tiles-layer',
-                    type: 'raster',
-                    source: 'osm-tiles',
-                    minzoom: 0,
-                    maxzoom: 19
-                },
-                {
-                    id: 'hillshade-layer',
-                    type: 'hillshade',
-                    source: 'hillshadeSource',
-                    layout: {
-                        visibility: config.layers.hillshade ? 'visible' : 'none'
-                    },
-                    paint: {
-                        'hillshade-shadow-color': '#473B24',
-                        'hillshade-illumination-anchor': 'map',
-                        'hillshade-exaggeration': 0.5
-                    }
-                }
-            ],
-            terrain: config.terrain.enabled ? {
-                source: 'terrainSource',
-                exaggeration: config.terrain.exaggeration
-            } : undefined
-        };
-    }
-
-    function buildSatelliteStyle(config) {
-        return {
-            version: 8,
-            glyphs: 'https://demotiles.maplibre.org/font/{fontstack}/{range}.pbf',
-            sources: {
-                'satellite-tiles': {
-                    type: 'raster',
-                    tiles: [TILE_SOURCES.satellite],
-                    tileSize: 256,
-                    attribution: 'Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community'
-                },
-                'terrainSource': {
-                    type: 'raster-dem',
-                    tiles: [TILE_SOURCES.terrain],
-                    tileSize: 256,
-                    encoding: 'terrarium',
-                    maxzoom: 15
-                }
-            },
-            layers: [
-                {
-                    id: 'satellite-tiles-layer',
-                    type: 'raster',
-                    source: 'satellite-tiles',
-                    minzoom: 0,
-                    maxzoom: 19
-                }
-            ],
-            terrain: config.terrain.enabled ? {
-                source: 'terrainSource',
-                exaggeration: config.terrain.exaggeration
-            } : undefined
-        };
-    }
-
-    // ============================================
     // Interactive Map Controller
     // ============================================
     
@@ -239,7 +119,11 @@
 
             this.map = new maplibregl.Map({
                 container: 'map',
-                style: buildMapStyle(this.config),
+                style: window.MapStyles.buildStreetStyle({
+                    terrain:              this.config.terrain.enabled,
+                    hillshade:            this.config.layers.hillshade,
+                    terrainExaggeration:  this.config.terrain.exaggeration,
+                }),
                 center: location.center,
                 zoom: location.zoom,
                 pitch: location.pitch,
@@ -624,9 +508,15 @@
         }
 
         setMapStyle(mode) {
-            const styleDef = MAP_STYLES[mode];
+            const styleDef = window.MapStyles.STYLES[mode];
             if (!styleDef) return;
-            this.map.setStyle(styleDef.buildStyle(this.config));
+            // Pass terrain options so satellite/street keep terrain when enabled
+            const terrainOpts = {
+                terrain:             this.config.terrain.enabled,
+                hillshade:           this.config.layers.hillshade,
+                terrainExaggeration: this.config.terrain.exaggeration,
+            };
+            this.map.setStyle(styleDef.build(terrainOpts));
             // Re-add extrusion layers and ECharts after style swap (style change clears all layers)
             this.map.once('styledata', () => {
                 this._addExtrusionLayers();

@@ -116,7 +116,7 @@
         {
           "id": "render-mode",
           "type": "dropdown",
-          "icon": "bi-map",
+          "icon": "bi-layers",
           "label": "Street",
           "tooltip": "Map Style",
           "options": [
