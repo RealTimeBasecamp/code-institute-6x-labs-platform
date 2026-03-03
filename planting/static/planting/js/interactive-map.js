@@ -21,7 +21,30 @@
 
     const TILE_SOURCES = {
         osm: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-        terrain: 'https://s3.amazonaws.com/elevation-tiles-prod/terrarium/{z}/{x}/{y}.png'
+        terrain: 'https://s3.amazonaws.com/elevation-tiles-prod/terrarium/{z}/{x}/{y}.png',
+        satellite: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}'
+    };
+
+    // The Natural Earth / Political style URL (MapLibre demo tiles — country colour fills)
+    const POLITICAL_STYLE_URL = 'https://demotiles.maplibre.org/style.json';
+
+    // Map style definitions — used by render-mode toolbar dropdown
+    const MAP_STYLES = {
+        street: {
+            label: 'Street',
+            icon: 'bi-map',
+            buildStyle: (config) => buildMapStyle(config)
+        },
+        satellite: {
+            label: 'Satellite',
+            icon: 'bi-globe',
+            buildStyle: (config) => buildSatelliteStyle(config)
+        },
+        political: {
+            label: 'Political',
+            icon: 'bi-flag',
+            buildStyle: () => POLITICAL_STYLE_URL
+        }
     };
 
     const DEFAULT_CONFIG = {
@@ -131,6 +154,41 @@
                         'hillshade-illumination-anchor': 'map',
                         'hillshade-exaggeration': 0.5
                     }
+                }
+            ],
+            terrain: config.terrain.enabled ? {
+                source: 'terrainSource',
+                exaggeration: config.terrain.exaggeration
+            } : undefined
+        };
+    }
+
+    function buildSatelliteStyle(config) {
+        return {
+            version: 8,
+            glyphs: 'https://demotiles.maplibre.org/font/{fontstack}/{range}.pbf',
+            sources: {
+                'satellite-tiles': {
+                    type: 'raster',
+                    tiles: [TILE_SOURCES.satellite],
+                    tileSize: 256,
+                    attribution: 'Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community'
+                },
+                'terrainSource': {
+                    type: 'raster-dem',
+                    tiles: [TILE_SOURCES.terrain],
+                    tileSize: 256,
+                    encoding: 'terrarium',
+                    maxzoom: 15
+                }
+            },
+            layers: [
+                {
+                    id: 'satellite-tiles-layer',
+                    type: 'raster',
+                    source: 'satellite-tiles',
+                    minzoom: 0,
+                    maxzoom: 19
                 }
             ],
             terrain: config.terrain.enabled ? {
@@ -565,6 +623,17 @@
             });
         }
 
+        setMapStyle(mode) {
+            const styleDef = MAP_STYLES[mode];
+            if (!styleDef) return;
+            this.map.setStyle(styleDef.buildStyle(this.config));
+            // Re-add extrusion layers and ECharts after style swap (style change clears all layers)
+            this.map.once('styledata', () => {
+                this._addExtrusionLayers();
+                this._updateECharts();
+            });
+        }
+
         setTerrainExaggeration(value) {
             this.map.setTerrain({ source: 'terrainSource', exaggeration: value });
             
@@ -624,9 +693,16 @@
                 setExtrusionHeight: (h) => this.setExtrusionHeight(h),
 
                 // Manual update
-                updateECharts: () => this._updateECharts()
+                updateECharts: () => this._updateECharts(),
+
+                // Map style switching
+                setMapStyle: (mode) => this.setMapStyle(mode)
             };
 
+            // Listen for render-mode changes from the viewport toolbar
+            document.addEventListener('viewportToolbar.renderModeChange', (e) => {
+                this.setMapStyle(e.detail.renderMode);
+            });
         }
     }
 

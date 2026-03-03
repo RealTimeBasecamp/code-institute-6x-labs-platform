@@ -116,16 +116,14 @@
         {
           "id": "render-mode",
           "type": "dropdown",
-          "icon": "bi-circle-half",
-          "label": "Lit",
-          "tooltip": "Render Mode",
+          "icon": "bi-map",
+          "label": "Street",
+          "tooltip": "Map Style",
           "options": [
             { "type": "group", "label": "Map Style" },
-            { "value": "lit", "label": "Lit", "icon": "bi-circle-half", "isSelected": true },
-            { "value": "unlit", "label": "Unlit", "icon": "bi-circle" },
-            { "type": "group", "label": "Debugging" },
-            { "value": "wireframe", "label": "Wireframe", "icon": "bi-grid-3x3-gap" },
-            { "value": "zones", "label": "Zones Only", "icon": "bi-layers" }
+            { "value": "street", "label": "Street", "icon": "bi-map", "isSelected": true },
+            { "value": "satellite", "label": "Satellite", "icon": "bi-globe" },
+            { "value": "political", "label": "Political", "icon": "bi-flag" }
           ]
         },
         {
@@ -147,6 +145,12 @@
             { "type": "checkbox", "id": "show-echarts-data", "label": "ECharts Data", "default": true },
             { "type": "checkbox", "id": "show-3d-extrusions", "label": "3D Extrusions", "default": true },
             { "type": "checkbox", "id": "show-map-shadows", "label": "Map Shadows", "default": true },
+            { "type": "separator" },
+            { "type": "group", "label": "Zones" },
+            { "type": "checkbox", "id": "show-inclusion-zones", "label": "Inclusion Zones", "default": true },
+            { "type": "checkbox", "id": "show-exclusion-zones", "label": "Exclusion Zones", "default": true },
+            { "type": "checkbox", "id": "show-annotation-zones", "label": "Annotation Zones", "default": true },
+            { "type": "checkbox", "id": "show-soil-zones", "label": "Soil Zones", "default": false },
             { "type": "separator" },
             { "type": "group", "label": "Terrain" },
             { "type": "number", "id": "terrain-scale", "label": "Terrain Scale", "min": 0, "max": 10, "step": 0.5, "default": 3.0 }
