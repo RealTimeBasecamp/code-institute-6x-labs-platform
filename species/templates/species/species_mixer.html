@@ -1060,60 +1060,23 @@
 %}
 
 <!-- Add Species Modal -->
-<div class="modal fade" id="addSpeciesModal" tabindex="-1" aria-labelledby="addSpeciesModalLabel">
-  <div class="modal-dialog modal-dialog-centered modal-lg">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h5 class="modal-title" id="addSpeciesModalLabel">
-          <i class="bi bi-plus-circle me-2"></i>Add Species
-        </h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-      </div>
-      <div class="modal-body">
-        <!-- Search input -->
-        <div class="position-relative mb-3">
-          <i class="bi bi-search position-absolute" style="left:.75rem;top:50%;transform:translateY(-50%);color:var(--bs-secondary-color);pointer-events:none;"></i>
-          <input type="text" class="form-control ps-4" id="add-species-search-input"
-                 placeholder="Search by common or scientific name..."
-                 autocomplete="off">
-        </div>
-        <!-- Results list -->
-        <div id="add-species-results" class="add-species-results">
-          <div class="text-center text-muted py-4 small" id="add-species-hint">
-            <i class="bi bi-search me-2"></i>Type to search the species database
-          </div>
-        </div>
-      </div>
-      <div class="modal-footer border-0 pt-0">
-        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
-        <button type="button" class="btn btn-primary" id="confirm-add-species-btn" disabled>
-          <i class="bi bi-plus me-1"></i>Add to Mix
-        </button>
-      </div>
-    </div>
-  </div>
-</div>
+{% include 'components/modals/modal.html' with
+  modal_id='addSpeciesModal'
+  modal_icon='bi bi-plus-circle'
+  modal_title='Add Species'
+  modal_body_content='<div class="position-relative mb-3"><i class="bi bi-search position-absolute" style="left:.75rem;top:50%;transform:translateY(-50%);color:var(--bs-secondary-color);pointer-events:none;"></i><input type="text" class="form-control ps-4" id="add-species-search-input" placeholder="Search by common or scientific name..." autocomplete="off"></div><div id="add-species-results" class="add-species-results"><div class="text-center text-muted py-4 small" id="add-species-hint"><i class="bi bi-search me-2"></i>Type to search the species database</div></div>'
+  modal_footer_content='<button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button><button type="button" class="btn btn-primary" id="confirm-add-species-btn" disabled><i class="bi bi-plus me-1"></i>Add to Mix</button>'
+  modal_size='lg'
+%}
 
 <!-- Remove Species Modal -->
-<div class="modal fade" id="removeSpeciesModal" tabindex="-1" aria-labelledby="removeSpeciesModalLabel">
-  <div class="modal-dialog modal-dialog-centered">
-    <div class="modal-content">
-      <div class="modal-header border-0 pb-0">
-        <h5 class="modal-title" id="removeSpeciesModalLabel">
-          <i class="bi bi-trash text-danger me-2"></i>Remove species?
-        </h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-      </div>
-      <div class="modal-body pt-2">
-        <p class="mb-0">Remove <strong id="remove-species-name"></strong> from the mix? Ratios will be redistributed across the remaining species.</p>
-      </div>
-      <div class="modal-footer border-0">
-        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
-        <button type="button" class="btn btn-danger" id="confirm-remove-species-btn">Remove</button>
-      </div>
-    </div>
-  </div>
-</div>
+{% include 'components/modals/modal.html' with
+  modal_id='removeSpeciesModal'
+  modal_icon='bi bi-trash text-danger'
+  modal_title='Remove species?'
+  modal_body_content='<p class="mb-0">Remove <strong id="remove-species-name"></strong> from the mix? Ratios will be redistributed across the remaining species.</p>'
+  modal_footer_content='<button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button><button type="button" class="btn btn-danger" id="confirm-remove-species-btn">Remove</button>'
+%}
 
 <!-- Stop Generation Modal -->
 {% include 'components/modals/modal.html' with
@@ -1125,33 +1088,13 @@
 %}
 
 <!-- Save Mix Modal -->
-<div class="modal fade" id="saveMixModal" tabindex="-1" aria-labelledby="saveMixModalLabel">
-  <div class="modal-dialog">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h5 class="modal-title" id="saveMixModalLabel">
-          <i class="bi bi-floppy me-2"></i>Save Mix
-        </h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-      </div>
-      <div class="modal-body">
-        <div class="mb-3">
-          <label class="form-label" for="mix-description-input">
-            Description <span class="text-muted">(optional)</span>
-          </label>
-          <textarea class="form-control" id="mix-description-input" rows="2"
-                    placeholder="Notes about this mix..."></textarea>
-        </div>
-      </div>
-      <div class="modal-footer">
-        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-        <button type="button" class="btn btn-success" id="confirm-save-btn">
-          <i class="bi bi-floppy me-1"></i>Save
-        </button>
-      </div>
-    </div>
-  </div>
-</div>
+{% include 'components/modals/modal.html' with
+  modal_id='saveMixModal'
+  modal_icon='bi bi-floppy'
+  modal_title='Save Mix'
+  modal_body_content='<div class="mb-3"><label class="form-label" for="mix-description-input">Description <span class="text-muted">(optional)</span></label><textarea class="form-control" id="mix-description-input" rows="2" placeholder="Notes about this mix..."></textarea></div>'
+  modal_footer_content='<button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button><button type="button" class="btn btn-success" id="confirm-save-btn"><i class="bi bi-floppy me-1"></i>Save</button>'
+%}
 
 <!-- JS config -->
 <script>
