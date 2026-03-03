@@ -35,11 +35,11 @@ Modal Sizes:
 <div class="modal fade" id="{{ modal_id }}" tabindex="-1" role="dialog" aria-modal="true" aria-labelledby="{{ modal_id }}Label">
   <div class="modal-dialog{% if modal_centered != false %} modal-dialog-centered{% endif %}{% if modal_size %} modal-{{ modal_size }}{% endif %}">
     <div class="modal-content p-4 bordered rounded-3 bg-body-tertiary">
-      
+
       <button type="button" class="btn-close position-absolute top-0 end-0 m-3" data-bs-dismiss="modal" aria-label="Close"></button>
 
       {% if modal_icon or modal_title %}
-      <div class="d-flex align-items-center mb-2">
+      <div class="d-flex align-items-center mb-3 pe-4">
         {% if modal_icon %}
         {# Icon size defined by fs-4 class #}
           <i class="{{ modal_icon }} fs-4 me-2" aria-hidden="true"></i>
@@ -50,7 +50,7 @@ Modal Sizes:
       </div>
       {% endif %}
 
-      <div class="modal-body mb-2">
+      <div class="modal-body">
         {{ modal_body_content|safe }}
       </div>
 
