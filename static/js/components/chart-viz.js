@@ -7,259 +7,190 @@
  *   viz.destroy();
  *
  * Requires: echarts (CDN), chart-viz-scenes.js (loaded first)
+ *
+ * Scene sequencing uses the same chartSetTimeout technique as the upstream
+ * echarts-www-landing-animation: it drives timing via ECharts' own zrender
+ * animation clock so the chart stays "awake" during multi-step scenes.
  */
+// Suppress known-safe ECharts internal z/z2/zlevel warning that fires during
+// universal-transition animations on built-in series (treemap, sunburst, pie).
+// This is a cosmetic console noise from ECharts 5 internals, not a real error.
+(function () {
+  var _warn = console.warn.bind(console);
+  console.warn = function () {
+    if (arguments[0] && typeof arguments[0] === 'string' &&
+        arguments[0].indexOf('z / z2 / zlevel') !== -1) return;
+    _warn.apply(console, arguments);
+  };
+})();
+
 window.ChartViz = (function () {
   'use strict';
 
   // =========================================================================
-  // THEME HELPERS (mirrors dashboard.js pattern)
+  // ZRENDER-BASED TIMING (upstream technique from Scene.ts)
+  // Uses ECharts' internal animation clock — keeps the chart awake and avoids
+  // browser setTimeout drift.
+  // =========================================================================
+
+  function chartSetTimeout(chart, cb, time) {
+    var animator = chart
+      .getZr()
+      .animation.animate({ val: 0 }, { loop: false })
+      .when(time, { val: 1 })
+      .during(function () {
+        chart.getZr().wakeUp();
+      })
+      .done(function () {
+        // Must defer — or zrender flush will re-invoke the callback immediately.
+        setTimeout(cb, 0);
+      })
+      .start();
+    return animator;
+  }
+
+  function chartClearTimeout(chart, animator) {
+    if (animator) {
+      try { chart.getZr().animation.removeAnimator(animator); } catch (e) {}
+    }
+  }
+
+  // =========================================================================
+  // SCENE CLASS  (port of upstream Scene.ts)
+  //
+  // Each registered scene is a Scene instance. options is an array; each
+  // element is either an ECharts option object or a function(chart) that
+  // may call dispatchAction and optionally return a new option.
+  // =========================================================================
+
+  function Scene(opts) {
+    this._options  = Array.isArray(opts.option)   ? opts.option   : [opts.option];
+    this._durations = Array.isArray(opts.duration) ? opts.duration : [opts.duration];
+    this._background = opts.background || '';
+    this._dark       = opts.dark || false;
+    this._currentIndex = 0;
+    this._timeout      = null;
+  }
+
+  Scene.prototype.reset = function () {
+    this._currentIndex = 0;
+    this._timeout      = null;
+  };
+
+  Scene.prototype.getDuration = function () {
+    var sum = 0;
+    for (var i = 0; i < this._options.length; i++) {
+      sum += this._durations[i] != null
+        ? this._durations[i]
+        : this._durations[this._durations.length - 1];
+    }
+    return sum;
+  };
+
+  Scene.prototype.play = function (chart, onfinish) {
+    if (this._timeout) chartClearTimeout(chart, this._timeout);
+    this._playCurrent(chart, onfinish);
+  };
+
+  Scene.prototype.stop = function (chart) {
+    chartClearTimeout(chart, this._timeout);
+    this._timeout = null;
+  };
+
+  Scene.prototype._playCurrent = function (chart, onfinish) {
+    var self = this;
+    if (this._currentIndex >= this._options.length) {
+      onfinish();
+      return;
+    }
+
+    // First step uses notMerge:true for a clean slate (like upstream)
+    var notMerge = (this._currentIndex === 0);
+    var option   = this._options[this._currentIndex];
+
+    if (typeof option === 'function') {
+      var ret = option(chart);
+      if (ret) {
+        if (notMerge && !ret.tooltip) ret.tooltip = { trigger: 'item' };
+        chart.setOption(ret, notMerge);
+      }
+    } else {
+      if (notMerge && !option.tooltip) {
+        // Avoid mutating the registered scene object — shallow clone the top level
+        option = Object.assign({ tooltip: { trigger: 'item' } }, option);
+      }
+      chart.setOption(option, notMerge);
+    }
+
+    var duration = this._durations[this._currentIndex] != null
+      ? this._durations[this._currentIndex]
+      : this._durations[this._durations.length - 1];
+
+    var idx = this._currentIndex;
+    this._timeout = chartSetTimeout(chart, function () {
+      self._currentIndex = idx + 1;
+      self._playCurrent(chart, onfinish);
+    }, duration);
+  };
+
+  // =========================================================================
+  // THEME HELPERS
   // =========================================================================
 
   function getThemeColors() {
     var s = getComputedStyle(document.documentElement);
     return {
-      primary: s.getPropertyValue('--primary-color').trim() || '#059acc',
-      text: s.getPropertyValue('--bs-body-color').trim() || '#55534e',
-      textSecondary: s.getPropertyValue('--bs-secondary-color').trim() || '#91918e',
-      background: s.getPropertyValue('--bs-body-bg').trim() || '#ffffff',
-      cardBg: s.getPropertyValue('--bs-tertiary-bg').trim() || '#f9fafb',
-      border: s.getPropertyValue('--bs-border-color').trim() || '#e9e9e7'
+      primary:       s.getPropertyValue('--primary-color').trim()    || '#059acc',
+      text:          s.getPropertyValue('--bs-body-color').trim()     || '#55534e',
+      textSecondary: s.getPropertyValue('--bs-secondary-color').trim()|| '#91918e',
+      background:    s.getPropertyValue('--bs-body-bg').trim()        || '#ffffff',
+      cardBg:        s.getPropertyValue('--bs-tertiary-bg').trim()    || '#f9fafb',
+      border:        s.getPropertyValue('--bs-border-color').trim()   || '#e9e9e7'
     };
   }
-
-  function hexToRgba(hex, alpha) {
-    if (alpha === undefined) alpha = 1;
-    if (!hex) return 'rgba(0,0,0,' + alpha + ')';
-    hex = hex.replace('#', '').trim();
-    if (hex.length === 3) {
-      hex = hex.split('').map(function (c) { return c + c; }).join('');
-    }
-    var r = parseInt(hex.substring(0, 2), 16);
-    var g = parseInt(hex.substring(2, 4), 16);
-    var b = parseInt(hex.substring(4, 6), 16);
-    return 'rgba(' + r + ',' + g + ',' + b + ',' + alpha + ')';
-  }
-
-  // =========================================================================
-  // PARTICLE ENGINE
-  // Canvas 2D overlay — not ECharts. Morphs through 4 states.
-  // =========================================================================
-
-  /**
-   * 6x Labs logo circle centers (normalized 0–1 from 2048×2048 viewBox):
-   *   left:   cx=0.210, cy=0.500, r=0.111
-   *   middle: cx=0.500, cy=0.500, r=0.111
-   *   right:  cx=0.790, cy=0.500, r=0.111
-   */
-  var LOGO_CIRCLES = [
-    { cx: 0.210, cy: 0.500, r: 0.111 },
-    { cx: 0.500, cy: 0.500, r: 0.111 },
-    { cx: 0.790, cy: 0.500, r: 0.111 }
-  ];
-
-  var STATE_ORDER = ['scatter', 'metaball', 'logo', 'burst'];
-  var STATE_DURATION = 2400; // ms per state
-
-  function easeInOut(t) {
-    return t < 0.5 ? 2 * t * t : -1 + (4 - 2 * t) * t;
-  }
-
-  function ParticleEngine(canvas, colorHex, count) {
-    this.canvas = canvas;
-    this.ctx = canvas.getContext('2d');
-    this.color = colorHex || '#059acc';
-    this.count = count || 200;
-    this.particles = [];
-    this._stateIdx = 0;
-    this._stateProgress = 0;
-    this._lastTime = 0;
-    this._raf = null;
-    this._running = false;
-
-    this._build();
-  }
-
-  ParticleEngine.prototype._build = function () {
-    var W = this.canvas.width || 300;
-    var H = this.canvas.height || 200;
-    this.particles = [];
-    for (var i = 0; i < this.count; i++) {
-      this.particles.push({
-        x: Math.random() * W,
-        y: Math.random() * H,
-        vx: (Math.random() - 0.5) * 0.8,
-        vy: (Math.random() - 0.5) * 0.8,
-        tx: Math.random() * W,
-        ty: Math.random() * H,
-        size: 1.5 + Math.random() * 3.5,
-        alpha: 0.45 + Math.random() * 0.55
-      });
-    }
-    this._computeTargets();
-  };
-
-  ParticleEngine.prototype._computeTargets = function () {
-    var state = STATE_ORDER[this._stateIdx % STATE_ORDER.length];
-    var W = this.canvas.width;
-    var H = this.canvas.height;
-    var particles = this.particles;
-    var n = particles.length;
-
-    if (state === 'scatter') {
-      for (var i = 0; i < n; i++) {
-        particles[i].tx = Math.random() * W;
-        particles[i].ty = Math.random() * H;
-      }
-
-    } else if (state === 'metaball') {
-      var clusters = [
-        { cx: W * 0.30, cy: H * 0.50 },
-        { cx: W * 0.50, cy: H * 0.48 },
-        { cx: W * 0.70, cy: H * 0.50 }
-      ];
-      var spread = Math.min(W, H) * 0.14;
-      for (var i = 0; i < n; i++) {
-        var c = clusters[i % 3];
-        var angle = Math.random() * Math.PI * 2;
-        var dist = Math.random() * spread;
-        particles[i].tx = c.cx + Math.cos(angle) * dist;
-        particles[i].ty = c.cy + Math.sin(angle) * dist;
-      }
-
-    } else if (state === 'logo') {
-      var perCircle = Math.ceil(n / 3);
-      for (var i = 0; i < n; i++) {
-        var circ = LOGO_CIRCLES[Math.floor(i / perCircle) % 3];
-        var cx = circ.cx * W;
-        var cy = circ.cy * H;
-        var rPx = circ.r * Math.min(W, H);
-        var angle = Math.random() * Math.PI * 2;
-        var dist = Math.sqrt(Math.random()) * rPx; // sqrt for uniform disk sampling
-        particles[i].tx = cx + Math.cos(angle) * dist;
-        particles[i].ty = cy + Math.sin(angle) * dist;
-      }
-
-    } else if (state === 'burst') {
-      var cx = W * 0.5;
-      var cy = H * 0.5;
-      var maxDist = Math.max(W, H) * 0.65;
-      for (var i = 0; i < n; i++) {
-        var angle = Math.random() * Math.PI * 2;
-        var dist = maxDist * (0.5 + Math.random() * 0.5);
-        particles[i].tx = cx + Math.cos(angle) * dist;
-        particles[i].ty = cy + Math.sin(angle) * dist;
-      }
-    }
-  };
-
-  ParticleEngine.prototype.start = function () {
-    this._running = true;
-    this._lastTime = performance.now();
-    this._loop();
-  };
-
-  ParticleEngine.prototype.stop = function () {
-    this._running = false;
-    if (this._raf) {
-      cancelAnimationFrame(this._raf);
-      this._raf = null;
-    }
-  };
-
-  ParticleEngine.prototype.resize = function () {
-    this.canvas.width = this.canvas.offsetWidth;
-    this.canvas.height = this.canvas.offsetHeight;
-    this._computeTargets();
-  };
-
-  ParticleEngine.prototype.updateColor = function (colorHex) {
-    this.color = colorHex;
-  };
-
-  ParticleEngine.prototype._loop = function () {
-    if (!this._running) return;
-    var self = this;
-    var now = performance.now();
-    var dt = now - this._lastTime;
-    this._lastTime = now;
-
-    this._stateProgress += dt / STATE_DURATION;
-    if (this._stateProgress >= 1) {
-      this._stateProgress = 0;
-      this._stateIdx = (this._stateIdx + 1) % STATE_ORDER.length;
-      this._computeTargets();
-    }
-
-    this._update();
-    this._draw();
-
-    this._raf = requestAnimationFrame(function () { self._loop(); });
-  };
-
-  ParticleEngine.prototype._update = function () {
-    var lerpSpeed = 0.04;
-    var driftScale = 0.25;
-    var particles = this.particles;
-    for (var i = 0, n = particles.length; i < n; i++) {
-      var p = particles[i];
-      p.x += (p.tx - p.x) * lerpSpeed + p.vx * driftScale;
-      p.y += (p.ty - p.y) * lerpSpeed + p.vy * driftScale;
-    }
-  };
-
-  ParticleEngine.prototype._draw = function () {
-    var ctx = this.ctx;
-    var W = this.canvas.width;
-    var H = this.canvas.height;
-    ctx.clearRect(0, 0, W, H);
-
-    var color = this.color;
-    var particles = this.particles;
-    for (var i = 0, n = particles.length; i < n; i++) {
-      var p = particles[i];
-      ctx.beginPath();
-      ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
-      ctx.fillStyle = hexToRgba(color, p.alpha);
-      ctx.fill();
-    }
-  };
 
   // =========================================================================
   // CHARTVIZ CLASS
   // =========================================================================
 
   /**
-   * @param {HTMLElement|string} element - Container element or its ID
-   * @param {Object} [options]
-   * @param {string} [options.type='parliament'] - Initial scene name
-   * @param {number} [options.animDuration=1200]
-   * @param {number} [options.cycleDuration=3000] - ms between auto-cycle steps
-   * @param {number} [options.particleCount=200]
+   * @param {HTMLElement|string} element   Container element or its ID
+   * @param {Object}             [options]
+   * @param {string}  [options.type='parliament']   Initial scene name
+   * @param {number}  [options.animDuration=1200]
+   * @param {number}  [options.cycleDuration=3000]  ms before advancing to next scene
+   *                                                 (only used as a minimum floor; actual
+   *                                                  advance is driven by onfinish so
+   *                                                  multi-step scenes finish naturally)
    */
   function ChartVizInstance(element, options) {
-    this._el = typeof element === 'string' ? document.getElementById(element) : element;
+    this._el = typeof element === 'string'
+      ? document.getElementById(element)
+      : element;
+
     if (!this._el) {
       console.error('ChartViz: element not found', element);
       return;
     }
 
     this._opts = Object.assign({
-      type: 'parliament',
-      data: null,
-      animDuration: 1200,
-      cycleDuration: 3000,
-      particleCount: 200
+      type:          'parliament',
+      data:          null,
+      animDuration:  1200,
+      cycleDuration: 3000
     }, options || {});
 
-    this._chart = null;
-    this._echartsDiv = null;
-    this._canvas = null;
-    this._particleEngine = null;
-    this._currentScene = null;
-    this._morphTimer = null;
-    this._sceneTimer = null;   // per-scene interval (e.g. forest year animation)
-    this._resizeObserver = null;
-    this._themeObserver = null;
+    this._chart              = null;
+    this._echartsDiv         = null;
+    this._currentScene       = null;   // scene name string
+    this._currentSceneObj    = null;   // Scene instance currently playing
+    this._autoPlaying        = false;
+    this._paused             = false;
+    this._resizeObserver     = null;
+    this._themeObserver      = null;
+    this._intersectObserver  = null;
+    this._visible            = false;
+    this._pendingScene       = null;   // scene to play once visible
 
     this._init();
   }
@@ -267,7 +198,6 @@ window.ChartViz = (function () {
   ChartVizInstance.prototype._init = function () {
     var self = this;
 
-    // Mark container
     this._el.classList.add('chart-viz-container');
 
     // ECharts mount div
@@ -275,17 +205,12 @@ window.ChartViz = (function () {
     this._echartsDiv.className = 'chart-viz-canvas';
     this._el.appendChild(this._echartsDiv);
 
-    // Particle canvas overlay (hidden until 'particles' scene)
-    this._canvas = document.createElement('canvas');
-    this._canvas.className = 'chart-viz-overlay';
-    this._canvas.style.display = 'none';
-    this._el.appendChild(this._canvas);
-
     // ResizeObserver
     if (window.ResizeObserver) {
       this._resizeObserver = new ResizeObserver(function () {
-        if (self._chart) self._chart.resize();
-        if (self._particleEngine) self._particleEngine.resize();
+        if (self._chart) {
+          self._chart.resize();
+        }
       });
       this._resizeObserver.observe(this._el);
     }
@@ -305,224 +230,192 @@ window.ChartViz = (function () {
       attributeFilter: ['data-bs-theme', 'data-theme']
     });
 
-    // Init ECharts — defer one rAF tick so the absolutely-positioned div
-    // has been painted and has non-zero dimensions before echarts measures it.
-    var self2 = self;
-    requestAnimationFrame(function () {
-      self2._chart = echarts.init(self2._echartsDiv);
-      self2._chart.resize(); // force correct size
-      self2.setScene(self2._opts.type, self2._opts.data);
-    });
+    // IntersectionObserver — init and animate only when visible, pause when off-screen
+    if (window.IntersectionObserver) {
+      this._intersectObserver = new IntersectionObserver(function (entries) {
+        var entry = entries[0];
+        self._visible = entry.isIntersecting;
+        if (entry.isIntersecting) {
+          if (!self._chart) {
+            // First time visible — init ECharts now
+            self._chart = echarts.init(self._echartsDiv, null, { useDirtyRect: true });
+            self._chart.resize();
+            var scene = self._pendingScene || self._opts.type;
+            self._pendingScene = null;
+            self.setScene(scene);
+          } else {
+            // Returning to view — resume
+            self._paused = false;
+            if (self._currentScene) self.setScene(self._currentScene);
+          }
+        } else {
+          // Off-screen — stop animating to free CPU
+          if (self._currentSceneObj && self._chart) {
+            self._paused = true;
+            self._currentSceneObj.stop(self._chart);
+          }
+        }
+      }, { threshold: 0.05 });
+      this._intersectObserver.observe(this._el);
+    } else {
+      // Fallback: no IntersectionObserver — init immediately
+      requestAnimationFrame(function () {
+        self._chart = echarts.init(self._echartsDiv, null, { useDirtyRect: true });
+        self._chart.resize();
+        self.setScene(self._opts.type);
+      });
+    }
   };
 
-  ChartVizInstance.prototype.setScene = function (sceneName, data) {
+  // -------------------------------------------------------------------------
+  // PUBLIC: setScene
+  // -------------------------------------------------------------------------
+
+  ChartVizInstance.prototype.setScene = function (sceneName) {
     if (!this._el) return;
 
-    // --- Particles scene (Canvas 2D) ---
-    if (sceneName === 'particles') {
-      this._stopAutoCycle();
-      this._switchToParticles();
-      this._currentScene = 'particles';
+    // If chart not yet initialised (off-screen), store scene for when visible
+    if (!this._chart) {
+      this._pendingScene = sceneName;
       return;
     }
 
-    // --- All scenes auto-cycle ---
+    this._stopCurrentScene();
+    this._paused = false;
+
     if (sceneName === 'all') {
       this._startAutoCycle();
       return;
     }
 
-    // --- Parliament: paired cycle between dots and pie ---
-    if (sceneName === 'parliament') {
-      this._startPairedCycle(['parliament', 'parliament-pie'], 2800);
-      return;
-    }
+    this._playSingleScene(sceneName, false);
+  };
 
-    // --- ECharts scene ---
-    this._stopParticles();
-    this._clearSceneTimer();
+  // -------------------------------------------------------------------------
+  // INTERNAL: play a single named scene, optionally cycling when done
+  // -------------------------------------------------------------------------
 
-    var sceneFn = window.ChartVizScenes && window.ChartVizScenes.get(sceneName);
-    if (!sceneFn) {
+  ChartVizInstance.prototype._playSingleScene = function (sceneName, cycling) {
+    var self  = this;
+    var scene = window.ChartVizScenes && window.ChartVizScenes.get(sceneName);
+    if (!scene) {
       console.warn('ChartViz: unknown scene "' + sceneName + '"');
       return;
     }
+    if (!this._chart) return;
 
-    if (!this._chart) {
-      // Still waiting for rAF init — defer this call
-      var self = this;
-      var deferScene = sceneName, deferData = data;
-      setTimeout(function () { self.setScene(deferScene, deferData); }, 50);
-      return;
-    }
+    this._currentScene    = sceneName;
+    this._currentSceneObj = scene;
+    scene.reset();
 
-    var colors = getThemeColors();
-    var option = sceneFn(colors, data);
-
-    // Ensure correct size before rendering
     this._chart.resize();
 
-    var isForest = (sceneName === 'pictorial-forest');
-    this._chart.setOption(option, { notMerge: isForest, replaceMerge: isForest ? [] : ['series'] });
-
-    this._currentScene = sceneName;
-
-    // Forest year animation
-    if (isForest) {
-      var scenes = window.ChartVizScenes;
-      var chart  = this._chart;
-      var year   = scenes.forestBegin;
-      this._sceneTimer = setInterval(function () {
-        year = year >= scenes.forestEnd ? scenes.forestBegin : year + 1;
-        chart.setOption(scenes.forestStep(year));
-      }, 800);
+    // Apply dark background from scene metadata
+    if (scene._background) {
+      this._el.style.background = scene._background;
+    } else {
+      this._el.style.background = '';
     }
-  };
 
-  ChartVizInstance.prototype._switchToParticles = function () {
-    // Hide ECharts
-    this._echartsDiv.style.display = 'none';
-    if (this._chart) this._chart.clear();
-
-    // Size and show canvas
-    this._canvas.style.display = '';
-    this._canvas.width = this._el.offsetWidth || 300;
-    this._canvas.height = this._el.offsetHeight || 200;
-
-    // Start particle engine
-    var colors = getThemeColors();
-    this._particleEngine = new ParticleEngine(
-      this._canvas,
-      colors.primary,
-      this._opts.particleCount
-    );
-    this._particleEngine.start();
-  };
-
-  ChartVizInstance.prototype._stopParticles = function () {
-    if (this._particleEngine) {
-      this._particleEngine.stop();
-      this._particleEngine = null;
+    function onFinish() {
+      if (self._paused) return;
+      if (self._autoPlaying && cycling) {
+        self._advanceAutoCycle();
+      } else if (!cycling) {
+        // Single scene loops itself
+        scene.reset();
+        scene.play(self._chart, onFinish);
+      }
     }
-    this._canvas.style.display = 'none';
-    this._echartsDiv.style.display = '';
+    scene.play(this._chart, onFinish);
   };
 
-  // Internal scenes excluded from the "all" auto-cycle
-  var INTERNAL_SCENES = ['parliament-pie'];
+  // -------------------------------------------------------------------------
+  // INTERNAL: auto-cycle through all registered non-internal scenes
+  // -------------------------------------------------------------------------
 
-  ChartVizInstance.prototype._startPairedCycle = function (sceneNames, duration) {
-    var self = this;
-    this._stopAutoCycle();
-    this._stopParticles();
-    this._currentScene = sceneNames[0];
-
-    var idx = 0;
-    this._setEchartsScene(sceneNames[idx]);
-
-    this._morphTimer = setInterval(function () {
-      idx = (idx + 1) % sceneNames.length;
-      self._setEchartsScene(sceneNames[idx]);
-      self._currentScene = sceneNames[idx];
-    }, duration || 2800);
-  };
+  var INTERNAL_SCENES = [];   // none excluded — all scenes are equal
 
   ChartVizInstance.prototype._startAutoCycle = function () {
-    var self = this;
-    var allScenes = window.ChartVizScenes ? window.ChartVizScenes.list() : [];
-    // Exclude internal/paired scenes from the global cycle
-    var scenes = allScenes.filter(function (s) {
+    var scenes = window.ChartVizScenes ? window.ChartVizScenes.list() : [];
+    scenes = scenes.filter(function (s) {
       return INTERNAL_SCENES.indexOf(s) === -1;
     });
     if (scenes.length === 0) return;
 
-    this._stopAutoCycle();
-    this._stopParticles();
-    this._currentScene = 'all';
+    this._autoPlaying    = true;
+    this._autoSceneList  = scenes;
+    this._autoSceneIndex = 0;
+    this._currentScene   = 'all';
 
-    var idx = 0;
-
-    // Show first scene immediately (parliament triggers its own paired cycle)
-    this._setEchartsScene(scenes[idx]);
-
-    this._morphTimer = setInterval(function () {
-      idx = (idx + 1) % scenes.length;
-      self._setEchartsScene(scenes[idx]);
-    }, this._opts.cycleDuration);
+    this._playAutoCycleScene();
   };
 
-  // Internal: set an ECharts scene without touching the auto-cycle / particles logic
-  ChartVizInstance.prototype._setEchartsScene = function (sceneName) {
-    var sceneFn = window.ChartVizScenes && window.ChartVizScenes.get(sceneName);
-    if (!sceneFn || !this._chart) return;
+  ChartVizInstance.prototype._playAutoCycleScene = function () {
+    var self   = this;
+    var scenes = this._autoSceneList;
+    var idx    = this._autoSceneIndex;
+    var scene  = window.ChartVizScenes.get(scenes[idx]);
+    if (!scene || !this._chart) return;
 
-    // Always clear any running per-scene timer before switching scenes
-    this._clearSceneTimer();
-
-    // Remove previous scene-specific event listeners
-    this._chart.off('click');
-    this._chart.getZr().off('click');
-
-    var colors = getThemeColors();
-    var option = sceneFn(colors, null);
+    this._currentSceneObj = scene;
+    scene.reset();
     this._chart.resize();
 
-    // Forest needs a clean slate — no stale axes/grid from previous scenes
-    var isForest = (sceneName === 'pictorial-forest');
-    if (isForest) {
-      this._chart.setOption(option, { notMerge: true });
+    if (scene._background) {
+      this._el.style.background = scene._background;
     } else {
-      this._chart.setOption(option, { notMerge: false, replaceMerge: ['series'] });
+      this._el.style.background = '';
     }
 
-    // Forest year animation — owned entirely here, no closures in option objects
-    if (isForest) {
-      var scenes = window.ChartVizScenes;
-      var chart  = this._chart;
-      var year   = scenes.forestBegin;
-      this._sceneTimer = setInterval(function () {
-        year = year >= scenes.forestEnd ? scenes.forestBegin : year + 1;
-        chart.setOption(scenes.forestStep(year));
-      }, 800);
-    }
-
+    scene.play(this._chart, function () {
+      if (!self._autoPlaying || self._paused) return;
+      self._advanceAutoCycle();
+    });
   };
 
-  ChartVizInstance.prototype._clearSceneTimer = function () {
-    if (this._sceneTimer) {
-      clearInterval(this._sceneTimer);
-      this._sceneTimer = null;
-    }
+  ChartVizInstance.prototype._advanceAutoCycle = function () {
+    if (!this._autoPlaying) return;
+    this._autoSceneIndex = (this._autoSceneIndex + 1) % this._autoSceneList.length;
+    this._playAutoCycleScene();
   };
 
-  ChartVizInstance.prototype._stopAutoCycle = function () {
-    if (this._morphTimer) {
-      clearInterval(this._morphTimer);
-      this._morphTimer = null;
+  // -------------------------------------------------------------------------
+  // INTERNAL: stop everything currently running
+  // -------------------------------------------------------------------------
+
+  ChartVizInstance.prototype._stopCurrentScene = function () {
+    this._autoPlaying = false;
+    if (this._currentSceneObj && this._chart) {
+      this._currentSceneObj.stop(this._chart);
     }
-    this._clearSceneTimer();
+    this._currentSceneObj = null;
   };
+
+  // -------------------------------------------------------------------------
+  // INTERNAL: theme change — re-render current scene with new colors
+  // -------------------------------------------------------------------------
 
   ChartVizInstance.prototype._onThemeChange = function () {
-    if (this._currentScene && this._currentScene !== 'particles' && this._currentScene !== 'all') {
-      var sceneFn = window.ChartVizScenes && window.ChartVizScenes.get(this._currentScene);
-      if (sceneFn && this._chart) {
-        // Re-render with new colors — forest needs notMerge:true to stay clean
-        var isForest = (this._currentScene === 'pictorial-forest');
-        this._chart.setOption(sceneFn(getThemeColors(), null), { notMerge: isForest });
-      }
-    }
-    if (this._particleEngine) {
-      this._particleEngine.updateColor(getThemeColors().primary);
+    if (!this._chart || !this._currentScene || this._currentScene === 'all') return;
+    var scene = window.ChartVizScenes && window.ChartVizScenes.get(this._currentScene);
+    if (scene && this._currentSceneObj) {
+      // Stop and replay from beginning with refreshed colors (scenes call getThemeColors internally)
+      this._currentSceneObj.stop(this._chart);
+      this._currentSceneObj.reset();
+      this._currentSceneObj.play(this._chart, function () {});
     }
   };
 
+  // -------------------------------------------------------------------------
+  // PUBLIC: destroy
+  // -------------------------------------------------------------------------
+
   ChartVizInstance.prototype.destroy = function () {
-    this._stopAutoCycle();
-    this._clearSceneTimer();
-    this._stopParticles();
-    if (this._resizeObserver) this._resizeObserver.disconnect();
-    if (this._themeObserver) this._themeObserver.disconnect();
+    this._stopCurrentScene();
+    if (this._resizeObserver)   this._resizeObserver.disconnect();
+    if (this._themeObserver)    this._themeObserver.disconnect();
+    if (this._intersectObserver) this._intersectObserver.disconnect();
     if (this._chart) {
       this._chart.dispose();
       this._chart = null;
@@ -539,8 +432,10 @@ window.ChartViz = (function () {
   }
 
   return {
-    create: create,
-    ChartViz: ChartVizInstance
+    create:          create,
+    ChartViz:        ChartVizInstance,
+    Scene:           Scene,           // exported so scenes file can construct instances
+    getThemeColors:  getThemeColors   // exported so scenes file can read CSS variables
   };
 
 })();

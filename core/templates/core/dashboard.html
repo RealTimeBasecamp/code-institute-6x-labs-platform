@@ -125,77 +125,230 @@
       <div class="tab-pane fade" id="tab-advanced" role="tabpanel">
         <div class="container-fluid dashboard-container">
 
-          {# Row 1: Particle animation — full-width hero #}
-          <div class="row">
-            <div class="col-12">
-              {% include 'components/chart_viz.html' with
-                  id='vizParticles'
-                  scene='particles'
-                  label='6x Labs'
-                  subtitle='Particle animation — scatter · metaball · logo · burst'
-                  card_class='chart-viz-hero'
-              %}
-            </div>
-          </div>
-
-          {# Rows 2–8: Individual scene showcases — each full-width #}
-          <div class="row">
-            <div class="col-12">
-              {% include 'components/chart_viz.html' with
-                  id='vizParliament'
-                  scene='parliament'
-                  label='Parliament Transition'
-                  subtitle='Hemicycle of dots morphing to pie chart — seats by party'
-                  card_class='chart-viz-hero'
-              %}
-            </div>
-          </div>
-
-          <div class="row">
-            <div class="col-12">
-              {% include 'components/chart_viz.html' with
-                  id='vizRegression'
-                  scene='scatter-regression'
-                  label='Exponential Regression'
-                  subtitle='Scatter cloud with exponential best-fit line'
-                  card_class='chart-viz-hero'
-              %}
-            </div>
-          </div>
-
-          <div class="row">
-            <div class="col-12">
-              {% include 'components/chart_viz.html' with
-                  id='vizTreemap'
-                  scene='treemap'
-                  label='Treemap'
-                  subtitle='Hierarchical area breakdown by ecosystem type'
-                  card_class='chart-viz-hero'
-              %}
-            </div>
-          </div>
-
-          <div class="row">
-            <div class="col-12">
-              {% include 'components/chart_viz.html' with
-                  id='vizForest'
-                  scene='pictorial-forest'
-                  label='Pictorial Forest'
-                  subtitle='Symbolic bar chart using repeating tree icons'
-                  card_class='chart-viz-hero'
-              %}
-            </div>
-          </div>
-
-          {# Row 3: All-scenes auto-cycle showcase #}
+          {# Auto-cycle showcase — all scenes morphing #}
           <div class="row">
             <div class="col-12">
               {% include 'components/chart_viz.html' with
                   id='vizAllScenes'
                   scene='all'
                   label='All Scenes'
-                  subtitle='Auto-cycling through all visualizations with morphing transitions'
+                  subtitle='Auto-cycling through all chart types with universal morphing transitions'
                   card_class='chart-viz-showcase'
+              %}
+            </div>
+          </div>
+
+          {# Pie family #}
+          <div class="row">
+            <div class="col-12 col-lg-6">
+              {% include 'components/chart_viz.html' with
+                  id='vizPieEntry'
+                  scene='pie-entry'
+                  label='Pie Entry'
+                  subtitle='Rose-type donut with animated entry'
+                  card_class='chart-viz-hero'
+              %}
+            </div>
+            <div class="col-12 col-lg-6">
+              {% include 'components/chart_viz.html' with
+                  id='vizPie'
+                  scene='pie'
+                  label='Pie'
+                  subtitle='Standard donut chart'
+                  card_class='chart-viz-hero'
+              %}
+            </div>
+          </div>
+
+          {# Custom series family #}
+          <div class="row">
+            <div class="col-12 col-lg-4">
+              {% include 'components/chart_viz.html' with
+                  id='vizParliament'
+                  scene='parliament'
+                  label='Parliament'
+                  subtitle='Hemicycle custom series'
+                  card_class='chart-viz-hero'
+              %}
+            </div>
+            <div class="col-12 col-lg-4">
+              {% include 'components/chart_viz.html' with
+                  id='vizSurvey'
+                  scene='survey'
+                  label='Survey'
+                  subtitle='Circle-packed custom series'
+                  card_class='chart-viz-hero'
+              %}
+            </div>
+            <div class="col-12 col-lg-4">
+              {% include 'components/chart_viz.html' with
+                  id='vizMetaball'
+                  scene='metaball'
+                  label='Metaball'
+                  subtitle='Bézier blob morphing'
+                  card_class='chart-viz-hero'
+              %}
+            </div>
+          </div>
+
+          {# Bar family #}
+          <div class="row">
+            <div class="col-12 col-lg-4">
+              {% include 'components/chart_viz.html' with
+                  id='vizBar'
+                  scene='bar'
+                  label='Bar'
+                  subtitle='Standard cartesian bar'
+                  card_class='chart-viz-hero'
+              %}
+            </div>
+            <div class="col-12 col-lg-4">
+              {% include 'components/chart_viz.html' with
+                  id='vizBarPolar'
+                  scene='bar-polar'
+                  label='Bar Polar'
+                  subtitle='Radial bar on polar axis'
+                  card_class='chart-viz-hero'
+              %}
+            </div>
+            <div class="col-12 col-lg-4">
+              {% include 'components/chart_viz.html' with
+                  id='vizBarRacing'
+                  scene='bar-racing'
+                  label='Bar Racing'
+                  subtitle='Animated realtime-sort ranking'
+                  card_class='chart-viz-hero'
+              %}
+            </div>
+          </div>
+
+          {# Particles + Map #}
+          <div class="row">
+            <div class="col-12 col-lg-6">
+              {% include 'components/chart_viz.html' with
+                  id='vizParticles'
+                  scene='particles'
+                  label='Particles'
+                  subtitle='3D wave — native ECharts custom series'
+                  card_class='chart-viz-hero'
+              %}
+            </div>
+            <div class="col-12 col-lg-6">
+              {% include 'components/chart_viz.html' with
+                  id='vizMap'
+                  scene='map'
+                  label='Map'
+                  subtitle='USA choropleth'
+                  card_class='chart-viz-hero'
+              %}
+            </div>
+          </div>
+
+          {# Line racing #}
+          <div class="row">
+            <div class="col-12">
+              {% include 'components/chart_viz.html' with
+                  id='vizLineRacing'
+                  scene='line-racing'
+                  label='Line Racing'
+                  subtitle='Life expectancy by country — dataset transforms'
+                  card_class='chart-viz-hero'
+              %}
+            </div>
+          </div>
+
+          {# Hierarchy family #}
+          <div class="row">
+            <div class="col-12 col-lg-6">
+              {% include 'components/chart_viz.html' with
+                  id='vizTreemap'
+                  scene='treemap'
+                  label='Treemap'
+                  subtitle='ECharts package size — zoom interaction'
+                  card_class='chart-viz-hero'
+              %}
+            </div>
+            <div class="col-12 col-lg-6">
+              {% include 'components/chart_viz.html' with
+                  id='vizTreemapComplex'
+                  scene='treemap-complex'
+                  label='Treemap Complex'
+                  subtitle='Styled treemap with depth colours'
+                  card_class='chart-viz-hero'
+              %}
+            </div>
+          </div>
+
+          <div class="row">
+            <div class="col-12 col-lg-6">
+              {% include 'components/chart_viz.html' with
+                  id='vizCirclePacking'
+                  scene='circle-packing'
+                  label='Circle Packing'
+                  subtitle='Hierarchical bubble layout'
+                  card_class='chart-viz-hero'
+              %}
+            </div>
+            <div class="col-12 col-lg-6">
+              {% include 'components/chart_viz.html' with
+                  id='vizSunburst'
+                  scene='sunburst'
+                  label='Sunburst'
+                  subtitle='Radial tree — navigate to node and back'
+                  card_class='chart-viz-hero'
+              %}
+            </div>
+          </div>
+
+          {# Calendar family #}
+          <div class="row">
+            <div class="col-12 col-lg-6">
+              {% include 'components/chart_viz.html' with
+                  id='vizCalendarHeatmap'
+                  scene='calendar-heatmap'
+                  label='Calendar Heatmap'
+                  subtitle='GitHub-style contribution heatmap'
+                  card_class='chart-viz-hero'
+              %}
+            </div>
+            <div class="col-12 col-lg-6">
+              {% include 'components/chart_viz.html' with
+                  id='vizCalendarScatter'
+                  scene='calendar-scatter'
+                  label='Calendar Scatter'
+                  subtitle='Scatter + effect scatter on calendar'
+                  card_class='chart-viz-hero'
+              %}
+            </div>
+          </div>
+
+          {# Gauge + extensions #}
+          <div class="row">
+            <div class="col-12 col-lg-4">
+              {% include 'components/chart_viz.html' with
+                  id='vizGaugeCar'
+                  scene='gauge-car'
+                  label='Gauge'
+                  subtitle='Speedometer with radial gradient progress'
+                  card_class='chart-viz-hero'
+              %}
+            </div>
+            <div class="col-12 col-lg-4">
+              {% include 'components/chart_viz.html' with
+                  id='vizWordCloud'
+                  scene='word-cloud'
+                  label='Word Cloud'
+                  subtitle='Pentagon-masked word cloud (requires echarts-wordcloud)'
+                  card_class='chart-viz-hero'
+              %}
+            </div>
+            <div class="col-12 col-lg-4">
+              {% include 'components/chart_viz.html' with
+                  id='vizLiquidFill'
+                  scene='liquid-fill'
+                  label='Liquid Fill'
+                  subtitle='Animated liquid fill gauges (requires echarts-liquidfill)'
+                  card_class='chart-viz-hero'
               %}
             </div>
           </div>
@@ -209,10 +362,17 @@
 {% endblock %}
 
 {% block extra_js %}
+{# ECharts core + optional extensions #}
 <script src="https://cdn.jsdelivr.net/npm/echarts@5/dist/echarts.min.js"></script>
-<script src="{% static 'js/dashboard.js' %}"></script>
-<script src="{% static 'js/components/chart-viz-scenes.js' %}"></script>
+<script src="https://cdn.jsdelivr.net/npm/echarts-wordcloud@2/dist/echarts-wordcloud.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/echarts-liquidfill@3/dist/echarts-liquidfill.min.js"></script>
+{# ChartViz data files — must load before chart-viz-scenes.js #}
+<script src="{% static 'js/components/data/pie-data.js' %}"></script>
+<script src="{% static 'js/components/data/covid-data.js' %}"></script>
+{# ChartViz library #}
 <script src="{% static 'js/components/chart-viz.js' %}"></script>
+<script src="{% static 'js/components/chart-viz-scenes.js' %}"></script>
+<script src="{% static 'js/dashboard.js' %}"></script>
 <script>
   document.addEventListener('DOMContentLoaded', function() {
     // Dashboard data from Django context
@@ -228,6 +388,19 @@
     // Initialize simple-tab charts with data
     DashboardCharts.init(dashboardData);
 
+    // Preload JSON data files needed by scenes (async, before tab is shown)
+    var dataBase = '{% static "js/components/data/" %}';
+    function loadJson(file, cb) {
+      fetch(dataBase + file).then(function(r) { return r.json(); }).then(cb).catch(function(){});
+    }
+    loadJson('echarts-package-size.json', function(d) { window.ECHARTS_PACKAGE_SIZE = d; });
+    loadJson('gh-contributions-2020.json', function(d) { window.GH_CONTRIBUTIONS = d; });
+    loadJson('life-expectancy-table.json', function(d) { window.LIFE_EXPECTANCY_DATA = d; });
+    loadJson('usa.json', function(d) {
+      echarts.registerMap('usa', d);
+      window.ECHARTS_MAP_USA_LOADED = true;
+    });
+
     // ChartViz: lazy-init when advanced tab is shown.
     // ECharts returns 0×0 when initialised on a hidden element — this avoids that.
     var vizInitialized = false;
@@ -238,8 +411,7 @@
         ChartViz.create(el, {
           type: el.dataset.chartVizScene,
           animDuration: 1200,
-          cycleDuration: 3000,
-          particleCount: 220
+          cycleDuration: 3000
         });
       });
     }
