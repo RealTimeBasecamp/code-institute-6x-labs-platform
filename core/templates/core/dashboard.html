@@ -6,6 +6,7 @@
 
 {% block extra_css %}
 <link rel="stylesheet" href="{% static 'css/dashboard.css' %}">
+<link rel="stylesheet" href="{% static 'css/components/chart-viz.css' %}">
 {% endblock %}
 
 {% block content %}
@@ -122,8 +123,85 @@
       </div>
 
       <div class="tab-pane fade" id="tab-advanced" role="tabpanel">
-      ...
-    </div>
+        <div class="container-fluid dashboard-container">
+
+          {# Row 1: Particle animation — full-width hero #}
+          <div class="row">
+            <div class="col-12">
+              {% include 'components/chart_viz.html' with
+                  id='vizParticles'
+                  scene='particles'
+                  label='6x Labs'
+                  subtitle='Particle animation — scatter · metaball · logo · burst'
+                  card_class='chart-viz-hero'
+              %}
+            </div>
+          </div>
+
+          {# Rows 2–8: Individual scene showcases — each full-width #}
+          <div class="row">
+            <div class="col-12">
+              {% include 'components/chart_viz.html' with
+                  id='vizParliament'
+                  scene='parliament'
+                  label='Parliament Transition'
+                  subtitle='Hemicycle of dots morphing to pie chart — seats by party'
+                  card_class='chart-viz-hero'
+              %}
+            </div>
+          </div>
+
+          <div class="row">
+            <div class="col-12">
+              {% include 'components/chart_viz.html' with
+                  id='vizRegression'
+                  scene='scatter-regression'
+                  label='Exponential Regression'
+                  subtitle='Scatter cloud with exponential best-fit line'
+                  card_class='chart-viz-hero'
+              %}
+            </div>
+          </div>
+
+          <div class="row">
+            <div class="col-12">
+              {% include 'components/chart_viz.html' with
+                  id='vizTreemap'
+                  scene='treemap'
+                  label='Treemap'
+                  subtitle='Hierarchical area breakdown by ecosystem type'
+                  card_class='chart-viz-hero'
+              %}
+            </div>
+          </div>
+
+          <div class="row">
+            <div class="col-12">
+              {% include 'components/chart_viz.html' with
+                  id='vizForest'
+                  scene='pictorial-forest'
+                  label='Pictorial Forest'
+                  subtitle='Symbolic bar chart using repeating tree icons'
+                  card_class='chart-viz-hero'
+              %}
+            </div>
+          </div>
+
+          {# Row 3: All-scenes auto-cycle showcase #}
+          <div class="row">
+            <div class="col-12">
+              {% include 'components/chart_viz.html' with
+                  id='vizAllScenes'
+                  scene='all'
+                  label='All Scenes'
+                  subtitle='Auto-cycling through all visualizations with morphing transitions'
+                  card_class='chart-viz-showcase'
+              %}
+            </div>
+          </div>
+
+        </div>
+      </div>
     </div>
 
 </div>
@@ -133,6 +211,8 @@
 {% block extra_js %}
 <script src="https://cdn.jsdelivr.net/npm/echarts@5/dist/echarts.min.js"></script>
 <script src="{% static 'js/dashboard.js' %}"></script>
+<script src="{% static 'js/components/chart-viz-scenes.js' %}"></script>
+<script src="{% static 'js/components/chart-viz.js' %}"></script>
 <script>
   document.addEventListener('DOMContentLoaded', function() {
     // Dashboard data from Django context
@@ -145,8 +225,34 @@
       plantsValues: {{ plants_values|default:'[]'|safe }}
     };
 
-    // Initialize charts with data
+    // Initialize simple-tab charts with data
     DashboardCharts.init(dashboardData);
+
+    // ChartViz: lazy-init when advanced tab is shown.
+    // ECharts returns 0×0 when initialised on a hidden element — this avoids that.
+    var vizInitialized = false;
+    function initAllViz() {
+      if (vizInitialized) return;
+      vizInitialized = true;
+      document.querySelectorAll('[data-chart-viz-scene]').forEach(function(el) {
+        ChartViz.create(el, {
+          type: el.dataset.chartVizScene,
+          animDuration: 1200,
+          cycleDuration: 3000,
+          particleCount: 220
+        });
+      });
+    }
+
+    var advancedTabBtn = document.querySelector('[data-bs-target="#tab-advanced"]');
+    if (advancedTabBtn) {
+      advancedTabBtn.addEventListener('shown.bs.tab', initAllViz);
+    }
+    // Also init immediately if advanced tab is already active (e.g. via URL hash)
+    var advancedPane = document.getElementById('tab-advanced');
+    if (advancedPane && advancedPane.classList.contains('show')) {
+      initAllViz();
+    }
   });
 </script>
 
