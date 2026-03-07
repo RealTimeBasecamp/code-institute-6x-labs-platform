@@ -113,6 +113,15 @@ class SpeciesMixer {
     this._currentEnv = 'blank';                     // active static environment key
     this._currentAlgorithm = 'sample_elimination';  // active point algorithm
 
+    // Species generation visualiser (metaball → parliament → treemap)
+    this.speciesVizChart = null;    // ECharts instance for #species-viz-chart
+    this._parlData = {};            // { category: count } — grows during generation
+    this._parlCatCounters = {};     // category colour index counters for incremental rows
+    this._morphTimer = null;        // clearTimeout handle for morph sequence
+    this._metaballPlaying = false;   // true while metaball is looping pre-first-species
+    this._metaballFadeTimer = null;  // setTimeout handle for crossfade midpoint
+    this._firstSpeciesArrived = false; // flipped when first species_added event comes in
+
     this._initMap();
     this._initDivider();
     this._initTabs();
@@ -122,6 +131,7 @@ class SpeciesMixer {
     this._initMixNameField();
     this._initRadar();
     this._initVirtualGrid();
+    this._initSpeciesViz();
     this._loadRecentMixes();
   }
 
@@ -977,6 +987,181 @@ class SpeciesMixer {
     // at init time. _onTabShown will trigger the real resize + render when shown.
   }
 
+  // ── Species generation visualiser ──────────────────────────────────────────
+
+  _initSpeciesViz() {
+    if (typeof echarts === 'undefined') return;
+    const el = document.getElementById('species-viz-chart');
+    if (!el) return;
+    this.speciesVizChart = echarts.init(el, null, { renderer: 'canvas' });
+    window.addEventListener('resize', () => {
+      if (this.speciesVizChart && !this.speciesVizChart.isDisposed()) {
+        this.speciesVizChart.resize();
+      }
+    });
+  }
+
+  _showSpeciesViz() {
+    document.getElementById('species-viz-wrap')?.classList.remove('d-none');
+    document.getElementById('virtual-grid-wrap')?.classList.add('d-none');
+    requestAnimationFrame(() => {
+      if (this.speciesVizChart && !this.speciesVizChart.isDisposed()) {
+        this.speciesVizChart.resize();
+      }
+    });
+  }
+
+  _showVirtualGrid() {
+    document.getElementById('species-viz-wrap')?.classList.add('d-none');
+    document.getElementById('virtual-grid-wrap')?.classList.remove('d-none');
+  }
+
+  // Play metaball → particles → metaball → ... in a smooth loop.
+  // Because metaball and particles use completely different renderItem functions,
+  // ECharts cannot morph between them via universalTransition. Instead we use a
+  // CSS opacity crossfade on the chart element: fade out → hard-switch scene →
+  // fade back in. This is the only reliable approach for scenes with incompatible
+  // series structures and gives a clean dissolve between any two scenes.
+  _playMetaball() {
+    const el = document.getElementById('species-viz-chart');
+    if (!el) return;
+    const chart = this.speciesVizChart;
+    if (!chart || chart.isDisposed()) return;
+    const mbScene = window.ChartVizScenes?.get('metaball');
+    const ptScene = window.ChartVizScenes?.get('particles');
+    if (!mbScene) return;
+
+    this._metaballPlaying = true;
+
+    const FADE = 600; // ms for each half of the crossfade
+
+    // Fade the chart element out, call swap() at the midpoint (opacity 0),
+    // then fade back in. Uses CSS transition on the element directly.
+    const crossfade = (swap) => {
+      el.style.transition = `opacity ${FADE}ms ease-in-out`;
+      el.style.opacity = '0';
+      this._metaballFadeTimer = setTimeout(() => {
+        if (!this._metaballPlaying) return;
+        swap();
+        el.style.opacity = '1';
+      }, FADE);
+    };
+
+    const clearLogoOverlay = () => {
+      try {
+        chart.setOption({
+          graphic: { elements: [{ id: 'pLogoOverlay', $action: 'remove' }] }
+        }, false);
+      } catch (e) {}
+    };
+
+    // Play a scene from the beginning using normal scene.play() (notMerge:true
+    // is fine here — the canvas is invisible during the swap so the wipe is
+    // hidden). Calls onFinish when the scene exhausts all its steps.
+    const playScene = (scene, onFinish) => {
+      if (!this._metaballPlaying || !this.speciesVizChart || this.speciesVizChart.isDisposed()) return;
+      scene.reset();
+      scene.play(chart, onFinish);
+    };
+
+    const loop = () => {
+      if (!this._metaballPlaying) return;
+      playScene(mbScene, () => {
+        if (!this._metaballPlaying) return;
+        if (!ptScene) { crossfade(() => loop()); return; }
+        crossfade(() => {
+          clearLogoOverlay();
+          playScene(ptScene, () => {
+            if (!this._metaballPlaying) return;
+            crossfade(() => {
+              clearLogoOverlay();
+              loop();
+            });
+          });
+        });
+      });
+    };
+
+    loop();
+  }
+
+  _stopMetaball() {
+    this._metaballPlaying = false;
+    clearTimeout(this._metaballFadeTimer);
+    const el = document.getElementById('species-viz-chart');
+    if (el) { el.style.transition = ''; el.style.opacity = '1'; }
+    const chart = this.speciesVizChart;
+    if (!chart || chart.isDisposed()) return;
+    const mbScene = window.ChartVizScenes?.get('metaball');
+    const ptScene = window.ChartVizScenes?.get('particles');
+    if (mbScene) mbScene.stop(chart);
+    if (ptScene) ptScene.stop(chart);
+    try {
+      chart.setOption({
+        graphic: { elements: [{ id: 'pLogoOverlay', $action: 'remove' }] }
+      }, false);
+    } catch (e) {}
+  }
+
+  _updateParliamentChart() {
+    if (!this.speciesVizChart || this.speciesVizChart.isDisposed()) return;
+    const data = Object.entries(this._parlData).map(([name, value]) => ({ name, value }));
+    window.SPECIES_PARL_DATA = data;
+    const scene = window.ChartVizScenes?.get('species-parliament');
+    if (!scene) return;
+    const opt = scene._options[0];
+    const option = typeof opt === 'function' ? opt(this.speciesVizChart) : opt;
+    this.speciesVizChart.setOption(option, false);
+  }
+
+  _buildTreemapData(mix) {
+    const cats = {};
+    mix.forEach(item => {
+      const cat = item.category || 'Other';
+      if (!cats[cat]) cats[cat] = { name: cat, value: 0, children: [] };
+      cats[cat].children.push({ name: item.common_name || item.scientific_name, value: 1 });
+      cats[cat].value += 1;
+    });
+    return Object.values(cats);
+  }
+
+  _runMorphSequence() {
+    const chart = this.speciesVizChart;
+    if (!chart || chart.isDisposed()) { this._showVirtualGrid(); return; }
+    const el = document.getElementById('species-viz-chart');
+    const FADE = 500;
+
+    // Hold parliament for 3 s, then crossfade → treemap, hold 5 s, crossfade → virtual grid
+    this._morphTimer = setTimeout(() => {
+      if (!this.speciesVizChart || this.speciesVizChart.isDisposed()) return;
+
+      // Fade out parliament
+      if (el) { el.style.transition = `opacity ${FADE}ms ease-in-out`; el.style.opacity = '0'; }
+      this._morphTimer = setTimeout(() => {
+        if (!this.speciesVizChart || this.speciesVizChart.isDisposed()) return;
+
+        // Swap to treemap while invisible, then fade back in
+        const tmScene = window.ChartVizScenes?.get('species-treemap');
+        if (tmScene) {
+          const opt = tmScene._options[0];
+          const tmOption = typeof opt === 'function' ? opt(chart) : opt;
+          chart.setOption(tmOption, true); // notMerge:true — clean slate for treemap
+        }
+        if (el) el.style.opacity = '1';
+
+        // Hold treemap for 5 s, then crossfade out and show virtual grid
+        this._morphTimer = setTimeout(() => {
+          if (el) { el.style.transition = `opacity ${FADE}ms ease-in-out`; el.style.opacity = '0'; }
+          this._morphTimer = setTimeout(() => {
+            if (el) { el.style.transition = ''; el.style.opacity = '1'; }
+            this._showVirtualGrid();
+            this._morphTimer = null;
+          }, FADE);
+        }, 5500);
+      }, FADE);
+    }, 3000);
+  }
+
   // ── Timeline scrubber ──────────────────────────────────────────────────────
   // Placeholder: play button animates the handle from 0 → endYear over 5s.
   // Dragging the handle or clicking the track sets the position manually.
@@ -1333,10 +1518,12 @@ class SpeciesMixer {
       this._updateChartLoading('Rendering points');
       const data = await resp.json();
       this._renderPreview(data);
+      return data;
     } catch (err) {
-      if (err.name === 'AbortError') return;
+      if (err.name === 'AbortError') return null;
       console.warn('Preview generation failed:', err);
       this._hideChartLoading();
+      return null;
     }
   }
 
@@ -1840,6 +2027,17 @@ class SpeciesMixer {
       this._showGenerationProgress(true);
       show('insights-spinner');
       hide('insights-placeholder');
+      // Reset state and show species-viz on Mix tab
+      this._parlData = {};
+      this._parlCatCounters = {};
+      this._incrementalStarted = false;
+      this._firstSpeciesArrived = false;
+      clearTimeout(this._morphTimer);
+      this._morphTimer = null;
+      window.SPECIES_PARL_DATA = [];
+      this._showSpeciesViz();
+      // Play metaball animation as holding pattern until first species arrives
+      this._playMetaball();
     }
 
     if (state >= SpeciesMixer.STATE_5_MIX_READY) {
@@ -2398,6 +2596,33 @@ class SpeciesMixer {
         const countEl = document.getElementById('loading-species-count');
         if (countEl) countEl.textContent = `${ev.count} species`;
       }
+
+      // Incremental species: update parliament chart and add a table row
+      if (ev.species_added) {
+        // First species: crossfade from metaball into parliament
+        if (!this._firstSpeciesArrived) {
+          this._firstSpeciesArrived = true;
+          const el = document.getElementById('species-viz-chart');
+          this._stopMetaball();
+          if (el) {
+            // Fade out briefly, then draw the first parliament dot, then fade in
+            el.style.transition = 'opacity 400ms ease-in-out';
+            el.style.opacity = '0';
+            setTimeout(() => {
+              const cat2 = (ev.species_added.category || 'Other').toLowerCase();
+              this._parlData[cat2] = (this._parlData[cat2] || 0) + 1;
+              this._updateParliamentChart();
+              el.style.opacity = '1';
+            }, 400);
+            this._addSpeciesRowIncremental(ev.species_added);
+            return; // already handled below
+          }
+        }
+        const cat = (ev.species_added.category || 'Other').toLowerCase();
+        this._parlData[cat] = (this._parlData[cat] || 0) + 1;
+        this._updateParliamentChart();
+        this._addSpeciesRowIncremental(ev.species_added);
+      }
     });
     this._seenProgressCount = events.length;
     // Advance progress bar: 10 → 90% across ~10 expected phases
@@ -2472,15 +2697,19 @@ class SpeciesMixer {
       this._renderInsights(result.insights, result.env_summary);
       this._unlockTab('mix');
       this._transitionTo(SpeciesMixer.STATE_5_MIX_READY);
-      // Kick off preview generation — covers the case where the user
-      // is already on the Mix tab (so _onTabShown won't fire again).
-      this.previewResult = null;
+      // Populate treemap global and kick off morph sequence
+      window.SPECIES_TREEMAP_DATA = this._buildTreemapData(result.species_mix || []);
       document.getElementById('map-overlay-placeholder')?.classList.remove('d-none');
       document.getElementById('goal-radar-wrap')?.classList.add('d-none');
-      document.getElementById('virtual-grid-wrap')?.classList.remove('d-none');
+      // Stop metaball in case no species events arrived (fast path)
+      this._stopMetaball();
+      // Keep species-viz visible; _runMorphSequence swaps to virtual-grid-wrap at end
+      this._showSpeciesViz();
       requestAnimationFrame(() => requestAnimationFrame(() => {
         this.gridChart?.resize();
-        this._requestPreview(this._currentHectares);
+        this._runMorphSequence();
+        // Kick off preview async so virtual grid is populated when morph finishes
+        this._requestPreview(this._currentHectares).catch(() => {});
       }));
     } else if (mode === 'rescore') {
       this._updateRatiosInPlace(result.species_mix || []);
@@ -2518,6 +2747,13 @@ class SpeciesMixer {
     this._transitionTo(SpeciesMixer.STATE_3_GOALS_SET);
     // Clear loading UI
     this._showGenerationProgress(false);
+    // Revert species-viz back to virtual grid placeholder
+    this._stopMetaball();
+    clearTimeout(this._morphTimer);
+    this._morphTimer = null;
+    const _vizEl = document.getElementById('species-viz-chart');
+    if (_vizEl) { _vizEl.style.transition = ''; _vizEl.style.opacity = '1'; }
+    this._showVirtualGrid();
     document.getElementById('insights-spinner')?.classList.add('d-none');
     document.getElementById('insights-placeholder')?.classList.remove('d-none');
     document.getElementById('insights-placeholder').innerHTML = `
@@ -2530,6 +2766,13 @@ class SpeciesMixer {
 
   _onGenerationError(msg) {
     this._transitionTo(SpeciesMixer.STATE_3_GOALS_SET);
+    // Revert species-viz back to virtual grid
+    this._stopMetaball();
+    clearTimeout(this._morphTimer);
+    this._morphTimer = null;
+    const _vizEl2 = document.getElementById('species-viz-chart');
+    if (_vizEl2) { _vizEl2.style.transition = ''; _vizEl2.style.opacity = '1'; }
+    this._showVirtualGrid();
     // Show error in insights area
     document.getElementById('insights-placeholder')?.classList.remove('d-none');
     document.getElementById('insights-placeholder').innerHTML = `
@@ -2545,8 +2788,55 @@ class SpeciesMixer {
   // Table rendering
   // ──────────────────────────────────────────────────────────────────────────
 
+  _addSpeciesRowIncremental(item) {
+    const tbody = document.getElementById('species-mix-tbody');
+    if (!tbody) return;
+
+    // On first incremental species, clear skeleton/shimmer rows
+    if (!this._incrementalStarted) {
+      this._incrementalStarted = true;
+      this._parlCatCounters = {};
+      tbody.innerHTML = '';
+    }
+
+    const cat = (item.category || 'other').toLowerCase();
+    this._parlCatCounters[cat] = this._parlCatCounters[cat] || 0;
+    const colour = SpeciesMixer.colourForItem(cat, this._parlCatCounters[cat]);
+    this._parlCatCounters[cat]++;
+
+    const fullItem = {
+      ...item,
+      name: item.common_name || item.scientific_name || 'Unknown',
+      colour,
+      is_active: true,
+      is_manual: false,
+    };
+
+    // Insert/reuse a category group header
+    const groupHeaderSel = `[data-group-header="${cat}"]`;
+    let groupHeader = tbody.querySelector(groupHeaderSel);
+    if (!groupHeader) {
+      groupHeader = document.createElement('tr');
+      groupHeader.className = 'species-mixer-group-header';
+      groupHeader.setAttribute('data-group-header', cat);
+      const displayName = cat.charAt(0).toUpperCase() + cat.slice(1);
+      groupHeader.innerHTML = `<td colspan="9">${this._categoryIcon(cat)}<span class="ms-1">${displayName}</span></td>`;
+      tbody.appendChild(groupHeader);
+    }
+
+    // Append after the last row in this group (or directly after group header)
+    const row = this._buildRow(fullItem);
+    row.dataset.incremental = 'true';
+    // Animate the row in
+    row.style.opacity = '0';
+    row.style.transition = 'opacity 0.3s ease';
+    tbody.appendChild(row);
+    requestAnimationFrame(() => { row.style.opacity = '1'; });
+  }
+
   _renderMix(speciesMixData) {
     // Map raw API data → internal mixItems (only called on fresh generation result)
+    this._incrementalStarted = false;  // reset for next generation
     const catCounters = {};
     this.mixItems = speciesMixData.map((item) => {
       const cat = (item.category || 'other').toLowerCase();

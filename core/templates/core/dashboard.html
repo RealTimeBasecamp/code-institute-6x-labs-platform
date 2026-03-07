@@ -261,13 +261,10 @@
 {% endblock %}
 
 {% block extra_js %}
-{# ECharts core + optional extensions #}
+{# ECharts core #}
 <script src="https://cdn.jsdelivr.net/npm/echarts@5/dist/echarts.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/echarts-wordcloud@2/dist/echarts-wordcloud.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/echarts-liquidfill@3/dist/echarts-liquidfill.min.js"></script>
 {# ChartViz data files — must load before chart-viz-scenes.js #}
 <script src="{% static 'js/components/data/pie-data.js' %}"></script>
-<script src="{% static 'js/components/data/covid-data.js' %}"></script>
 {# ChartViz library #}
 <script src="{% static 'js/components/chart-viz.js' %}"></script>
 <script src="{% static 'js/components/chart-viz-scenes.js' %}"></script>
@@ -287,7 +284,7 @@
     // Initialize simple-tab charts with data
     DashboardCharts.init(dashboardData);
 
-    // Preload JSON data files needed by scenes (async, before tab is shown)
+    // Preload JSON data files needed by advanced-tab scenes (async, before tab is shown)
     var dataBase = '{% static "js/components/data/" %}';
     function loadJson(file, cb) {
       fetch(dataBase + file).then(function(r) { return r.json(); }).then(cb).catch(function(){});
@@ -295,10 +292,6 @@
     loadJson('echarts-package-size.json', function(d) { window.ECHARTS_PACKAGE_SIZE = d; });
     loadJson('gh-contributions-2020.json', function(d) { window.GH_CONTRIBUTIONS = d; });
     loadJson('life-expectancy-table.json', function(d) { window.LIFE_EXPECTANCY_DATA = d; });
-    loadJson('usa.json', function(d) {
-      echarts.registerMap('usa', d);
-      window.ECHARTS_MAP_USA_LOADED = true;
-    });
 
     // ChartViz: lazy-init when advanced tab is shown.
     // ECharts returns 0×0 when initialised on a hidden element — this avoids that.

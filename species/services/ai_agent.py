@@ -447,7 +447,7 @@ class SpeciesMixAgent:
         """
         env_data = {}
         cached_candidates = []
-        _progress = on_progress or (lambda msg, count=None: None)
+        _progress = on_progress or (lambda msg, count=None, **kw: None)
 
         if self._tgi_available():
             messages = [
@@ -664,7 +664,7 @@ class SpeciesMixAgent:
           shrubs, wildflowers, and grasses all appear in the final mix.
         """
         # ── Phase 1 & 2: Collect environmental data + candidate species ──────
-        _p = on_progress or (lambda msg, count=None: None)
+        _p = on_progress or (lambda msg, count=None, **kw: None)
 
         _p('Querying SoilGrids — soil pH, texture and moisture data...')
         soil = fetch_soilgrids(lat, lng)
@@ -1055,7 +1055,7 @@ class SpeciesMixAgent:
             }:
                 reason_parts.append('Peatland specialist — organic carbon indicates bog/fen habitat.')
 
-            species_mix.append({
+            item = {
                 'species_id': None,
                 'scientific_name': s['scientific_name'],
                 'common_name': common,
@@ -1067,7 +1067,13 @@ class SpeciesMixAgent:
                 'sources': s.get('sources', []),
                 'gbif_key': s.get('gbif_key'),
                 'observation_count': s.get('observation_count', 0),
-            })
+            }
+            species_mix.append(item)
+            _p(
+                f'Adding {common} ({category})...',
+                count=len(species_mix),
+                species_added=item,
+            )
 
         env_summary = self._format_env_summary(env_data)
         n_candidates = len(candidates)

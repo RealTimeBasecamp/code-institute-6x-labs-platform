@@ -1,11 +1,85 @@
 /**
- * ChartViz Scenes — faithful JS port of echarts-www-landing-animation.
- * Each scene is a ChartViz.Scene instance. Load AFTER chart-viz.js.
+ * ChartViz Scenes
+ * ===============
+ * A registry of ECharts animation scenes. Load AFTER chart-viz.js.
  *
- * Required globals (load before this file):
- *   pie-data.js            -> PIE_DATA
- *   covid-data.js          -> COVID_country, COVID_rawData
- *   Data loaded via fetch in dashboard: ECHARTS_PACKAGE_SIZE, GH_CONTRIBUTIONS, LIFE_EXPECTANCY_DATA
+ * HOW TO USE A SCENE
+ * ------------------
+ * 1. Include an element with data-chart-viz-scene="<name>" in your template, OR
+ * 2. Call ChartViz.create(el, { type: '<name>' }) in JavaScript.
+ *
+ * HOW TO SUPPLY CUSTOM DATA
+ * -------------------------
+ * Every scene that uses external data reads from a window global (e.g.
+ * window.SPECIES_PARL_DATA). Set the global BEFORE the scene plays.
+ * All option arrays are wrapped in function(){} so they evaluate lazily at
+ * render time — data loaded asynchronously (fetch, API polling, etc.) will be
+ * picked up as long as it arrives before the first play.
+ *
+ * To use a scene type with your own data, do NOT modify this file.
+ * Instead:
+ *   a. Register a new scene name that reads your own window global, OR
+ *   b. Use ChartViz.create(el, { type: 'pie' }) and set window.PIE_DATA to
+ *      your data array before the tab containing the chart becomes visible.
+ *
+ * SCENE CATALOGUE
+ * ---------------
+ * Example/showcase scenes (use PIE_DATA — a simple [{name, value}] array):
+ *   pie-entry     — Rose chart entry animation
+ *   pie           — Donut chart
+ *   parliament    — Hemicycle dot layout (custom series)
+ *   survey        — Grid dot layout (custom series)
+ *   bar           — Cartesian bar
+ *   bar-polar     — Polar bar
+ *
+ * Standalone scenes (no external data required):
+ *   particles     — 3D wave + 6xlabs logo burst (2500 canvas-rasterised points)
+ *   metaball      — Bézier blob morphing rings
+ *   gauge-car     — Speedometer (static demo value)
+ *
+ * Async-data scenes (populated by fetch; read window globals lazily):
+ *   treemap           — window.ECHARTS_PACKAGE_SIZE  ({children: [...]})
+ *   treemap-complex   — window.ECHARTS_PACKAGE_SIZE
+ *   circle-packing    — window.ECHARTS_PACKAGE_SIZE
+ *   sunburst          — window.ECHARTS_PACKAGE_SIZE
+ *   line-racing       — window.LIFE_EXPECTANCY_DATA  (CSV-style array)
+ *   calendar-heatmap  — window.GH_CONTRIBUTIONS      ([[date, value], ...])
+ *   calendar-scatter  — window.GH_CONTRIBUTIONS
+ *
+ * Extension scenes (require CDN extensions loaded before this file):
+ *   word-cloud    — echarts-wordcloud@2  (hardcoded demo terms; replace data[])
+ *   liquid-fill   — echarts-liquidfill@3 (hardcoded demo values; replace data[])
+ *
+ * Species Mixer scenes (dynamic data injected at runtime by species-mixer.js):
+ *   species-parliament — window.SPECIES_PARL_DATA    ([{name, value}, ...])
+ *   species-treemap    — window.SPECIES_TREEMAP_DATA  ([{name, value, children:[...]}, ...])
+ *   species-scatter    — window.SPECIES_SCATTER_POINTS ([{x, y, colour}, ...])
+ *                        window.SPECIES_SCATTER_SIDE_M  (grid side length in metres)
+ *
+ * HOW TO ADD A NEW SCENE WITH CUSTOM DATA
+ * ----------------------------------------
+ * 1. Define your data global, e.g. window.MY_DATA = [];
+ * 2. Register your scene inside the IIFE below:
+ *
+ *   window.MY_DATA = [];
+ *   register('my-scene', new ChartViz.Scene({
+ *     option: [function () {
+ *       // Read data lazily — this runs at play time, not at parse time
+ *       var data = window.MY_DATA;
+ *       return {
+ *         color: getPAL(),              // use theme palette
+ *         series: [{ type: 'bar', data: data, ... }]
+ *       };
+ *     }],
+ *     duration: 3000                    // ms to hold before next step
+ *   }));
+ *
+ * 3. Populate window.MY_DATA before the scene plays (fetch, API response, etc.)
+ * 4. Use it: ChartViz.create(el, { type: 'my-scene' })
+ *
+ * REQUIRED GLOBALS (load before this file on any page that uses the
+ * pie/parliament/survey/bar/bar-polar scenes):
+ *   js/components/data/pie-data.js  ->  PIE_DATA
  */
 (function () {
   'use strict';
@@ -330,10 +404,9 @@
       + ' a 28.354978,28.360589 0 0 1 -25.74414,17.1953 28.354978,28.360589 0 0 1 -28.35547,-28.3593'
       + ' 28.354978,28.360589 0 0 1 28.35547,-28.3614 z';
 
-    var SVGS=['M23.6 2c-3.363 0-6.258 2.736-7.599 5.594-1.342-2.858-4.237-5.594-7.601-5.594-4.637 0-8.4 3.764-8.4 8.401 0 9.433 9.516 11.906 16.001 21.232 6.13-9.268 15.999-12.1 15.999-21.232 0-4.637-3.763-8.401-8.4-8.401z',
+    // Only morph through: circle → 6xlabs logo (no emoji shapes)
+    var SVGS=[
       'M16 0c-8.837 0-16 7.163-16 16s7.163 16 16 16 16-7.163 16-16-7.163-16-16-16z',
-      'M32 2c0-1.422-0.298-2.775-0.833-4-1.049 2.401-3.014 4.31-5.453 5.287-2.694-2.061-6.061-3.287-9.714-3.287s-7.021 1.226-9.714 3.287c-2.439-0.976-4.404-2.886-5.453-5.287-0.535 1.225-0.833 2.578-0.833 4 0 2.299 0.777 4.417 2.081 6.106-1.324 2.329-2.081 5.023-2.081 7.894 0 8.837 7.163 16 16 16s16-7.163 16-16c0-2.871-0.757-5.565-2.081-7.894 1.304-1.689 2.081-3.806 2.081-6.106z',
-      'M14 18v-14c-7.732 0-14 6.268-14 14s6.268 14 14 14 14-6.268 14-14c0-2.251-0.532-4.378-1.476-6.262l-12.524 6.262z',
       LOGO_PATH];
 
     // gcs: compute circle geometry for a data point.
@@ -364,34 +437,6 @@
     });
 
     register('metaball', new ChartViz.Scene({option:opts,duration:durs}));
-  })();
-
-  // ── map ────────────────────────────────────────────────────────────────────
-  register('map', new ChartViz.Scene({
-    option: [function () {
-      if (!window.ECHARTS_MAP_USA_LOADED) return { graphic: { elements: [] } };
-      return { visualMap:{show:false,min:0,max:50,inRange:{colorAlpha:[0.5,1]}},
-        series:[{type:'map',map:'usa',data:COVID_country.map(function(n,i){return{name:n,value:COVID_rawData[50][i]};}),
-          label:{show:true,color:'#fff'},labelLayout:{hideOverlap:true},silent:true,itemStyle:{borderColor:'#fff'}}] };
-    }],
-    duration: 2000
-  }));
-
-  // ── bar-racing ─────────────────────────────────────────────────────────────
-  (function () {
-    var LEN=10,START=50,opts=[],durs=[];
-    for(var n=START;n<START+LEN;n++){
-      var isFirst=(n===START),res=[];
-      for(var j=0;j<COVID_country.length;j++) res.push([COVID_country[j],COVID_rawData[n][j]]);
-      res=res.sort(function(a,b){return+b[1]-+a[1];}).filter(function(x){return x[1]>2;}).filter(function(x){return x[0].slice(-9)!=='Princess';});
-      opts.push({grid:{left:120,top:10,bottom:30},dataset:{source:res},xAxis:{show:false},
-        visualMap:{show:false,min:0,max:50,inRange:{colorAlpha:[0.5,1]}},
-        yAxis:[{inverse:true,type:'category',max:isFirst?undefined:15,animationDurationUpdate:200,animationEasingUpdate:'cubicOut',axisTick:{show:false},axisLabel:{fontSize:14,interval:0},axisLine:{show:false},splitLine:{show:false}}],
-        series:[{type:'bar',datasetIndex:0,encode:{x:1,y:0},itemStyle:{borderRadius:isFirst?0:3},realtimeSort:true,barWidth:'70%',animationDurationUpdate:1500,animationEasingUpdate:isFirst?'cubicInOut':'linear',universalTransition:true,
-          label:{valueAnimation:true,show:true,fontSize:14,position:'right',color:'inherit',formatter:'{@[1]}'}}]});
-      durs.push(n===START?2000:1000);
-    }
-    register('bar-racing', new ChartViz.Scene({option:opts,duration:durs}));
   })();
 
   // ── line-racing ────────────────────────────────────────────────────────────
@@ -613,6 +658,172 @@
       };
     }],
     duration:5000
+  }));
+
+  // ── species-parliament ─────────────────────────────────────────────────────
+  // Live parliament during species mixer generation.
+  // Data injected via window.SPECIES_PARL_DATA = [{ name, value }, ...]
+  // Each item renders exactly `value` dots (one dot = one species), arranged
+  // in concentric rings around the centre, coloured by category.
+  window.SPECIES_PARL_DATA = [];
+  register('species-parliament', new ChartViz.Scene({
+    option: [function () {
+      var cats = window.SPECIES_PARL_DATA;
+      if (!cats || !cats.length) return {
+        series: [{ type: 'custom', coordinateSystem: undefined, data: [],
+          renderItem: function () { return { type: 'group', children: [] }; } }]
+      };
+
+      // Build a flat point list: one entry per species.
+      // Each point carries: [catIndex, posInCat, totalInCat]
+      var pts = [];
+      cats.forEach(function (cat, ci) {
+        var n = Math.max(1, cat.value);
+        for (var k = 0; k < n; k++) pts.push([ci, k, n]);
+      });
+
+      var pal2 = getPAL();
+      var angles = pieLayout(cats, -Math.PI / 2, Math.PI * 2);
+
+      return {
+        color: pal2,
+        series: [{
+          type: 'custom',
+          coordinateSystem: undefined,
+          data: pts,
+          universalTransition: { enabled: true, seriesKey: 'point' },
+          animationDurationUpdate: 500,
+          animationEasingUpdate: 'cubicOut',
+          renderItem: function (params, api) {
+            var ci   = api.value(0);               // category index
+            var k    = api.value(1);               // position within category
+            var n    = api.value(2);               // total for category
+            var w    = api.getWidth();
+            var h    = api.getHeight();
+            var vSize = Math.min(w, h);
+            var cx   = w / 2, cy = h / 2;
+            var r0   = 0.28 * vSize / 2;
+            var r1   = 0.82 * vSize / 2;
+            var dotR = Math.max(3, vSize / 60);
+            var gap  = dotR * 2.6;
+
+            // Spread n dots evenly across the angular sector for this category
+            var aStart = angles[ci];
+            var aEnd   = angles[ci + 1];
+            var aSpan  = aEnd - aStart;
+
+            // Radial ring placement: fill rows from r0 outward, each row holds
+            // as many dots as the arc length allows, same as layoutSector.
+            // We only use the first n points generated.
+            var allPts = layoutSector(aStart, aEnd, Math.PI * 2, r0, r1, gap);
+            // Clamp to exactly n dots
+            var p = allPts[k] || allPts[allPts.length - 1] || [0, 0];
+
+            return {
+              type: 'circle',
+              shape: { cx: cx + p[0], cy: cy + p[1], r: dotR },
+              style: { fill: pal2[ci % pal2.length] },
+              z2: 10
+            };
+          }
+        }]
+      };
+    }],
+    duration: 300
+  }));
+
+  // ── species-treemap ────────────────────────────────────────────────────────
+  // Treemap of categories → species, driven by window.SPECIES_TREEMAP_DATA.
+  // Shape: [{ name: 'Tree', value: 5, children: [{ name: 'Oak', value: 1 }, ...] }]
+  // Styled like treemap-complex: palette colours per category, shadowed borders,
+  // upperLabel background reads --bs-tertiary-bg (expandable-card header colour),
+  // label text reads --bs-body-color so it's always legible against the theme.
+  window.SPECIES_TREEMAP_DATA = [];
+  register('species-treemap', new ChartViz.Scene({
+    option: [function () {
+      var tc  = ChartViz.getThemeColors();
+      var s   = getComputedStyle(document.documentElement);
+      var headerBg   = s.getPropertyValue('--bs-tertiary-bg').trim()  || tc.cardBg;
+      var bodyColor  = s.getPropertyValue('--bs-body-color').trim()   || tc.text;
+      return {
+        backgroundColor: 'transparent',
+        color: getPAL(),
+        series: [{
+          type: 'treemap',
+          name: 'species',
+          left: 0, top: 0, bottom: 0, right: 0,
+          width: '100%', height: '100%',
+          animationDurationUpdate: 1200,
+          animationThreshold: 3000,
+          roam: false,
+          nodeClick: undefined,
+          colorMappingBy: 'id',
+          data: window.SPECIES_TREEMAP_DATA,
+          leafDepth: 2,
+          levels: [
+            // Level 0 — category header bar: --bs-tertiary-bg background,
+            // --bs-body-color text — matches expandable-card header exactly.
+            {
+              itemStyle: {
+                borderWidth: 3, gapWidth: 3, borderRadius: 5,
+                shadowBlur: 20, shadowColor: 'rgba(20,20,40,0.4)'
+              },
+              upperLabel: {
+                show: true, height: 26, fontSize: 12, fontWeight: 700,
+                backgroundColor: headerBg,
+                color: bodyColor,
+                padding: [4, 8]
+              }
+            },
+            // Level 1 — species tiles: palette fill, white label with shadow
+            {
+              itemStyle: {
+                borderWidth: 2, gapWidth: 1, borderRadius: 3,
+                shadowBlur: 5, shadowColor: 'rgba(20,20,40,0.3)'
+              },
+              label: {
+                show: true, fontSize: 10, overflow: 'truncate',
+                formatter: '{b}',
+                color: '#fff', textShadowColor: 'rgba(0,0,0,0.6)',
+                textShadowBlur: 4
+              },
+              upperLabel: { show: false }
+            }
+          ],
+          universalTransition: { enabled: true, seriesKey: 'point' },
+          breadcrumb: { show: false }
+        }]
+      };
+    }],
+    duration: 5000
+  }));
+
+  // ── species-scatter ────────────────────────────────────────────────────────
+  // Scatter plot driven by window.SPECIES_SCATTER_POINTS and
+  // window.SPECIES_SCATTER_SIDE_M — populated from /api/generate-preview/.
+  // Points morph from the treemap via universalTransition seriesKey:'point'.
+  window.SPECIES_SCATTER_POINTS = [];
+  window.SPECIES_SCATTER_SIDE_M = 100;
+  register('species-scatter', new ChartViz.Scene({
+    option: [function () {
+      var pts  = window.SPECIES_SCATTER_POINTS || [];
+      var side = window.SPECIES_SCATTER_SIDE_M || 100;
+      return {
+        xAxis: { min: 0, max: side, show: false },
+        yAxis: { min: 0, max: side, show: false },
+        series: [{
+          type: 'scatter',
+          data: pts.map(function (p) {
+            return { value: [p.x, p.y], itemStyle: { color: p.colour } };
+          }),
+          symbolSize: 5,
+          universalTransition: { enabled: true, seriesKey: 'point' },
+          animationDurationUpdate: 1500,
+          animationEasingUpdate: 'cubicInOut'
+        }]
+      };
+    }],
+    duration: 2000
   }));
 
   // ── public API ─────────────────────────────────────────────────────────────

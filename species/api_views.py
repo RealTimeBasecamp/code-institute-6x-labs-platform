@@ -232,6 +232,13 @@ def api_task_status(request, task_id):
     state = _get_task_status(task_id)
     # Ensure progress is always present so frontend can safely read it in any state
     state.setdefault('progress', [])
+    # For running tasks, extract partial species list from species_added events
+    if state.get('status') in ('running', 'queued'):
+        state['partial_mix'] = [
+            ev['species_added']
+            for ev in state['progress']
+            if 'species_added' in ev
+        ]
     return JsonResponse(state)
 
 

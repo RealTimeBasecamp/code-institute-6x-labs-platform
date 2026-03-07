@@ -36,12 +36,19 @@ def _set_running(task_id: str) -> None:
     cache.set(_task_key(task_id), {'status': 'running', 'progress': []}, timeout=_TASK_TTL)
 
 
-def _push_progress(task_id: str, message: str, count: int | None = None) -> None:
+def _push_progress(
+    task_id: str,
+    message: str,
+    count: int | None = None,
+    species_added: dict | None = None,
+) -> None:
     """Append a progress event to the task cache entry (read-modify-write)."""
     state = cache.get(_task_key(task_id)) or {'status': 'running', 'progress': []}
     event = {'msg': message}
     if count is not None:
         event['count'] = count
+    if species_added is not None:
+        event['species_added'] = species_added
     state.setdefault('progress', []).append(event)
     cache.set(_task_key(task_id), state, timeout=_TASK_TTL)
 
@@ -85,8 +92,8 @@ def run_mix_generation(task_id: str, lat: float, lng: float, goals: dict) -> Non
     _set_running(task_id)
     logger.info("Starting mix generation task %s for lat=%s lng=%s", task_id, lat, lng)
 
-    def on_progress(message: str, count: int | None = None) -> None:
-        _push_progress(task_id, message, count)
+    def on_progress(message: str, count: int | None = None, **kwargs) -> None:
+        _push_progress(task_id, message, count, **kwargs)
 
     try:
         agent = SpeciesMixAgent()

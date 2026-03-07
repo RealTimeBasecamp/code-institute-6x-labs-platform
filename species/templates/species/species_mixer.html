@@ -47,6 +47,12 @@
   <div class="mixer-pane__map" id="mixer-map-panel">
     <div id="species-mixer-map" class="w-100 h-100"></div>
 
+    <!-- Species generation visualiser — metaball → parliament → treemap morph.
+         Sits directly inside mixer-pane__map (not inside the placeholder overlay)
+         so it fills the full left panel, matching the map footprint. -->
+    <div id="species-viz-wrap" class="mixer-species-viz-wrap d-none">
+      <div id="species-viz-chart" class="mixer-species-viz-chart"></div>
+    </div>
 
     <!-- Goals radar chart overlay (shown on Goals tab) -->
     <div id="map-overlay-placeholder" class="mixer-map-placeholder d-none">
@@ -362,8 +368,7 @@
                        disabled
                        aria-label="Search radius in kilometres">
                 <div class="location-setting-row__hint">
-                  Species occurrence records are searched within this radius around your pin.
-                </div>
+                  Species records are searched within the radius around your pin. A smaller search area yields more accurate and relevant results but reduces the likelihood of finding species. If no species are found, try incrementally increasing the radius. For best results, however, keep the area as small as possible.                </div>
               </div>
             </div>
           </div>
@@ -1130,5 +1135,9 @@
 <script src="{% static 'js/components/sortable-table.js' %}" defer></script>
 <script src="{% static 'js/components/expandable-card.js' %}" defer></script>
 <script src="{% static 'js/components/map-styles.js' %}"></script>
+{# chart-viz + scenes provide the parliament/treemap/scatter morph animation #}
+<script src="{% static 'js/components/chart-viz.js' %}"></script>
+<script src="{% static 'js/components/data/pie-data.js' %}"></script>
+<script src="{% static 'js/components/chart-viz-scenes.js' %}"></script>
 <script src="{% static 'species/js/species-mixer.js' %}" defer></script>
 {% endblock %}

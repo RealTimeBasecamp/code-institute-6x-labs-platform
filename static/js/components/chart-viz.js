@@ -373,9 +373,11 @@ window.ChartViz = (function () {
   // -------------------------------------------------------------------------
 
   var INTERNAL_SCENES = [
-    'pie-entry', 'survey', 'bar-polar', 'bar-racing',
-    'map', 'sunburst', 'calendar-heatmap',
-    'gauge-car', 'word-cloud', 'liquid-fill'
+    'pie-entry', 'survey', 'bar-polar',
+    'sunburst', 'calendar-heatmap',
+    'gauge-car', 'word-cloud', 'liquid-fill',
+    // species-mixer scenes are programmatic only — never auto-cycled
+    'species-parliament', 'species-treemap', 'species-scatter'
   ];
 
   ChartVizInstance.prototype._startAutoCycle = function () {
