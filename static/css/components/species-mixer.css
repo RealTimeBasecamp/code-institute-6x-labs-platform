@@ -1026,10 +1026,21 @@
   max-width: 100%;
 }
 
+/* Species mix card: table goes edge-to-edge — no bottom padding, last row gets the card's rounded corners */
+#species-mix-card .expandable-card__body::after,
+#species-mix-card .expandable-card__body::before {
+  display: none;
+}
+
 #species-table-wrapper {
   width: 100%;
   max-width: 100%;
   overflow: hidden;
+}
+
+/* Remove bottom border on the last table row so it doesn't double up with the card border */
+#species-mix-table tbody tr:last-child td {
+  border-bottom: none;
 }
 
 .species-mixer-table {

@@ -12,6 +12,17 @@
   --bs-tertiary-bg: #fef8e8;
   --bs-border-color: #f4e8c1;
   --bs-hover-bg: color-mix(in srgb, var(--primary-color) 10%, var(--bs-body-bg));
+
+  /* Chart palette — amber anchor, warm hues with cool accents, each distinct */
+  --chart-1: #d97706; /* primary    — honey-amber */
+  --chart-2: #0f766e; /* teal       — cool contrast, feels fresh against amber */
+  --chart-3: #b91c1c; /* rust-red   — warm, distinct from amber */
+  --chart-4: #6d28d9; /* plum       — cool deep, high contrast */
+  --chart-5: #15803d; /* forest     — natural earthy complement */
+  --chart-6: #be123c; /* cherry     — warm bold accent */
+  --chart-7: #0e7490; /* slate-blue — muted cool anchor */
+  --chart-8: #92400e; /* mahogany   — dark warm, pairs with amber */
+  --chart-9: #4f46e5; /* indigo     — cool distinct contrast */
 }
 
 /* ===== DARK MODE ===== */
@@ -25,4 +36,15 @@
   --bs-tertiary-bg: #2a2110;
   --bs-border-color: #4a3d1f;
   --bs-hover-bg: color-mix(in srgb, var(--primary-color) 12%, var(--bs-body-bg));
+
+  /* Chart palette — brightened for dark, same hue spread as light */
+  --chart-1: #fbbf24; /* primary    — bright amber */
+  --chart-2: #2dd4bf; /* teal       — bright aqua-teal */
+  --chart-3: #f87171; /* rust-red   — bright coral-red */
+  --chart-4: #a78bfa; /* plum       — bright soft violet */
+  --chart-5: #4ade80; /* forest     — bright natural green */
+  --chart-6: #fb7185; /* cherry     — bright rose-pink */
+  --chart-7: #38bdf8; /* slate-blue — bright sky blue */
+  --chart-8: #fb923c; /* mahogany   — bright warm orange */
+  --chart-9: #818cf8; /* indigo     — bright soft indigo */
 }

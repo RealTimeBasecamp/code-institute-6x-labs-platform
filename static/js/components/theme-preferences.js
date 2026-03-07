@@ -10,6 +10,8 @@
 (function() {
   'use strict';
 
+  var _initializingMode = false;
+
   /**
    * Initialize theme preferences visual state from form field values.
    * Called when the preferences step is loaded via AJAX.
@@ -28,20 +30,28 @@
       }
     }
 
-    // Initialize mode button selection and pill nav
+    // Initialize pill nav for mode selector first
+    const modeSelector = document.querySelector('.mode-selector.nav-pills');
+    if (modeSelector && !modeSelector._pillNav && typeof PillNav !== 'undefined') {
+      modeSelector._pillNav = new PillNav(modeSelector);
+    }
+
+    // Set active mode tab to reflect saved value
     if (modeSelect) {
       const currentMode = modeSelect.value || 'system';
+      // Support legacy .mode-btn elements
       const modeBtn = document.querySelector(`.mode-btn[data-mode="${currentMode}"]`);
       if (modeBtn) {
         document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active'));
         modeBtn.classList.add('active');
       }
-    }
-
-    // Initialize pill nav for mode selector (loaded via AJAX)
-    const modeSelector = document.querySelector('.mode-selector.nav-pills');
-    if (modeSelector && !modeSelector._pillNav && typeof PillNav !== 'undefined') {
-      modeSelector._pillNav = new PillNav(modeSelector);
+      // Activate the nav-pills tab for current mode (suppress PATCH during init)
+      const modeTab = document.getElementById('mode-selector-' + currentMode + '-tab');
+      if (modeTab && !modeTab.classList.contains('active')) {
+        _initializingMode = true;
+        modeTab.click();
+        setTimeout(function() { _initializingMode = false; }, 300);
+      }
     }
   }
 
@@ -82,7 +92,7 @@
       document.querySelectorAll('.theme-card').forEach(c => c.classList.remove('selected'));
       card.classList.add('selected');
       const select = document.getElementById('id_theme');
-      if (select) select.value = card.dataset.theme;
+      if (select) { select.value = card.dataset.theme; select.dispatchEvent(new Event('change')); }
     }
 
     // Mode button click
@@ -95,7 +105,7 @@
       document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active'));
       btn.classList.add('active');
       const select = document.getElementById('id_theme_mode');
-      if (select) select.value = mode;
+      if (select) { select.value = mode; select.dispatchEvent(new Event('change')); }
 
       // Update pill nav indicator
       const nav = btn.closest('.nav-pills');
@@ -103,6 +113,22 @@
         nav._pillNav.updateIndicator();
       }
     }
+  });
+
+  // Mode selector via nav-pills tab events (shown.bs.tab)
+  document.addEventListener('shown.bs.tab', function(e) {
+    if (_initializingMode) return;
+    const btn = e.target;
+    if (!btn.closest('.mode-selector')) return;
+    // Tab IDs are like "mode-selector-light-tab" → extract mode
+    const match = btn.id && btn.id.match(/mode-selector-(.+)-tab$/);
+    if (!match) return;
+    const mode = match[1];
+    ThemeManager.applyMode(mode === 'system'
+      ? (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light')
+      : mode);
+    const select = document.getElementById('id_theme_mode');
+    if (select) { select.value = mode; select.dispatchEvent(new Event('change')); }
   });
 
   // Export for potential manual initialization

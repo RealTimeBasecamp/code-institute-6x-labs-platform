@@ -12,6 +12,17 @@
   --bs-tertiary-bg: #f9fafb;
   --bs-border-color: #e9e9e7;
   --bs-hover-bg: color-mix(in srgb, var(--primary-color) 10%, var(--bs-body-bg));
+
+  /* Chart palette — cyan-anchored, each hue clearly distinct, same cool-tech feel */
+  --chart-1: #059acc; /* primary  — cyan */
+  --chart-2: #00897b; /* teal     — shifted green, clearly not cyan */
+  --chart-3: #5c6bc0; /* indigo   — cool purple, distinct hue */
+  --chart-4: #e07b00; /* amber    — warm contrast, still feels techy */
+  --chart-5: #43a047; /* sage     — earthy green, readable against all above */
+  --chart-6: #c0392b; /* coral    — warm red, high contrast */
+  --chart-7: #7b5ea7; /* violet   — muted purple, bridges indigo and coral */
+  --chart-8: #0077b6; /* navy     — deep blue, distinct from cyan */
+  --chart-9: #b5860d; /* gold     — warm ochre, pairs with teal */
 }
 
 /* ===== DARK MODE ===== */
@@ -25,4 +36,15 @@
   --bs-tertiary-bg: #202020;
   --bs-border-color: #373737;
   --bs-hover-bg: color-mix(in srgb, var(--primary-color) 12%, var(--bs-body-bg));
+
+  /* Chart palette — brightened for dark, same hue spread as light */
+  --chart-1: #22c5f0; /* primary  — bright cyan */
+  --chart-2: #26c6a2; /* teal     — bright green-teal */
+  --chart-3: #7986cb; /* indigo   — soft indigo */
+  --chart-4: #ffa726; /* amber    — warm bright */
+  --chart-5: #66bb6a; /* sage     — bright green */
+  --chart-6: #ef5350; /* coral    — bright warm red */
+  --chart-7: #ab7ae0; /* violet   — soft purple */
+  --chart-8: #42a5f5; /* navy     — bright mid-blue */
+  --chart-9: #ffca28; /* gold     — bright warm ochre */
 }

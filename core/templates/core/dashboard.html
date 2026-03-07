@@ -138,17 +138,8 @@
             </div>
           </div>
 
-          {# Pie family #}
+          {# Pie + Parliament #}
           <div class="row">
-            <div class="col-12 col-lg-6">
-              {% include 'components/chart_viz.html' with
-                  id='vizPieEntry'
-                  scene='pie-entry'
-                  label='Pie Entry'
-                  subtitle='Rose-type donut with animated entry'
-                  card_class='chart-viz-hero'
-              %}
-            </div>
             <div class="col-12 col-lg-6">
               {% include 'components/chart_viz.html' with
                   id='vizPie'
@@ -158,11 +149,7 @@
                   card_class='chart-viz-hero'
               %}
             </div>
-          </div>
-
-          {# Custom series family #}
-          <div class="row">
-            <div class="col-12 col-lg-4">
+            <div class="col-12 col-lg-6">
               {% include 'components/chart_viz.html' with
                   id='vizParliament'
                   scene='parliament'
@@ -171,16 +158,20 @@
                   card_class='chart-viz-hero'
               %}
             </div>
-            <div class="col-12 col-lg-4">
+          </div>
+
+          {# Bar + Metaball #}
+          <div class="row">
+            <div class="col-12 col-lg-6">
               {% include 'components/chart_viz.html' with
-                  id='vizSurvey'
-                  scene='survey'
-                  label='Survey'
-                  subtitle='Circle-packed custom series'
+                  id='vizBar'
+                  scene='bar'
+                  label='Bar'
+                  subtitle='Standard cartesian bar'
                   card_class='chart-viz-hero'
               %}
             </div>
-            <div class="col-12 col-lg-4">
+            <div class="col-12 col-lg-6">
               {% include 'components/chart_viz.html' with
                   id='vizMetaball'
                   scene='metaball'
@@ -191,54 +182,14 @@
             </div>
           </div>
 
-          {# Bar family #}
+          {# Particles #}
           <div class="row">
-            <div class="col-12 col-lg-4">
-              {% include 'components/chart_viz.html' with
-                  id='vizBar'
-                  scene='bar'
-                  label='Bar'
-                  subtitle='Standard cartesian bar'
-                  card_class='chart-viz-hero'
-              %}
-            </div>
-            <div class="col-12 col-lg-4">
-              {% include 'components/chart_viz.html' with
-                  id='vizBarPolar'
-                  scene='bar-polar'
-                  label='Bar Polar'
-                  subtitle='Radial bar on polar axis'
-                  card_class='chart-viz-hero'
-              %}
-            </div>
-            <div class="col-12 col-lg-4">
-              {% include 'components/chart_viz.html' with
-                  id='vizBarRacing'
-                  scene='bar-racing'
-                  label='Bar Racing'
-                  subtitle='Animated realtime-sort ranking'
-                  card_class='chart-viz-hero'
-              %}
-            </div>
-          </div>
-
-          {# Particles + Map #}
-          <div class="row">
-            <div class="col-12 col-lg-6">
+            <div class="col-12">
               {% include 'components/chart_viz.html' with
                   id='vizParticles'
                   scene='particles'
                   label='Particles'
                   subtitle='3D wave — native ECharts custom series'
-                  card_class='chart-viz-hero'
-              %}
-            </div>
-            <div class="col-12 col-lg-6">
-              {% include 'components/chart_viz.html' with
-                  id='vizMap'
-                  scene='map'
-                  label='Map'
-                  subtitle='USA choropleth'
                   card_class='chart-viz-hero'
               %}
             </div>
@@ -259,7 +210,7 @@
 
           {# Hierarchy family #}
           <div class="row">
-            <div class="col-12 col-lg-6">
+            <div class="col-12 col-lg-4">
               {% include 'components/chart_viz.html' with
                   id='vizTreemap'
                   scene='treemap'
@@ -268,7 +219,7 @@
                   card_class='chart-viz-hero'
               %}
             </div>
-            <div class="col-12 col-lg-6">
+            <div class="col-12 col-lg-4">
               {% include 'components/chart_viz.html' with
                   id='vizTreemapComplex'
                   scene='treemap-complex'
@@ -277,10 +228,7 @@
                   card_class='chart-viz-hero'
               %}
             </div>
-          </div>
-
-          <div class="row">
-            <div class="col-12 col-lg-6">
+            <div class="col-12 col-lg-4">
               {% include 'components/chart_viz.html' with
                   id='vizCirclePacking'
                   scene='circle-packing'
@@ -289,65 +237,16 @@
                   card_class='chart-viz-hero'
               %}
             </div>
-            <div class="col-12 col-lg-6">
-              {% include 'components/chart_viz.html' with
-                  id='vizSunburst'
-                  scene='sunburst'
-                  label='Sunburst'
-                  subtitle='Radial tree — navigate to node and back'
-                  card_class='chart-viz-hero'
-              %}
-            </div>
           </div>
 
-          {# Calendar family #}
+          {# Calendar scatter #}
           <div class="row">
-            <div class="col-12 col-lg-6">
-              {% include 'components/chart_viz.html' with
-                  id='vizCalendarHeatmap'
-                  scene='calendar-heatmap'
-                  label='Calendar Heatmap'
-                  subtitle='GitHub-style contribution heatmap'
-                  card_class='chart-viz-hero'
-              %}
-            </div>
-            <div class="col-12 col-lg-6">
+            <div class="col-12">
               {% include 'components/chart_viz.html' with
                   id='vizCalendarScatter'
                   scene='calendar-scatter'
                   label='Calendar Scatter'
                   subtitle='Scatter + effect scatter on calendar'
-                  card_class='chart-viz-hero'
-              %}
-            </div>
-          </div>
-
-          {# Gauge + extensions #}
-          <div class="row">
-            <div class="col-12 col-lg-4">
-              {% include 'components/chart_viz.html' with
-                  id='vizGaugeCar'
-                  scene='gauge-car'
-                  label='Gauge'
-                  subtitle='Speedometer with radial gradient progress'
-                  card_class='chart-viz-hero'
-              %}
-            </div>
-            <div class="col-12 col-lg-4">
-              {% include 'components/chart_viz.html' with
-                  id='vizWordCloud'
-                  scene='word-cloud'
-                  label='Word Cloud'
-                  subtitle='Pentagon-masked word cloud (requires echarts-wordcloud)'
-                  card_class='chart-viz-hero'
-              %}
-            </div>
-            <div class="col-12 col-lg-4">
-              {% include 'components/chart_viz.html' with
-                  id='vizLiquidFill'
-                  scene='liquid-fill'
-                  label='Liquid Fill'
-                  subtitle='Animated liquid fill gauges (requires echarts-liquidfill)'
                   card_class='chart-viz-hero'
               %}
             </div>
@@ -428,7 +327,6 @@
   });
 </script>
 
-<script src="{% static 'js/components/theme-preferences.js' %}" defer></script>
 {% if not user.profile_setup_complete %}
 <script>
   // Auto-open profile wizard on first login

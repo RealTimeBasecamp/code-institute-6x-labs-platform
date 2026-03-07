@@ -84,6 +84,7 @@ class User(AbstractUser):
             ('sunset', 'Sunset'),
             ('honeycomb', 'Honeycomb'),
             ('ocean', 'Ocean'),
+            ('6xlabs', '6xLabs'),
         ],
         help_text="Color theme selection"
     )

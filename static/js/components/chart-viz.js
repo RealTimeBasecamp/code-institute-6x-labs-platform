@@ -34,24 +34,21 @@ window.ChartViz = (function () {
   // =========================================================================
 
   function chartSetTimeout(chart, cb, time) {
-    var animator = chart
-      .getZr()
-      .animation.animate({ val: 0 }, { loop: false })
-      .when(time, { val: 1 })
-      .during(function () {
-        chart.getZr().wakeUp();
-      })
-      .done(function () {
-        // Must defer — or zrender flush will re-invoke the callback immediately.
-        setTimeout(cb, 0);
-      })
-      .start();
-    return animator;
+    // Use plain setTimeout instead of zrender animation — the upstream wakeUp()
+    // technique is designed for a single landing-page chart and causes excessive
+    // per-frame work when multiple charts are active simultaneously.
+    var id = setTimeout(cb, time);
+    // Return a fake animator object that chartClearTimeout can cancel
+    return { _timerId: id };
   }
 
   function chartClearTimeout(chart, animator) {
     if (animator) {
-      try { chart.getZr().animation.removeAnimator(animator); } catch (e) {}
+      if (animator._timerId != null) {
+        clearTimeout(animator._timerId);
+      } else {
+        try { chart.getZr().animation.removeAnimator(animator); } catch (e) {}
+      }
     }
   }
 
@@ -137,17 +134,71 @@ window.ChartViz = (function () {
   // THEME HELPERS
   // =========================================================================
 
+  // Fallback palette — colour-blind safe, used when CSS variables aren't loaded yet
+  var FALLBACK_PALETTE = [
+    '#059acc','#e07b00','#d94f3d','#7b4fb8','#1a9e7c',
+    '#c9a800','#b5006e','#3d6db5','#5a8a52'
+  ];
+
   function getThemeColors() {
     var s = getComputedStyle(document.documentElement);
+    var palette = [];
+    for (var i = 1; i <= 9; i++) {
+      var v = s.getPropertyValue('--chart-' + i).trim();
+      palette.push(v || FALLBACK_PALETTE[i - 1]);
+    }
     return {
-      primary:       s.getPropertyValue('--primary-color').trim()    || '#059acc',
-      text:          s.getPropertyValue('--bs-body-color').trim()     || '#55534e',
-      textSecondary: s.getPropertyValue('--bs-secondary-color').trim()|| '#91918e',
-      background:    s.getPropertyValue('--bs-body-bg').trim()        || '#ffffff',
-      cardBg:        s.getPropertyValue('--bs-tertiary-bg').trim()    || '#f9fafb',
-      border:        s.getPropertyValue('--bs-border-color').trim()   || '#e9e9e7'
+      primary:       s.getPropertyValue('--primary-color').trim()     || FALLBACK_PALETTE[0],
+      text:          s.getPropertyValue('--bs-body-color').trim()      || '#55534e',
+      textSecondary: s.getPropertyValue('--bs-secondary-color').trim() || '#91918e',
+      background:    s.getPropertyValue('--bs-body-bg').trim()         || '#ffffff',
+      cardBg:        s.getPropertyValue('--bs-tertiary-bg').trim()     || '#f9fafb',
+      border:        s.getPropertyValue('--bs-border-color').trim()    || '#e9e9e7',
+      palette:       palette   // all 9 chart colours in order
     };
   }
+
+  // =========================================================================
+  // SHARED THEME OBSERVER — one MutationObserver for all instances
+  // =========================================================================
+
+  var _themeListeners = [];
+
+  (function () {
+    var observer = new MutationObserver(function (mutations) {
+      for (var i = 0; i < mutations.length; i++) {
+        var attr = mutations[i].attributeName;
+        if (attr === 'data-bs-theme' || attr === 'data-theme') {
+          var themeLink = document.getElementById('theme-styles');
+          if (themeLink && attr === 'data-theme') {
+            // Wait for the new theme CSS file to finish loading
+            var fired = false;
+            var notify = function () {
+              if (fired) return;
+              fired = true;
+              for (var j = 0; j < _themeListeners.length; j++) {
+                _themeListeners[j]._onThemeChange();
+              }
+            };
+            themeLink.addEventListener('load', notify, { once: true });
+            setTimeout(notify, 400); // fallback
+          } else {
+            // Mode-only change — CSS vars update synchronously, short delay sufficient
+            setTimeout(function () {
+              for (var j = 0; j < _themeListeners.length; j++) {
+                _themeListeners[j]._onThemeChange();
+              }
+            }, 50);
+          }
+          break;
+        }
+      }
+    });
+    observer.observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ['data-bs-theme', 'data-theme']
+    });
+  })();
 
   // =========================================================================
   // CHARTVIZ CLASS
@@ -215,20 +266,9 @@ window.ChartViz = (function () {
       this._resizeObserver.observe(this._el);
     }
 
-    // Theme change observer
-    this._themeObserver = new MutationObserver(function (mutations) {
-      for (var i = 0; i < mutations.length; i++) {
-        var attr = mutations[i].attributeName;
-        if (attr === 'data-bs-theme' || attr === 'data-theme') {
-          setTimeout(function () { self._onThemeChange(); }, 50);
-          break;
-        }
-      }
-    });
-    this._themeObserver.observe(document.documentElement, {
-      attributes: true,
-      attributeFilter: ['data-bs-theme', 'data-theme']
-    });
+    // Theme changes: subscribe to shared observer (one MutationObserver for all instances)
+    _themeListeners.push(self);
+    this._themeObserver = true; // flag so destroy() knows to unsubscribe
 
     // IntersectionObserver — init and animate only when visible, pause when off-screen
     if (window.IntersectionObserver) {
@@ -255,7 +295,7 @@ window.ChartViz = (function () {
             self._currentSceneObj.stop(self._chart);
           }
         }
-      }, { threshold: 0.05 });
+      }, { threshold: 0.15 });
       this._intersectObserver.observe(this._el);
     } else {
       // Fallback: no IntersectionObserver — init immediately
@@ -308,8 +348,6 @@ window.ChartViz = (function () {
     this._currentSceneObj = scene;
     scene.reset();
 
-    this._chart.resize();
-
     // Apply dark background from scene metadata
     if (scene._background) {
       this._el.style.background = scene._background;
@@ -334,7 +372,11 @@ window.ChartViz = (function () {
   // INTERNAL: auto-cycle through all registered non-internal scenes
   // -------------------------------------------------------------------------
 
-  var INTERNAL_SCENES = [];   // none excluded — all scenes are equal
+  var INTERNAL_SCENES = [
+    'pie-entry', 'survey', 'bar-polar', 'bar-racing',
+    'map', 'sunburst', 'calendar-heatmap',
+    'gauge-car', 'word-cloud', 'liquid-fill'
+  ];
 
   ChartVizInstance.prototype._startAutoCycle = function () {
     var scenes = window.ChartVizScenes ? window.ChartVizScenes.list() : [];
@@ -360,7 +402,6 @@ window.ChartViz = (function () {
 
     this._currentSceneObj = scene;
     scene.reset();
-    this._chart.resize();
 
     if (scene._background) {
       this._el.style.background = scene._background;
@@ -397,7 +438,17 @@ window.ChartViz = (function () {
   // -------------------------------------------------------------------------
 
   ChartVizInstance.prototype._onThemeChange = function () {
-    if (!this._chart || !this._currentScene || this._currentScene === 'all') return;
+    if (!this._chart || !this._currentScene) return;
+
+    if (this._currentScene === 'all') {
+      // Restart auto-cycle from the current scene index so colors refresh
+      if (this._autoPlaying) {
+        if (this._currentSceneObj) this._currentSceneObj.stop(this._chart);
+        this._playAutoCycleScene();
+      }
+      return;
+    }
+
     var scene = window.ChartVizScenes && window.ChartVizScenes.get(this._currentScene);
     if (scene && this._currentSceneObj) {
       // Stop and replay from beginning with refreshed colors (scenes call getThemeColors internally)
@@ -413,8 +464,11 @@ window.ChartViz = (function () {
 
   ChartVizInstance.prototype.destroy = function () {
     this._stopCurrentScene();
-    if (this._resizeObserver)   this._resizeObserver.disconnect();
-    if (this._themeObserver)    this._themeObserver.disconnect();
+    if (this._resizeObserver)    this._resizeObserver.disconnect();
+    if (this._themeObserver) {
+      var idx = _themeListeners.indexOf(this);
+      if (idx !== -1) _themeListeners.splice(idx, 1);
+    }
     if (this._intersectObserver) this._intersectObserver.disconnect();
     if (this._chart) {
       this._chart.dispose();

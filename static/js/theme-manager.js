@@ -140,10 +140,10 @@
 
   /**
    * Change the color theme
-   * @param {string} theme - One of: default, moon, gaia, sunset, honeycomb, ocean
+   * @param {string} theme - One of: default, moon, gaia, sunset, honeycomb, ocean, 6xlabs
    */
   function changeTheme(theme) {
-    const validThemes = ['default', 'moon', 'gaia', 'sunset', 'honeycomb', 'ocean'];
+    const validThemes = ['default', 'moon', 'gaia', 'sunset', 'honeycomb', 'ocean', '6xlabs'];
     if (validThemes.includes(theme)) {
       applyTheme(theme);
     } else {

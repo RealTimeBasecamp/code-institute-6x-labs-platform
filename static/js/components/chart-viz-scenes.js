@@ -16,7 +16,14 @@
   function get(name) { return _scenes[name] || null; }
   function list() { return _order.slice(); }
 
-  var PAL = ['#5070dd','#b6d634','#505372','#ff994d','#0ca8df','#ffd10a','#fb628b','#785db0','#3fbe95'];
+  // Theme-aware palette helpers.
+  // getPAL() — returns the full 9-colour array from the current theme CSS vars.
+  // pal(i)   — returns a single colour by index.
+  // NOTE: getThemeColors() calls getComputedStyle() which is expensive. Both
+  // helpers are intended for use inside option *functions* (called once per scene
+  // play), NOT inside renderItem callbacks (called per data point per frame).
+  function getPAL() { return ChartViz.getThemeColors().palette; }
+  function pal(i)   { return getPAL()[i % 9] || '#059acc'; }
 
   function pieLayout(data, startAngle, totalAngle) {
     var sum = 0; for (var i = 0; i < data.length; i++) sum += data[i].value;
@@ -44,7 +51,7 @@
   // ── pie-entry ──────────────────────────────────────────────────────────────
   register('pie-entry', new ChartViz.Scene({
     option: [function () {
-      return { series: [{ type: 'pie', radius: ['20%','100%'], center: ['50%','50%'], roseType: 'radius',
+      return { color: getPAL(), series: [{ type: 'pie', radius: ['20%','100%'], center: ['50%','50%'], roseType: 'radius',
         label: { show: false }, labelLine: { show: false },
         itemStyle: { borderColor: 'white', borderWidth: 4 }, animationType: 'scale',
         animationDuration: 0, animationEasing: 'cubicOut',
@@ -60,16 +67,16 @@
 
   // ── pie ────────────────────────────────────────────────────────────────────
   register('pie', new ChartViz.Scene({
-    option: [{ series: [{ type: 'pie', center: ['50%','50%'], radius: PIE_RADIUS,
+    option: [function () { return { color: getPAL(), series: [{ type: 'pie', center: ['50%','50%'], radius: PIE_RADIUS,
       label: { show: false }, itemStyle: { borderRadius: [0,0], borderWidth: 0 },
       universalTransition: { enabled: true, seriesKey: 'point' }, animationDurationUpdate: 1000,
-      data: PIE_DATA }] }],
+      data: PIE_DATA }] }; }],
     duration: 1500
   }));
 
   // ── parliament ─────────────────────────────────────────────────────────────
   register('parliament', new ChartViz.Scene({
-    option: [{ series: [{ type: 'custom', data: PIE_DATA, coordinateSystem: undefined,
+    option: [function () { return { color: getPAL(), series: [{ type: 'custom', data: PIE_DATA, coordinateSystem: undefined,
       encode: { tooltip: 'value', itemName: 'name' },
       universalTransition: { enabled: true, seriesKey: 'point' }, animationDurationUpdate: 1000,
       renderItem: function (params, api) {
@@ -80,15 +87,15 @@
         var points = layoutSector(PIE_ANGLES[idx], PIE_ANGLES[idx + 1], Math.PI * 2, r0, r1, size + 3);
         return { type: 'group', focus: 'self', children: points.map(function (pt) {
           return { type: 'circle', shape: { cx: cx + pt[0], cy: cy + pt[1], r: size / 2 },
-            style: { fill: PAL[idx % PAL.length] } };
+            style: { fill: pal(idx) } };
         }) };
-      } }] }],
+      } }] }; }],
     duration: 1000
   }));
 
   // ── survey ─────────────────────────────────────────────────────────────────
   register('survey', new ChartViz.Scene({
-    option: [{ series: [{ type: 'custom', data: PIE_DATA, coordinateSystem: undefined,
+    option: [function () { return { color: getPAL(), series: [{ type: 'custom', data: PIE_DATA, coordinateSystem: undefined,
       encode: { tooltip: 'value', itemName: 'name' },
       universalTransition: { enabled: true, seriesKey: 'point', delay: function (idx, count) { return (idx / count) * 1000; } },
       animationDurationUpdate: 1000,
@@ -102,28 +109,28 @@
         var newSize = cellW / 10, x = 0;
         var circles = points.map(function () { var r = (Math.pow(Math.random(), 10) * newSize) / 2 + newSize / 4; var c = { x: x + r, y: 0, r: r }; x += r * 2 + 1; return c; });
         return { type: 'group', focus: 'self', children: circles.map(function (c) {
-          return { type: 'circle', shape: { cx: cx + c.x, cy: cy + c.y, r: c.r }, style: { fill: PAL[idx % PAL.length] } };
+          return { type: 'circle', shape: { cx: cx + c.x, cy: cy + c.y, r: c.r }, style: { fill: pal(idx) } };
         }) };
-      } }] }],
+      } }] }; }],
     duration: 3000
   }));
 
   // ── bar ────────────────────────────────────────────────────────────────────
   register('bar', new ChartViz.Scene({
-    option: [{ tooltip: { trigger: 'axis' }, xAxis: { data: PIE_DATA.map(function (d) { return d.name; }) }, yAxis: {},
+    option: [function () { return { tooltip: { trigger: 'axis' }, xAxis: { data: PIE_DATA.map(function (d) { return d.name; }) }, yAxis: {},
       series: [{ type: 'bar', label: { show: false }, animationEasingUpdate: 'circularInOut', animationDurationUpdate: 800,
         universalTransition: { enabled: true, seriesKey: 'point', delay: function () { return Math.random() * 1000; } },
-        data: PIE_DATA.map(function (d, idx) { return { value: d.value, groupId: d.name, itemStyle: { color: PAL[idx % PAL.length] } }; }) }] }],
+        data: PIE_DATA.map(function (d, idx) { return { value: d.value, groupId: d.name, itemStyle: { color: pal(idx) } }; }) }] }; }],
     duration: 2500
   }));
 
   // ── bar-polar ──────────────────────────────────────────────────────────────
   register('bar-polar', new ChartViz.Scene({
-    option: [{ angleAxis: { axisLine: { lineStyle: { color: '#eee' } }, data: PIE_DATA.map(function (d) { return d.name; }) },
+    option: [function () { return { angleAxis: { axisLine: { lineStyle: { color: '#eee' } }, data: PIE_DATA.map(function (d) { return d.name; }) },
       radiusAxis: { show: false }, polar: { radius: ['20%','70%'] },
       series: [{ type: 'bar', coordinateSystem: 'polar', id: 'new', label: { show: false },
         animationDurationUpdate: 1000, universalTransition: { enabled: true, seriesKey: 'point' },
-        data: PIE_DATA.map(function (d, idx) { return { value: d.value, groupId: d.name, itemStyle: { color: PAL[idx % PAL.length] } }; }) }] }],
+        data: PIE_DATA.map(function (d, idx) { return { value: d.value, groupId: d.name, itemStyle: { color: pal(idx) } }; }) }] }; }],
     duration: 1500
   }));
 
@@ -139,8 +146,67 @@
     }
     randData.sort(function (a,b) { return a.dist - b.dist; });
 
+    // ── rasterize 6xlabs logo into 2500 normalised point positions ────────────
+    var LOGO_PATH_D = 'M 128,0 c -33.94745,0 -66.5053,13.4857 -90.50977,37.4902'
+      + ' -24.00446,24.0045 -37.49023,56.5623 -37.49023,90.5098 0,33.9472 13.48577,66.5053 37.49023,90.5097'
+      + ' 24.00447,24.0043 56.56232,37.4903 90.50977,37.4903 53.16653,-0.1452 100.70956,-33.1416 119.44336,-82.8985'
+      + ' 0.11693,-0.3101 0.23306,-0.6207 0.34766,-0.9316 5.31925,-14.1244 8.09807,-29.0776 8.20898,-44.1699'
+      + ' 0,-33.9475 -13.48577,-66.5053 -37.49023,-90.5098 -24.00447,-24.0045 -56.56233,-37.4902 -90.50977,-37.4902 z'
+      + ' m -74.13281,99.6386 a 28.354978,28.360589 0 0 1 26.04492,17.1973 h 22.34375'
+      + ' a 28.354978,28.360589 0 0 1 25.74414,-17.1973 28.354978,28.360589 0 0 1 26.04688,17.1973 h 22.4121'
+      + ' a 28.354978,28.360589 0 0 1 25.74415,-17.1973 28.354978,28.360589 0 0 1 28.35546,28.3614'
+      + ' 28.354978,28.360589 0 0 1 -28.35546,28.3593 28.354978,28.360589 0 0 1 -25.74415,-17.1953 h -22.71484'
+      + ' a 28.354978,28.360589 0 0 1 -25.74414,17.1953 28.354978,28.360589 0 0 1 -25.74414,-17.1953 h -22.64453'
+      + ' a 28.354978,28.360589 0 0 1 -25.74414,17.1953 28.354978,28.360589 0 0 1 -28.35547,-28.3593'
+      + ' 28.354978,28.360589 0 0 1 28.35547,-28.3614 z';
+
+    var _logoPoints = [];
+    (function () {
+      var SZ = 256;
+      var cnv = document.createElement('canvas');
+      cnv.width = cnv.height = SZ;
+      var ctx2d = cnv.getContext('2d');
+      ctx2d.fillStyle = '#000';
+      ctx2d.fill(new Path2D(LOGO_PATH_D), 'evenodd');
+      var raw = ctx2d.getImageData(0, 0, SZ, SZ).data;
+      var px = [];
+      for (var row = 0; row < SZ; row++)
+        for (var col = 0; col < SZ; col++)
+          if (raw[(row * SZ + col) * 4 + 3] > 127) px.push([col, row]);
+      // Fisher-Yates shuffle so each particle gets a random logo position
+      for (var ii = px.length - 1; ii > 0; ii--) {
+        var jj = Math.floor(Math.random() * (ii + 1));
+        var tmp = px[ii]; px[ii] = px[jj]; px[jj] = tmp;
+      }
+      var N = grid * grid;
+      for (var kk = 0; kk < N; kk++) {
+        var pt = px[kk % px.length];
+        _logoPoints.push([pt[0] / (SZ - 1), pt[1] / (SZ - 1)]);
+      }
+    })();
+
+    // Pre-compute stable stagger delays so random() isn't re-called on each render
+    var _stagger = [];
+    for (var si = 0; si < grid * grid; si++) _stagger.push(Math.random() * 600);
+
+    // SVG data URI for the graphic overlay (pixels known only at render time)
+    var _svgUri = 'data:image/svg+xml,' + encodeURIComponent(
+      '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256">'
+      + '<path fill="' + PDOT + '" fill-rule="evenodd" d="' + LOGO_PATH_D + '"/></svg>'
+    );
+
+    // Helper: chart-pixel position for a logo point, centred and scaled to chart
+    function logoPos(api, idx) {
+      var w = api.getWidth(), h = api.getHeight();
+      var fit = Math.min(w, h) * 0.78;
+      var ox = (w - fit) * 0.5, oy = (h - fit) * 0.5;
+      var pt = _logoPoints[idx];
+      return { cx: ox + pt[0] * fit, cy: oy + pt[1] * fit };
+    }
+
     register('particles', new ChartViz.Scene({
       option: [
+        // ── steps 0-6: existing (unchanged) ────────────────────────────────
         { series: { type:'custom', data:randData, coordinateSystem:undefined,
           universalTransition:{enabled:true,seriesKey:'point'}, animationThreshold:1e5, animationDurationUpdate:500, animationEasingUpdate:'circularOut',
           renderItem: function(p,api) { return {type:'circle',shape:{cx:+api.value(0)*api.getWidth(),cy:+api.value(1)*api.getHeight(),r:2},style:{fill:PDOT}}; } } },
@@ -155,9 +221,63 @@
         { series: { animationEasingUpdate:'cubicOut', animationDurationUpdate:200, animationDelayUpdate:function(){return Math.random()*500;},
           renderItem: function(p,api) { var m=p.dataIndex%grid,n=Math.floor(p.dataIndex/grid),c=get3d(m,n,0),pt=proj3d(c[0],c[1],c[2],api.getWidth(),api.getHeight()); return {type:'circle',shape:{cx:pt[0]+Math.random()*5,cy:api.getHeight()/2,r:1},transition:['shape'],style:{fill:PDOT}}; } } },
         { series: { animationEasingUpdate:'cubicOut', animationDurationUpdate:500, animationDelayUpdate:0,
-          renderItem: function(p,api) { return {type:'circle',shape:{cx:api.getWidth()/2,cy:api.getHeight()/2,r:0},transition:['shape'],style:{transition:['opacity'],opacity:0,fill:PDOT}}; } } }
+          renderItem: function(p,api) { return {type:'circle',shape:{cx:api.getWidth()/2,cy:api.getHeight()/2,r:0},transition:['shape'],style:{transition:['opacity'],opacity:0,fill:PDOT}}; } } },
+
+        // ── step 7: particles burst from centre → logo positions ─────────────
+        { series: {
+            animationEasingUpdate: 'cubicOut',
+            animationDurationUpdate: 1400,
+            animationDelayUpdate: function(idx) { return _stagger[idx] * 0.5; },
+            renderItem: function(p, api) {
+              var pos = logoPos(api, p.dataIndex);
+              return { type:'circle', shape:{ cx:pos.cx, cy:pos.cy, r:2 },
+                transition:['shape'], style:{ fill:PDOT, opacity:1, transition:['opacity'] } };
+            }
+          }
+        },
+
+        // ── step 8: particles grow to fill the logo shape solidly ────────────
+        { series: {
+            animationEasingUpdate: 'cubicInOut',
+            animationDurationUpdate: 800,
+            animationDelayUpdate: 0,
+            renderItem: function(p, api) {
+              var pos = logoPos(api, p.dataIndex);
+              var fit = Math.min(api.getWidth(), api.getHeight()) * 0.78;
+              var fillR = Math.max(fit / 256 * 1.6, 2);
+              return { type:'circle', shape:{ cx:pos.cx, cy:pos.cy, r:fillR },
+                transition:['shape'], style:{ fill:PDOT, opacity:1 } };
+            }
+          }
+        },
+
+        // ── step 9: SVG logo fades in; particles fade out ────────────────────
+        function(chart) {
+          var w = chart.getWidth(), h = chart.getHeight();
+          var fit = Math.min(w, h) * 0.78;
+          var ox = (w - fit) * 0.5, oy = (h - fit) * 0.5;
+          var fillR = Math.max(fit / 256 * 1.6, 2);
+          return {
+            graphic: { elements: [{
+              type: 'image', id: 'pLogoOverlay', z: 100,
+              style: { image: _svgUri, x: ox, y: oy, width: fit, height: fit, opacity: 1 },
+              enterFrom: { style: { opacity: 0 } },
+              enterAnimation: { duration: 900, easing: 'cubicOut' }
+            }] },
+            series: {
+              animationEasingUpdate: 'cubicOut',
+              animationDurationUpdate: 600,
+              animationDelayUpdate: function(idx) { return _stagger[idx] * 0.4; },
+              renderItem: function(p, api) {
+                var pos = logoPos(api, p.dataIndex);
+                return { type:'circle', shape:{ cx:pos.cx, cy:pos.cy, r:fillR },
+                  transition:['shape'], style:{ fill:PDOT, opacity:0, transition:['opacity'] } };
+              }
+            }
+          };
+        }
       ],
-      duration:[700,500,1000,500,5000,700,500]
+      duration:[700,500,1000,500,5000,700,500, 1600, 1100, 2500]
     }));
   })();
 
@@ -216,14 +336,20 @@
       'M14 18v-14c-7.732 0-14 6.268-14 14s6.268 14 14 14 14-6.268 14-14c0-2.251-0.532-4.378-1.476-6.262l-12.524 6.262z',
       LOGO_PATH];
 
-    function gcs(api,di){var w=api.getWidth(),h=api.getHeight(),vs=Math.sqrt(w*w+h*h)/2,ring=api.value(0,di),angle=api.value(1,di),r=vs*ring,size=(vs/20)*api.value(2,di);return{cx:w/2+Math.cos(angle)*r,cy:h/2+Math.sin(angle)*r,r:size};}
+    // gcs: compute circle geometry for a data point.
+    // w/h/vs/maxDist are pre-computed per-frame outside renderItem where possible.
+    function gcs(w,h,vs,di,api){var ring=api.value(0,di),angle=api.value(1,di),r=vs*ring,size=(vs/20)*api.value(2,di);return{cx:w/2+Math.cos(angle)*r,cy:h/2+Math.sin(angle)*r,r:size};}
 
     var opts=[],durs=[];
     dataAll.forEach(function(data,di){
       opts.push({series:[{type:'custom',coordinateSystem:undefined,data:data,animationDuration:700,animationEasing:'cubicInOut',
         animationDelay:function(idx){return data[idx]&&data[idx][4]?data[idx][4]:0;},
-        renderItem:function(p,api){var circ=gcs(api),fi=data[p.dataIndex]?data[p.dataIndex][3]:null,from=fi!=null?gcs(api,fi):null,ch=[{type:'circle',silent:true,shape:Object.assign({},circ,from?{enterFrom:from}:{}),transition:['shape'],style:{fill:FILL}}];
-          if(from)ch.push({type:'metaball',transition:['shape'],silent:true,shape:{cx1:from.cx,cy1:from.cy,r1:from.r,cx2:circ.cx,cy2:circ.cy,r2:circ.r,maxDistance:Math.sqrt(api.getWidth()*api.getWidth()+api.getHeight()*api.getHeight())/2/10,enterFrom:{cx2:from.cx,cy2:from.cy,r2:from.r}},style:{fill:FILL}});
+        renderItem:function(p,api){
+          // Compute size-dependent values once per renderItem call (not per sub-shape)
+          var w=api.getWidth(),h=api.getHeight(),vs=Math.sqrt(w*w+h*h)/2,maxDist=vs/10;
+          var circ=gcs(w,h,vs,undefined,api),fi=data[p.dataIndex]?data[p.dataIndex][3]:null,from=fi!=null?gcs(w,h,vs,fi,api):null;
+          var ch=[{type:'circle',silent:true,shape:Object.assign({},circ,from?{enterFrom:from}:{}),transition:['shape'],style:{fill:FILL}}];
+          if(from)ch.push({type:'metaball',transition:['shape'],silent:true,shape:{cx1:from.cx,cy1:from.cy,r1:from.r,cx2:circ.cx,cy2:circ.cy,r2:circ.r,maxDistance:maxDist,enterFrom:{cx2:from.cx,cy2:from.cy,r2:from.r}},style:{fill:FILL}});
           return{type:'group',children:ch};}}]});
       durs.push(di===0?100:1500);
     });
@@ -232,7 +358,7 @@
       var dur = i === SVGS.length - 1 ? 2000 : 500;  // hold the logo longer
       opts.push((function(path){
         return {series:[{type:'custom',coordinateSystem:undefined,data:ld,animationDuration:1500,animationEasing:'cubicInOut',animationDelay:0,universalTransition:{enabled:true},
-          renderItem:function(p,api){var c=gcs(api);return{type:'path',silent:true,shape:{d:path,x:c.cx-c.r,y:c.cy-c.r,width:c.r*2,height:c.r*2},transition:['shape'],style:{fill:FILL}};}}]};
+          renderItem:function(p,api){var w=api.getWidth(),h=api.getHeight(),vs=Math.sqrt(w*w+h*h)/2,c=gcs(w,h,vs,undefined,api);return{type:'path',silent:true,shape:{d:path,x:c.cx-c.r,y:c.cy-c.r,width:c.r*2,height:c.r*2},transition:['shape'],style:{fill:FILL}};}}]};
       })(d));
       durs.push(dur);
     });
@@ -281,7 +407,7 @@
           labelLayout:{moveOverlap:'shiftY'},emphasis:{focus:'series'},
           encode:{x:'Year',y:'Income',label:['Country','Income'],itemName:'Year',tooltip:['Income']}});
       });
-      return{animationDuration:5000,dataset:datasets,xAxis:{type:'category',nameLocation:'middle',axisLine:{lineStyle:{color:'#eee'}}},
+      return{color:getPAL(),animationDuration:5000,dataset:datasets,xAxis:{type:'category',nameLocation:'middle',axisLine:{lineStyle:{color:'#eee'}}},
         yAxis:{name:'Income',axisLine:{lineStyle:{color:'#eee'}},splitLine:{lineStyle:{opacity:0.3}}},grid:{right:140},series:series};
     }],
     duration:5000,background:'#001122',dark:true
@@ -290,7 +416,7 @@
   // ── treemap ────────────────────────────────────────────────────────────────
   register('treemap', new ChartViz.Scene({
     option:[
-      function(){return{color:PAL,series:[{type:'treemap',name:'echarts',left:10,top:10,bottom:10,right:10,animationDurationUpdate:1000,animationThreshold:3000,roam:false,nodeClick:undefined,
+      function(){return{color:getPAL(),series:[{type:'treemap',name:'echarts',left:10,top:10,bottom:10,right:10,animationDurationUpdate:1000,animationThreshold:3000,roam:false,nodeClick:undefined,
         data:(window.ECHARTS_PACKAGE_SIZE||{children:[]}).children,leafDepth:2,label:{show:true},universalTransition:{enabled:true,seriesKey:'hierarchy'},breadcrumb:{show:false}}]};},
       function(chart){chart.dispatchAction({type:'treemapZoomToNode',targetNode:'component/parallel.ts'});},
       function(chart){chart.dispatchAction({type:'treemapZoomToNode',targetNode:'echarts'});}
@@ -300,7 +426,7 @@
 
   // ── treemap-complex ────────────────────────────────────────────────────────
   register('treemap-complex', new ChartViz.Scene({
-    option:[function(){return{color:PAL,series:[{type:'treemap',name:'echarts',left:10,top:10,bottom:10,right:10,animationDurationUpdate:1000,animationThreshold:3000,roam:false,nodeClick:undefined,
+    option:[function(){return{color:getPAL(),series:[{type:'treemap',name:'echarts',left:10,top:10,bottom:10,right:10,animationDurationUpdate:1000,animationThreshold:3000,roam:false,nodeClick:undefined,
       data:(window.ECHARTS_PACKAGE_SIZE||{children:[]}).children,leafDepth:2,
       levels:[{colorMappingBy:'id',itemStyle:{borderWidth:3,gapWidth:3,borderRadius:5,shadowBlur:20,shadowColor:'rgba(20,20,40,1)'}},
         {itemStyle:{borderWidth:2,gapWidth:1,borderRadius:5,shadowBlur:5,shadowColor:'rgba(20,20,40,0.9)'}},
@@ -309,36 +435,43 @@
       label:{show:true,formatter:'{b}',fontSize:10,fontWeight:100,overflow:'break'},
       labelLayout:function(p){if(p.rect.width<5||p.rect.height<5)return{fontSize:0};return{fontSize:Math.min(Math.sqrt(p.rect.width*p.rect.height)/10,14)};},
       itemStyle:{borderColor:'rgba(100,100,200,0.2)',borderWidth:0},
-      upperLabel:{show:true,height:15,fontSize:10,color:PDOT},breadcrumb:{show:false}}]};},],
+      upperLabel:{show:true,height:15,fontSize:10,color:ChartViz.getThemeColors().primary},breadcrumb:{show:false}}]};},],
     duration:3000,background:'#001122',dark:true
   }));
 
   // ── circle-packing ─────────────────────────────────────────────────────────
+  // Layout is pre-computed in the option function (once per play, not per renderItem frame).
+  // Stored in a closure-level cache keyed by canvas size so resize triggers a recalc.
+  var _cpLayoutCache = null;
   register('circle-packing', new ChartViz.Scene({
-    option:[function(){
+    option:[function(chart){
+      var w=chart.getWidth(),h=chart.getHeight();
       var maxDepth=0;
       var eps=window.ECHARTS_PACKAGE_SIZE||{name:'echarts',value:0,children:[]};
       function flatten(node,depth){maxDepth=Math.max(maxDepth,depth);var r=[[node.value||0,depth,node.name]];if(node.children)node.children.forEach(function(c){r=r.concat(flatten(c,depth+1));});return r;}
       var seriesData=flatten(eps,0);
+
+      // Compute layout once; reuse if chart size hasn't changed
+      var cacheKey=w+'x'+h;
+      if(!_cpLayoutCache||_cpLayoutCache.key!==cacheKey){
+        var nodes=[];
+        function v(nd,d){var val=nd.value||0;if(nd.children){nd.children.forEach(function(c){v(c,d+1);});val=nd.children.reduce(function(s,c){return s+(c.value||0);},0)||val;}nodes.push({name:nd.name,value:val,depth:d,hasChildren:!!nd.children});}
+        v(eps,0);
+        nodes.sort(function(a,b){return b.value-a.value;});
+        var tot=nodes[0]?nodes[0].value||1:1,maxR=Math.min(w,h)/2*0.88;
+        nodes.forEach(function(n){n.r=Math.sqrt(n.value/tot)*maxR;});
+        if(nodes[0]){nodes[0].x=w/2;nodes[0].y=h/2;}
+        for(var i=1;i<nodes.length;i++){var a=i*2.39996,dist=Math.sqrt(i)*(maxR/Math.sqrt(nodes.length));nodes[i].x=w/2+Math.cos(a)*dist;nodes[i].y=h/2+Math.sin(a)*dist;}
+        var packed={};nodes.forEach(function(n){packed[n.name]=n;});
+        _cpLayoutCache={key:cacheKey,packed:packed};
+      }
+      var packed=_cpLayoutCache.packed;
+
       return{visualMap:{show:false,min:0,max:maxDepth,dimension:1,inRange:{color:['#006edd','#e0ffff']}},
         series:[{type:'custom',coordinateSystem:undefined,animationDurationUpdate:1000,
           universalTransition:{enabled:true,seriesKey:'hierarchy'},encode:{tooltip:0,itemName:2},data:seriesData,
           renderItem:function(p,api){
-            var ctx=p.context;
-            if(!ctx.packed){
-              ctx.packed={};
-              var w=api.getWidth(),h=api.getHeight(),nodes=[];
-              var eps2=window.ECHARTS_PACKAGE_SIZE||{name:'echarts',value:0,children:[]};
-              function v(nd,d){var val=nd.value||0;if(nd.children){nd.children.forEach(function(c){v(c,d+1);});val=nd.children.reduce(function(s,c){return s+(c.value||0);},0)||val;}nodes.push({name:nd.name,value:val,depth:d,hasChildren:!!nd.children});}
-              v(eps2,0);
-              nodes.sort(function(a,b){return b.value-a.value;});
-              var tot=nodes[0]?nodes[0].value||1:1,maxR=Math.min(w,h)/2*0.88;
-              nodes.forEach(function(n){n.r=Math.sqrt(n.value/tot)*maxR;});
-              if(nodes[0]){nodes[0].x=w/2;nodes[0].y=h/2;}
-              for(var i=1;i<nodes.length;i++){var a=i*2.39996,dist=Math.sqrt(i)*(maxR/Math.sqrt(nodes.length));nodes[i].x=w/2+Math.cos(a)*dist;nodes[i].y=h/2+Math.sin(a)*dist;}
-              nodes.forEach(function(n){ctx.packed[n.name]=n;});
-            }
-            var name=api.value(2),node=ctx.packed[name];
+            var name=api.value(2),node=packed[name];
             if(!node)return{type:'circle',z2:1,shape:{cx:0,cy:0,r:0}};
             var label=!node.hasChildren?name.slice(name.lastIndexOf('/')+1):'';
             return{type:'circle',shape:{cx:node.x,cy:node.y,r:node.r},z2:node.depth*2+1,style:{fill:api.visual('color')},
@@ -352,7 +485,7 @@
   // ── sunburst ───────────────────────────────────────────────────────────────
   register('sunburst', new ChartViz.Scene({
     option:[
-      function(){return{title:{text:'ECHARTS',left:'center',top:'center',textStyle:{fontSize:25,color:'#fff'}},color:PAL,
+      function(){return{title:{text:'ECHARTS',left:'center',top:'center',textStyle:{fontSize:25,color:'#fff'}},color:getPAL(),
         series:[{type:'sunburst',name:'echarts',radius:['20%','90%'],animationDurationUpdate:1000,animationThreshold:3000,
           data:(window.ECHARTS_PACKAGE_SIZE||{children:[]}).children,minAngle:1,label:{show:false},
           universalTransition:{enabled:true,seriesKey:'hierarchy'},itemStyle:{borderWidth:0.5,borderColor:'rgba(0,0,0,0.5)'},
