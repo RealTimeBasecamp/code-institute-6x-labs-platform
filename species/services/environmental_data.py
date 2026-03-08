@@ -82,8 +82,12 @@ SPECIES DATABASES (what species grow at this location?):
       No public API. European plant checklist. Use GBIF for European taxonomy.
 """
 
+import calendar as _calendar
+import json
 import logging
 import math
+import urllib.error
+import urllib.request
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
 import requests
@@ -101,8 +105,11 @@ _CACHE_TTL = 60 * 60 * 24 * 30
 # Cache timeout for species traits — 7 days
 _SPECIES_TTL = 60 * 60 * 24 * 7
 
-# HTTP request timeout (seconds)
+# HTTP request timeout (seconds) — default for most APIs
 _TIMEOUT = 15
+# SoilGrids is a free academic API that is frequently slow under load.
+# 30 s gives it enough headroom without blocking the response indefinitely.
+_SOILGRIDS_TIMEOUT = 30
 
 
 def _cache_key(prefix: str, lat: float, lng: float) -> str:
@@ -111,15 +118,17 @@ def _cache_key(prefix: str, lat: float, lng: float) -> str:
     return f"envdata:{prefix}:{lat_r}:{lng_r}"
 
 
-def _get(url: str, params=None, headers: dict = None) -> dict | list | None:
+def _get(url: str, params=None, headers: dict = None, timeout: int = _TIMEOUT) -> dict | list | None:
     """Make a GET request; returns parsed JSON or None on failure.
 
     params can be a dict or a list of (key, value) tuples — the list form
     is required when the same key must appear multiple times (e.g. SoilGrids
     needs repeated ?property=phh2o&property=soc&... parameters).
+
+    timeout overrides the default _TIMEOUT for APIs that are known to be slow.
     """
     try:
-        resp = requests.get(url, params=params, headers=headers, timeout=_TIMEOUT)
+        resp = requests.get(url, params=params, headers=headers, timeout=timeout)
         resp.raise_for_status()
         return resp.json()
     except Exception as exc:
@@ -158,7 +167,8 @@ def fetch_soilgrids(lat: float, lng: float) -> dict:
     for prop in properties:
         params.append(('property', prop))
 
-    data = _get('https://rest.isric.org/soilgrids/v2.0/properties/query', params=params)
+    data = _get('https://rest.isric.org/soilgrids/v2.0/properties/query', params=params,
+                timeout=_SOILGRIDS_TIMEOUT)
     _track('soilgrids')
 
     result = {}
@@ -403,8 +413,19 @@ def _fetch_sepa_flood_risk(lat: float, lng: float) -> dict:
 # ✅ CLIMATE — OpenLandMap (OpenGeoHub Foundation, Netherlands)
 # https://api.openlandmap.org/query/point
 # CC BY-SA 4.0 — commercial use permitted with attribution. No API key required.
-# Precipitation: clm_precipitation_imerge monthly layers (2014–2018 median, 1km)
-# Temperature:   clm_lst_mod11a2 monthly land surface temp (2000–2017 median, 1km)
+#
+# API query format (discovered from their map viewer JS source):
+#   coll=   (empty)
+#   mosaic=false
+#   oem=false
+#   regex=  <exact filename matching the layer_filename_pattern with .* as glob>
+#
+# Precipitation: precipitation_sm2rain.{month}_m_1km_s_.*_go_epsg.4326_v0.2.tif
+#   Values: mm/month (SM2RAIN-ASCAT 2007–2021 + WorldClim + CHELSA average)
+# Temperature:   lst_mod11a2.daytime_p50_1km_s_{YYYYMMDD}_{YYYYMMDD}_go_epsg.4326_v1.2.tif
+#   Values: raw Kelvin×50 → convert: raw * 0.02 − 273.15 = °C  (MODIS MOD11A2)
+#   Uses year 2015 as a representative baseline for each calendar month.
+#
 # Fallback: coordinate heuristics if the API is unreachable at runtime.
 # =============================================================================
 
@@ -412,6 +433,11 @@ _OLM_MONTHS = ['jan', 'feb', 'mar', 'apr', 'may', 'jun',
                'jul', 'aug', 'sep', 'oct', 'nov', 'dec']
 
 _OLM_BASE = 'https://api.openlandmap.org/query/point'
+
+# Representative year for LST monthly queries (used instead of averaging across
+# years, which would require 12×N requests — 2015 is a climatologically neutral
+# year in the MODIS 2000–2021 archive).
+_OLM_LST_YEAR = '2015'
 
 
 def fetch_climate(lat: float, lng: float) -> dict:
@@ -442,85 +468,115 @@ def fetch_climate(lat: float, lng: float) -> dict:
     return result
 
 
+def _olm_fetch_one(url: str) -> float | None:
+    """
+    Fetch a single OpenLandMap point query and return the numeric value.
+
+    The API returns a list containing one dict, e.g.:
+      [{"layer_filename.tif": 117.0}]
+    Returns the first numeric value found, or None on any error.
+
+    Uses urllib.request (not requests) to avoid percent-encoding of special
+    characters in the URL — requests re-encodes .* glob patterns.
+    """
+    try:
+        with urllib.request.urlopen(url, timeout=_TIMEOUT) as resp:
+            data = json.loads(resp.read().decode())
+            # Response is a list of one-key dicts
+            if isinstance(data, list) and data:
+                val = next(iter(data[0].values()), None)
+            elif isinstance(data, dict):
+                val = next(iter(data.values()), None)
+            else:
+                val = None
+            return float(val) if val is not None else None
+    except urllib.error.HTTPError as exc:
+        logger.warning("Environmental data API request failed: %s — %s %s", url, exc.code, exc.reason)
+        return None
+    except Exception as exc:
+        logger.warning("Environmental data API request failed: %s — %s", url, exc)
+        return None
+
+
 def _fetch_openlandmap_climate(lat: float, lng: float) -> dict:
     """
-    Query OpenLandMap for monthly precipitation and land surface temperature.
+    Query OpenLandMap for 12 monthly precipitation and temperature values.
 
-    Two separate requests (precipitation layers + temperature layers) are made
-    to https://api.openlandmap.org/query/point using regex layer selection.
+    Makes 24 individual point queries in parallel (12 months × 2 variables)
+    using the correct API format discovered from the OpenLandMap map viewer:
+      coll=   (empty string)
+      mosaic= false
+      oem=    false
+      regex=  <exact layer filename pattern, with .* as glob wildcard>
 
-    Precipitation layers:
-      clm_precipitation_imerge.{month}_m_1km_s0..0cm_2014..2018_v0.1.tif
-      Values: mm/month (median 2014–2018)
+    Precipitation layers (SM2RAIN-ASCAT + WorldClim + CHELSA average, 1km):
+      precipitation_sm2rain.{month}_m_1km_s_.*_go_epsg.4326_v0.2.tif
+      Values: mm/month
 
-    Temperature layers (MODIS LST daytime):
-      clm_lst_mod11a2.{month}.day_u.975_1km_s0..0cm_2000..2017_v1.0.tif
-      Values: Kelvin × 50  →  convert: value * 0.02 − 273.15 = °C
+    Temperature layers (MODIS MOD11A2 daytime LST, 1km):
+      lst_mod11a2.daytime_p50_1km_s_{YYYYMMDD}_{YYYYMMDD}_go_epsg.4326_v1.2.tif
+      Values: raw Kelvin×50 → celsius = raw * 0.02 − 273.15
 
     Falls back to coordinate heuristics on any failure.
     """
     try:
-        month_alt = '|'.join(_OLM_MONTHS)
+        def _precip_url(month: str) -> str:
+            regex = f'precipitation_sm2rain.{month}_m_1km_s_.*_go_epsg.4326_v0.2.tif'
+            return f'{_OLM_BASE}?lat={lat}&lon={lng}&coll=&mosaic=false&oem=false&regex={regex}'
 
-        # --- Precipitation ---
-        precip_regex = (
-            f'clm_precipitation_imerge.({month_alt})'
-            '_m_1km_s0..0cm_2014..2018_v0.1.tif'
-        )
-        precip_data = _get(
-            _OLM_BASE,
-            params={'lat': lat, 'lon': lng, 'coll': 'layers1km',
-                    'regex': precip_regex},
-        )
+        def _temp_url(month_num: int) -> str:
+            yr = int(_OLM_LST_YEAR)
+            last_day = _calendar.monthrange(yr, month_num)[1]
+            date_start = f'{yr}{month_num:02d}01'
+            date_end   = f'{yr}{month_num:02d}{last_day:02d}'
+            regex = (
+                f'lst_mod11a2.daytime_p50_1km_s_'
+                f'{date_start}_{date_end}_go_epsg.4326_v1.2.tif'
+            )
+            return f'{_OLM_BASE}?lat={lat}&lon={lng}&coll=&mosaic=false&oem=false&regex={regex}'
 
-        # --- Temperature ---
-        temp_regex = (
-            f'clm_lst_mod11a2.({month_alt})'
-            '.day_u.975_1km_s0..0cm_2000..2017_v1.0.tif'
-        )
-        temp_data = _get(
-            _OLM_BASE,
-            params={'lat': lat, 'lon': lng, 'coll': 'layers1km',
-                    'regex': temp_regex},
-        )
+        # Build all 24 URLs up front
+        precip_urls = [_precip_url(m) for m in _OLM_MONTHS]
+        temp_urls   = [_temp_url(i + 1) for i in range(12)]
+
+        # Fetch all 24 in parallel — same thread pool already used by the caller
+        with ThreadPoolExecutor(max_workers=12) as pool:
+            precip_futures = [pool.submit(_olm_fetch_one, u) for u in precip_urls]
+            temp_futures   = [pool.submit(_olm_fetch_one, u) for u in temp_urls]
+            precip_values  = [f.result() for f in precip_futures]
+            temp_values_raw = [f.result() for f in temp_futures]
 
         _track('openlandmap')
 
-        if not precip_data or not temp_data:
-            raise ValueError('Empty response from OpenLandMap')
-
-        # Parse precipitation — sum 12 monthly values for annual total
-        precip_values = [v for v in precip_data.values()
-                         if isinstance(v, (int, float))]
-        if len(precip_values) < 12:
+        # Require all 12 months for each variable
+        missing_p = sum(1 for v in precip_values if v is None)
+        missing_t = sum(1 for v in temp_values_raw if v is None)
+        if missing_p > 3 or missing_t > 3:
             raise ValueError(
-                f'Expected 12 precipitation layers, got {len(precip_values)}'
+                f'Too many missing values: {missing_p} precip, {missing_t} temp'
             )
+
+        # Fill any sparse None gaps with the monthly mean of available values
+        def _fill(vals: list) -> list:
+            valid = [v for v in vals if v is not None]
+            avg = sum(valid) / len(valid) if valid else 0.0
+            return [v if v is not None else avg for v in vals]
+
+        precip_values   = _fill(precip_values)
+        temp_values_raw = _fill(temp_values_raw)
+
         mean_annual_rainfall = int(sum(precip_values))
 
-        # Parse temperature — MODIS scale: raw × 0.02 − 273.15 = °C
-        temp_values_raw = [v for v in temp_data.values()
-                           if isinstance(v, (int, float))]
-        if len(temp_values_raw) < 12:
-            raise ValueError(
-                f'Expected 12 temperature layers, got {len(temp_values_raw)}'
-            )
+        # MODIS LST scale: raw * 0.02 − 273.15 = °C
         temp_celsius = [round(v * 0.02 - 273.15, 2) for v in temp_values_raw]
         mean_temp = round(sum(temp_celsius) / 12, 1)
 
-        # Frost days: months below 0 °C × 30 days each
-        frost_months = sum(1 for t in temp_celsius if t < 0.0)
-        frost_days = frost_months * 30
-
-        # Growing season: months above 5 °C × 30 days each
+        frost_months  = sum(1 for t in temp_celsius if t < 0.0)
         growing_months = sum(1 for t in temp_celsius if t > 5.0)
-        growing_days = growing_months * 30
 
-        # Summer drought: Jul (index 6) + Aug (index 7) total < 100 mm
-        jul_aug = precip_values[6] + precip_values[7]
-        summer_drought = jul_aug < 100.0
+        # Summer drought: Jul (index 6) + Aug (index 7) < 100 mm
+        summer_drought = (precip_values[6] + precip_values[7]) < 100.0
 
-        # Climate zone
         if mean_temp < 0:
             zone = 'arctic'
         elif mean_temp < 14:
@@ -537,8 +593,8 @@ def _fetch_openlandmap_climate(lat: float, lng: float) -> dict:
             'mean_annual_rainfall_mm': mean_annual_rainfall,
             'mean_temp_c': mean_temp,
             'climate_zone': zone,
-            'frost_days_per_year': frost_days,
-            'growing_season_days': growing_days,
+            'frost_days_per_year': frost_months * 30,
+            'growing_season_days': growing_months * 30,
             'summer_drought_risk': summer_drought,
             'source': 'openlandmap',
         }

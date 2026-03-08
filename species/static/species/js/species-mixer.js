@@ -119,7 +119,6 @@ class SpeciesMixer {
     this._parlCatCounters = {};     // category colour index counters for incremental rows
     this._morphTimer = null;        // clearTimeout handle for morph sequence
     this._metaballPlaying = false;   // true while metaball is looping pre-first-species
-    this._metaballFadeTimer = null;  // setTimeout handle for crossfade midpoint
     this._firstSpeciesArrived = false; // flipped when first species_added event comes in
 
     this._initMap();
@@ -993,7 +992,7 @@ class SpeciesMixer {
     if (typeof echarts === 'undefined') return;
     const el = document.getElementById('species-viz-chart');
     if (!el) return;
-    this.speciesVizChart = echarts.init(el, null, { renderer: 'canvas' });
+    this.speciesVizChart = echarts.init(el, null, { renderer: 'canvas', backgroundColor: 'transparent' });
     window.addEventListener('resize', () => {
       if (this.speciesVizChart && !this.speciesVizChart.isDisposed()) {
         this.speciesVizChart.resize();
@@ -1016,15 +1015,18 @@ class SpeciesMixer {
     document.getElementById('virtual-grid-wrap')?.classList.remove('d-none');
   }
 
-  // Play metaball → particles → metaball → ... in a smooth loop.
-  // Because metaball and particles use completely different renderItem functions,
-  // ECharts cannot morph between them via universalTransition. Instead we use a
-  // CSS opacity crossfade on the chart element: fade out → hard-switch scene →
-  // fade back in. This is the only reliable approach for scenes with incompatible
-  // series structures and gives a clean dissolve between any two scenes.
+  // Play metaball → particles → metaball → ... in a smooth morphing loop.
+  //
+  // Transition flow:
+  //   1. Metaball plays all steps, ending on the "dissolve to circles" exit step
+  //      (the last step of the metaball scene renders circles at ring positions).
+  //   2. Particles step 0 is applied in merge mode — ECharts fires universalTransition
+  //      (seriesKey:'mb-pt-bridge') so the ring circles scatter outward to random
+  //      positions. No cut, no fade — continuous motion.
+  //   3. Particles plays its remaining steps to completion.
+  //   4. On particles finish: remove logo overlay, reset metaball fresh (notMerge:true
+  //      is fine here — the particles logo is invisible at opacity:0 at step 9 end).
   _playMetaball() {
-    const el = document.getElementById('species-viz-chart');
-    if (!el) return;
     const chart = this.speciesVizChart;
     if (!chart || chart.isDisposed()) return;
     const mbScene = window.ChartVizScenes?.get('metaball');
@@ -1032,20 +1034,6 @@ class SpeciesMixer {
     if (!mbScene) return;
 
     this._metaballPlaying = true;
-
-    const FADE = 600; // ms for each half of the crossfade
-
-    // Fade the chart element out, call swap() at the midpoint (opacity 0),
-    // then fade back in. Uses CSS transition on the element directly.
-    const crossfade = (swap) => {
-      el.style.transition = `opacity ${FADE}ms ease-in-out`;
-      el.style.opacity = '0';
-      this._metaballFadeTimer = setTimeout(() => {
-        if (!this._metaballPlaying) return;
-        swap();
-        el.style.opacity = '1';
-      }, FADE);
-    };
 
     const clearLogoOverlay = () => {
       try {
@@ -1055,29 +1043,35 @@ class SpeciesMixer {
       } catch (e) {}
     };
 
-    // Play a scene from the beginning using normal scene.play() (notMerge:true
-    // is fine here — the canvas is invisible during the swap so the wipe is
-    // hidden). Calls onFinish when the scene exhausts all its steps.
-    const playScene = (scene, onFinish) => {
+    // Apply particles step 0 in merge mode so universalTransition fires between
+    // the metaball exit circles and the scattered particle positions. Then play
+    // the remaining particles steps (step 1 onwards) normally.
+    const morphMetaballToParticles = (onFinish) => {
       if (!this._metaballPlaying || !this.speciesVizChart || this.speciesVizChart.isDisposed()) return;
-      scene.reset();
-      scene.play(chart, onFinish);
+      ptScene.stop(chart);
+      const opt0 = ptScene._options[0];
+      const resolved = typeof opt0 === 'function' ? opt0(chart) : opt0;
+      if (resolved) chart.setOption(resolved, false); // merge — ring circles scatter to random positions
+      const dur0 = ptScene._durations[0] != null ? ptScene._durations[0] : 700;
+      setTimeout(() => {
+        if (!this._metaballPlaying) return;
+        ptScene._currentIndex = 1;
+        ptScene.play(chart, onFinish);
+      }, dur0);
     };
 
     const loop = () => {
       if (!this._metaballPlaying) return;
-      playScene(mbScene, () => {
+      mbScene.reset();
+      mbScene.play(chart, () => {
         if (!this._metaballPlaying) return;
-        if (!ptScene) { crossfade(() => loop()); return; }
-        crossfade(() => {
+        if (!ptScene) { loop(); return; }
+        // Metaball exit circles are on screen — scatter them into the particle wave
+        morphMetaballToParticles(() => {
+          if (!this._metaballPlaying) return;
           clearLogoOverlay();
-          playScene(ptScene, () => {
-            if (!this._metaballPlaying) return;
-            crossfade(() => {
-              clearLogoOverlay();
-              loop();
-            });
-          });
+          // Particles finished — restart metaball fresh (canvas is clean at opacity:0)
+          loop();
         });
       });
     };
@@ -1087,9 +1081,6 @@ class SpeciesMixer {
 
   _stopMetaball() {
     this._metaballPlaying = false;
-    clearTimeout(this._metaballFadeTimer);
-    const el = document.getElementById('species-viz-chart');
-    if (el) { el.style.transition = ''; el.style.opacity = '1'; }
     const chart = this.speciesVizChart;
     if (!chart || chart.isDisposed()) return;
     const mbScene = window.ChartVizScenes?.get('metaball');
@@ -1128,37 +1119,28 @@ class SpeciesMixer {
   _runMorphSequence() {
     const chart = this.speciesVizChart;
     if (!chart || chart.isDisposed()) { this._showVirtualGrid(); return; }
-    const el = document.getElementById('species-viz-chart');
-    const FADE = 500;
 
-    // Hold parliament for 3 s, then crossfade → treemap, hold 5 s, crossfade → virtual grid
+    // Hold parliament for 3 s, then morph → treemap via universalTransition (seriesKey:'point'),
+    // hold 5 s, then switch to virtual grid.
+    // Both transitions use merge mode (notMerge:false) so ECharts fires universalTransition
+    // between the current canvas state and the incoming series.
     this._morphTimer = setTimeout(() => {
       if (!this.speciesVizChart || this.speciesVizChart.isDisposed()) return;
 
-      // Fade out parliament
-      if (el) { el.style.transition = `opacity ${FADE}ms ease-in-out`; el.style.opacity = '0'; }
+      // Parliament → treemap: merge mode so parliament dots morph into treemap blocks
+      const tmScene = window.ChartVizScenes?.get('species-treemap');
+      if (tmScene) {
+        tmScene.stop(chart);
+        const opt = tmScene._options[0];
+        const tmOption = typeof opt === 'function' ? opt(chart) : opt;
+        chart.setOption(tmOption, false); // merge mode — universalTransition fires
+      }
+
+      // Hold treemap for 5 s, then show virtual grid
       this._morphTimer = setTimeout(() => {
-        if (!this.speciesVizChart || this.speciesVizChart.isDisposed()) return;
-
-        // Swap to treemap while invisible, then fade back in
-        const tmScene = window.ChartVizScenes?.get('species-treemap');
-        if (tmScene) {
-          const opt = tmScene._options[0];
-          const tmOption = typeof opt === 'function' ? opt(chart) : opt;
-          chart.setOption(tmOption, true); // notMerge:true — clean slate for treemap
-        }
-        if (el) el.style.opacity = '1';
-
-        // Hold treemap for 5 s, then crossfade out and show virtual grid
-        this._morphTimer = setTimeout(() => {
-          if (el) { el.style.transition = `opacity ${FADE}ms ease-in-out`; el.style.opacity = '0'; }
-          this._morphTimer = setTimeout(() => {
-            if (el) { el.style.transition = ''; el.style.opacity = '1'; }
-            this._showVirtualGrid();
-            this._morphTimer = null;
-          }, FADE);
-        }, 5500);
-      }, FADE);
+        this._showVirtualGrid();
+        this._morphTimer = null;
+      }, 5500);
     }, 3000);
   }
 
@@ -2599,24 +2581,12 @@ class SpeciesMixer {
 
       // Incremental species: update parliament chart and add a table row
       if (ev.species_added) {
-        // First species: crossfade from metaball into parliament
+        // First species: stop metaball and morph directly into parliament
+        // using merge mode so universalTransition fires between metaball points
+        // and the first parliament dot.
         if (!this._firstSpeciesArrived) {
           this._firstSpeciesArrived = true;
-          const el = document.getElementById('species-viz-chart');
           this._stopMetaball();
-          if (el) {
-            // Fade out briefly, then draw the first parliament dot, then fade in
-            el.style.transition = 'opacity 400ms ease-in-out';
-            el.style.opacity = '0';
-            setTimeout(() => {
-              const cat2 = (ev.species_added.category || 'Other').toLowerCase();
-              this._parlData[cat2] = (this._parlData[cat2] || 0) + 1;
-              this._updateParliamentChart();
-              el.style.opacity = '1';
-            }, 400);
-            this._addSpeciesRowIncremental(ev.species_added);
-            return; // already handled below
-          }
         }
         const cat = (ev.species_added.category || 'Other').toLowerCase();
         this._parlData[cat] = (this._parlData[cat] || 0) + 1;
@@ -2751,8 +2721,6 @@ class SpeciesMixer {
     this._stopMetaball();
     clearTimeout(this._morphTimer);
     this._morphTimer = null;
-    const _vizEl = document.getElementById('species-viz-chart');
-    if (_vizEl) { _vizEl.style.transition = ''; _vizEl.style.opacity = '1'; }
     this._showVirtualGrid();
     document.getElementById('insights-spinner')?.classList.add('d-none');
     document.getElementById('insights-placeholder')?.classList.remove('d-none');
@@ -2770,8 +2738,6 @@ class SpeciesMixer {
     this._stopMetaball();
     clearTimeout(this._morphTimer);
     this._morphTimer = null;
-    const _vizEl2 = document.getElementById('species-viz-chart');
-    if (_vizEl2) { _vizEl2.style.transition = ''; _vizEl2.style.opacity = '1'; }
     this._showVirtualGrid();
     // Show error in insights area
     document.getElementById('insights-placeholder')?.classList.remove('d-none');

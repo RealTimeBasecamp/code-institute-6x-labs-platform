@@ -280,9 +280,14 @@
 
     register('particles', new ChartViz.Scene({
       option: [
-        // ── steps 0-6: existing (unchanged) ────────────────────────────────
+        // ── step 0: random scatter ───────────────────────────────────────────
+        // seriesKey:'mb-pt-bridge' + divideShape:'clone' matches metaball's exit
+        // step (ring circles at ring positions). ECharts clones each of the ~91
+        // ring circles into multiple particle circles and animates them scattering
+        // outward to random positions — the core of the metaball→particle morph.
         { series: { type:'custom', data:randData, coordinateSystem:undefined,
-          universalTransition:{enabled:true,seriesKey:'point'}, animationThreshold:1e5, animationDurationUpdate:500, animationEasingUpdate:'circularOut',
+          universalTransition:{enabled:true, seriesKey:'mb-pt-bridge', divideShape:'clone'},
+          animationThreshold:1e5, animationDurationUpdate:800, animationEasingUpdate:'cubicOut',
           renderItem: function(p,api) { return {type:'circle',shape:{cx:+api.value(0)*api.getWidth(),cy:+api.value(1)*api.getHeight(),r:2},style:{fill:PDOT}}; } } },
         { series: { animationEasingUpdate:'cubicInOut', universalTransition:{enabled:false},
           renderItem: function(p,api) { var m=p.dataIndex%grid,n=Math.floor(p.dataIndex/grid); return {type:'circle',shape:{cx:(m/grid)*api.getWidth(),cy:(n/grid)*api.getHeight(),r:2.5},transition:['shape'],style:{fill:PDOT}}; } } },
@@ -325,7 +330,7 @@
           }
         },
 
-        // ── step 9: SVG logo fades in; particles fade out ────────────────────
+        // ── step 9: SVG logo fades in; particles shrink to logo positions ───
         function(chart) {
           var w = chart.getWidth(), h = chart.getHeight();
           var fit = Math.min(w, h) * 0.78;
@@ -404,10 +409,10 @@
       + ' a 28.354978,28.360589 0 0 1 -25.74414,17.1953 28.354978,28.360589 0 0 1 -28.35547,-28.3593'
       + ' 28.354978,28.360589 0 0 1 28.35547,-28.3614 z';
 
-    // Only morph through: circle → 6xlabs logo (no emoji shapes)
-    var SVGS=[
-      'M16 0c-8.837 0-16 7.163-16 16s7.163 16 16 16 16-7.163 16-16-7.163-16-16-16z',
-      LOGO_PATH];
+    // Morph directly to 6xlabs logo — no intermediate shape
+    var SVGS=[LOGO_PATH];
+    // Simple circle path used for the exit bridge (logo → blobs → scatter)
+    var CIRCLE_SVG='M16 0c-8.837 0-16 7.163-16 16s7.163 16 16 16 16-7.163 16-16-7.163-16-16-16z';
 
     // gcs: compute circle geometry for a data point.
     // w/h/vs/maxDist are pre-computed per-frame outside renderItem where possible.
@@ -415,26 +420,55 @@
 
     var opts=[],durs=[];
     dataAll.forEach(function(data,di){
-      opts.push({series:[{type:'custom',coordinateSystem:undefined,data:data,animationDuration:700,animationEasing:'cubicInOut',
+      var seriesObj = {type:'custom',coordinateSystem:undefined,data:data,animationDuration:700,animationEasing:'cubicInOut',
         animationDelay:function(idx){return data[idx]&&data[idx][4]?data[idx][4]:0;},
         renderItem:function(p,api){
-          // Compute size-dependent values once per renderItem call (not per sub-shape)
           var w=api.getWidth(),h=api.getHeight(),vs=Math.sqrt(w*w+h*h)/2,maxDist=vs/10;
           var circ=gcs(w,h,vs,undefined,api),fi=data[p.dataIndex]?data[p.dataIndex][3]:null,from=fi!=null?gcs(w,h,vs,fi,api):null;
           var ch=[{type:'circle',silent:true,shape:Object.assign({},circ,from?{enterFrom:from}:{}),transition:['shape'],style:{fill:FILL}}];
           if(from)ch.push({type:'metaball',transition:['shape'],silent:true,shape:{cx1:from.cx,cy1:from.cy,r1:from.r,cx2:circ.cx,cy2:circ.cy,r2:circ.r,maxDistance:maxDist,enterFrom:{cx2:from.cx,cy2:from.cy,r2:from.r}},style:{fill:FILL}});
-          return{type:'group',children:ch};}}]});
+          return{type:'group',children:ch};}};
+      opts.push({series:[seriesObj]});
       durs.push(di===0?100:1500);
     });
     var ld=dataAll[dataAll.length-1];
     SVGS.forEach(function(d,i){
-      var dur = i === SVGS.length - 1 ? 2000 : 500;  // hold the logo longer
       opts.push((function(path){
-        return {series:[{type:'custom',coordinateSystem:undefined,data:ld,animationDuration:1500,animationEasing:'cubicInOut',animationDelay:0,universalTransition:{enabled:true},
+        return {series:[{type:'custom',coordinateSystem:undefined,data:ld,
+          animationDuration:1500,animationEasing:'cubicInOut',animationDelay:0,
+          universalTransition:{enabled:true},
           renderItem:function(p,api){var w=api.getWidth(),h=api.getHeight(),vs=Math.sqrt(w*w+h*h)/2,c=gcs(w,h,vs,undefined,api);return{type:'path',silent:true,shape:{d:path,x:c.cx-c.r,y:c.cy-c.r,width:c.r*2,height:c.r*2},transition:['shape'],style:{fill:FILL}};}}]};
       })(d));
-      durs.push(dur);
+      durs.push(2000);
     });
+
+    // ── metaball exit: logo implodes to circle blobs, then scatters ──────────
+    // Step A: logo SVG path morphs to the circle SVG path at ring positions.
+    //   Both are type:'path' so ECharts interpolates the shape continuously.
+    // Step B (bridge): circle-SVG paths tagged with seriesKey:'mb-pt-bridge' +
+    //   divideShape:'clone'. Particles step 0 (same key) applied in merge mode
+    //   clones each blob into multiple particle circles that scatter outward.
+    opts.push({series:[{type:'custom',coordinateSystem:undefined,data:ld,
+      animationDurationUpdate:800,animationEasingUpdate:'cubicInOut',animationDelayUpdate:0,
+      universalTransition:{enabled:true},
+      renderItem:function(p,api){
+        var w=api.getWidth(),h=api.getHeight(),vs=Math.sqrt(w*w+h*h)/2,c=gcs(w,h,vs,undefined,api);
+        return{type:'path',silent:true,shape:{d:CIRCLE_SVG,x:c.cx-c.r,y:c.cy-c.r,width:c.r*2,height:c.r*2},
+          transition:['shape'],style:{fill:FILL}};
+      }}]});
+    durs.push(900);
+
+    // Bridge step — same circle-SVG paths, now tagged with the transition key.
+    // Held for 600 ms so the blobs are visible before scattering.
+    opts.push({series:[{type:'custom',coordinateSystem:undefined,data:ld,
+      animationDurationUpdate:1,animationDelayUpdate:0,
+      universalTransition:{enabled:true,seriesKey:'mb-pt-bridge',divideShape:'clone'},
+      renderItem:function(p,api){
+        var w=api.getWidth(),h=api.getHeight(),vs=Math.sqrt(w*w+h*h)/2,c=gcs(w,h,vs,undefined,api);
+        return{type:'path',silent:true,shape:{d:CIRCLE_SVG,x:c.cx-c.r,y:c.cy-c.r,width:c.r*2,height:c.r*2},
+          style:{fill:FILL}};
+      }}]});
+    durs.push(600);
 
     register('metaball', new ChartViz.Scene({option:opts,duration:durs}));
   })();
@@ -750,7 +784,6 @@
         color: getPAL(),
         series: [{
           type: 'treemap',
-          name: 'species',
           left: 0, top: 0, bottom: 0, right: 0,
           width: '100%', height: '100%',
           animationDurationUpdate: 1200,
@@ -758,34 +791,22 @@
           roam: false,
           nodeClick: undefined,
           colorMappingBy: 'id',
+          itemStyle: { borderColor: 'transparent' },
           data: window.SPECIES_TREEMAP_DATA,
-          leafDepth: 2,
+          leafDepth: 1,
           levels: [
-            // Level 0 — category header bar: --bs-tertiary-bg background,
-            // --bs-body-color text — matches expandable-card header exactly.
+            // Level 0 — each block is one category; category name shown as
+            // header bar at top and as a centred label inside the block.
             {
               itemStyle: {
-                borderWidth: 3, gapWidth: 3, borderRadius: 5,
+                borderWidth: 3, gapWidth: 4, borderRadius: 6,
                 shadowBlur: 20, shadowColor: 'rgba(20,20,40,0.4)'
               },
-              upperLabel: {
-                show: true, height: 26, fontSize: 12, fontWeight: 700,
-                backgroundColor: headerBg,
-                color: bodyColor,
-                padding: [4, 8]
-              }
-            },
-            // Level 1 — species tiles: palette fill, white label with shadow
-            {
-              itemStyle: {
-                borderWidth: 2, gapWidth: 1, borderRadius: 3,
-                shadowBlur: 5, shadowColor: 'rgba(20,20,40,0.3)'
-              },
               label: {
-                show: true, fontSize: 10, overflow: 'truncate',
-                formatter: '{b}',
-                color: '#fff', textShadowColor: 'rgba(0,0,0,0.6)',
-                textShadowBlur: 4
+                show: true, fontSize: 13, fontWeight: 600, overflow: 'truncate',
+                formatter: '{b}', position: 'insideTopLeft',
+                color: '#fff', textShadowColor: 'rgba(0,0,0,0.7)',
+                textShadowBlur: 6, padding: [6, 8]
               },
               upperLabel: { show: false }
             }
