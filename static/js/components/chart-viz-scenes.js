@@ -767,18 +767,12 @@
   }));
 
   // ── species-treemap ────────────────────────────────────────────────────────
-  // Treemap of categories → species, driven by window.SPECIES_TREEMAP_DATA.
+  // Treemap of categories, driven by window.SPECIES_TREEMAP_DATA.
   // Shape: [{ name: 'Tree', value: 5, children: [{ name: 'Oak', value: 1 }, ...] }]
-  // Styled like treemap-complex: palette colours per category, shadowed borders,
-  // upperLabel background reads --bs-tertiary-bg (expandable-card header colour),
-  // label text reads --bs-body-color so it's always legible against the theme.
+  // leafDepth:1 — each category is one coloured block labelled with its name.
   window.SPECIES_TREEMAP_DATA = [];
   register('species-treemap', new ChartViz.Scene({
     option: [function () {
-      var tc  = ChartViz.getThemeColors();
-      var s   = getComputedStyle(document.documentElement);
-      var headerBg   = s.getPropertyValue('--bs-tertiary-bg').trim()  || tc.cardBg;
-      var bodyColor  = s.getPropertyValue('--bs-body-color').trim()   || tc.text;
       return {
         backgroundColor: 'transparent',
         color: getPAL(),
