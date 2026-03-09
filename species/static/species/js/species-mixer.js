@@ -2540,13 +2540,24 @@ class SpeciesMixer {
             }
             this._setProgressBar(100);
             this._appendFeedLine('Mix generation complete.', 'success');
-            // Attribution lines — shown once at the end of the feed log
-            this._appendFeedLine('Soil data', '', { label: 'ISRIC SoilGrids · CC-BY 4.0', url: 'https://soilgrids.org' });
-            this._appendFeedLine('Climate data', '', { label: 'OpenLandMap · CC BY-SA 4.0', url: 'https://openlandmap.org' });
-            this._appendFeedLine('Flood &amp; hydrology data — Environment Agency', '', { label: 'EA · OGL', url: 'https://environment.data.gov.uk/flood-monitoring/doc/reference' });
-            this._appendFeedLine('Flood &amp; hydrology data — SEPA', '', { label: 'SEPA · OGL', url: 'https://www.sepa.org.uk/environment/water/flooding/' });
-            this._appendFeedLine('Species occurrence records', '', { label: 'GBIF · CC0 &amp; CC-BY 4.0', url: 'https://www.gbif.org' });
-            this._appendFeedLine('UK native species records', '', { label: 'NBN Atlas · CC-BY &amp; CC0', url: 'https://nbnatlas.org' });
+            // Attribution lines — only shown for data sources that responded
+            const allEvents = data.progress || [];
+            const unavailable = new Set(
+              allEvents
+                .filter(e => e.level === 'error' || (e.level === 'warning' && e.msg && e.msg.includes('unavailable')))
+                .map(e => e.msg || '')
+            );
+            const srcUnavailable = key => [...unavailable].some(m => m.toLowerCase().includes(key));
+            if (!srcUnavailable('soil data'))
+              this._appendFeedLine('Soil Data', '', { label: 'ISRIC SoilGrids · CC-BY 4.0', url: 'https://soilgrids.org' });
+            if (!srcUnavailable('climate data'))
+              this._appendFeedLine('Climate Data', '', { label: 'OpenLandMap · CC BY-SA 4.0', url: 'https://openlandmap.org' });
+            if (!srcUnavailable('hydrology data')) {
+              this._appendFeedLine('Hydrology Data — Environment Agency', '', { label: 'EA · OGL', url: 'https://environment.data.gov.uk/flood-monitoring/doc/reference' });
+              this._appendFeedLine('Hydrology Data — SEPA', '', { label: 'SEPA · OGL', url: 'https://www.sepa.org.uk/environment/water/flooding/' });
+            }
+            this._appendFeedLine('Nearby Species Observations', '', { label: 'GBIF · CC0 &amp; CC-BY 4.0', url: 'https://www.gbif.org' });
+            this._appendFeedLine('UK Botanical Survey Records', '', { label: 'NBN Atlas · CC-BY &amp; CC0', url: 'https://nbnatlas.org' });
 
           }
           this._onTaskComplete(mode, data.result, extra);
@@ -2565,6 +2576,15 @@ class SpeciesMixer {
     const seen = this._seenProgressCount || 0;
     const newEvents = events.slice(seen);
     newEvents.forEach(ev => {
+      const level = ev.level || '';  // 'warning', 'error', or ''
+
+      if (level === 'warning' || level === 'error') {
+        // Warnings/errors are appended immediately without displacing the
+        // current in-progress header — they don't change the active status line.
+        this._appendFeedLine(ev.msg, level);
+        return;
+      }
+
       // Flush the previous "in-progress" header message into the log as a completed line
       if (this._currentFeedMsg != null) {
         this._appendFeedLine(this._currentFeedMsg);
@@ -2612,15 +2632,23 @@ class SpeciesMixer {
     const line = document.createElement('div');
     line.className = `feed-line${type ? ` feed-line--${type}` : ''}`;
 
+    // Icon varies by level
+    const icon = type === 'warning' ? 'bi-exclamation-triangle'
+               : type === 'error'   ? 'bi-x-circle'
+               : type === 'success' ? 'bi-check2-circle'
+               :                      'bi-check2';
+
     // Optional attribution tag — shown inline with the log entry
     const sourceAttr = source
       ? `<a href="${source.url}" target="_blank" rel="noopener" class="feed-line__source">${source.label}</a>`
       : '';
-    line.innerHTML = `<i class="bi bi-check2 feed-line__icon"></i><span>${msg}</span>${sourceAttr}`;
+    line.innerHTML = `<i class="bi ${icon} feed-line__icon"></i><span>${msg}</span>${sourceAttr}`;
     log.appendChild(line);
-    // Keep at most 12 lines in history
+    // Keep at most 12 lines; never evict warning/error lines
     while (log.children.length > 12) {
-      log.removeChild(log.firstChild);
+      const oldest = log.firstChild;
+      if (oldest.classList.contains('feed-line--warning') || oldest.classList.contains('feed-line--error')) break;
+      log.removeChild(oldest);
     }
   }
 

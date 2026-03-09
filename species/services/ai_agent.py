@@ -666,14 +666,24 @@ class SpeciesMixAgent:
         # ── Phase 1 & 2: Collect environmental data + candidate species ──────
         _p = on_progress or (lambda msg, count=None, **kw: None)
 
-        _p('Querying SoilGrids — soil pH, texture and moisture data...')
+        _p('Querying Soil Data...')
         soil = fetch_soilgrids(lat, lng)
+        if soil is None:
+            _p('Soil Data unavailable — species scoring will use general tolerances.', level='warning')
+        elif not any(soil.get(k) for k in ('ph', 'organic_carbon', 'clay_pct')):
+            _p('Soil Data returned incomplete results — some soil filters skipped.', level='warning')
 
-        _p('Querying OpenLandMap — climate normals (rainfall, temperature, frost days)...')
+        _p('Querying Climate Data...')
         climate = fetch_climate(lat, lng)
+        if climate is None:
+            _p('Climate Data unavailable — frost and moisture filters skipped.', level='warning')
+        elif not any(climate.get(k) for k in ('precip_annual_mm', 'temp_mean_c')):
+            _p('Climate Data returned partial results — some climate filters skipped.', level='warning')
 
-        _p('Querying EA / SEPA — flood risk assessment...')
+        _p('Querying Hydrology Data...')
         hydrology = fetch_hydrology(lat, lng)
+        if hydrology is None:
+            _p('Hydrology Data unavailable — flood risk assessment skipped.', level='warning')
 
         env_data.update({
             'soil': soil,
@@ -681,8 +691,8 @@ class SpeciesMixAgent:
             'hydrology': hydrology,
         })
 
-        _p('Searching NBN Atlas — native species observed nearby...')
-        _p('Searching GBIF — global biodiversity occurrence records...')
+        _p('Searching UK Botanical Survey Records...')
+        _p('Searching Nearby Species Observations...')
 
         # Larger radius (25 km) to cast a wide net.  SpeciesCandidateTool
         # already de-duplicates across sources and enriches every candidate
@@ -691,10 +701,9 @@ class SpeciesMixAgent:
             lat=lat, lng=lng, env_data=env_data, radius_km=25
         )
         cached_candidates.extend(candidates)
-        _p(f'Found {len(candidates)} candidate species across all databases.', count=len(candidates))
 
         if not candidates:
-            _p('No species records found near this location.')
+            _p('No species records found near this location — check that the site is in a supported region.', level='error')
             return {
                 'species_mix': [],
                 'env_summary': self._format_env_summary(env_data),
@@ -705,18 +714,23 @@ class SpeciesMixAgent:
                 ),
             }
 
+        _p(f'Found {len(candidates)} candidate species across all databases.', count=len(candidates))
+
         # ── Extract env variables used in elimination and scoring ─────────────
 
         goal_weights = {k: int(v) for k, v in goals.items()}
-        ph = soil.get('ph')                              # float, e.g. 5.8
-        moisture = soil.get('moisture_class', 'moist')   # dry / moist / wet
-        organic_c = soil.get('organic_carbon')           # %, proxy for peat
-        flood_risk = hydrology.get('flood_risk', 'low')  # high / medium / low
-        water_nearby = hydrology.get('water_body_nearby', False)
-        rainfall = climate.get('mean_annual_rainfall_mm', 700)
-        mean_temp = climate.get('mean_temp_c')           # °C (None if heuristic)
-        frost_days = climate.get('frost_days_per_year')  # days/yr
-        growing_days = climate.get('growing_season_days')# days with temp > 5°C
+        _soil = soil or {}
+        _climate = climate or {}
+        _hydrology = hydrology or {}
+        ph = _soil.get('ph')                              # float, e.g. 5.8
+        moisture = _soil.get('moisture_class', 'moist')   # dry / moist / wet
+        organic_c = _soil.get('organic_carbon')           # %, proxy for peat
+        flood_risk = _hydrology.get('flood_risk', 'low')  # high / medium / low
+        water_nearby = _hydrology.get('water_body_nearby', False)
+        rainfall = _climate.get('mean_annual_rainfall_mm', 700)
+        mean_temp = _climate.get('mean_temp_c')           # °C (None if heuristic)
+        frost_days = _climate.get('frost_days_per_year')  # days/yr
+        growing_days = _climate.get('growing_season_days')# days with temp > 5°C
 
         _p('Cross-referencing species against soil, climate and hydrology data...')
         # ── Phase 3: Elimination ──────────────────────────────────────────────

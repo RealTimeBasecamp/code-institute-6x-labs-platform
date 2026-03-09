@@ -108,8 +108,8 @@ _SPECIES_TTL = 60 * 60 * 24 * 7
 # HTTP request timeout (seconds) — default for most APIs
 _TIMEOUT = 15
 # SoilGrids is a free academic API that is frequently slow under load.
-# 30 s gives it enough headroom without blocking the response indefinitely.
-_SOILGRIDS_TIMEOUT = 30
+# Cap at 15 s — if it hasn't responded by then it won't; soil data is optional.
+_SOILGRIDS_TIMEOUT = 15
 
 
 def _cache_key(prefix: str, lat: float, lng: float) -> str:
@@ -131,6 +131,9 @@ def _get(url: str, params=None, headers: dict = None, timeout: int = _TIMEOUT) -
         resp = requests.get(url, params=params, headers=headers, timeout=timeout)
         resp.raise_for_status()
         return resp.json()
+    except requests.exceptions.Timeout:
+        logger.debug("Environmental data API timed out (skipping): %s", url)
+        return None
     except Exception as exc:
         logger.warning("Environmental data API request failed: %s — %s", url, exc)
         return None

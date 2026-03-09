@@ -1569,6 +1569,23 @@
   font-weight: 500;
 }
 
+.feed-line--warning .feed-line__icon {
+  color: var(--bs-warning, #ffc107);
+}
+
+.feed-line--warning span {
+  color: var(--bs-warning, #ffc107);
+}
+
+.feed-line--error .feed-line__icon {
+  color: var(--bs-danger, #dc3545);
+}
+
+.feed-line--error span {
+  color: var(--bs-danger, #dc3545);
+  font-weight: 500;
+}
+
 .generation-progress {
   height: 3px;
   border-radius: var(--bs-border-radius-pill);

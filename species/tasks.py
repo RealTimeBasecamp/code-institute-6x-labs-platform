@@ -41,14 +41,21 @@ def _push_progress(
     message: str,
     count: int | None = None,
     species_added: dict | None = None,
+    level: str | None = None,
 ) -> None:
-    """Append a progress event to the task cache entry (read-modify-write)."""
+    """Append a progress event to the task cache entry (read-modify-write).
+
+    level: None (info), 'warning' (amber — partial/degraded data),
+           or 'error' (red — data source completely unavailable).
+    """
     state = cache.get(_task_key(task_id)) or {'status': 'running', 'progress': []}
     event = {'msg': message}
     if count is not None:
         event['count'] = count
     if species_added is not None:
         event['species_added'] = species_added
+    if level is not None:
+        event['level'] = level
     state.setdefault('progress', []).append(event)
     cache.set(_task_key(task_id), state, timeout=_TASK_TTL)
 
@@ -105,7 +112,7 @@ def run_mix_generation(task_id: str, lat: float, lng: float, goals: dict) -> Non
         logger.info("Mix generation task %s complete — %d species", task_id, len(result['species_mix']))
     except Exception as exc:
         logger.exception("Mix generation task %s failed: %s", task_id, exc)
-        _set_error(task_id, str(exc))
+        _set_error(task_id, 'Mix generation failed. Please try again.')
 
 
 # =============================================================================
@@ -148,7 +155,7 @@ def run_mix_rescore(
         logger.info("Mix rescore task %s complete — %d species", task_id, len(result['species_mix']))
     except Exception as exc:
         logger.exception("Mix rescore task %s failed: %s", task_id, exc)
-        _set_error(task_id, str(exc))
+        _set_error(task_id, 'Re-scoring failed. Please try again.')
 
 
 # =============================================================================
@@ -189,4 +196,4 @@ def run_species_validation(
         )
     except Exception as exc:
         logger.exception("Species validation task %s failed: %s", task_id, exc)
-        _set_error(task_id, str(exc))
+        _set_error(task_id, 'Species validation failed. Please try again.')
