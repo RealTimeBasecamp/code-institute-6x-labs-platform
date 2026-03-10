@@ -669,21 +669,32 @@ class SpeciesMixAgent:
         _p('Querying Soil Data...')
         soil = fetch_soilgrids(lat, lng)
         if soil is None:
+            logger.warning('rule_based_generate (%.4f,%.4f): soil=None', lat, lng)
             _p('Soil Data unavailable — species scoring will use general tolerances.', level='warning')
         elif not any(soil.get(k) for k in ('ph', 'organic_carbon', 'clay_pct')):
+            logger.warning('rule_based_generate (%.4f,%.4f): soil incomplete — got %s', lat, lng, soil)
             _p('Soil Data returned incomplete results — some soil filters skipped.', level='warning')
+        else:
+            logger.debug('rule_based_generate (%.4f,%.4f): soil ok — %s', lat, lng, soil)
 
         _p('Querying Climate Data...')
         climate = fetch_climate(lat, lng)
         if climate is None:
+            logger.warning('rule_based_generate (%.4f,%.4f): climate=None', lat, lng)
             _p('Climate Data unavailable — frost and moisture filters skipped.', level='warning')
-        elif not any(climate.get(k) for k in ('precip_annual_mm', 'temp_mean_c')):
+        elif not any(climate.get(k) for k in ('mean_annual_rainfall_mm', 'mean_temp_c')):
+            logger.warning('rule_based_generate (%.4f,%.4f): climate incomplete — got %s', lat, lng, climate)
             _p('Climate Data returned partial results — some climate filters skipped.', level='warning')
+        else:
+            logger.debug('rule_based_generate (%.4f,%.4f): climate ok — %s', lat, lng, climate)
 
         _p('Querying Hydrology Data...')
         hydrology = fetch_hydrology(lat, lng)
         if hydrology is None:
+            logger.warning('rule_based_generate (%.4f,%.4f): hydrology=None', lat, lng)
             _p('Hydrology Data unavailable — flood risk assessment skipped.', level='warning')
+        else:
+            logger.debug('rule_based_generate (%.4f,%.4f): hydrology ok — %s', lat, lng, hydrology)
 
         env_data.update({
             'soil': soil,

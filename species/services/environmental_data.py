@@ -134,8 +134,11 @@ def _get(url: str, params=None, headers: dict = None, timeout: int = _TIMEOUT) -
     except requests.exceptions.Timeout:
         logger.debug("Environmental data API timed out (skipping): %s", url)
         return None
+    except requests.exceptions.HTTPError as exc:
+        logger.debug("Environmental data API HTTP %s (skipping): %s", exc.response.status_code, url)
+        return None
     except Exception as exc:
-        logger.warning("Environmental data API request failed: %s — %s", url, exc)
+        logger.debug("Environmental data API request failed: %s — %s", url, exc)
         return None
 
 
@@ -161,6 +164,7 @@ def fetch_soilgrids(lat: float, lng: float) -> dict:
     key = _cache_key('soilgrids', lat, lng)
     cached = cache.get(key)
     if cached is not None:
+        logger.debug('SoilGrids (%.4f,%.4f): cache hit — %s', lat, lng, cached)
         return cached
 
     # SoilGrids requires repeated query params (not a list value) and specific
@@ -174,25 +178,34 @@ def fetch_soilgrids(lat: float, lng: float) -> dict:
                 timeout=_SOILGRIDS_TIMEOUT)
     _track('soilgrids')
 
+    if data is None:
+        logger.debug('SoilGrids (%.4f,%.4f): request returned None (timeout or HTTP error)', lat, lng)
+    else:
+        logger.debug('SoilGrids (%.4f,%.4f): raw response keys=%s', lat, lng, list(data.keys()) if isinstance(data, dict) else type(data).__name__)
+
     result = {}
     if data and 'properties' in data:
         props = data['properties']['layers']
         prop_map = {p['name']: p for p in props}
+        logger.debug('SoilGrids (%.4f,%.4f): layers present=%s', lat, lng, list(prop_map.keys()))
 
         # pH — SoilGrids returns pH * 10 (e.g. 65 = pH 6.5)
         if 'phh2o' in prop_map:
             ph_raw = prop_map['phh2o']['depths'][0]['values'].get('mean')
             result['ph'] = round(ph_raw / 10, 1) if ph_raw is not None else None
+            logger.debug('SoilGrids (%.4f,%.4f): phh2o raw=%s → ph=%s', lat, lng, ph_raw, result['ph'])
 
-        # Organic carbon %
+        # Organic carbon — SoilGrids returns SOC in dg/kg; divide by 100 to get %
         if 'soc' in prop_map:
             soc = prop_map['soc']['depths'][0]['values'].get('mean')
-            result['organic_carbon'] = round(soc / 10, 1) if soc is not None else None
+            result['organic_carbon'] = round(soc / 100, 2) if soc is not None else None
+            logger.debug('SoilGrids (%.4f,%.4f): soc raw=%s (dg/kg) → organic_carbon=%s%%', lat, lng, soc, result['organic_carbon'])
 
         # Texture from clay/silt/sand fractions
         clay_v = prop_map.get('clay', {}).get('depths', [{}])[0].get('values', {}).get('mean')
         silt_v = prop_map.get('silt', {}).get('depths', [{}])[0].get('values', {}).get('mean')
         sand_v = prop_map.get('sand', {}).get('depths', [{}])[0].get('values', {}).get('mean')
+        logger.debug('SoilGrids (%.4f,%.4f): clay=%s silt=%s sand=%s (g/kg)', lat, lng, clay_v, silt_v, sand_v)
         result['texture'] = _classify_texture(clay_v, silt_v, sand_v)
         result['clay_pct'] = round(clay_v / 10, 1) if clay_v else None
         result['silt_pct'] = round(silt_v / 10, 1) if silt_v else None
@@ -209,11 +222,16 @@ def fetch_soilgrids(lat: float, lng: float) -> dict:
                     result['moisture_class'] = 'moist'
                 else:
                     result['moisture_class'] = 'wet'
+                logger.debug('SoilGrids (%.4f,%.4f): wv0010 raw=%s → wv_pct=%.1f%% → moisture=%s', lat, lng, wv, wv_pct, result.get('moisture_class'))
+    elif data is not None:
+        logger.warning('SoilGrids (%.4f,%.4f): unexpected response structure — no "properties" key. Got: %s', lat, lng, str(data)[:200])
 
     result.setdefault('ph', None)
     result.setdefault('texture', 'loamy')
     result.setdefault('organic_carbon', None)
     result.setdefault('moisture_class', 'moist')
+
+    logger.debug('SoilGrids (%.4f,%.4f): final result=%s', lat, lng, result)
 
     cache.set(key, result, _CACHE_TTL)
     return result
@@ -464,6 +482,7 @@ def fetch_climate(lat: float, lng: float) -> dict:
     key = _cache_key('climate', lat, lng)
     cached = cache.get(key)
     if cached is not None:
+        logger.debug('Climate (%.4f,%.4f): cache hit — %s', lat, lng, cached)
         return cached
 
     result = _fetch_openlandmap_climate(lat, lng)
@@ -492,12 +511,18 @@ def _olm_fetch_one(url: str) -> float | None:
                 val = next(iter(data.values()), None)
             else:
                 val = None
-            return float(val) if val is not None else None
+            result = float(val) if val is not None else None
+            if result is None:
+                logger.debug('OpenLandMap: no value in response for %s — data=%s', url.split('regex=')[-1], data)
+            return result
     except urllib.error.HTTPError as exc:
-        logger.warning("Environmental data API request failed: %s — %s %s", url, exc.code, exc.reason)
+        logger.debug('OpenLandMap HTTP %s %s — layer: %s', exc.code, exc.reason, url.split('regex=')[-1])
+        return None
+    except urllib.error.URLError as exc:
+        logger.debug('OpenLandMap network error (%s) — layer: %s', exc.reason, url.split('regex=')[-1])
         return None
     except Exception as exc:
-        logger.warning("Environmental data API request failed: %s — %s", url, exc)
+        logger.debug('OpenLandMap unexpected error (%s: %s) — layer: %s', type(exc).__name__, exc, url.split('regex=')[-1])
         return None
 
 
@@ -554,6 +579,12 @@ def _fetch_openlandmap_climate(lat: float, lng: float) -> dict:
         # Require all 12 months for each variable
         missing_p = sum(1 for v in precip_values if v is None)
         missing_t = sum(1 for v in temp_values_raw if v is None)
+        logger.debug(
+            'OpenLandMap (%.4f,%.4f): precip=%s (missing=%d) temp_raw=%s (missing=%d)',
+            lat, lng,
+            [round(v, 1) if v is not None else None for v in precip_values], missing_p,
+            [round(v, 1) if v is not None else None for v in temp_values_raw], missing_t,
+        )
         if missing_p > 3 or missing_t > 3:
             raise ValueError(
                 f'Too many missing values: {missing_p} precip, {missing_t} temp'
@@ -570,8 +601,12 @@ def _fetch_openlandmap_climate(lat: float, lng: float) -> dict:
 
         mean_annual_rainfall = int(sum(precip_values))
 
-        # MODIS LST scale: raw * 0.02 − 273.15 = °C
-        temp_celsius = [round(v * 0.02 - 273.15, 2) for v in temp_values_raw]
+        # MODIS LST scale: raw * 0.02 − 273.15 = °C (daytime land surface temp)
+        # LST daytime is ~5°C warmer than air temperature in temperate climates
+        # due to solar heating of the surface. Subtract a bias offset so that
+        # zone classification and frost/growing thresholds match air-temp norms.
+        _LST_BIAS = 5.0
+        temp_celsius = [round(v * 0.02 - 273.15 - _LST_BIAS, 2) for v in temp_values_raw]
         mean_temp = round(sum(temp_celsius) / 12, 1)
 
         frost_months  = sum(1 for t in temp_celsius if t < 0.0)
@@ -592,7 +627,7 @@ def _fetch_openlandmap_climate(lat: float, lng: float) -> dict:
         if zone == 'temperate' and mean_annual_rainfall < 500:
             zone = 'continental'
 
-        return {
+        result = {
             'mean_annual_rainfall_mm': mean_annual_rainfall,
             'mean_temp_c': mean_temp,
             'climate_zone': zone,
@@ -601,6 +636,8 @@ def _fetch_openlandmap_climate(lat: float, lng: float) -> dict:
             'summer_drought_risk': summer_drought,
             'source': 'openlandmap',
         }
+        logger.debug('OpenLandMap (%.4f,%.4f): final climate result=%s', lat, lng, result)
+        return result
 
     except Exception as exc:
         logger.warning(

@@ -292,15 +292,34 @@ ACCOUNT_SESSION_REMEMBER = True
 LOGGING = {
     'version': 1,
     'disable_existing_loggers': False,
+    'formatters': {
+        'simple': {
+            'format': '[%(levelname)s] %(name)s: %(message)s',
+        },
+    },
     'handlers': {
         'console': {
             'class': 'logging.StreamHandler',
+            'formatter': 'simple',
         },
     },
     'loggers': {
         'django': {
             'handlers': ['console'],
             'level': 'ERROR',
+        },
+        # Environmental data APIs — DEBUG shows raw values, missing counts,
+        # and parsed results so fetch issues can be diagnosed quickly.
+        'species.services.environmental_data': {
+            'handlers': ['console'],
+            'level': 'DEBUG',
+            'propagate': False,
+        },
+        # AI agent — INFO shows which path (TGI / rule-based) was taken.
+        'species.services.ai_agent': {
+            'handlers': ['console'],
+            'level': 'INFO',
+            'propagate': False,
         },
     },
 }
