@@ -1837,8 +1837,8 @@
 
 /* ── Species popover circular avatar image ───────────────────── */
 .sp-pop-img {
-  width: 36px;
-  height: 36px;
+  width: 72px;
+  height: 72px;
   border-radius: 50%;
   object-fit: cover;
   flex-shrink: 0;

@@ -940,9 +940,12 @@ def api_species_image(request):
     try:
         for attempt in range(3):
             try:
+                # Prefer the species media endpoint — it returns curated images
+                # selected for the taxon (higher quality than random occurrence photos).
+                # Fall back to occurrence search if species media returns nothing.
                 resp = _requests.get(
-                    'https://api.gbif.org/v1/occurrence/search',
-                    params={'taxonKey': gbif_key, 'mediaType': 'StillImage', 'limit': 3},
+                    f'https://api.gbif.org/v1/species/{gbif_key}/media',
+                    params={'limit': 10, 'type': 'StillImage'},
                     headers={'User-Agent': 'code-institute-6xlabs/1.0'},
                     timeout=6,
                 )
@@ -951,18 +954,40 @@ def api_species_image(request):
                     logger.warning('species_image: gbif_key=%s 429 rate limit, retry %d after %.1fs', gbif_key, attempt + 1, wait)
                     time.sleep(wait)
                     continue
-                resp.raise_for_status()
-                data = resp.json()
-                for result in (data.get('results') or []):
-                    for media in (result.get('media') or []):
+                if resp.ok:
+                    data = resp.json()
+                    for media in (data.get('results') or []):
                         identifier = media.get('identifier')
                         if identifier and media.get('type') == 'StillImage':
                             url = identifier
                             break
-                    if url:
-                        break
+
+                # Fall back to occurrence search if species media returned nothing
+                if not url:
+                    resp2 = _requests.get(
+                        'https://api.gbif.org/v1/occurrence/search',
+                        params={'taxonKey': gbif_key, 'mediaType': 'StillImage', 'limit': 5},
+                        headers={'User-Agent': 'code-institute-6xlabs/1.0'},
+                        timeout=6,
+                    )
+                    resp2.raise_for_status()
+                    data2 = resp2.json()
+                    for result in (data2.get('results') or []):
+                        for media in (result.get('media') or []):
+                            identifier = media.get('identifier')
+                            if identifier and media.get('type') == 'StillImage':
+                                url = identifier
+                                break
+                        if url:
+                            break
+
+                # Convert to medium resolution (500px) — better quality than /square/ (200px)
+                # and avoids the blurry look on retina / larger displays.
                 if url:
-                    url = re.sub(r'/original\.(\w+)$', r'/square.\1', url)
+                    url = re.sub(r'/original\.(\w+)$', r'/medium.\1', url)
+                    # Some providers use size query params instead of path segments
+                    if '/square/' in url:
+                        url = url.replace('/square/', '/medium/')
                 logger.info('species_image: gbif_key=%s → %s', gbif_key, url or 'no image')
                 gbif_success = True
                 break

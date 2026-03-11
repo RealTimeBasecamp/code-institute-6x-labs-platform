@@ -741,8 +741,11 @@
             var h    = api.getHeight();
             var vSize = Math.min(w, h);
             var cx   = w / 2, cy = h / 2;
-            var r0   = 0.28 * vSize / 2;
-            var r1   = 0.82 * vSize / 2;
+            // DP circle radius = 0.20 * vSize (set in _showSpeciesDP).
+            // r0 must clear the DP edge plus one dot gap so no dots render
+            // inside the image area. r1 pushed out to preserve ring density.
+            var r0   = 0.26 * vSize;
+            var r1   = 0.48 * vSize;
             var dotR = Math.max(3, vSize / 60);
             var gap  = dotR * 2.6;
 

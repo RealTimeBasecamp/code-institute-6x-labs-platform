@@ -8,8 +8,8 @@
 <link rel="stylesheet" href="{% static 'css/components/sortable-table.css' %}">
 <style>
   .sp-thumb {
-    width: 40px;
-    height: 40px;
+    width: 80px;
+    height: 80px;
     border-radius: 50%;
     object-fit: cover;
     border: 2px solid var(--bs-border-color);
@@ -17,8 +17,8 @@
     flex-shrink: 0;
   }
   .sp-thumb-initials {
-    width: 40px;
-    height: 40px;
+    width: 80px;
+    height: 80px;
     border-radius: 50%;
     border: 2px solid var(--bs-border-color);
     background-color: var(--bs-secondary-bg);
@@ -26,7 +26,7 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 0.7rem;
+    font-size: 0.85rem;
     font-weight: 600;
     color: var(--bs-secondary-color);
   }
@@ -81,13 +81,17 @@
         {% for sp in species_list %}
           {% with cached=sp.mixer_cached_data %}
           <tr>
-            {# Thumbnail #}
+            {# Thumbnail — img with onerror fallback to initials div #}
             <td class="pe-0">
               {% if sp.gbif_image_url %}
                 <img
                   src="{{ sp.gbif_image_url }}"
-                  alt="{{ sp.common_name|default:sp.scientific_name }}"
-                  class="sp-thumb">
+                  alt=""
+                  class="sp-thumb"
+                  onerror="this.style.display='none';this.nextElementSibling.style.display='flex';">
+                <div class="sp-thumb-initials" style="display:none;">
+                  {{ sp.common_name|default:sp.scientific_name|slice:":2"|upper }}
+                </div>
               {% else %}
                 <div class="sp-thumb-initials">
                   {{ sp.common_name|default:sp.scientific_name|slice:":2"|upper }}

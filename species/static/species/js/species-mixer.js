@@ -1288,27 +1288,43 @@ class SpeciesMixer {
     if (!chart || chart.isDisposed()) return;
     const w = chart.getWidth(), h = chart.getHeight();
     const cx = w / 2, cy = h / 2;
-    // r0 inner ring = 28% of half-chart-size; keep DP inside that with a small margin
-    const r = Math.min(w, h) * 0.13;
+    // r0 inner ring = 28% of half-chart-size; keep DP well inside that space.
+    // 0.20 gives a larger, clearer avatar (~2× previous size in area).
+    const r = Math.min(w, h) * 0.20;
+    // r1 mirrors the parliament dot outer ring (0.48 * vSize in chart-viz-scenes.js).
+    // Label is placed below r1 so it clears all dot rows.
+    const r1 = Math.min(w, h) * 0.48;
     const cat = (item.category || 'other').toLowerCase();
     const catColour = SpeciesMixer.colourForCategory(cat);
     const label = item.common_name || item.scientific_name || '';
-    const labelFontSize = Math.max(10, Math.min(13, r * 0.22));
     const initials = this._dpInitials(item.common_name || item.scientific_name);
     const initialsFontSize = Math.max(16, Math.min(28, r * 0.48));
 
     const elements = [
-      // Coloured backdrop disc — always shown
-      {
-        id: 'dpBackdrop', type: 'circle',
-        shape: { cx, cy, r },
-        style: { fill: catColour, opacity: 0.9 },
-        z2: 20,
-      },
-      // Plant photo (when available) — square image centred on disc
+      // Coloured backdrop disc — only shown when no image (initials fallback).
+      // When a photo is present the image fills the circle, so the backdrop
+      // would bleed through at the edges — remove it entirely in that case.
       ...(imageUrl
-        ? [{ id: 'dpImage', type: 'image',
-            style: { image: imageUrl, x: cx - r, y: cy - r, width: r * 2, height: r * 2 },
+        ? [{ id: 'dpBackdrop', $action: 'remove' }]
+        : [{
+            id: 'dpBackdrop', type: 'circle',
+            shape: { cx, cy, r },
+            style: { fill: catColour, opacity: 0.9 },
+            z2: 20,
+          }]
+      ),
+      // Plant photo (when available) — wrapped in a group with a circular clipPath
+      // so the square image is cropped to the disc shape.
+      // ECharts clipPath applies to group children; the circle is centred at the
+      // group's local origin (0,0) so the group itself is positioned at (cx, cy).
+      ...(imageUrl
+        ? [{ id: 'dpImage', type: 'group',
+            x: cx, y: cy,
+            clipPath: { type: 'circle', shape: { cx: 0, cy: 0, r } },
+            children: [{
+              type: 'image',
+              style: { image: imageUrl, x: -r, y: -r, width: r * 2, height: r * 2 },
+            }],
             z2: 21 }]
         : [{ id: 'dpImage', $action: 'remove' }]
       ),
@@ -1319,7 +1335,7 @@ class SpeciesMixer {
             id: 'dpInitials', type: 'text',
             style: {
               text: initials,
-              x: cx, y: cy - r * 0.12,
+              x: cx, y: cy,
               textAlign: 'center', textVerticalAlign: 'middle',
               fill: 'rgba(255,255,255,0.9)',
               fontSize: initialsFontSize, fontWeight: 'bold',
@@ -1335,18 +1351,18 @@ class SpeciesMixer {
         style: { fill: 'none', stroke: '#fff', lineWidth: 3, opacity: 0.95 },
         z2: 23,
       },
-      // Common name label — rendered inside the disc at the lower third
+      // Common name label — rendered below the disc so it never overlaps the photo
       {
         id: 'dpLabel', type: 'text',
         style: {
           text: label,
-          x: cx, y: cy + r * 0.52,
-          textAlign: 'center', textVerticalAlign: 'middle',
-          fill: '#fff', fontSize: labelFontSize, fontWeight: 'bold',
+          x: cx, y: cy + r1 + 10,
+          textAlign: 'center', textVerticalAlign: 'top',
+          fill: '#fff', fontSize: Math.max(13, Math.min(18, r * 0.28)), fontWeight: 'bold',
           textShadowBlur: 8, textShadowColor: 'rgba(0,0,0,0.95)',
-          backgroundColor: 'rgba(0,0,0,0.35)',
-          borderRadius: 3,
-          padding: [2, 5],
+          backgroundColor: 'rgba(0,0,0,0.45)',
+          borderRadius: 4,
+          padding: [3, 8],
         },
         z2: 24,
       },
@@ -3463,10 +3479,11 @@ class SpeciesMixer {
     // The popover title includes a circular species avatar image when available.
     const nameCell = tr.querySelector('.species-name-cell');
 
-    // Build popover title HTML: circular avatar (if image known) + bold name
+    // Build popover title HTML: circular avatar (if image known) + bold name.
+    // alt="" prevents the oval alt-text fallback if the image fails to load.
     const buildPopTitle = (imgUrl) => {
       const imgHtml = imgUrl
-        ? `<img src="${imgUrl}" class="sp-pop-img" alt="${item.name}" loading="lazy">`
+        ? `<img src="${imgUrl}" class="sp-pop-img" alt="" loading="lazy" onerror="this.style.display='none'">`
         : '';
       return `<div class="d-flex align-items-center gap-2">${imgHtml}<strong>${item.name}</strong></div>`;
     };
