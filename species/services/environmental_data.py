@@ -102,14 +102,16 @@ logger = logging.getLogger(__name__)
 _COORD_PRECISION = 2
 # Cache timeout — 30 days (environmental data and species records change slowly)
 _CACHE_TTL = 60 * 60 * 24 * 30
-# Cache timeout for species traits — 7 days
-_SPECIES_TTL = 60 * 60 * 24 * 7
+# Cache timeout for species traits — 30 days (family/genus data is stable)
+_SPECIES_TTL = 60 * 60 * 24 * 30
 
 # HTTP request timeout (seconds) — default for most APIs
-_TIMEOUT = 15
+_TIMEOUT = 8
 # SoilGrids is a free academic API that is frequently slow under load.
-# Cap at 15 s — if it hasn't responded by then it won't; soil data is optional.
-_SOILGRIDS_TIMEOUT = 15
+# Cap at 8 s — if it hasn't responded by then it won't; soil data is optional.
+_SOILGRIDS_TIMEOUT = 8
+# Flood monitoring timeout — EA endpoint is unreliable; fail fast, flood risk is optional.
+_FLOOD_TIMEOUT = 5
 
 
 def _cache_key(prefix: str, lat: float, lng: float) -> str:
@@ -164,7 +166,6 @@ def fetch_soilgrids(lat: float, lng: float) -> dict:
     key = _cache_key('soilgrids', lat, lng)
     cached = cache.get(key)
     if cached is not None:
-        logger.debug('SoilGrids (%.4f,%.4f): cache hit — %s', lat, lng, cached)
         return cached
 
     # SoilGrids requires repeated query params (not a list value) and specific
@@ -178,34 +179,25 @@ def fetch_soilgrids(lat: float, lng: float) -> dict:
                 timeout=_SOILGRIDS_TIMEOUT)
     _track('soilgrids')
 
-    if data is None:
-        logger.debug('SoilGrids (%.4f,%.4f): request returned None (timeout or HTTP error)', lat, lng)
-    else:
-        logger.debug('SoilGrids (%.4f,%.4f): raw response keys=%s', lat, lng, list(data.keys()) if isinstance(data, dict) else type(data).__name__)
-
     result = {}
     if data and 'properties' in data:
         props = data['properties']['layers']
         prop_map = {p['name']: p for p in props}
-        logger.debug('SoilGrids (%.4f,%.4f): layers present=%s', lat, lng, list(prop_map.keys()))
 
         # pH — SoilGrids returns pH * 10 (e.g. 65 = pH 6.5)
         if 'phh2o' in prop_map:
             ph_raw = prop_map['phh2o']['depths'][0]['values'].get('mean')
             result['ph'] = round(ph_raw / 10, 1) if ph_raw is not None else None
-            logger.debug('SoilGrids (%.4f,%.4f): phh2o raw=%s → ph=%s', lat, lng, ph_raw, result['ph'])
 
         # Organic carbon — SoilGrids returns SOC in dg/kg; divide by 100 to get %
         if 'soc' in prop_map:
             soc = prop_map['soc']['depths'][0]['values'].get('mean')
             result['organic_carbon'] = round(soc / 100, 2) if soc is not None else None
-            logger.debug('SoilGrids (%.4f,%.4f): soc raw=%s (dg/kg) → organic_carbon=%s%%', lat, lng, soc, result['organic_carbon'])
 
         # Texture from clay/silt/sand fractions
         clay_v = prop_map.get('clay', {}).get('depths', [{}])[0].get('values', {}).get('mean')
         silt_v = prop_map.get('silt', {}).get('depths', [{}])[0].get('values', {}).get('mean')
         sand_v = prop_map.get('sand', {}).get('depths', [{}])[0].get('values', {}).get('mean')
-        logger.debug('SoilGrids (%.4f,%.4f): clay=%s silt=%s sand=%s (g/kg)', lat, lng, clay_v, silt_v, sand_v)
         result['texture'] = _classify_texture(clay_v, silt_v, sand_v)
         result['clay_pct'] = round(clay_v / 10, 1) if clay_v else None
         result['silt_pct'] = round(silt_v / 10, 1) if silt_v else None
@@ -222,7 +214,6 @@ def fetch_soilgrids(lat: float, lng: float) -> dict:
                     result['moisture_class'] = 'moist'
                 else:
                     result['moisture_class'] = 'wet'
-                logger.debug('SoilGrids (%.4f,%.4f): wv0010 raw=%s → wv_pct=%.1f%% → moisture=%s', lat, lng, wv, wv_pct, result.get('moisture_class'))
     elif data is not None:
         logger.warning('SoilGrids (%.4f,%.4f): unexpected response structure — no "properties" key. Got: %s', lat, lng, str(data)[:200])
 
@@ -230,8 +221,6 @@ def fetch_soilgrids(lat: float, lng: float) -> dict:
     result.setdefault('texture', 'loamy')
     result.setdefault('organic_carbon', None)
     result.setdefault('moisture_class', 'moist')
-
-    logger.debug('SoilGrids (%.4f,%.4f): final result=%s', lat, lng, result)
 
     cache.set(key, result, _CACHE_TTL)
     return result
@@ -345,6 +334,7 @@ def _fetch_ea_flood_risk(lat: float, lng: float) -> dict:
         warnings = _get(
             'https://environment.data.gov.uk/flood-monitoring/id/floods',
             params={'lat': lat, 'long': lng, 'dist': 2},
+            timeout=_FLOOD_TIMEOUT,
         )
         if warnings and warnings.get('items'):
             result['flood_risk'] = 'high'
@@ -355,6 +345,7 @@ def _fetch_ea_flood_risk(lat: float, lng: float) -> dict:
         areas = _get(
             'https://environment.data.gov.uk/flood-monitoring/id/floodAreas',
             params={'lat': lat, 'long': lng, 'dist': 1},
+            timeout=_FLOOD_TIMEOUT,
         )
         if areas and areas.get('items'):
             result['flood_risk'] = 'medium'
@@ -482,7 +473,6 @@ def fetch_climate(lat: float, lng: float) -> dict:
     key = _cache_key('climate', lat, lng)
     cached = cache.get(key)
     if cached is not None:
-        logger.debug('Climate (%.4f,%.4f): cache hit — %s', lat, lng, cached)
         return cached
 
     result = _fetch_openlandmap_climate(lat, lng)
@@ -511,18 +501,8 @@ def _olm_fetch_one(url: str) -> float | None:
                 val = next(iter(data.values()), None)
             else:
                 val = None
-            result = float(val) if val is not None else None
-            if result is None:
-                logger.debug('OpenLandMap: no value in response for %s — data=%s', url.split('regex=')[-1], data)
-            return result
-    except urllib.error.HTTPError as exc:
-        logger.debug('OpenLandMap HTTP %s %s — layer: %s', exc.code, exc.reason, url.split('regex=')[-1])
-        return None
-    except urllib.error.URLError as exc:
-        logger.debug('OpenLandMap network error (%s) — layer: %s', exc.reason, url.split('regex=')[-1])
-        return None
-    except Exception as exc:
-        logger.debug('OpenLandMap unexpected error (%s: %s) — layer: %s', type(exc).__name__, exc, url.split('regex=')[-1])
+            return float(val) if val is not None else None
+    except (urllib.error.HTTPError, urllib.error.URLError, Exception):
         return None
 
 
@@ -579,12 +559,6 @@ def _fetch_openlandmap_climate(lat: float, lng: float) -> dict:
         # Require all 12 months for each variable
         missing_p = sum(1 for v in precip_values if v is None)
         missing_t = sum(1 for v in temp_values_raw if v is None)
-        logger.debug(
-            'OpenLandMap (%.4f,%.4f): precip=%s (missing=%d) temp_raw=%s (missing=%d)',
-            lat, lng,
-            [round(v, 1) if v is not None else None for v in precip_values], missing_p,
-            [round(v, 1) if v is not None else None for v in temp_values_raw], missing_t,
-        )
         if missing_p > 3 or missing_t > 3:
             raise ValueError(
                 f'Too many missing values: {missing_p} precip, {missing_t} temp'
@@ -636,7 +610,6 @@ def _fetch_openlandmap_climate(lat: float, lng: float) -> dict:
             'summer_drought_risk': summer_drought,
             'source': 'openlandmap',
         }
-        logger.debug('OpenLandMap (%.4f,%.4f): final climate result=%s', lat, lng, result)
         return result
 
     except Exception as exc:
@@ -864,17 +837,80 @@ def fetch_gbif_species_traits(scientific_name: str) -> dict:
     result['genus'] = match_data.get('genus')
     result['match_confidence'] = match_data.get('confidence', 0)
 
-    # Step 2: Fetch vernacular (common) names
-    if result['gbif_key']:
+    # Step 2: Fetch vernacular (common) names — only if not already known.
+    # The caller (_enrich) checks candidate['common_name'] before using vernacular_names,
+    # so skip this second HTTP call entirely if the match response includes a vernacularName.
+    vern_from_match = match_data.get('vernacularName')
+    if vern_from_match:
+        result['vernacular_names'] = [vern_from_match]
+    elif result['gbif_key']:
         vern_data = _get(f"https://api.gbif.org/v1/species/{result['gbif_key']}/vernacularNames")
         if vern_data and 'results' in vern_data:
-            # Prioritise English names
             english = [v['vernacularName'] for v in vern_data['results'] if v.get('language') == 'eng']
             other = [v['vernacularName'] for v in vern_data['results'] if v.get('language') != 'eng']
             result['vernacular_names'] = (english + other)[:5]
 
     cache.set(cache_key, result, _SPECIES_TTL)
     return result
+
+
+# =============================================================================
+# ✅ GBIF DISTRIBUTIONS — UK nativeness lookup
+# Uses GBIF /species/{key}/distributions endpoint.
+# Returns establishment means (NATIVE / INTRODUCED / NATURALISED) per region.
+# UK TDWG level-3 codes: BRC (Britain), IRE (Ireland), ORK, HEB, SHE (islands).
+# Cached for 90 days — checklist data changes rarely.
+# =============================================================================
+_UK_NATIVE_TTL = 60 * 60 * 24 * 90   # 90 days
+_UK_TDWG_CODES = {'BRC', 'IRE', 'ORK', 'HEB', 'SHE', 'CI'}  # Channel Islands too
+
+def fetch_uk_nativeness(gbif_key: int | None, scientific_name: str = '') -> str:
+    """
+    Check the UK nativeness status of a plant species via GBIF distributions.
+
+    Returns one of:
+      'native'       — GBIF reports NATIVE establishment for a UK region
+      'naturalised'  — GBIF reports NATURALISED establishment for a UK region
+      'introduced'   — GBIF reports INTRODUCED/MANAGED/INVASIVE for a UK region
+      'unknown'      — no UK distribution data available
+
+    Results are cached per species for 90 days.
+    """
+    if not gbif_key:
+        return 'unknown'
+
+    cache_key = f'uk_native:{gbif_key}'
+    cached = cache.get(cache_key)
+    if cached is not None:
+        return cached
+
+    data = _get(f'https://api.gbif.org/v1/species/{gbif_key}/distributions')
+    _track('gbif')
+
+    if not data or not isinstance(data.get('results'), list):
+        cache.set(cache_key, 'unknown', _UK_NATIVE_TTL)
+        return 'unknown'
+
+    for dist in data['results']:
+        location = (
+            dist.get('locationId') or
+            dist.get('location') or ''
+        ).upper()
+        if any(code in location for code in _UK_TDWG_CODES):
+            means = (dist.get('establishmentMeans') or '').upper()
+            if means == 'NATIVE':
+                result = 'native'
+            elif means in ('INTRODUCED', 'MANAGED', 'INVASIVE'):
+                result = 'introduced'
+            elif means == 'NATURALISED':
+                result = 'naturalised'
+            else:
+                result = 'unknown'
+            cache.set(cache_key, result, _UK_NATIVE_TTL)
+            return result
+
+    cache.set(cache_key, 'unknown', _UK_NATIVE_TTL)
+    return 'unknown'
 
 
 # =============================================================================
@@ -1001,11 +1037,15 @@ class SpeciesCandidateTool:
         if env_data is None:
             env_data = {}
 
-        # --- Step 1: Collect raw occurrence records ---
+        # --- Step 1: Collect raw occurrence records (parallel) ---
+        # GBIF and NBN Atlas are fully independent — fetch both simultaneously.
         # GBIF already ingests iNaturalist research-grade records weekly, so
         # we do not call iNaturalist separately — it would be double-counting.
-        gbif_records = fetch_gbif_occurrences(lat, lng, radius_km)
-        nbn_names = fetch_nbn_atlas(lat, lng, radius_km)
+        with ThreadPoolExecutor(max_workers=2) as _occ_pool:
+            _gbif_f = _occ_pool.submit(fetch_gbif_occurrences, lat, lng, radius_km)
+            _nbn_f = _occ_pool.submit(fetch_nbn_atlas, lat, lng, radius_km)
+            gbif_records = _gbif_f.result()
+            nbn_names = _nbn_f.result()
 
         # Convert NBN names to the same dict format
         nbn_records = [{'scientific_name': n, 'observation_count': 1, 'common_name': None} for n in nbn_names]
@@ -1053,13 +1093,146 @@ class SpeciesCandidateTool:
             candidate['family'] = traits.get('family')
             if not candidate['common_name'] and traits.get('vernacular_names'):
                 candidate['common_name'] = traits['vernacular_names'][0]
+            # uk_nativeness is NOT fetched here — it is resolved lazily in the agent
+            # after Phase 5 selection so we only call the GBIF distributions API for
+            # the ~60 selected species, not all 120 candidates (would add 60–180 s).
+            candidate['uk_nativeness'] = 'unknown'
             return candidate
 
-        with ThreadPoolExecutor(max_workers=10) as pool:
+        logger.info('SpeciesCandidateTool: enriching %d candidates with GBIF traits (15 workers)...', len(candidates))
+        with ThreadPoolExecutor(max_workers=15) as pool:
             futures = {pool.submit(_enrich, c): c for c in candidates}
             candidates = [f.result() for f in as_completed(futures)]
+        logger.info('SpeciesCandidateTool: trait enrichment complete')
 
         # Restore sort order (as_completed returns in completion order, not submission order)
         candidates.sort(key=lambda x: x['observation_count'], reverse=True)
 
+        # ── Category-biased pool: guarantee minimum representation per category ──
+        # Without this, under-recorded categories (Fern, Moss, Tree) may have fewer
+        # candidates in the pool than the Phase 5 minimum (6 per category), causing
+        # the diversity guarantee to silently fail.
+        # We guarantee 2× the Phase 5 floor so scoring has enough to choose from.
+        _INLINE_CATEGORY_MAP = {
+            # Trees
+            'salicaceae': 'Tree', 'betulaceae': 'Tree', 'fagaceae': 'Tree',
+            'pinaceae': 'Tree', 'cupressaceae': 'Tree', 'aceraceae': 'Tree',
+            'sapindaceae': 'Tree', 'ulmaceae': 'Tree', 'juglandaceae': 'Tree',
+            'taxodiaceae': 'Tree', 'oleaceae': 'Tree', 'tiliaceae': 'Tree',
+            'platanaceae': 'Tree', 'hippocastanaceae': 'Tree',
+            # Shrubs
+            'ericaceae': 'Shrub', 'rosaceae': 'Shrub', 'rhamnaceae': 'Shrub',
+            'aquifoliaceae': 'Shrub', 'adoxaceae': 'Shrub', 'caprifoliaceae': 'Shrub',
+            'cornaceae': 'Shrub', 'thymelaeaceae': 'Shrub', 'cistaceae': 'Shrub',
+            'grossulariaceae': 'Shrub', 'vacciniaceae': 'Shrub',
+            # Grasses / sedges / rushes
+            'poaceae': 'Grass', 'cyperaceae': 'Grass', 'juncaceae': 'Grass',
+            # Ferns
+            'polypodiaceae': 'Fern', 'dryopteridaceae': 'Fern', 'aspleniaceae': 'Fern',
+            'athyriaceae': 'Fern', 'pteridaceae': 'Fern', 'osmundaceae': 'Fern',
+            'dennstaedtiaceae': 'Fern', 'blechnaceae': 'Fern',
+            'thelypteridaceae': 'Fern', 'woodsiaceae': 'Fern',
+            'hymenophyllaceae': 'Fern', 'ophioglossaceae': 'Fern',
+            # Mosses / bryophytes
+            'sphagnaceae': 'Moss', 'polytrichaceae': 'Moss', 'brachytheciaceae': 'Moss',
+            'hylocomiaceae': 'Moss', 'bryaceae': 'Moss', 'mniaceae': 'Moss',
+            'amblystegiaceae': 'Moss', 'calliergonaceae': 'Moss',
+            'plagiotheciaceae': 'Moss', 'hypnaceae': 'Moss', 'grimmiaceae': 'Moss',
+            'fissidens': 'Moss', 'fissidentaceae': 'Moss',
+        }
+        _CAT_MIN_IN_POOL = {
+            'Tree': 12, 'Shrub': 12, 'Wildflower': 20,
+            'Grass': 12, 'Fern': 10, 'Moss': 10,
+        }
+
+        def _pool_category(c) -> str:
+            fam = (c.get('family') or '').lower()
+            return _INLINE_CATEGORY_MAP.get(fam, 'Wildflower')
+
+        from collections import defaultdict as _dd
+        by_cat = _dd(list)
+        for c in candidates:
+            by_cat[_pool_category(c)].append(c)
+
+        guaranteed = []
+        guaranteed_names = set()
+        for cat, min_n in _CAT_MIN_IN_POOL.items():
+            for c in by_cat[cat][:min_n]:
+                guaranteed.append(c)
+                guaranteed_names.add(c['scientific_name'])
+
+        # Fill remainder from the full observation-sorted list
+        remainder = [c for c in candidates if c['scientific_name'] not in guaranteed_names]
+        candidates = guaranteed + remainder[:max(0, limit - len(guaranteed))]
+
         return candidates
+
+
+# =============================================================================
+# PHASE D — Regional Species Quality Index (progressive improvement cache)
+#
+# Key: region_quality:{lat1d}:{lng1d}:{name_slug}
+# TTL: 365 days (rolling — refreshed on each write)
+# Structure: { "appearances": int, "mean_score": float, "last_seen": str, "sources": list }
+#
+# Updated after every successful generation. Read during Phase 4 scoring to
+# provide a weak regional bonus (0–20 pts) that grows over time as more mixes
+# are generated in the same ~11 km grid cell.
+# =============================================================================
+
+_REGIONAL_QUALITY_TTL = 60 * 60 * 24 * 365  # 365 days
+
+
+def _region_quality_key(lat: float, lng: float, name: str) -> str:
+    """Cache key for a species in a ~11 km (1 decimal degree) grid cell."""
+    import re as _re
+    lat1 = round(lat, 1)
+    lng1 = round(lng, 1)
+    slug = _re.sub(r'[^a-z0-9]+', '_', name.lower()).strip('_')
+    return f'region_quality:{lat1}:{lng1}:{slug}'
+
+
+def record_species_quality(lat: float, lng: float, mix_items: list) -> None:
+    """
+    After a successful generation, update the regional quality index for each
+    selected species.  `mix_items` is the list of species dicts from the agent
+    output (must have keys: 'scientific_name', 'score', 'sources').
+    """
+    import math as _math
+    import datetime as _dt
+
+    today = _dt.date.today().isoformat()
+    for item in mix_items:
+        name = item.get('scientific_name', '')
+        if not name:
+            continue
+        key = _region_quality_key(lat, lng, name)
+        existing = cache.get(key) or {}
+        appearances = existing.get('appearances', 0) + 1
+        prev_mean = existing.get('mean_score', 0.0)
+        score = float(item.get('score', 0) or 0)
+        # Running mean
+        new_mean = prev_mean + (score - prev_mean) / appearances
+        cache.set(key, {
+            'appearances': appearances,
+            'mean_score': round(new_mean, 2),
+            'last_seen': today,
+            'sources': item.get('sources', []),
+        }, _REGIONAL_QUALITY_TTL)
+
+
+def get_regional_quality_bonus(lat: float, lng: float, name: str) -> int:
+    """
+    Return a 0–20 point bonus for a species that has been successfully chosen
+    in previous mixes for this ~11 km grid cell.  Grows logarithmically with
+    the number of appearances so it acts as a weak, steadily accumulating signal.
+    """
+    import math as _math
+    entry = cache.get(_region_quality_key(lat, lng, name))
+    if not entry:
+        return 0
+    appearances = entry.get('appearances', 0)
+    if appearances <= 0:
+        return 0
+    # log2(1)=0 → 0 pts, log2(2)=1 → 6 pts, log2(8)=3 → 18 pts, log2(16)=4 → 24 capped at 20
+    return min(int(_math.log2(appearances + 1) * 6), 20)

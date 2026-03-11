@@ -32,6 +32,31 @@ class SpeciesMixer {
   static POLL_INTERVAL_MS      = 2000;  // 2s polling
   static RESCORE_DEBOUNCE_MS   = 1000; // 1s after slider stops
   static SEARCH_DEBOUNCE_MS    = 300;  // 300ms for species search
+
+  // Habitat preset definitions — each preset sets goal weights and per-category
+  // minimum targets sent to the backend. null = keep current / use backend default.
+  static HABITAT_PRESETS = {
+    balanced: {
+      goals: { erosion_control: 20, biodiversity: 20, pollinator: 20, carbon_sequestration: 20, wildlife_habitat: 20 },
+      categoryTargets: { Tree: 6, Shrub: 6, Wildflower: 6, Grass: 6, Fern: 6, Moss: 6 },
+    },
+    woodland: {
+      goals: { erosion_control: 25, biodiversity: 30, pollinator: 15, carbon_sequestration: 20, wildlife_habitat: 10 },
+      categoryTargets: { Tree: 14, Shrub: 10, Wildflower: 10, Grass: 6, Fern: 6, Moss: 4 },
+    },
+    wetland: {
+      goals: { erosion_control: 35, biodiversity: 25, pollinator: 10, carbon_sequestration: 10, wildlife_habitat: 20 },
+      categoryTargets: { Tree: 6, Shrub: 6, Wildflower: 10, Grass: 12, Fern: 6, Moss: 6 },
+    },
+    grassland: {
+      goals: { erosion_control: 10, biodiversity: 20, pollinator: 40, carbon_sequestration: 5, wildlife_habitat: 25 },
+      categoryTargets: { Tree: 4, Shrub: 4, Wildflower: 18, Grass: 12, Fern: 4, Moss: 4 },
+    },
+    heathland: {
+      goals: { erosion_control: 10, biodiversity: 30, pollinator: 20, carbon_sequestration: 10, wildlife_habitat: 30 },
+      categoryTargets: { Tree: 4, Shrub: 16, Wildflower: 8, Grass: 6, Fern: 4, Moss: 8 },
+    },
+  };
   // Category colour palettes — each category gets a family of contrasting shades
   // so map dots for all species of one type are visually grouped by hue,
   // but individual species remain distinguishable from each other.
@@ -71,6 +96,16 @@ class SpeciesMixer {
     const key = legacyMap[(category || '').toLowerCase()] || (category || '').toLowerCase();
     const palette = SpeciesMixer.CATEGORY_COLOURS[key] || SpeciesMixer.CATEGORY_COLOURS['other'];
     return palette[indexWithinCategory % palette.length];
+  }
+
+  // Single representative colour per category — used for the DP backdrop disc.
+  static colourForCategory(cat) {
+    const map = {
+      tree: '#2d6a4f', shrub: '#52b788', wildflower: '#f4a261',
+      grass: '#a7c957', fern: '#606c38', moss: '#b7b7a4',
+      fungi: '#e76f51', other: '#6c757d',
+    };
+    return map[(cat || '').toLowerCase()] || '#6c757d';
   }
 
   // ──────────────────────────────────────────────────────────────────────────
@@ -120,6 +155,14 @@ class SpeciesMixer {
     this._morphTimer = null;        // clearTimeout handle for morph sequence
     this._metaballPlaying = false;   // true while metaball is looping pre-first-species
     this._firstSpeciesArrived = false; // flipped when first species_added event comes in
+
+    // Slideshow DP: per-species queue, image cache, display timer
+    this._speciesQueue = [];         // pending species waiting to be displayed
+    this._speciesDisplayTimer = null; // setTimeout handle for drain loop
+    this._lastDisplayedSpecies = null; // last species shown in DP (kept visible if queue empties)
+    this._imageCache = {};           // { gbif_key: url|null } — avoid duplicate GBIF fetches
+    this._pendingComplete = null;    // { mode, result, extra } — deferred until queue drains
+    this._dpCounter = 0;            // increments per species; DP shown every 5th
 
     this._initMap();
     this._initDivider();
@@ -1094,6 +1137,197 @@ class SpeciesMixer {
     } catch (e) {}
   }
 
+  // ── Slideshow DP helpers ───────────────────────────────────────────────────
+
+  // Fetch a representative plant image from GBIF occurrence media.
+  // Resolves to a JPEG URL string, or null if none found / network error.
+  // Results are cached by gbif_key to avoid duplicate requests.
+  _fetchSpeciesImage(gbifKey) {
+    if (!gbifKey) return Promise.resolve(null);
+    if (gbifKey in this._imageCache) return Promise.resolve(this._imageCache[gbifKey]);
+    const proxyUrl = `${this.config.apiUrls.speciesImage}?gbif_key=${gbifKey}`;
+    return fetch(proxyUrl, { headers: { 'X-CSRFToken': this.config.csrfToken } })
+      .then(r => r.json())
+      .then(d => {
+        const imgUrl = d.url || null;
+        this._imageCache[gbifKey] = imgUrl;
+        return imgUrl;
+      })
+      .catch(() => {
+        this._imageCache[gbifKey] = null;
+        return null;
+      });
+  }
+
+  // Drain the species queue at 0.5s intervals, displaying one species at a time.
+  // When the queue empties AND the backend has finished, fires _onTaskComplete.
+  _drainSpeciesQueue() {
+    this._speciesDisplayTimer = null;
+
+    if (this._speciesQueue.length === 0) {
+      // Queue fully drained — fire completion if backend already finished
+      if (this._pendingComplete) {
+        const { mode, result, extra } = this._pendingComplete;
+        this._pendingComplete = null;
+        this._onTaskComplete(mode, result, extra);
+      }
+      return;
+    }
+
+    const item = this._speciesQueue.shift();
+    this._displayOneSpecies(item);
+    this._speciesDisplayTimer = setTimeout(() => this._drainSpeciesQueue(), 200);
+  }
+
+  // Display a single species: update parliament dot, add table row, show DP overlay.
+  // DP overlay only shown for every 5th species to limit GBIF image requests.
+  _displayOneSpecies(item) {
+    // First species: stop the metaball holding pattern
+    if (!this._firstSpeciesArrived) {
+      this._firstSpeciesArrived = true;
+      this._stopMetaball();
+    }
+
+    // Update parliament chart
+    const cat = (item.category || 'Other').toLowerCase();
+    this._parlData[cat] = (this._parlData[cat] || 0) + 1;
+    this._updateParliamentChart();
+
+    // Add table row
+    this._addSpeciesRowIncremental(item);
+
+    // Increment counter; show DP only on 1st, 6th, 11th... (every 5th)
+    this._dpCounter++;
+    if (this._dpCounter % 5 !== 1) return;
+
+    this._lastDisplayedSpecies = item;
+
+    // Show DP — use cached image immediately if pre-fetch already resolved,
+    // otherwise show initials and upgrade when the fetch completes.
+    const cachedUrl = item.gbif_key ? this._imageCache[item.gbif_key] : undefined;
+    if (cachedUrl !== undefined) {
+      this._showSpeciesDP(item, cachedUrl || null);
+    } else {
+      this._showSpeciesDP(item, null);
+      if (item.gbif_key) {
+        this._fetchSpeciesImage(item.gbif_key).then(url => {
+          if (url && this._lastDisplayedSpecies?.gbif_key === item.gbif_key) {
+            this._showSpeciesDP(item, url);
+          }
+        });
+      }
+    }
+  }
+
+  // Derive 1-2 letter initials from a common name: "Scots Pine" → "SP", "Oak" → "O".
+  _dpInitials(name) {
+    if (!name) return '?';
+    const words = name.trim().split(/\s+/).filter(w => w.length > 0);
+    if (words.length === 1) return words[0][0].toUpperCase();
+    // Take first letter of each word, up to 2
+    return words.slice(0, 2).map(w => w[0].toUpperCase()).join('');
+  }
+
+  // Render (or update) the circular species DP overlay in the centre of the parliament chart.
+  // imageUrl may be null — in that case the category backdrop + initials monogram are shown.
+  _showSpeciesDP(item, imageUrl) {
+    const chart = this.speciesVizChart;
+    if (!chart || chart.isDisposed()) return;
+    const w = chart.getWidth(), h = chart.getHeight();
+    const cx = w / 2, cy = h / 2;
+    // r0 inner ring = 28% of half-chart-size; keep DP inside that with a small margin
+    const r = Math.min(w, h) * 0.13;
+    const cat = (item.category || 'other').toLowerCase();
+    const catColour = SpeciesMixer.colourForCategory(cat);
+    const label = item.common_name || item.scientific_name || '';
+    const labelFontSize = Math.max(10, Math.min(13, r * 0.22));
+    const initials = this._dpInitials(item.common_name || item.scientific_name);
+    const initialsFontSize = Math.max(16, Math.min(28, r * 0.48));
+
+    const elements = [
+      // Coloured backdrop disc — always shown
+      {
+        id: 'dpBackdrop', type: 'circle',
+        shape: { cx, cy, r },
+        style: { fill: catColour, opacity: 0.9 },
+        z2: 20,
+      },
+      // Plant photo (when available) — square image centred on disc
+      ...(imageUrl
+        ? [{ id: 'dpImage', type: 'image',
+            style: { image: imageUrl, x: cx - r, y: cy - r, width: r * 2, height: r * 2 },
+            z2: 21 }]
+        : [{ id: 'dpImage', $action: 'remove' }]
+      ),
+      // Initials monogram — shown when no photo is available
+      ...(imageUrl
+        ? [{ id: 'dpInitials', $action: 'remove' }]
+        : [{
+            id: 'dpInitials', type: 'text',
+            style: {
+              text: initials,
+              x: cx, y: cy - r * 0.12,
+              textAlign: 'center', textVerticalAlign: 'middle',
+              fill: 'rgba(255,255,255,0.9)',
+              fontSize: initialsFontSize, fontWeight: 'bold',
+              textShadowBlur: 4, textShadowColor: 'rgba(0,0,0,0.4)',
+            },
+            z2: 22,
+          }]
+      ),
+      // White border ring — gives the avatar / profile-picture look
+      {
+        id: 'dpBorder', type: 'circle',
+        shape: { cx, cy, r },
+        style: { fill: 'none', stroke: '#fff', lineWidth: 3, opacity: 0.95 },
+        z2: 23,
+      },
+      // Common name label — rendered inside the disc at the lower third
+      {
+        id: 'dpLabel', type: 'text',
+        style: {
+          text: label,
+          x: cx, y: cy + r * 0.52,
+          textAlign: 'center', textVerticalAlign: 'middle',
+          fill: '#fff', fontSize: labelFontSize, fontWeight: 'bold',
+          textShadowBlur: 8, textShadowColor: 'rgba(0,0,0,0.95)',
+          backgroundColor: 'rgba(0,0,0,0.35)',
+          borderRadius: 3,
+          padding: [2, 5],
+        },
+        z2: 24,
+      },
+    ];
+
+    try {
+      chart.setOption({ graphic: { elements } }, false);
+    } catch (e) {}
+  }
+
+  // Remove the DP overlay and flush the species queue + timer.
+  // Also cancels any deferred _onTaskComplete that hadn't fired yet.
+  _clearSpeciesDP() {
+    clearTimeout(this._speciesDisplayTimer);
+    this._speciesDisplayTimer = null;
+    this._speciesQueue = [];
+    this._lastDisplayedSpecies = null;
+    this._pendingComplete = null;
+    this._dpCounter = 0;
+    const chart = this.speciesVizChart;
+    if (!chart || chart.isDisposed()) return;
+    try {
+      chart.setOption({
+        graphic: { elements: [
+          { id: 'dpBackdrop',  $action: 'remove' },
+          { id: 'dpImage',     $action: 'remove' },
+          { id: 'dpInitials',  $action: 'remove' },
+          { id: 'dpBorder',    $action: 'remove' },
+          { id: 'dpLabel',     $action: 'remove' },
+        ]},
+      }, false);
+    } catch (e) {}
+  }
+
   _updateParliamentChart() {
     if (!this.speciesVizChart || this.speciesVizChart.isDisposed()) return;
     const data = Object.entries(this._parlData).map(([name, value]) => ({ name, value }));
@@ -1119,6 +1353,8 @@ class SpeciesMixer {
   _runMorphSequence() {
     const chart = this.speciesVizChart;
     if (!chart || chart.isDisposed()) { this._showVirtualGrid(); return; }
+    // Remove DP overlay before morphing to treemap
+    this._clearSpeciesDP();
 
     // Hold parliament for 3 s, then morph → treemap via universalTransition (seriesKey:'point'),
     // hold 5 s, then switch to virtual grid.
@@ -2017,7 +2253,11 @@ class SpeciesMixer {
       clearTimeout(this._morphTimer);
       this._morphTimer = null;
       window.SPECIES_PARL_DATA = [];
+      this._clearSpeciesDP();
       this._showSpeciesViz();
+      // Stop any previous metaball loop before starting a new one (prevents
+      // duplicate loops when regenerating from STATE_5_MIX_READY).
+      this._stopMetaball();
       // Play metaball animation as holding pattern until first species arrives
       this._playMetaball();
     }
@@ -2277,7 +2517,94 @@ class SpeciesMixer {
       document.querySelectorAll('.api-toggle-item input[type="checkbox"]').forEach(cb => {
         cb.checked = true;
       });
+      // Reset max species to default
+      const slider = document.getElementById('max-species-slider');
+      const input  = document.getElementById('max-species-input');
+      if (slider) slider.value = 60;
+      if (input)  input.value  = 60;
     });
+
+    // Max species — keep slider and number input in sync
+    const _maxSlider = document.getElementById('max-species-slider');
+    const _maxInput  = document.getElementById('max-species-input');
+    if (_maxSlider && _maxInput) {
+      _maxSlider.addEventListener('input', () => { _maxInput.value = _maxSlider.value; });
+      _maxInput.addEventListener('input', () => {
+        const v = Math.max(1, Math.min(200, parseInt(_maxInput.value, 10) || 60));
+        _maxInput.value  = v;
+        _maxSlider.value = v;
+      });
+    }
+
+    // Advanced collapse — rotate chevron
+    const _advToggle = document.getElementById('advanced-settings-toggle');
+    const _advChevron = document.getElementById('advanced-chevron');
+    const _advBody = document.getElementById('advanced-settings-body');
+    if (_advBody && _advChevron) {
+      _advBody.addEventListener('show.bs.collapse', () => { _advChevron.style.transform = 'rotate(90deg)'; });
+      _advBody.addEventListener('hide.bs.collapse', () => { _advChevron.style.transform = ''; });
+    }
+
+    // Habitat preset buttons
+    document.querySelectorAll('.preset-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.preset-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        const preset = SpeciesMixer.HABITAT_PRESETS[btn.dataset.preset];
+        if (!preset) return;
+        // Apply goal weights if the preset defines them
+        if (preset.goals) {
+          const GOALS = ['erosion_control', 'biodiversity', 'pollinator', 'carbon_sequestration', 'wildlife_habitat'];
+          const total = Object.values(preset.goals).reduce((s, v) => s + v, 0) || 1;
+          GOALS.forEach(g => {
+            this._goalWeights[g] = Math.round((preset.goals[g] || 0) / total * 100);
+          });
+          this._computeHandleFromWeights?.();
+          this._syncGoalSliders?.();
+        }
+        // Apply category targets if defined
+        if (preset.categoryTargets) {
+          Object.entries(preset.categoryTargets).forEach(([cat, val]) => {
+            const slider = document.querySelector(`.cat-target-slider[data-category="${cat}"]`);
+            const input  = document.querySelector(`.cat-target-value[data-category="${cat}"]`);
+            if (slider) slider.value = val;
+            if (input)  input.value  = val;
+          });
+          this._updateCatCompositionBar();
+        }
+      });
+    });
+
+    // Category target sliders ↔ number inputs
+    document.querySelectorAll('.cat-target-slider').forEach(slider => {
+      slider.addEventListener('input', () => {
+        const cat = slider.dataset.category;
+        const input = document.querySelector(`.cat-target-value[data-category="${cat}"]`);
+        if (input) input.value = slider.value;
+        this._updateCatCompositionBar();
+      });
+    });
+    document.querySelectorAll('.cat-target-value').forEach(input => {
+      input.addEventListener('input', () => {
+        const cat = input.dataset.category;
+        const v = Math.max(0, Math.min(30, parseInt(input.value, 10) || 0));
+        input.value = v;
+        const slider = document.querySelector(`.cat-target-slider[data-category="${cat}"]`);
+        if (slider) slider.value = v;
+        this._updateCatCompositionBar();
+      });
+    });
+
+    // Reset category targets button
+    document.getElementById('reset-cat-targets-btn')?.addEventListener('click', () => {
+      document.querySelectorAll('.cat-target-slider, .cat-target-value').forEach(el => {
+        el.value = 6;
+      });
+      this._updateCatCompositionBar();
+    });
+
+    // Initial composition bar render
+    this._updateCatCompositionBar();
 
     // Generation settings card — "Clear history" button
     document.getElementById('clear-history-btn')?.addEventListener('click', () => {
@@ -2401,7 +2728,7 @@ class SpeciesMixer {
           'Content-Type': 'application/json',
           'X-CSRFToken': this.config.csrfToken,
         },
-        body: JSON.stringify({ lat: this.lat, lng: this.lng, goals }),
+        body: JSON.stringify({ lat: this.lat, lng: this.lng, goals, max_species: this._getMaxSpecies(), category_targets: this._getCategoryTargets(), natives_only: this._getNativesOnly() }),
       });
       const data = await resp.json();
       if (data.task_id) {
@@ -2454,6 +2781,9 @@ class SpeciesMixer {
           cached_candidates: this.cachedCandidates,
           goals,
           current_mix: currentMix,
+          max_species: this._getMaxSpecies(),
+          category_targets: this._getCategoryTargets(),
+          natives_only: this._getNativesOnly(),
         }),
       });
       const data = await resp.json();
@@ -2559,6 +2889,17 @@ class SpeciesMixer {
             this._appendFeedLine('Nearby Species Observations', '', { label: 'GBIF · CC0 &amp; CC-BY 4.0', url: 'https://www.gbif.org' });
             this._appendFeedLine('UK Botanical Survey Records', '', { label: 'NBN Atlas · CC-BY &amp; CC0', url: 'https://nbnatlas.org' });
 
+            // Always defer _onTaskComplete until the species slideshow queue has fully
+            // drained — _drainSpeciesQueue fires it when the queue empties.
+            // If no species arrived at all (error/empty result), fire immediately.
+            this._pendingComplete = { mode, result: data.result, extra };
+            if (this._speciesQueue.length === 0 && !this._speciesDisplayTimer) {
+              // No species queued — fire right away
+              const p = this._pendingComplete;
+              this._pendingComplete = null;
+              this._onTaskComplete(p.mode, p.result, p.extra);
+            }
+            return;
           }
           this._onTaskComplete(mode, data.result, extra);
         } else if (data.status === 'error' || data.status === 'not_found') {
@@ -2599,21 +2940,28 @@ class SpeciesMixer {
         if (countEl) countEl.textContent = `${ev.count} species`;
       }
 
-      // Incremental species: update parliament chart and add a table row
+      // Incremental species: push to the display queue.
       if (ev.species_added) {
-        // First species: stop metaball and morph directly into parliament
-        // using merge mode so universalTransition fires between metaball points
-        // and the first parliament dot.
-        if (!this._firstSpeciesArrived) {
-          this._firstSpeciesArrived = true;
-          this._stopMetaball();
-        }
-        const cat = (ev.species_added.category || 'Other').toLowerCase();
-        this._parlData[cat] = (this._parlData[cat] || 0) + 1;
-        this._updateParliamentChart();
-        this._addSpeciesRowIncremental(ev.species_added);
+        this._speciesQueue.push(ev.species_added);
       }
     });
+
+    // Staggered prefetch: only fetch images for every 5th species (matching what
+    // _displayOneSpecies will actually show), spaced 800ms apart to avoid
+    // hammering the GBIF API and triggering 429 rate limits.
+    const speciesWithKeys = newEvents
+      .map(ev => ev.species_added)
+      .filter((s, i) => s?.gbif_key && !(s.gbif_key in this._imageCache) && i % 5 === 0);
+    speciesWithKeys.forEach((s, i) => {
+      setTimeout(() => this._fetchSpeciesImage(s.gbif_key), i * 800);
+    });
+
+    // Kick off the drain loop if it's not already running.
+    // Always via setTimeout so the full batch is queued before drain starts.
+    if (this._speciesQueue.length > 0 && !this._speciesDisplayTimer) {
+      this._speciesDisplayTimer = setTimeout(() => this._drainSpeciesQueue(), 0);
+    }
+
     this._seenProgressCount = events.length;
     // Advance progress bar: 10 → 90% across ~10 expected phases
     if (newEvents.length > 0) {
@@ -2747,6 +3095,7 @@ class SpeciesMixer {
     this._showGenerationProgress(false);
     // Revert species-viz back to virtual grid placeholder
     this._stopMetaball();
+    this._clearSpeciesDP();
     clearTimeout(this._morphTimer);
     this._morphTimer = null;
     this._showVirtualGrid();
@@ -2764,6 +3113,7 @@ class SpeciesMixer {
     this._transitionTo(SpeciesMixer.STATE_3_GOALS_SET);
     // Revert species-viz back to virtual grid
     this._stopMetaball();
+    this._clearSpeciesDP();
     clearTimeout(this._morphTimer);
     this._morphTimer = null;
     this._showVirtualGrid();
@@ -3565,6 +3915,67 @@ class SpeciesMixer {
     const diff = 100 - Object.values(goals).reduce((s, v) => s + v, 0);
     if (diff !== 0) goals[GOALS[0]] += diff;
     return goals;
+  }
+
+  _getMaxSpecies() {
+    const el = document.getElementById('max-species-input');
+    const val = el ? parseInt(el.value, 10) : 60;
+    return Math.max(1, Math.min(200, isNaN(val) ? 60 : val));
+  }
+
+  _getCategoryTargets() {
+    const targets = {};
+    document.querySelectorAll('.cat-target-slider').forEach(slider => {
+      const cat = slider.dataset.category;
+      const val = parseInt(slider.value, 10);
+      if (!isNaN(val)) targets[cat.toLowerCase()] = val;
+    });
+    return targets;
+  }
+
+  _getNativesOnly() {
+    return document.getElementById('natives-only-toggle')?.checked || false;
+  }
+
+  _updateCatCompositionBar() {
+    const maxSpecies = this._getMaxSpecies();
+    const targets = this._getCategoryTargets();
+    const cats = ['tree', 'shrub', 'wildflower', 'grass', 'fern', 'moss'];
+    let pinned = 0;
+    cats.forEach(cat => {
+      const count = targets[cat] || 0;
+      pinned += count;
+      const seg = document.getElementById(`cat-comp-${cat}`);
+      if (seg) {
+        const pct = maxSpecies > 0 ? (count / maxSpecies * 100).toFixed(1) : 0;
+        seg.style.width = pct + '%';
+        const capCat = cat.charAt(0).toUpperCase() + cat.slice(1);
+        seg.title = `${capCat}: ${count}`;
+      }
+    });
+    const fill = maxSpecies - pinned;
+    const fillSeg = document.getElementById('cat-comp-fill');
+    if (fillSeg) {
+      if (fill > 0) {
+        fillSeg.style.flexGrow = '1';
+        fillSeg.style.display = 'flex';
+        fillSeg.textContent = fill + ' fill';
+      } else {
+        fillSeg.style.flexGrow = '0';
+        fillSeg.style.display = 'none';
+      }
+    }
+    // Validation warning
+    const warn = document.getElementById('cat-targets-warning');
+    const warnText = document.getElementById('cat-targets-warning-text');
+    if (warn && warnText) {
+      if (pinned > maxSpecies) {
+        warnText.textContent = `Category minimums (${pinned}) exceed max species (${maxSpecies}). Some will be scaled down.`;
+        warn.classList.remove('d-none');
+      } else {
+        warn.classList.add('d-none');
+      }
+    }
   }
 
   _categoryIcon(category) {

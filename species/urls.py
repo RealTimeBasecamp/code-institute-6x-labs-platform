@@ -35,6 +35,9 @@ urlpatterns = [
     # Species search (for manual add)
     path('mixer/api/species-search/', api_views.api_species_search, name='api_species_search'),
 
+    # Species image lookup (server-side GBIF proxy, 90-day cache)
+    path('mixer/api/species-image/', api_views.api_species_image, name='api_species_image'),
+
     # Virtual grid preview (point generation for ECharts visualiser)
     path('mixer/api/generate-preview/', api_views.api_generate_preview, name='api_generate_preview'),
 

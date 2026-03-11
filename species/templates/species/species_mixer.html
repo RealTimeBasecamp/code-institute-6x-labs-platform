@@ -703,6 +703,34 @@
           </button>
           <div class="expandable-card__body-wrapper" id="generation-settings-body">
             <div class="expandable-card__body">
+              <!-- Habitat presets -->
+              <div class="mb-3">
+                <label class="form-label small fw-medium mb-2 d-flex align-items-center gap-1">
+                  <i class="bi bi-map" style="font-size:0.9rem;"></i>
+                  Habitat Preset
+                  <i class="bi bi-info-circle text-muted ms-1 api-toggle-info"
+                     data-bs-toggle="tooltip" data-bs-placement="top"
+                     title="Presets tune goal weights and category targets for common habitat types. Adjust individually after selecting."></i>
+                </label>
+                <div class="d-flex flex-wrap gap-2" id="habitat-preset-btns">
+                  <button type="button" class="btn btn-outline-secondary btn-sm preset-btn active" data-preset="balanced">
+                    <i class="bi bi-grid-3x3-gap me-1"></i>Balanced
+                  </button>
+                  <button type="button" class="btn btn-outline-secondary btn-sm preset-btn" data-preset="woodland">
+                    <i class="bi bi-tree me-1"></i>Woodland
+                  </button>
+                  <button type="button" class="btn btn-outline-secondary btn-sm preset-btn" data-preset="wetland">
+                    <i class="bi bi-water me-1"></i>Wetland
+                  </button>
+                  <button type="button" class="btn btn-outline-secondary btn-sm preset-btn" data-preset="grassland">
+                    <i class="bi bi-flower1 me-1"></i>Meadow
+                  </button>
+                  <button type="button" class="btn btn-outline-secondary btn-sm preset-btn" data-preset="heathland">
+                    <i class="bi bi-cloud-fog2 me-1"></i>Heathland
+                  </button>
+                </div>
+              </div>
+
               <!-- Recommended settings button -->
               <div class="d-flex justify-content-between align-items-center mb-3">
                 <span class="small text-muted">Toggle data sources for mix generation</span>
@@ -778,6 +806,117 @@
                            title="NBN Atlas (National Biodiversity Network) — UK-specific plant records including BSBI botanical surveys for native species identification."></i>
                       </label>
                     </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Max species control -->
+              <div class="mb-3">
+                <label class="form-label small fw-medium mb-1 d-flex align-items-center gap-1" for="max-species-input">
+                  <i class="bi bi-list-ol" style="font-size:0.9rem;"></i>
+                  Max species in mix
+                  <i class="bi bi-info-circle text-muted api-toggle-info ms-1"
+                     data-bs-toggle="tooltip" data-bs-placement="top"
+                     title="Maximum number of species to include in the final mix. Higher values give a more diverse result."></i>
+                </label>
+                <div class="d-flex align-items-center gap-2">
+                  <input type="range" class="form-range flex-grow-1" id="max-species-slider"
+                         min="1" max="200" step="1" value="60">
+                  <input type="number" class="form-control form-control-sm text-center"
+                         id="max-species-input" min="1" max="200" value="60"
+                         style="width:4.5rem;">
+                </div>
+              </div>
+
+              <!-- Advanced composition settings (collapsed) -->
+              <div class="mb-3">
+                <button type="button"
+                        class="btn btn-link btn-sm px-0 text-muted d-flex align-items-center gap-1"
+                        id="advanced-settings-toggle"
+                        data-bs-toggle="collapse"
+                        data-bs-target="#advanced-settings-body"
+                        aria-expanded="false"
+                        aria-controls="advanced-settings-body">
+                  <i class="bi bi-chevron-right" id="advanced-chevron" style="font-size:.75rem;transition:transform .2s;"></i>
+                  <span class="small">Advanced composition settings</span>
+                </button>
+                <div class="collapse" id="advanced-settings-body">
+                  <div class="border rounded p-3 mt-2 bg-body-secondary">
+
+                    <!-- UK natives only toggle -->
+                    <div class="form-check form-switch mb-3">
+                      <input class="form-check-input" type="checkbox" id="natives-only-toggle" role="switch">
+                      <label class="form-check-label small" for="natives-only-toggle">
+                        <i class="bi bi-geo-alt me-1"></i>UK natives &amp; naturalised only
+                        <i class="bi bi-info-circle text-muted ms-1 api-toggle-info"
+                           data-bs-toggle="tooltip" data-bs-placement="top"
+                           title="Excludes confirmed introduced and non-native species. Species with unknown status are kept."></i>
+                      </label>
+                    </div>
+
+                    <!-- Category composition preview bar -->
+                    <div class="mb-3">
+                      <div class="d-flex justify-content-between align-items-center mb-1">
+                        <label class="small fw-medium mb-0">Category minimums</label>
+                        <button type="button" class="btn btn-link btn-sm p-0 text-muted" id="reset-cat-targets-btn">
+                          <i class="bi bi-arrow-counterclockwise me-1"></i><span class="small">Reset</span>
+                        </button>
+                      </div>
+                      <div class="cat-composition-bar mb-2" id="cat-composition-bar" title="Guaranteed slots by category (remainder fills with highest-scoring species)">
+                        <div class="cat-comp-seg cat-comp--tree"       id="cat-comp-tree"       style="width:12%;"></div>
+                        <div class="cat-comp-seg cat-comp--shrub"      id="cat-comp-shrub"      style="width:10%;"></div>
+                        <div class="cat-comp-seg cat-comp--wildflower" id="cat-comp-wildflower" style="width:20%;"></div>
+                        <div class="cat-comp-seg cat-comp--grass"      id="cat-comp-grass"      style="width:7%;"></div>
+                        <div class="cat-comp-seg cat-comp--fern"       id="cat-comp-fern"       style="width:4%;"></div>
+                        <div class="cat-comp-seg cat-comp--moss"       id="cat-comp-moss"       style="width:3%;"></div>
+                        <div class="cat-comp-seg cat-comp--fill text-muted small px-1" id="cat-comp-fill" style="flex-grow:1;font-size:.65rem;display:flex;align-items:center;">Fill</div>
+                      </div>
+                      <div class="alert alert-warning alert-sm py-1 px-2 small d-none" id="cat-targets-warning">
+                        <i class="bi bi-exclamation-triangle me-1"></i>
+                        <span id="cat-targets-warning-text"></span>
+                      </div>
+                    </div>
+
+                    <!-- Per-category minimum sliders -->
+                    <div id="cat-target-sliders" class="d-flex flex-column gap-2">
+                      <!-- Tree -->
+                      <div class="d-flex align-items-center gap-2 cat-target-row">
+                        <span class="cat-target-label small" style="width:6.5rem;flex-shrink:0;color:#2E7D32;"><i class="bi bi-tree me-1"></i>Tree min</span>
+                        <input type="range" class="form-range flex-grow-1 cat-target-slider" data-category="Tree" min="0" max="30" step="1" value="6" style="accent-color:#2E7D32;">
+                        <input type="number" class="form-control form-control-sm cat-target-value text-center" data-category="Tree" min="0" max="30" value="6" style="width:3.5rem;font-size:.8rem;">
+                      </div>
+                      <!-- Shrub -->
+                      <div class="d-flex align-items-center gap-2 cat-target-row">
+                        <span class="cat-target-label small" style="width:6.5rem;flex-shrink:0;color:#7CB342;"><i class="bi bi-flower2 me-1"></i>Shrub min</span>
+                        <input type="range" class="form-range flex-grow-1 cat-target-slider" data-category="Shrub" min="0" max="30" step="1" value="6" style="accent-color:#7CB342;">
+                        <input type="number" class="form-control form-control-sm cat-target-value text-center" data-category="Shrub" min="0" max="30" value="6" style="width:3.5rem;font-size:.8rem;">
+                      </div>
+                      <!-- Wildflower -->
+                      <div class="d-flex align-items-center gap-2 cat-target-row">
+                        <span class="cat-target-label small" style="width:6.5rem;flex-shrink:0;color:#7B1FA2;"><i class="bi bi-flower1 me-1"></i>Wildflower</span>
+                        <input type="range" class="form-range flex-grow-1 cat-target-slider" data-category="Wildflower" min="0" max="30" step="1" value="6" style="accent-color:#7B1FA2;">
+                        <input type="number" class="form-control form-control-sm cat-target-value text-center" data-category="Wildflower" min="0" max="30" value="6" style="width:3.5rem;font-size:.8rem;">
+                      </div>
+                      <!-- Grass -->
+                      <div class="d-flex align-items-center gap-2 cat-target-row">
+                        <span class="cat-target-label small" style="width:6.5rem;flex-shrink:0;color:#F57C00;"><i class="bi bi-align-bottom me-1"></i>Grass min</span>
+                        <input type="range" class="form-range flex-grow-1 cat-target-slider" data-category="Grass" min="0" max="30" step="1" value="6" style="accent-color:#F57C00;">
+                        <input type="number" class="form-control form-control-sm cat-target-value text-center" data-category="Grass" min="0" max="30" value="6" style="width:3.5rem;font-size:.8rem;">
+                      </div>
+                      <!-- Fern -->
+                      <div class="d-flex align-items-center gap-2 cat-target-row">
+                        <span class="cat-target-label small" style="width:6.5rem;flex-shrink:0;color:#C0CA33;"><i class="bi bi-wind me-1"></i>Fern min</span>
+                        <input type="range" class="form-range flex-grow-1 cat-target-slider" data-category="Fern" min="0" max="30" step="1" value="6" style="accent-color:#C0CA33;">
+                        <input type="number" class="form-control form-control-sm cat-target-value text-center" data-category="Fern" min="0" max="30" value="6" style="width:3.5rem;font-size:.8rem;">
+                      </div>
+                      <!-- Moss -->
+                      <div class="d-flex align-items-center gap-2 cat-target-row">
+                        <span class="cat-target-label small" style="width:6.5rem;flex-shrink:0;color:#78909C;"><i class="bi bi-droplet-half me-1"></i>Moss min</span>
+                        <input type="range" class="form-range flex-grow-1 cat-target-slider" data-category="Moss" min="0" max="30" step="1" value="6" style="accent-color:#78909C;">
+                        <input type="number" class="form-control form-control-sm cat-target-value text-center" data-category="Moss" min="0" max="30" value="6" style="width:3.5rem;font-size:.8rem;">
+                      </div>
+                    </div>
+
                   </div>
                 </div>
               </div>
@@ -1122,6 +1261,7 @@
       getMix:           '/species/mixer/api/mixes/',
       speciesSearch:    '{% url "species:api_species_search" %}',
       generatePreview:  '{% url "species:api_generate_preview" %}',
+      speciesImage:     '{% url "species:api_species_image" %}',
     },
     maplibreStyleUrl: 'https://demotiles.maplibre.org/style.json',
   };

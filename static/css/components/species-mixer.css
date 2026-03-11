@@ -1795,3 +1795,42 @@
   75%  { content: '...'; }
   100% { content: ''; }
 }
+
+/* ── Category composition bar ─────────────────────────────────── */
+.cat-composition-bar {
+  display: flex;
+  height: 10px;
+  border-radius: 5px;
+  overflow: hidden;
+  background: var(--bs-secondary-bg);
+  border: 1px solid var(--bs-border-color);
+}
+
+.cat-comp-seg {
+  transition: width 0.3s ease;
+  height: 100%;
+  flex-shrink: 0;
+}
+
+.cat-comp--tree       { background: #2E7D32; }
+.cat-comp--shrub      { background: #7CB342; }
+.cat-comp--wildflower { background: #7B1FA2; }
+.cat-comp--grass      { background: #F57C00; }
+.cat-comp--fern       { background: #C0CA33; }
+.cat-comp--moss       { background: #78909C; }
+.cat-comp--fill {
+  background: var(--bs-border-color);
+  flex-grow: 1;
+}
+
+/* ── Preset buttons ───────────────────────────────────────────── */
+.preset-btn.active {
+  background-color: var(--bs-primary);
+  color: #fff;
+  border-color: var(--bs-primary);
+}
+
+/* ── Advanced collapse chevron rotation ──────────────────────── */
+#advanced-settings-toggle[aria-expanded="true"] #advanced-chevron {
+  transform: rotate(90deg);
+}

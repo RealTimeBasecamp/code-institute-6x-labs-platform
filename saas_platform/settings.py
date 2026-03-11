@@ -266,7 +266,7 @@ SPECIES_MIXER_ASYNC = _REDIS_UP
 TGI_BASE_URL = os.environ.get('TGI_BASE_URL', 'http://localhost:8080')
 
 # Maximum number of species to include in an AI-generated mix
-SPECIES_MIX_MAX_SPECIES = int(os.environ.get('SPECIES_MIX_MAX_SPECIES', '15'))
+SPECIES_MIX_MAX_SPECIES = int(os.environ.get('SPECIES_MIX_MAX_SPECIES', '60'))
 
 # Custom user model
 AUTH_USER_MODEL = 'users.User'

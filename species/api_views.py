@@ -93,14 +93,21 @@ def api_generate_mix(request):
             'carbon_sequestration': 50,
             'wildlife_habitat': 50,
         })
+        max_species = max(1, min(200, int(data.get('max_species', 60))))
+        category_targets = data.get('category_targets', {})
+        natives_only = bool(data.get('natives_only', False))
     except (KeyError, ValueError, json.JSONDecodeError) as exc:
         return JsonResponse({'error': f'Invalid request body: {exc}'}, status=400)
+
+    # Inject control params into goals dict (private keys, stripped before AI sees them as goals)
+    goals['_category_targets'] = category_targets
+    goals['_natives_only'] = natives_only
 
     task_id = str(uuid.uuid4())
     if _ASYNC:
         try:
             cache.set(_task_key(task_id), {'status': 'queued'}, timeout=600)
-            run_mix_generation.send(task_id, lat, lng, goals)
+            run_mix_generation.send(task_id, lat, lng, goals, max_species)
         except Exception as exc:
             logger.error('Failed to dispatch mix generation task: %s', exc)
             return JsonResponse(
@@ -112,7 +119,7 @@ def api_generate_mix(request):
         # and the frontend can poll for live progress events.
         # DatabaseCache is shared across threads in the same process.
         cache.set(_task_key(task_id), {'status': 'queued'}, timeout=600)
-        _run_in_thread(run_mix_generation, task_id, lat, lng, goals)
+        _run_in_thread(run_mix_generation, task_id, lat, lng, goals, max_species)
     return JsonResponse({'task_id': task_id})
 
 
@@ -141,16 +148,23 @@ def api_rescore_mix(request):
         cached_candidates = data.get('cached_candidates', [])
         goals = data['goals']
         current_mix = data.get('current_mix', [])
+        max_species = max(1, min(200, int(data.get('max_species', 60))))
+        category_targets = data.get('category_targets', {})
+        natives_only = bool(data.get('natives_only', False))
     except (KeyError, json.JSONDecodeError) as exc:
         return JsonResponse({'error': f'Invalid request body: {exc}'}, status=400)
+
+    # Inject control params into goals dict
+    goals['_category_targets'] = category_targets
+    goals['_natives_only'] = natives_only
 
     task_id = str(uuid.uuid4())
     if _ASYNC:
         cache.set(_task_key(task_id), {'status': 'queued'}, timeout=300)
-        run_mix_rescore.send(task_id, cached_env_data, cached_candidates, goals, current_mix)
+        run_mix_rescore.send(task_id, cached_env_data, cached_candidates, goals, current_mix, max_species)
     else:
         cache.set(_task_key(task_id), {'status': 'queued'}, timeout=300)
-        _run_in_thread(run_mix_rescore, task_id, cached_env_data, cached_candidates, goals, current_mix)
+        _run_in_thread(run_mix_rescore, task_id, cached_env_data, cached_candidates, goals, current_mix, max_species)
     return JsonResponse({'task_id': task_id})
 
 
@@ -426,6 +440,7 @@ def api_save_mix(request):
             is_active=item_data.get('is_active', True),
             is_manual=item_data.get('is_manual', False),
             order=item_data.get('order', 0),
+            uk_nativeness=item_data.get('uk_nativeness', ''),
         )
 
     return JsonResponse({
@@ -824,3 +839,88 @@ def api_generate_preview(request):
         'side_m': round(side_m, 2),
         'execution_time_s': round(result.execution_time, 3),
     })
+
+
+# =============================================================================
+# Species image lookup — server-side GBIF proxy with long-lived cache
+# =============================================================================
+
+# Semaphore: limit concurrent outbound GBIF image requests to avoid 429s.
+# GBIF's anonymous rate limit is ~3–5 req/s; this keeps us well within it.
+import threading as _threading
+_GBIF_IMG_SEM = _threading.Semaphore(3)
+
+
+@login_required
+@require_http_methods(['GET'])
+def api_species_image(request):
+    """
+    GET /species/mixer/api/species-image/?gbif_key=<int>
+
+    Returns { url: "<image_url>" } or { url: null } if no image found.
+    Fetches from GBIF occurrence search server-side (avoids CORS issues).
+    Throttled to 3 concurrent GBIF requests via semaphore. Cached 90 days.
+    """
+    import re
+    import time
+    import requests as _requests
+
+    gbif_key = request.GET.get('gbif_key', '').strip()
+    if not gbif_key or not gbif_key.isdigit():
+        return JsonResponse({'url': None})
+
+    cache_key = f'species_img:{gbif_key}'
+    cached = cache.get(cache_key)
+    if cached is not None:
+        return JsonResponse({'url': cached or None})
+
+    url = None
+    gbif_success = False  # True when we got a definitive response (even if no image)
+    acquired = _GBIF_IMG_SEM.acquire(timeout=8)  # wait up to 8s for a slot
+    if not acquired:
+        # Server too busy — return null without caching so client can retry
+        logger.warning('species_image: gbif_key=%s semaphore timeout (server busy)', gbif_key)
+        return JsonResponse({'url': None})
+
+    try:
+        for attempt in range(3):
+            try:
+                resp = _requests.get(
+                    'https://api.gbif.org/v1/occurrence/search',
+                    params={'taxonKey': gbif_key, 'mediaType': 'StillImage', 'limit': 3},
+                    headers={'User-Agent': 'code-institute-6xlabs/1.0'},
+                    timeout=6,
+                )
+                if resp.status_code == 429:
+                    wait = 1.5 ** attempt  # 1s, 1.5s, 2.25s
+                    logger.warning('species_image: gbif_key=%s 429 rate limit, retry %d after %.1fs', gbif_key, attempt + 1, wait)
+                    time.sleep(wait)
+                    continue
+                resp.raise_for_status()
+                data = resp.json()
+                for result in (data.get('results') or []):
+                    for media in (result.get('media') or []):
+                        identifier = media.get('identifier')
+                        if identifier and media.get('type') == 'StillImage':
+                            url = identifier
+                            break
+                    if url:
+                        break
+                if url:
+                    url = re.sub(r'/original\.(\w+)$', r'/square.\1', url)
+                logger.info('species_image: gbif_key=%s → %s', gbif_key, url or 'no image')
+                gbif_success = True
+                break  # success
+            except _requests.exceptions.RequestException as exc:
+                logger.warning('species_image: gbif_key=%s attempt %d failed: %s', gbif_key, attempt + 1, exc)
+                if attempt < 2:
+                    time.sleep(1.0)
+    finally:
+        _GBIF_IMG_SEM.release()
+
+    # Only cache definitive results (found or genuinely not found).
+    # Don't cache failures from rate limits or network errors — let the client retry.
+    if gbif_success:
+        cache.set(cache_key, url or '', timeout=60 * 60 * 24 * 90)
+
+    return JsonResponse({'url': url})

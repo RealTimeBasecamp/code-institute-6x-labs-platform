@@ -41,22 +41,32 @@ def _push_progress(
     message: str,
     count: int | None = None,
     species_added: dict | None = None,
+    species_batch: list | None = None,
     level: str | None = None,
 ) -> None:
-    """Append a progress event to the task cache entry (read-modify-write).
+    """Append one or more progress events to the task cache entry (single read-modify-write).
 
-    level: None (info), 'warning' (amber — partial/degraded data),
-           or 'error' (red — data source completely unavailable).
+    species_batch: list of species dicts — expanded into individual species_added events
+                   in one cache write instead of N separate writes.
+    level: None (info), 'warning' (amber), or 'error' (red).
     """
     state = cache.get(_task_key(task_id)) or {'status': 'running', 'progress': []}
-    event = {'msg': message}
-    if count is not None:
-        event['count'] = count
-    if species_added is not None:
-        event['species_added'] = species_added
-    if level is not None:
-        event['level'] = level
-    state.setdefault('progress', []).append(event)
+    progress = state.setdefault('progress', [])
+
+    if species_batch:
+        # Expand batch into individual events — one DB write for all species
+        for sp in species_batch:
+            progress.append({'msg': message, 'count': count, 'species_added': sp})
+    else:
+        event = {'msg': message}
+        if count is not None:
+            event['count'] = count
+        if species_added is not None:
+            event['species_added'] = species_added
+        if level is not None:
+            event['level'] = level
+        progress.append(event)
+
     cache.set(_task_key(task_id), state, timeout=_TASK_TTL)
 
 
@@ -82,7 +92,7 @@ def _set_error(task_id: str, error: str) -> None:
     max_retries=1,
     time_limit=300_000,  # 5 minutes max (includes external API calls)
 )
-def run_mix_generation(task_id: str, lat: float, lng: float, goals: dict) -> None:
+def run_mix_generation(task_id: str, lat: float, lng: float, goals: dict, max_species: int = 60) -> None:
     """
     Mode A: Full generation.
 
@@ -91,25 +101,41 @@ def run_mix_generation(task_id: str, lat: float, lng: float, goals: dict) -> Non
     a ranked species mix.
 
     Args:
-        task_id:  UUID string for polling (from /api/generate/ response)
-        lat:      Latitude (decimal degrees)
-        lng:      Longitude (decimal degrees)
-        goals:    Dict of goal weights, e.g. {'erosion_control': 80, 'pollinator': 50, ...}
+        task_id:      UUID string for polling (from /api/generate/ response)
+        lat:          Latitude (decimal degrees)
+        lng:          Longitude (decimal degrees)
+        goals:        Dict of goal weights, e.g. {'erosion_control': 80, 'pollinator': 50, ...}
+        max_species:  Maximum number of species in the final mix (1–200, default 60)
     """
     _set_running(task_id)
-    logger.info("Starting mix generation task %s for lat=%s lng=%s", task_id, lat, lng)
+    logger.info("Starting mix generation task %s for lat=%s lng=%s max_species=%s", task_id, lat, lng, max_species)
 
     def on_progress(message: str, count: int | None = None, **kwargs) -> None:
         _push_progress(task_id, message, count, **kwargs)
 
     try:
         agent = SpeciesMixAgent()
-        result = agent.generate_mix(lat, lng, goals, on_progress=on_progress)
+        result = agent.generate_mix(lat, lng, goals, on_progress=on_progress, max_species=max_species)
         if not result.get('species_mix'):
             _set_error(task_id, 'The AI did not return any species. Please try again.')
             return
+        # Strip gbif_traits from cached_candidates before storing in task cache.
+        # gbif_traits is a large nested dict (~5KB per species × 80 = 400KB) that
+        # DatabaseCache / memcached can't reliably store. The traits are already
+        # reflected in the scored mix items and are not needed for client-side rescore.
+        slim_candidates = [
+            {k: v for k, v in c.items() if k != 'gbif_traits'}
+            for c in result.get('cached_candidates', [])
+        ]
+        result['cached_candidates'] = slim_candidates
         _set_complete(task_id, result)
         logger.info("Mix generation task %s complete — %d species", task_id, len(result['species_mix']))
+        # Phase D: record quality index for progressive improvement caching
+        try:
+            from species.services.environmental_data import record_species_quality
+            record_species_quality(lat, lng, result['species_mix'])
+        except Exception as _rq_exc:
+            logger.warning("record_species_quality failed (non-fatal): %s", _rq_exc)
     except Exception as exc:
         logger.exception("Mix generation task %s failed: %s", task_id, exc)
         _set_error(task_id, 'Mix generation failed. Please try again.')
@@ -129,6 +155,7 @@ def run_mix_rescore(
     cached_candidates: list,
     goals: dict,
     current_mix: list,
+    max_species: int = 60,
 ) -> None:
     """
     Mode B: Re-score from cache.
@@ -142,12 +169,13 @@ def run_mix_rescore(
         cached_candidates: Species candidates cached from Mode A generation
         goals:             Updated goal weights from the user's slider positions
         current_mix:       List of current mix items for context
+        max_species:       Maximum number of species in the final mix (1–200, default 60)
     """
     _set_running(task_id)
-    logger.info("Starting mix rescore task %s", task_id)
+    logger.info("Starting mix rescore task %s max_species=%s", task_id, max_species)
     try:
         agent = SpeciesMixAgent()
-        result = agent.rescore_mix(cached_env_data, cached_candidates, goals, current_mix)
+        result = agent.rescore_mix(cached_env_data, cached_candidates, goals, current_mix, max_species=max_species)
         if not result.get('species_mix'):
             _set_error(task_id, 'Re-scoring did not return updated species. Please try again.')
             return

@@ -426,13 +426,13 @@ class SpeciesMixAgent:
 
     def __init__(self):
         self.tgi_url = getattr(settings, 'TGI_BASE_URL', 'http://localhost:8080')
-        self.max_species = getattr(settings, 'SPECIES_MIX_MAX_SPECIES', 15)
+        self.max_species = getattr(settings, 'SPECIES_MIX_MAX_SPECIES', 60)
 
     # ──────────────────────────────────────────────────────────────────────────
     # MODE A: Full generation
     # ──────────────────────────────────────────────────────────────────────────
 
-    def generate_mix(self, lat: float, lng: float, goals: dict, on_progress=None) -> dict:
+    def generate_mix(self, lat: float, lng: float, goals: dict, on_progress=None, max_species: int = None) -> dict:
         """
         Mode A: Full generation.
 
@@ -441,10 +441,15 @@ class SpeciesMixAgent:
         environmental APIs and scores species from the database directly.
 
         Args:
-            on_progress: optional callable(message: str, count: int | None) for live
-                         progress events consumed by the Dramatiq task and surfaced to
-                         the frontend via the task-status polling endpoint.
+            on_progress:  optional callable(message: str, count: int | None) for live
+                          progress events consumed by the Dramatiq task and surfaced to
+                          the frontend via the task-status polling endpoint.
+            max_species:  override for max species in the final mix; falls back to
+                          self.max_species (from SPECIES_MIX_MAX_SPECIES setting).
         """
+        if max_species is not None:
+            self.max_species = max(1, min(200, int(max_species)))
+
         env_data = {}
         cached_candidates = []
         _progress = on_progress or (lambda msg, count=None, **kw: None)
@@ -480,6 +485,7 @@ class SpeciesMixAgent:
         cached_candidates: list,
         goals: dict,
         current_mix: list,
+        max_species: int = None,
     ) -> dict:
         """
         Mode B: Re-score the mix using cached environmental data when goals change.
@@ -489,6 +495,9 @@ class SpeciesMixAgent:
 
         Returns same structure as generate_mix (minus env_data / cached_candidates).
         """
+        if max_species is not None:
+            self.max_species = max(1, min(200, int(max_species)))
+
         env_summary = self._format_env_summary(cached_env_data)
         candidates_summary = self._format_candidates(cached_candidates)
         current_summary = self._format_current_mix(current_mix)
@@ -666,35 +675,37 @@ class SpeciesMixAgent:
         # ── Phase 1 & 2: Collect environmental data + candidate species ──────
         _p = on_progress or (lambda msg, count=None, **kw: None)
 
+        # Fetch all three environmental sources in parallel — they are fully
+        # independent and each can take 5–15s, so serial fetching wastes ~10s.
         _p('Querying Soil Data...')
-        soil = fetch_soilgrids(lat, lng)
+        _p('Querying Climate Data...')
+        _p('Querying Hydrology Data...')
+        from concurrent.futures import ThreadPoolExecutor as _EnvTPE, as_completed as _env_ac
+        with _EnvTPE(max_workers=3) as _env_pool:
+            _soil_f = _env_pool.submit(fetch_soilgrids, lat, lng)
+            _climate_f = _env_pool.submit(fetch_climate, lat, lng)
+            _hydrology_f = _env_pool.submit(fetch_hydrology, lat, lng)
+            soil = _soil_f.result()
+            climate = _climate_f.result()
+            hydrology = _hydrology_f.result()
+
         if soil is None:
             logger.warning('rule_based_generate (%.4f,%.4f): soil=None', lat, lng)
             _p('Soil Data unavailable — species scoring will use general tolerances.', level='warning')
         elif not any(soil.get(k) for k in ('ph', 'organic_carbon', 'clay_pct')):
             logger.warning('rule_based_generate (%.4f,%.4f): soil incomplete — got %s', lat, lng, soil)
             _p('Soil Data returned incomplete results — some soil filters skipped.', level='warning')
-        else:
-            logger.debug('rule_based_generate (%.4f,%.4f): soil ok — %s', lat, lng, soil)
 
-        _p('Querying Climate Data...')
-        climate = fetch_climate(lat, lng)
         if climate is None:
             logger.warning('rule_based_generate (%.4f,%.4f): climate=None', lat, lng)
             _p('Climate Data unavailable — frost and moisture filters skipped.', level='warning')
         elif not any(climate.get(k) for k in ('mean_annual_rainfall_mm', 'mean_temp_c')):
             logger.warning('rule_based_generate (%.4f,%.4f): climate incomplete — got %s', lat, lng, climate)
             _p('Climate Data returned partial results — some climate filters skipped.', level='warning')
-        else:
-            logger.debug('rule_based_generate (%.4f,%.4f): climate ok — %s', lat, lng, climate)
 
-        _p('Querying Hydrology Data...')
-        hydrology = fetch_hydrology(lat, lng)
         if hydrology is None:
             logger.warning('rule_based_generate (%.4f,%.4f): hydrology=None', lat, lng)
             _p('Hydrology Data unavailable — flood risk assessment skipped.', level='warning')
-        else:
-            logger.debug('rule_based_generate (%.4f,%.4f): hydrology ok — %s', lat, lng, hydrology)
 
         env_data.update({
             'soil': soil,
@@ -704,13 +715,19 @@ class SpeciesMixAgent:
 
         _p('Searching UK Botanical Survey Records...')
         _p('Searching Nearby Species Observations...')
+        logger.info('_rule_based_generate (%.4f,%.4f): fetching candidates from GBIF + NBN...', lat, lng)
 
         # Larger radius (25 km) to cast a wide net.  SpeciesCandidateTool
         # already de-duplicates across sources and enriches every candidate
         # with its GBIF family before returning.
+        # limit=60: category-biased pool reordering in SpeciesCandidateTool.search
+        # guarantees minimum representation per category (12 trees, 12 shrubs etc.)
+        # before the limit is applied, so Phase 5 floors are always satisfiable.
+        # 60 candidates = 6 batches of 10 workers → ~8s trait enrichment vs ~12s at 80.
         candidates = SpeciesCandidateTool.search(
-            lat=lat, lng=lng, env_data=env_data, radius_km=25
+            lat=lat, lng=lng, env_data=env_data, radius_km=25, limit=60
         )
+        logger.info('_rule_based_generate (%.4f,%.4f): candidate search complete — %d found', lat, lng, len(candidates))
         cached_candidates.extend(candidates)
 
         if not candidates:
@@ -729,7 +746,9 @@ class SpeciesMixAgent:
 
         # ── Extract env variables used in elimination and scoring ─────────────
 
-        goal_weights = {k: int(v) for k, v in goals.items()}
+        # Private control keys (_category_targets, _natives_only) are passed through as-is;
+        # numeric goal keys are cast to int.
+        goal_weights = {k: (int(v) if not k.startswith('_') else v) for k, v in goals.items()}
         _soil = soil or {}
         _climate = climate or {}
         _hydrology = hydrology or {}
@@ -785,6 +804,12 @@ class SpeciesMixAgent:
         pool, _ = _eliminate(pool, 'flood_intolerant', flood_risk == 'high', FLOOD_INTOLERANT)
 
         # Filter 2 — Soil pH (hard limits only; broad acid/alkaline tolerance handled in scoring)
+        # Moderate acid (pH < 5.0): add asteraceae to intolerant set (most improved-grassland UK soils)
+        MODERATE_ACID_INTOLERANT = {
+            'asteraceae',   # most composites prefer near-neutral to alkaline soils
+        } if ph and ph < 5.0 else set()
+        pool, _ = _eliminate(pool, 'moderate_acid', ph and ph < 5.0, MODERATE_ACID_INTOLERANT)
+
         # Very acid (pH < 4.5): calcicolous and neutral-preferring families removed
         EXTREME_ACID_INTOLERANT = {
             'orchidaceae', 'fabaceae',   # most legumes need near-neutral pH
@@ -810,6 +835,7 @@ class SpeciesMixAgent:
         # Wet sites: eliminate species that need free-draining soil
         WET_INTOLERANT = {
             'cistaceae',   # rockroses — strict dry-soil plants
+            'lamiaceae',   # most mints are drought-adapted, poorly suited to waterlogged soils
         } if moisture == 'wet' else set()
         pool, _ = _eliminate(pool, 'wet_soil', moisture == 'wet', WET_INTOLERANT)
 
@@ -840,8 +866,25 @@ class SpeciesMixAgent:
         pool, _ = _eliminate(pool, 'warm_climate', mean_temp is not None and mean_temp > 16, WARM_INTOLERANT)
 
         # Filter 6 — High organic carbon / peat (proxy for bog/fen habitat)
-        # If organic_carbon > 8%, this is likely a peatland — prefer peat-specialist families
-        # (no hard elimination here — too aggressive; handled in scoring bonus)
+        # If organic_carbon > 8%, this is a peatland — force at least 1 sphagnaceae species
+        # into the pool even if it scored below the candidate limit.
+        if organic_c and organic_c > 8:
+            has_sphagnum = any(_family(c) == 'sphagnaceae' for c in pool)
+            if not has_sphagnum:
+                sphagnum_candidates = [c for c in candidates if _family(c) == 'sphagnaceae']
+                if sphagnum_candidates:
+                    pool.append(sphagnum_candidates[0])
+                    _p('Peatland detected — added Sphagnaceae species for habitat authenticity.', level='info')
+
+        # Filter 7 — Natives only (user opt-in via UI toggle)
+        # Hard-eliminates species confirmed as 'introduced' by GBIF distributions.
+        # Species with 'unknown' nativeness are kept (no false negatives).
+        if goal_weights.get('_natives_only', False):
+            before_natives = len(pool)
+            pool = [c for c in pool if c.get('uk_nativeness') != 'introduced']
+            removed_natives = before_natives - len(pool)
+            if removed_natives:
+                eliminated_counts['natives_only'] = removed_natives
 
         if not pool:
             # All candidates were eliminated — return survivors from broadest filter only
@@ -866,13 +909,42 @@ class SpeciesMixAgent:
         #   D. Observation-bias correction (boost under-recorded categories)
 
         def score_survivor(c):
+            import math as _math
             score = 0
             fam = _family(c)
             category = _category_from_family(fam)
+            sources = c.get('sources', [])
 
-            # A. Observation evidence
-            score += min(c.get('observation_count', 1) * 2, 40)
-            score += len(c.get('sources', [])) * 10   # multi-source reliability bonus
+            # A. Observation evidence (logarithmic — prevents common species dominating)
+            # 1 obs→0, 2→6, 5→14, 10→20, 100→40 (capped at 20 to level playing field)
+            obs = max(c.get('observation_count', 1), 1)
+            score += min(int(_math.log2(obs) * 6), 20)
+            # Multi-source bonus: NBN + GBIF = confirmed UK plant (20 pts)
+            score += len(sources) * 10
+
+            # A2. NBN Atlas as nativeness proxy
+            # NBN presence = confirmed UK native or long-established plant
+            if 'nbn' in sources:
+                score += 25
+            # NBN-only = rare native, underrecorded in citizen science — reward explicitly
+            if sources == ['nbn']:
+                score += 10
+
+            # A3. Match confidence penalty (low-confidence GBIF name matches are unreliable)
+            match_conf = c.get('gbif_traits', {}).get('match_confidence', 100)
+            if match_conf < 60:
+                score -= 10
+            elif match_conf < 80:
+                score -= 5
+
+            # A4. UK nativeness bonus/penalty (from GBIF distributions, cached 90 days)
+            nativeness = c.get('uk_nativeness', 'unknown')
+            if nativeness == 'native':
+                score += 30   # confirmed UK native — strongly preferred
+            elif nativeness == 'naturalised':
+                score += 10   # long-established, ecologically integrated
+            elif nativeness == 'introduced':
+                score -= 15  # actively penalise introduced/invasive species
 
             # B1. Observation bias correction (trees/grasses recorded far less than wildflowers)
             if category == 'Tree':
@@ -983,19 +1055,78 @@ class SpeciesMixAgent:
                 if fam in WILDLIFE:
                     score += goal_weights['wildlife_habitat'] // 3
 
+            # D. Regional quality bonus — looked up from pre-computed dict to avoid
+            # repeated cache.get() DB queries (one per species per score_survivor call).
+            score += _regional_bonus.get(c.get('scientific_name', ''), 0)
+
             return score
 
-        scored = sorted(pool, key=score_survivor, reverse=True)
+        # Pre-compute regional quality bonuses for all pool candidates in one pass.
+        # This avoids N×cache.get() DB queries inside the sort comparator.
+        logger.info('_rule_based_generate (%.4f,%.4f): scoring %d survivors...', lat, lng, len(pool))
+        from species.services.environmental_data import get_regional_quality_bonus as _rqb
+        _regional_bonus = {
+            c.get('scientific_name', ''): _rqb(lat, lng, c.get('scientific_name', ''))
+            for c in pool
+        }
+        # Compute scores once and cache — reused for both sort and ratio assignment.
+        _score_cache = {id(c): score_survivor(c) for c in pool}
+        scored = sorted(pool, key=lambda c: _score_cache[id(c)], reverse=True)
 
         _p('Ranking survivors by goal alignment and ecological evidence...')
+        logger.info('_rule_based_generate (%.4f,%.4f): selecting from %d scored candidates (target=%d)...', lat, lng, len(scored), self.max_species)
         # ── Phase 5: Diversity-first selection ────────────────────────────────
-        CATEGORY_MINIMUMS = {
-            'Tree':       2,
-            'Shrub':      2,
-            'Wildflower': 3,
-            'Grass':      1,
+        #
+        # Every category gets a guaranteed minimum of at least CATEGORY_FLOOR
+        # species. This prevents "all wildflowers, no trees" outputs.
+        # Minimums scale proportionally with max_species but are always ≥ floor.
+        # User-supplied category_targets (from UI) override the proportional calc
+        # but are still subject to the floor.
+
+        _CATEGORY_FLOOR = {
+            'Tree':       12,   # trees are under-recorded — guarantee strong representation
+            'Shrub':       6,
+            'Wildflower':  6,
+            'Grass':       6,
+            'Fern':        6,
+            'Moss':        6,
         }
-        CATEGORY_OPTIONALS = {'Fern': 1, 'Moss': 1}
+
+        _CATEGORY_TARGET_PCT = {
+            'Tree':       0.20,  # raised to ensure ≥12 at max_species=60
+            'Shrub':      0.10,
+            'Wildflower': 0.20,
+            'Grass':      0.07,
+            'Fern':       0.04,
+            'Moss':       0.03,
+        }
+
+        # User-supplied per-category targets arrive via goals['_category_targets']
+        # as a dict like {'tree': 10, 'shrub': 8, ...} (lowercase keys).
+        user_cat_targets = {
+            k.strip().capitalize(): int(v)
+            for k, v in goal_weights.get('_category_targets', {}).items()
+            if str(v).isdigit()
+        }
+
+        def _cat_minimum(cat: str) -> int:
+            floor = _CATEGORY_FLOOR.get(cat, 6)
+            proportional = max(floor, round(_CATEGORY_TARGET_PCT.get(cat, 0.04) * self.max_species))
+            user_val = user_cat_targets.get(cat)
+            return max(proportional, user_val) if user_val is not None else proportional
+
+        all_categories = list(_CATEGORY_TARGET_PCT.keys())
+        CATEGORY_MINIMUMS = {cat: _cat_minimum(cat) for cat in all_categories}
+
+        # Sanity check: if sum of minimums > max_species, scale them down proportionally
+        total_mins = sum(CATEGORY_MINIMUMS.values())
+        if total_mins > self.max_species:
+            logger.warning(
+                '_rule_based_generate: category minimums total %d > max_species %d — scaling down',
+                total_mins, self.max_species,
+            )
+            scale = self.max_species / total_mins
+            CATEGORY_MINIMUMS = {cat: max(1, round(v * scale)) for cat, v in CATEGORY_MINIMUMS.items()}
 
         selected = []
         used_names = set()
@@ -1011,17 +1142,11 @@ class SpeciesMixAgent:
                     used_names.add(c['scientific_name'])
             return picks
 
+        # Fill mandatory minimums for every category first
         for cat, min_count in CATEGORY_MINIMUMS.items():
             selected.extend(_pick_best(cat, min_count, scored))
 
-        remaining_slots = self.max_species - len(selected)
-        for cat, opt_count in CATEGORY_OPTIONALS.items():
-            if remaining_slots <= 0:
-                break
-            picks = _pick_best(cat, min(opt_count, remaining_slots), scored)
-            selected.extend(picks)
-            remaining_slots -= len(picks)
-
+        # Fill remaining slots with highest-scoring species from any category
         remaining_slots = self.max_species - len(selected)
         for c in scored:
             if remaining_slots <= 0:
@@ -1033,12 +1158,37 @@ class SpeciesMixAgent:
 
         top = selected
 
+        # ── Lazy nativeness enrichment (only for selected species) ─────────────
+        # Fetch UK nativeness for the final ~60 selected species only.
+        # Doing this on all 120 candidates in the pool would add 60-180s of
+        # GBIF distributions API calls; here we only call for species that made
+        # the cut.  The 90-day cache means subsequent generations are instant.
+        _p('Checking UK nativeness for selected species...', count=len(top))
+        logger.info('_rule_based_generate (%.4f,%.4f): fetching UK nativeness for %d selected species...', lat, lng, len(top))
+        from species.services.environmental_data import fetch_uk_nativeness as _fuk
+        from concurrent.futures import ThreadPoolExecutor as _TPE, as_completed as _ac
+
+        def _enrich_nativeness(s):
+            if s.get('uk_nativeness', 'unknown') != 'unknown':
+                return s  # already resolved
+            gbif_key = s.get('gbif_key') or s.get('gbif_traits', {}).get('gbif_key')
+            s['uk_nativeness'] = _fuk(gbif_key, s.get('scientific_name', ''))
+            return s
+
+        with _TPE(max_workers=10) as _nat_pool:
+            _nat_futures = {_nat_pool.submit(_enrich_nativeness, s): s for s in top}
+            top = [f.result() for f in _ac(_nat_futures)]
+        logger.info('_rule_based_generate (%.4f,%.4f): nativeness enrichment complete', lat, lng)
+        # Restore ratio order (as_completed returns in completion order)
+        top.sort(key=lambda s: s.get('observation_count', 0), reverse=True)
+
         _p(
             f'Selected {len(top)} species with category diversity — assigning ratios...',
             count=len(top),
         )
         # ── Assign ratios proportional to score ───────────────────────────────
-        scores = [max(score_survivor(s), 1) for s in top]
+        # Reuse Phase 4 scores — no need to recompute score_survivor for selected species.
+        scores = [max(_score_cache.get(id(s), 1), 1) for s in top]
         total = sum(scores)
         ratios = [round(sc / total, 3) for sc in scores]
         if ratios:
@@ -1092,18 +1242,22 @@ class SpeciesMixAgent:
                 'sources': s.get('sources', []),
                 'gbif_key': s.get('gbif_key'),
                 'observation_count': s.get('observation_count', 0),
+                'uk_nativeness': s.get('uk_nativeness', 'unknown'),
             }
             species_mix.append(item)
-            _p(
-                f'Adding {common} ({category})...',
-                count=len(species_mix),
-                species_added=item,
-            )
+
+        # Emit all species as individual progress events via a single batched
+        # cache write (avoids 60× read-modify-write with DatabaseCache).
+        _p(
+            f'Building mix of {len(species_mix)} species...',
+            count=len(species_mix),
+            species_batch=species_mix,
+        )
 
         env_summary = self._format_env_summary(env_data)
         n_candidates = len(candidates)
         n_eliminated = n_candidates - len(pool)
-        top_goals = sorted(goal_weights.items(), key=lambda x: x[1], reverse=True)[:2]
+        top_goals = sorted(((k, v) for k, v in goal_weights.items() if not k.startswith('_')), key=lambda x: x[1], reverse=True)[:2]
         top_goal_names = ' and '.join(g[0].replace('_', ' ') for g in top_goals)
 
         insights = (
@@ -1116,6 +1270,7 @@ class SpeciesMixAgent:
             f"Ratios weighted by observation evidence and {top_goal_names} goal alignment."
         )
 
+        logger.info('_rule_based_generate (%.4f,%.4f): returning %d species', lat, lng, len(species_mix))
         return {
             'species_mix': species_mix,
             'env_summary': env_summary,

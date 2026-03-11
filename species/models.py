@@ -141,6 +141,12 @@ class SpeciesMix(models.Model):
         help_text="Candidate species from GBIF/iNaturalist/NBN Atlas (cached for rescore)"
     )
 
+    # User-configurable mix size (overrides SPECIES_MIX_MAX_SPECIES setting)
+    max_species = models.IntegerField(
+        default=60,
+        help_text="Maximum number of species to include in the final mix (1–200)"
+    )
+
     # Goal weights (0–100)
     goal_erosion = models.IntegerField(default=50)
     goal_biodiversity = models.IntegerField(default=50)
@@ -231,6 +237,20 @@ class SpeciesMixItem(models.Model):
     order = models.IntegerField(
         default=0,
         help_text="User-defined display order (drag to reorder)"
+    )
+
+    # Nativeness status — populated by GBIF distributions API at generation time
+    uk_nativeness = models.CharField(
+        max_length=20,
+        blank=True,
+        default='',
+        choices=[
+            ('native', 'Native'),
+            ('naturalised', 'Naturalised'),
+            ('introduced', 'Introduced'),
+            ('unknown', 'Unknown'),
+        ],
+        help_text="UK nativeness status from GBIF distributions API"
     )
 
     created_at = models.DateTimeField(auto_now_add=True)
