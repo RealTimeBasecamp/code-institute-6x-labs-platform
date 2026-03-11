@@ -54,9 +54,12 @@ def _push_progress(
     progress = state.setdefault('progress', [])
 
     if species_batch:
-        # Expand batch into individual events — one DB write for all species
+        # Emit the message once, then bare species events (no msg).
+        # Frontend uses the last message header for the whole batch — this prevents
+        # N identical log entries when N species arrive in a single batch call.
+        progress.append({'msg': message, 'count': count})
         for sp in species_batch:
-            progress.append({'msg': message, 'count': count, 'species_added': sp})
+            progress.append({'species_added': sp})
     else:
         event = {'msg': message}
         if count is not None:

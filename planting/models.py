@@ -287,7 +287,49 @@ class Species(models.Model):
     gbif_taxon_key = models.IntegerField(
         null=True,
         blank=True,
+        db_index=True,
         help_text="GBIF taxon key for cross-referencing occurrence data"
+    )
+
+    # ── GBIF image cache (populated by species mixer, refreshed every 90 days) ─
+    gbif_image_url = models.URLField(
+        null=True,
+        blank=True,
+        help_text="Cached GBIF square thumbnail URL",
+    )
+    gbif_image_refreshed = models.DateTimeField(
+        null=True,
+        blank=True,
+        help_text="When the GBIF image URL was last fetched/confirmed",
+    )
+
+    # UK nativeness — persisted from GBIF distributions API
+    NATIVENESS_NATIVE = 'native'
+    NATIVENESS_NATURALISED = 'naturalised'
+    NATIVENESS_INTRODUCED = 'introduced'
+    NATIVENESS_UNKNOWN = 'unknown'
+    NATIVENESS_CHOICES = [
+        (NATIVENESS_NATIVE, 'Native'),
+        (NATIVENESS_NATURALISED, 'Naturalised'),
+        (NATIVENESS_INTRODUCED, 'Introduced'),
+        (NATIVENESS_UNKNOWN, 'Unknown'),
+    ]
+    uk_nativeness_cached = models.CharField(
+        max_length=20,
+        null=True,
+        blank=True,
+        choices=NATIVENESS_CHOICES,
+        help_text="UK nativeness from GBIF distributions, cached globally by taxon key",
+    )
+
+    # Full mixer payload — all fields from species_batch event
+    mixer_cached_data = models.JSONField(
+        null=True,
+        blank=True,
+        help_text=(
+            "Cached payload from most recent mixer generation. "
+            "Keys: family, genus, subcategory, sources, observation_count, reason."
+        ),
     )
 
     # Planting geometry (higher-level than spacing_mm, in metres)

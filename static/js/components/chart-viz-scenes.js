@@ -719,6 +719,11 @@
       var pal2 = getPAL();
       var angles = pieLayout(cats, -Math.PI / 2, Math.PI * 2);
 
+      // Allow animation speed override via window.SPECIES_MIXER_CONFIG
+      var _smCfg = window.SPECIES_MIXER_CONFIG || {};
+      var _animDuration = _smCfg.parliamentAnimDuration != null
+        ? _smCfg.parliamentAnimDuration : 500;
+
       return {
         color: pal2,
         series: [{
@@ -726,7 +731,7 @@
           coordinateSystem: undefined,
           data: pts,
           universalTransition: { enabled: true, seriesKey: 'point' },
-          animationDurationUpdate: 500,
+          animationDurationUpdate: _animDuration,
           animationEasingUpdate: 'cubicOut',
           renderItem: function (params, api) {
             var ci   = api.value(0);               // category index

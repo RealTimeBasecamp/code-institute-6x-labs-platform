@@ -10,15 +10,45 @@ from species.models import SpeciesMix
 
 class SpeciesListView(LoginRequiredMixin, ListView):
     """
-    View to list all species. Accessible at path 'species/', named 'species_list'.
+    Species catalogue — auto-populated by the species mixer.
+    Shows all Species rows that have been enriched by at least one mixer
+    generation (mixer_cached_data is set). Grows automatically over time
+    as more locations are generated.
     """
     model = Species
     template_name = 'species/species_list.html'
     context_object_name = 'species_list'
-    paginate_by = 20
+    paginate_by = 50
 
     def get_queryset(self):
-        return Species.objects.all().order_by('common_name')
+        qs = Species.objects.filter(
+            mixer_cached_data__isnull=False,
+        ).order_by('category', 'common_name')
+        q = self.request.GET.get('q', '').strip()
+        if q:
+            from django.db.models import Q
+            qs = qs.filter(
+                Q(common_name__icontains=q) | Q(scientific_name__icontains=q)
+            )
+        cat = self.request.GET.get('category', '').strip()
+        if cat:
+            qs = qs.filter(category__iexact=cat)
+        return qs
+
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs)
+        ctx['search_q'] = self.request.GET.get('q', '')
+        ctx['filter_category'] = self.request.GET.get('category', '')
+        ctx['categories'] = (
+            Species.objects.filter(mixer_cached_data__isnull=False)
+            .values_list('category', flat=True)
+            .distinct()
+            .order_by('category')
+        )
+        ctx['total_cached'] = Species.objects.filter(
+            mixer_cached_data__isnull=False
+        ).count()
+        return ctx
 
 
 @login_required

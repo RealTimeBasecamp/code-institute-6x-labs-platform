@@ -856,31 +856,86 @@ _GBIF_IMG_SEM = _threading.Semaphore(3)
 def api_species_image(request):
     """
     GET /species/mixer/api/species-image/?gbif_key=<int>
+    GET /species/mixer/api/species-image/?prewarm=1&lat=<float>&lng=<float>
 
-    Returns { url: "<image_url>" } or { url: null } if no image found.
-    Fetches from GBIF occurrence search server-side (avoids CORS issues).
-    Throttled to 3 concurrent GBIF requests via semaphore. Cached 90 days.
+    Standard mode: Returns { url: "<image_url>", confirmed: bool }.
+    confirmed=True means the result is definitive (not a transient error).
+    The client should only cache null when confirmed=True.
+
+    Prewarm mode (?prewarm=1): Returns { species: [{ gbif_key, image_url }, ...] }
+    for all Species within ~50 km that have a cached image. Used to pre-warm the
+    frontend _imageCache before generation starts.
+
+    Lookup order (standard mode):
+      1. planting.Species DB (permanent, 90-day refresh)
+      2. Django cache (90-day, filled on first GBIF fetch)
+      3. GBIF occurrence search API (server-side, throttled to 3 concurrent)
     """
     import re
     import time
     import requests as _requests
+    from datetime import timedelta
+
+    # ── Prewarm mode: return all cached images ────────────────────────────────
+    if request.GET.get('prewarm') == '1':
+        # Return all Species rows that have a cached image. We don't store
+        # per-species GPS coords, so we return the full global set (bounded
+        # to 500 rows — enough for any realistic species catalogue).
+        qs = Species.objects.filter(
+            gbif_image_url__isnull=False,
+            gbif_taxon_key__isnull=False,
+        ).exclude(gbif_image_url='').values(
+            'gbif_taxon_key', 'gbif_image_url'
+        )
+        result = [
+            {
+                'gbif_key': row['gbif_taxon_key'],
+                'image_url': row['gbif_image_url'],
+            }
+            for row in qs[:500]
+        ]
+        return JsonResponse({'species': result})
 
     gbif_key = request.GET.get('gbif_key', '').strip()
     if not gbif_key or not gbif_key.isdigit():
-        return JsonResponse({'url': None})
+        return JsonResponse({'url': None, 'confirmed': False})
 
+    gbif_key_int = int(gbif_key)
+
+    # ── 1. Check planting.Species DB (permanent global cache) ─────────────────
+    sp = None
+    try:
+        sp = Species.objects.get(gbif_taxon_key=gbif_key_int)
+        stale = (
+            sp.gbif_image_refreshed is None
+            or sp.gbif_image_refreshed < timezone.now() - timedelta(days=90)
+        )
+        if not stale:
+            logger.debug('species_image: gbif_key=%s served from DB cache', gbif_key)
+            return JsonResponse({'url': sp.gbif_image_url, 'confirmed': True})
+    except Species.DoesNotExist:
+        sp = None
+
+    # ── 2. Check Django cache (filled by previous GBIF fetches) ───────────────
     cache_key = f'species_img:{gbif_key}'
     cached = cache.get(cache_key)
     if cached is not None:
-        return JsonResponse({'url': cached or None})
+        img_url = cached or None
+        # Write back to DB if we have a Species row that needs the image
+        if sp and not sp.gbif_image_url:
+            Species.objects.filter(pk=sp.pk).update(
+                gbif_image_url=img_url,
+                gbif_image_refreshed=timezone.now(),
+            )
+        return JsonResponse({'url': img_url, 'confirmed': True})
 
+    # ── 3. GBIF occurrence search API ─────────────────────────────────────────
     url = None
-    gbif_success = False  # True when we got a definitive response (even if no image)
-    acquired = _GBIF_IMG_SEM.acquire(timeout=8)  # wait up to 8s for a slot
+    gbif_success = False
+    acquired = _GBIF_IMG_SEM.acquire(timeout=8)
     if not acquired:
-        # Server too busy — return null without caching so client can retry
         logger.warning('species_image: gbif_key=%s semaphore timeout (server busy)', gbif_key)
-        return JsonResponse({'url': None})
+        return JsonResponse({'url': None, 'confirmed': False})
 
     try:
         for attempt in range(3):
@@ -892,7 +947,7 @@ def api_species_image(request):
                     timeout=6,
                 )
                 if resp.status_code == 429:
-                    wait = 1.5 ** attempt  # 1s, 1.5s, 2.25s
+                    wait = 1.5 ** attempt
                     logger.warning('species_image: gbif_key=%s 429 rate limit, retry %d after %.1fs', gbif_key, attempt + 1, wait)
                     time.sleep(wait)
                     continue
@@ -910,7 +965,7 @@ def api_species_image(request):
                     url = re.sub(r'/original\.(\w+)$', r'/square.\1', url)
                 logger.info('species_image: gbif_key=%s → %s', gbif_key, url or 'no image')
                 gbif_success = True
-                break  # success
+                break
             except _requests.exceptions.RequestException as exc:
                 logger.warning('species_image: gbif_key=%s attempt %d failed: %s', gbif_key, attempt + 1, exc)
                 if attempt < 2:
@@ -918,9 +973,13 @@ def api_species_image(request):
     finally:
         _GBIF_IMG_SEM.release()
 
-    # Only cache definitive results (found or genuinely not found).
-    # Don't cache failures from rate limits or network errors — let the client retry.
     if gbif_success:
+        # Cache in Django cache
         cache.set(cache_key, url or '', timeout=60 * 60 * 24 * 90)
+        # Write to DB (permanent storage) — update existing row or any row matching key
+        Species.objects.filter(gbif_taxon_key=gbif_key_int).update(
+            gbif_image_url=url,
+            gbif_image_refreshed=timezone.now(),
+        )
 
-    return JsonResponse({'url': url})
+    return JsonResponse({'url': url, 'confirmed': gbif_success})

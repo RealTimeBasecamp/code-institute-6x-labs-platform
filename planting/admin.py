@@ -36,10 +36,12 @@ class SpeciesAdmin(admin.ModelAdmin):
 
     list_display = [
         'common_name', 'scientific_name', 'category',
-        'soil_ph_min', 'soil_ph_max', 'soil_moisture',
+        'uk_nativeness_cached', 'gbif_image_refreshed',
         'ecological_benefits_display', 'gbif_taxon_key',
     ]
-    list_filter = ['category', 'soil_moisture', 'shade_tolerance']
+    list_filter = [
+        'category', 'soil_moisture', 'shade_tolerance', 'uk_nativeness_cached',
+    ]
     search_fields = ['cultivar', 'common_name', 'scientific_name']
     actions = ['import_ecological_csv']
 
@@ -72,6 +74,18 @@ class SpeciesAdmin(admin.ModelAdmin):
                 'carbon_sequestration, wildlife_habitat, biodiversity. '
                 'native_regions: JSON list from: scotland, england, wales, ireland, europe.'
             ),
+        }),
+        ('Mixer Cache (auto-populated)', {
+            'fields': (
+                'gbif_image_url', 'gbif_image_refreshed',
+                'uk_nativeness_cached', 'mixer_cached_data',
+            ),
+            'description': (
+                'Populated automatically by the species mixer after each generation. '
+                'gbif_image_refreshed: set to null to force a 90-day image refresh. '
+                'mixer_cached_data: JSON payload (family, genus, subcategory, sources, etc.).'
+            ),
+            'classes': ('collapse',),
         }),
     )
 

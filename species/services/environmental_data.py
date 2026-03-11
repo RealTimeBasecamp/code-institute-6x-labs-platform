@@ -1082,28 +1082,55 @@ class SpeciesCandidateTool:
         candidates = sorted(merged.values(), key=lambda x: x['observation_count'], reverse=True)[:limit]
 
         # --- Step 4: Enrich ALL candidates with GBIF trait data (parallel) ---
-        # Must fetch traits for every candidate so that trees, grasses, and ferns
-        # (which tend to have lower citizen-science observation counts and often fall
-        # outside the top 30) still receive family data and score correctly.
-        # Parallelise with up to 10 workers — GBIF is rate-limit tolerant but
-        # avoid hammering it with 60 simultaneous requests.
+        # Check planting.Species DB first (global cache keyed by gbif_taxon_key).
+        # If a species has been seen before anywhere, its traits are served from
+        # the DB instantly — no GBIF API call needed. Only DB-misses hit the API.
+        # The 15-worker pool is kept for genuine misses.
         def _enrich(candidate):
-            traits = fetch_gbif_species_traits(candidate['scientific_name'])
-            candidate['gbif_traits'] = traits
-            candidate['family'] = traits.get('family')
-            if not candidate['common_name'] and traits.get('vernacular_names'):
-                candidate['common_name'] = traits['vernacular_names'][0]
-            # uk_nativeness is NOT fetched here — it is resolved lazily in the agent
-            # after Phase 5 selection so we only call the GBIF distributions API for
-            # the ~60 selected species, not all 120 candidates (would add 60–180 s).
-            candidate['uk_nativeness'] = 'unknown'
+            from planting.models import Species as _PlantingSpecies
+            gbif_key = candidate.get('gbif_key')
+            db_hit = None
+            if gbif_key:
+                try:
+                    db_hit = _PlantingSpecies.objects.get(gbif_taxon_key=gbif_key)
+                except _PlantingSpecies.DoesNotExist:
+                    pass
+
+            if db_hit and db_hit.mixer_cached_data:
+                # Serve from DB — skip GBIF API call entirely
+                cached = db_hit.mixer_cached_data
+                candidate['family'] = cached.get('family') or ''
+                candidate['common_name'] = candidate['common_name'] or db_hit.common_name or ''
+                candidate['uk_nativeness'] = db_hit.uk_nativeness_cached or 'unknown'
+                candidate['gbif_traits'] = {
+                    'gbif_key': gbif_key,
+                    'accepted_name': db_hit.scientific_name or candidate['scientific_name'],
+                    'family': candidate['family'],
+                    'genus': cached.get('genus'),
+                    'vernacular_names': [db_hit.common_name] if db_hit.common_name else [],
+                    'match_confidence': 100,
+                }
+                candidate['_from_db'] = True
+            else:
+                # DB miss — fetch from GBIF as normal
+                traits = fetch_gbif_species_traits(candidate['scientific_name'])
+                candidate['gbif_traits'] = traits
+                candidate['family'] = traits.get('family')
+                if not candidate['common_name'] and traits.get('vernacular_names'):
+                    candidate['common_name'] = traits['vernacular_names'][0]
+                # uk_nativeness is NOT fetched here — resolved lazily in Phase 5b
+                # for selected species only (avoids 60× GBIF distributions calls).
+                candidate['uk_nativeness'] = 'unknown'
+                candidate['_from_db'] = False
+
             return candidate
 
         logger.info('SpeciesCandidateTool: enriching %d candidates with GBIF traits (15 workers)...', len(candidates))
         with ThreadPoolExecutor(max_workers=15) as pool:
             futures = {pool.submit(_enrich, c): c for c in candidates}
             candidates = [f.result() for f in as_completed(futures)]
-        logger.info('SpeciesCandidateTool: trait enrichment complete')
+        db_hits = sum(1 for c in candidates if c.get('_from_db'))
+        logger.info('SpeciesCandidateTool: trait enrichment complete (%d/%d from DB cache)', db_hits, len(candidates))
 
         # Restore sort order (as_completed returns in completion order, not submission order)
         candidates.sort(key=lambda x: x['observation_count'], reverse=True)

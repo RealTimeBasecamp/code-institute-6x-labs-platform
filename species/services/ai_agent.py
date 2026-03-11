@@ -53,6 +53,52 @@ from species.services.environmental_data import (
 
 logger = logging.getLogger(__name__)
 
+
+def _persist_species_data(species_mix: list) -> None:
+    """
+    Upsert planting.Species for every selected species in the mix.
+
+    Runs in a background thread so it doesn't delay the progress event.
+    This grows the global DB cache over time — once a species is stored by
+    gbif_taxon_key it is recognised in every future generation worldwide,
+    skipping expensive GBIF trait-enrichment API calls.
+
+    Image URL is written separately by api_species_image when first fetched.
+    """
+    from django.db import close_old_connections
+    from planting.models import Species as PlantingSpecies
+
+    try:
+        for s in species_mix:
+            gbif_key = s.get('gbif_key')
+            if not gbif_key:
+                continue
+            try:
+                PlantingSpecies.objects.update_or_create(
+                    gbif_taxon_key=gbif_key,
+                    defaults={
+                        'cultivar': '',  # required field; empty for mixer-sourced species
+                        'common_name': s.get('common_name') or '',
+                        'scientific_name': s.get('scientific_name') or '',
+                        'category': s.get('category', ''),
+                        'ecological_benefits': s.get('ecological_benefits') or [],
+                        'uk_nativeness_cached': s.get('uk_nativeness') or 'unknown',
+                        'mixer_cached_data': {
+                            'family': s.get('family'),
+                            'genus': (s.get('gbif_traits') or {}).get('genus'),
+                            'subcategory': s.get('subcategory'),
+                            'sources': s.get('sources', []),
+                            'observation_count': s.get('observation_count', 0),
+                            'reason': s.get('reason'),
+                        },
+                    },
+                )
+            except Exception as exc:  # noqa: BLE001
+                logger.warning('_persist_species_data: failed for gbif_key=%s: %s', gbif_key, exc)
+    finally:
+        close_old_connections()
+
+
 # Maximum tool-calling iterations to prevent infinite loops
 _MAX_ITERATIONS = 12
 
@@ -1170,8 +1216,19 @@ class SpeciesMixAgent:
 
         def _enrich_nativeness(s):
             if s.get('uk_nativeness', 'unknown') != 'unknown':
-                return s  # already resolved
+                return s  # already resolved (e.g. from DB cache in _enrich())
             gbif_key = s.get('gbif_key') or s.get('gbif_traits', {}).get('gbif_key')
+            # Check DB first — nativeness is stable and cached globally by taxon key
+            if gbif_key:
+                from planting.models import Species as _PlantingSpecies
+                try:
+                    db = _PlantingSpecies.objects.get(gbif_taxon_key=gbif_key)
+                    if db.uk_nativeness_cached:
+                        s['uk_nativeness'] = db.uk_nativeness_cached
+                        return s
+                except _PlantingSpecies.DoesNotExist:
+                    pass
+            # Fallback to GBIF distributions API
             s['uk_nativeness'] = _fuk(gbif_key, s.get('scientific_name', ''))
             return s
 
@@ -1253,6 +1310,15 @@ class SpeciesMixAgent:
             count=len(species_mix),
             species_batch=species_mix,
         )
+
+        # Persist species data to DB global cache (fire in background thread so
+        # it doesn't delay the progress event reaching the frontend).
+        import threading as _persist_threading
+        _persist_threading.Thread(
+            target=_persist_species_data,
+            args=(species_mix,),
+            daemon=True,
+        ).start()
 
         env_summary = self._format_env_summary(env_data)
         n_candidates = len(candidates)

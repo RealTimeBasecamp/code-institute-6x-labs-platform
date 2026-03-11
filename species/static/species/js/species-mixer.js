@@ -161,8 +161,14 @@ class SpeciesMixer {
     this._speciesDisplayTimer = null; // setTimeout handle for drain loop
     this._lastDisplayedSpecies = null; // last species shown in DP (kept visible if queue empties)
     this._imageCache = {};           // { gbif_key: url|null } — avoid duplicate GBIF fetches
+    this._imageFetchPromises = {};   // { gbif_key: Promise } — in-flight dedup
+    this._pendingDPUpgrades = new Map(); // gbif_key → { item, shownAt } — time-windowed upgrade
     this._pendingComplete = null;    // { mode, result, extra } — deferred until queue drains
     this._dpCounter = 0;            // increments per species; DP shown every 5th
+
+    // Animation speed — override via window.SPECIES_MIXER_CONFIG before page load
+    const _smCfg = window.SPECIES_MIXER_CONFIG || {};
+    this._drainIntervalMs = _smCfg.drainInterval != null ? _smCfg.drainInterval : 200;
 
     this._initMap();
     this._initDivider();
@@ -218,6 +224,10 @@ class SpeciesMixer {
 
     this.lat = lat;
     this.lng = lng;
+
+    // Pre-warm image cache from DB for species known near this location.
+    // Runs in background — non-blocking. Images resolve instantly during drain loop.
+    this._prewarmImagesFromServer(lat, lng);
 
     // Reset eco cells to skeleton for the new location
     this._ecoDataLoaded = false;
@@ -1139,24 +1149,53 @@ class SpeciesMixer {
 
   // ── Slideshow DP helpers ───────────────────────────────────────────────────
 
-  // Fetch a representative plant image from GBIF occurrence media.
-  // Resolves to a JPEG URL string, or null if none found / network error.
-  // Results are cached by gbif_key to avoid duplicate requests.
+  // Fetch a representative plant image via the server proxy (which checks the DB
+  // global cache first, then GBIF). Results are cached in-memory by gbif_key.
+  // Duplicate in-flight requests for the same key are deduplicated via
+  // _imageFetchPromises. Only caches null when the server confirms the species
+  // genuinely has no image (confirmed:true) — transient errors are not cached.
   _fetchSpeciesImage(gbifKey) {
     if (!gbifKey) return Promise.resolve(null);
+    // 1. In-memory cache hit (fastest path — also pre-warmed from DB on location select)
     if (gbifKey in this._imageCache) return Promise.resolve(this._imageCache[gbifKey]);
+    // 2. In-flight deduplication
+    if (gbifKey in this._imageFetchPromises) return this._imageFetchPromises[gbifKey];
+    // 3. Network fetch via server proxy (server checks DB → Django cache → GBIF)
     const proxyUrl = `${this.config.apiUrls.speciesImage}?gbif_key=${gbifKey}`;
-    return fetch(proxyUrl, { headers: { 'X-CSRFToken': this.config.csrfToken } })
+    const promise = fetch(proxyUrl, { headers: { 'X-CSRFToken': this.config.csrfToken } })
       .then(r => r.json())
       .then(d => {
         const imgUrl = d.url || null;
-        this._imageCache[gbifKey] = imgUrl;
+        // Only cache null for confirmed "no image" — not transient server errors
+        if (imgUrl !== null || d.confirmed === true) {
+          this._imageCache[gbifKey] = imgUrl;
+        }
         return imgUrl;
       })
-      .catch(() => {
-        this._imageCache[gbifKey] = null;
-        return null;
-      });
+      .catch(() => null)  // network error — do NOT cache, allow retry next generation
+      .finally(() => { delete this._imageFetchPromises[gbifKey]; });
+    this._imageFetchPromises[gbifKey] = promise;
+    return promise;
+  }
+
+  // Pre-warm _imageCache from the server DB for all known species near a GPS point.
+  // Called when the user selects a location (before clicking Generate) so that
+  // images resolve instantly from in-memory cache during the drain loop.
+  async _prewarmImagesFromServer(lat, lng) {
+    if (!lat || !lng) return;
+    try {
+      const url = `${this.config.apiUrls.speciesImage}?prewarm=1&lat=${lat}&lng=${lng}`;
+      const r = await fetch(url, { headers: { 'X-CSRFToken': this.config.csrfToken } });
+      if (!r.ok) return;
+      const d = await r.json();
+      if (Array.isArray(d.species)) {
+        d.species.forEach(s => {
+          if (s.gbif_key != null && s.image_url !== undefined) {
+            this._imageCache[s.gbif_key] = s.image_url || null;
+          }
+        });
+      }
+    } catch { /* non-critical — silently skip if unavailable */ }
   }
 
   // Drain the species queue at 0.5s intervals, displaying one species at a time.
@@ -1175,8 +1214,12 @@ class SpeciesMixer {
     }
 
     const item = this._speciesQueue.shift();
-    this._displayOneSpecies(item);
-    this._speciesDisplayTimer = setTimeout(() => this._drainSpeciesQueue(), 200);
+    try {
+      this._displayOneSpecies(item);
+    } catch (e) {
+      console.warn('_displayOneSpecies error (skipping item):', e);
+    }
+    this._speciesDisplayTimer = setTimeout(() => this._drainSpeciesQueue(), this._drainIntervalMs);
   }
 
   // Display a single species: update parliament dot, add table row, show DP overlay.
@@ -1202,20 +1245,30 @@ class SpeciesMixer {
 
     this._lastDisplayedSpecies = item;
 
-    // Show DP — use cached image immediately if pre-fetch already resolved,
-    // otherwise show initials and upgrade when the fetch completes.
+    // Show DP — use cached image immediately if already resolved (pre-warmed
+    // from DB on location select, or from a previous fetch in this session).
+    // Otherwise show initials and upgrade within a 5-second window once the
+    // fetch resolves. The _pendingDPUpgrades map replaces the old
+    // _lastDisplayedSpecies guard which failed when GBIF was slow.
     const cachedUrl = item.gbif_key ? this._imageCache[item.gbif_key] : undefined;
-    if (cachedUrl !== undefined) {
-      this._showSpeciesDP(item, cachedUrl || null);
-    } else {
-      this._showSpeciesDP(item, null);
-      if (item.gbif_key) {
-        this._fetchSpeciesImage(item.gbif_key).then(url => {
-          if (url && this._lastDisplayedSpecies?.gbif_key === item.gbif_key) {
-            this._showSpeciesDP(item, url);
-          }
-        });
-      }
+    this._showSpeciesDP(item, cachedUrl !== undefined ? (cachedUrl || null) : null);
+
+    if (item.gbif_key && cachedUrl === undefined) {
+      this._pendingDPUpgrades.set(item.gbif_key, { item, shownAt: Date.now() });
+      this._fetchSpeciesImage(item.gbif_key).then(url => {
+        if (!url) return;
+        const pending = this._pendingDPUpgrades.get(item.gbif_key);
+        if (pending && Date.now() - pending.shownAt <= 5000) {
+          this._showSpeciesDP(pending.item, url);
+        }
+        this._pendingDPUpgrades.delete(item.gbif_key);
+      });
+    }
+
+    // Prune stale pending upgrade entries older than 10 seconds
+    const _now = Date.now();
+    for (const [key, val] of this._pendingDPUpgrades) {
+      if (_now - val.shownAt > 10000) this._pendingDPUpgrades.delete(key);
     }
   }
 
@@ -1361,7 +1414,11 @@ class SpeciesMixer {
     // Both transitions use merge mode (notMerge:false) so ECharts fires universalTransition
     // between the current canvas state and the incoming series.
     this._morphTimer = setTimeout(() => {
-      if (!this.speciesVizChart || this.speciesVizChart.isDisposed()) return;
+      if (!this.speciesVizChart || this.speciesVizChart.isDisposed()) {
+        this._showVirtualGrid();
+        this._morphTimer = null;
+        return;
+      }
 
       // Parliament → treemap: merge mode so parliament dots morph into treemap blocks
       const tmScene = window.ChartVizScenes?.get('species-treemap');
@@ -1370,13 +1427,17 @@ class SpeciesMixer {
         const opt = tmScene._options[0];
         const tmOption = typeof opt === 'function' ? opt(chart) : opt;
         chart.setOption(tmOption, false); // merge mode — universalTransition fires
-      }
 
-      // Hold treemap for 5 s, then show virtual grid
-      this._morphTimer = setTimeout(() => {
+        // Hold treemap for 5 s, then show virtual grid
+        this._morphTimer = setTimeout(() => {
+          this._showVirtualGrid();
+          this._morphTimer = null;
+        }, 5500);
+      } else {
+        // Treemap scene unavailable — skip morph and go straight to virtual grid
         this._showVirtualGrid();
         this._morphTimer = null;
-      }, 5500);
+      }
     }, 3000);
   }
 
@@ -2254,6 +2315,14 @@ class SpeciesMixer {
       this._morphTimer = null;
       window.SPECIES_PARL_DATA = [];
       this._clearSpeciesDP();
+      // Purge only unconfirmed null entries from _imageCache (transient errors
+      // from a previous generation) so they can be retried. Valid image URLs
+      // (from DB or confirmed GBIF responses) are kept — they remain correct.
+      Object.keys(this._imageCache).forEach(k => {
+        if (this._imageCache[k] === null) delete this._imageCache[k];
+      });
+      this._imageFetchPromises = {};
+      this._pendingDPUpgrades = new Map();
       this._showSpeciesViz();
       // Stop any previous metaball loop before starting a new one (prevents
       // duplicate loops when regenerating from STATE_5_MIX_READY).
@@ -2926,6 +2995,14 @@ class SpeciesMixer {
         return;
       }
 
+      // Bare species events (no msg) — just queue the species, skip message handling.
+      // tasks.py _push_progress emits one message event then N bare species events for
+      // a batch, so the feed log shows "Building mix of N species..." exactly once.
+      if (!ev.msg && ev.species_added) {
+        this._speciesQueue.push(ev.species_added);
+        return;
+      }
+
       // Flush the previous "in-progress" header message into the log as a completed line
       if (this._currentFeedMsg != null) {
         this._appendFeedLine(this._currentFeedMsg);
@@ -2946,14 +3023,15 @@ class SpeciesMixer {
       }
     });
 
-    // Staggered prefetch: only fetch images for every 5th species (matching what
-    // _displayOneSpecies will actually show), spaced 800ms apart to avoid
-    // hammering the GBIF API and triggering 429 rate limits.
-    const speciesWithKeys = newEvents
-      .map(ev => ev.species_added)
-      .filter((s, i) => s?.gbif_key && !(s.gbif_key in this._imageCache) && i % 5 === 0);
-    speciesWithKeys.forEach((s, i) => {
-      setTimeout(() => this._fetchSpeciesImage(s.gbif_key), i * 800);
+    // Parallel prefetch: fire image requests for ALL new species immediately.
+    // _fetchSpeciesImage deduplicates in-flight requests via _imageFetchPromises,
+    // and resolves instantly from _imageCache for species pre-warmed from the DB.
+    // Server-side rate limiting (3-concurrent semaphore) handles GBIF throttling.
+    newEvents.forEach(ev => {
+      const s = ev.species_added;
+      if (s?.gbif_key && !(s.gbif_key in this._imageCache)) {
+        this._fetchSpeciesImage(s.gbif_key); // fire-and-forget; result stored in _imageCache
+      }
     });
 
     // Kick off the drain loop if it's not already running.
@@ -3381,16 +3459,47 @@ class SpeciesMixer {
         </button>
       </td>`;
 
-    // Hover popover on name cell — manual trigger so mouse can move into the popover
+    // Hover popover on name cell — manual trigger so mouse can move into the popover.
+    // The popover title includes a circular species avatar image when available.
     const nameCell = tr.querySelector('.species-name-cell');
+
+    // Build popover title HTML: circular avatar (if image known) + bold name
+    const buildPopTitle = (imgUrl) => {
+      const imgHtml = imgUrl
+        ? `<img src="${imgUrl}" class="sp-pop-img" alt="${item.name}" loading="lazy">`
+        : '';
+      return `<div class="d-flex align-items-center gap-2">${imgHtml}<strong>${item.name}</strong></div>`;
+    };
+
+    // Resolve image synchronously from in-memory cache (pre-warmed from DB on location select)
+    const cachedImg = item.gbif_key != null ? this._imageCache[item.gbif_key] : undefined;
+
     const pop = new bootstrap.Popover(nameCell, {
       trigger: 'manual',
       placement: 'right',
       html: true,
-      title: `<strong>${item.name}</strong>`,
+      title: buildPopTitle(cachedImg != null ? cachedImg : null),
       content: popoverHtml,
       container: 'body',
     });
+
+    // If image not yet in cache, fetch and update popover title async
+    if (item.gbif_key != null && cachedImg === undefined) {
+      this._fetchSpeciesImage(item.gbif_key).then(url => {
+        if (!url) return;
+        try {
+          const inst = bootstrap.Popover.getInstance(nameCell);
+          if (inst) inst._config.title = buildPopTitle(url);
+          // If popover is currently open, update the live DOM too
+          const tipId = nameCell.getAttribute('aria-describedby');
+          const tip = tipId ? document.getElementById(tipId) : null;
+          if (tip) {
+            const hdr = tip.querySelector('.popover-header');
+            if (hdr) hdr.innerHTML = buildPopTitle(url);
+          }
+        } catch { /* popover may have been disposed */ }
+      });
+    }
 
     let popHideTimer = null;
 
