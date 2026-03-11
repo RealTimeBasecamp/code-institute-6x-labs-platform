@@ -4306,86 +4306,81 @@ class SpeciesMixer {
     const scoreColour = BAND_COLOUR[n] || colour;
     const bg = BAND_BG[n] || 'transparent';
 
-    // ── Score header — score+label row, then raw context on its own line ─────
-    let body = `<div style="background:${bg};border-radius:6px;padding:0.5rem 0.75rem;margin-bottom:0.6rem;">
-      <div style="display:flex;align-items:baseline;gap:0.4rem;">
-        <span style="color:${scoreColour};font-weight:700;font-size:1.25rem;line-height:1;">${n}/5</span>
-        <span style="color:${scoreColour};font-size:0.85rem;font-weight:600;">${label}</span>
-      </div>`;
+    // Unicode arrows — Bootstrap's sanitizer strips SVG, so use text characters
+    const UP_ARROW   = `<span style="color:#198754;font-size:0.75rem;margin-right:5px;font-weight:700;">&#9650;</span>`;
+    const DOWN_ARROW = `<span style="color:#dc3545;font-size:0.75rem;margin-right:5px;font-weight:700;">&#9660;</span>`;
+    const DASH_ICON  = `<span style="color:#6c757d;font-size:0.75rem;margin-right:5px;">&#8211;</span>`;
 
+    // ── Score dots (5 filled/unfilled circles) ────────────────────────────
+    const SCORE_DOTS = Array.from({length: 5}, (_, i) =>
+      `<span style="display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:2px;` +
+      `background:${i < n ? scoreColour : '#dee2e6'};"></span>`
+    ).join('');
+
+    // ── Section 1: Overview ───────────────────────────────────────────────
+    let body = `<div style="background:${bg};border-radius:8px;padding:0.55rem 0.7rem;margin-bottom:0.6rem;">`;
+    // Row 1: score number + label + dots
+    body += `<div style="display:flex;align-items:center;gap:0.4rem;margin-bottom:0.2rem;">`;
+    body += `<span style="color:${scoreColour};font-weight:800;font-size:1.5rem;line-height:1;">${n}</span>`;
+    body += `<span style="color:${scoreColour};font-size:0.75rem;font-weight:500;margin-top:0.4rem;">/5</span>`;
+    body += `<span style="color:${scoreColour};font-size:0.9rem;font-weight:700;margin-left:0.1rem;">${label}</span>`;
+    body += `<span style="margin-left:auto;display:flex;align-items:center;">${SCORE_DOTS}</span>`;
+    body += `</div>`;
+    // Row 2: raw score context
     if (data) {
-      body += `<div style="font-size:0.72rem;color:#6c757d;margin-top:0.2rem;">raw ${data.raw} pts &bull; ${data.rank_band} of ${data.pool} species</div>`;
+      body += `<div style="font-size:0.72rem;color:#6c757d;">`;
+      body += `Raw score: <strong style="color:inherit;">${data.raw} pts</strong>`;
+      body += ` &nbsp;&#8226;&nbsp; ${data.rank_band} of ${data.pool} candidates`;
+      body += `</div>`;
     }
     body += `</div>`;
 
-    // Inline SVG arrows — rendered once, reused per line item
-    const UP_SVG = `<svg width="9" height="9" viewBox="0 0 10 10" fill="none"
-      style="margin-right:4px;vertical-align:middle;flex-shrink:0;">
-      <path d="M5 1L9.5 9H0.5L5 1Z" fill="#198754"/>
-    </svg>`;
-    const DOWN_SVG = `<svg width="9" height="9" viewBox="0 0 10 10" fill="none"
-      style="margin-right:4px;vertical-align:middle;flex-shrink:0;">
-      <path d="M5 9L9.5 1H0.5L5 9Z" fill="#dc3545"/>
-    </svg>`;
-    const DASH = `<span style="display:inline-block;width:9px;margin-right:4px;
-      text-align:center;color:#6c757d;flex-shrink:0;">&#x2013;</span>`;
-
     if (data) {
-      // ── Scored for (green) ────────────────────────────────────────────────
+      // ── Section 2: Pros ──────────────────────────────────────────────────
       if (data.gained && data.gained.length) {
-        body += `<div class="mb-2">
-          <div style="font-size:0.7rem;font-weight:700;text-transform:uppercase;
-            letter-spacing:.05em;color:#198754;margin-bottom:0.3rem;">Scored for</div>`;
+        body += `<div style="margin-bottom:0.5rem;">`;
+        body += `<div style="font-size:0.68rem;font-weight:700;text-transform:uppercase;` +
+                `letter-spacing:.06em;color:#198754;margin-bottom:0.2rem;">Pros</div>`;
         data.gained.forEach(g => {
-          const pts = g.pts > 0 ? `+${g.pts}` : `${g.pts}`;
-          body += `<div style="display:flex;justify-content:space-between;
-              align-items:center;gap:0.75rem;font-size:0.8rem;padding:0.15rem 0;">
-            <span style="display:flex;align-items:center;">${UP_SVG}${g.label}</span>
-            <span style="color:#198754;font-weight:600;white-space:nowrap;">${pts} pts</span>
-          </div>`;
+          const ptsLabel = g.pts > 0 ? `+${g.pts} pts` : `${g.pts} pts`;
+          body += `<div style="display:flex;justify-content:space-between;align-items:baseline;` +
+                  `gap:0.5rem;font-size:0.8rem;padding:0.14rem 0;` +
+                  `border-bottom:1px solid rgba(0,0,0,0.05);">`;
+          body += `<span>${UP_ARROW}${g.label}</span>`;
+          body += `<span style="color:#198754;font-weight:700;white-space:nowrap;` +
+                  `font-size:0.75rem;flex-shrink:0;">${ptsLabel}</span>`;
+          body += `</div>`;
         });
         body += `</div>`;
       }
 
-      // ── Penalised / missing (amber/red) ───────────────────────────────────
+      // ── Section 3: Cons (actual penalties / missing data) ────────────────
       if (data.lost && data.lost.length) {
-        body += `<div class="mb-2" style="border-top:1px solid var(--bs-border-color);
-          padding-top:0.4rem;">
-          <div style="font-size:0.7rem;font-weight:700;text-transform:uppercase;
-            letter-spacing:.05em;color:#e65c00;margin-bottom:0.3rem;">Penalised / missing</div>`;
-        data.lost.forEach(item => {
-          const isNeg = item.pts < 0;
-          const ptsText = isNeg ? `${item.pts} pts` : '—';
-          const ptsColour = isNeg ? '#dc3545' : '#6c757d';
-          const arrow = isNeg ? DOWN_SVG : DASH;
-          body += `<div style="display:flex;justify-content:space-between;
-              align-items:center;gap:0.75rem;font-size:0.8rem;padding:0.15rem 0;">
-            <span style="display:flex;align-items:center;">${arrow}${item.label}</span>
-            <span style="color:${ptsColour};font-weight:600;white-space:nowrap;">${ptsText}</span>
-          </div>`;
+        body += `<div style="border-top:1px solid #dee2e6;padding-top:0.4rem;margin-bottom:0.5rem;">`;
+        body += `<div style="font-size:0.68rem;font-weight:700;text-transform:uppercase;` +
+                `letter-spacing:.06em;color:#dc3545;margin-bottom:0.2rem;">Cons</div>`;
+        // All lost items are cons — always use DOWN_ARROW.
+        // pts < 0 = actual penalty shown in red; pts === 0 = informational gap, no pts deducted.
+        (data.lost || []).forEach(item => {
+          const ptsLabel = item.pts < 0 ? `${item.pts} pts` : 'no pts';
+          const ptsColour = item.pts < 0 ? '#dc3545' : '#6c757d';
+          body += `<div style="display:flex;justify-content:space-between;align-items:baseline;` +
+                  `gap:0.5rem;font-size:0.8rem;padding:0.14rem 0;` +
+                  `border-bottom:1px solid rgba(0,0,0,0.05);">`;
+          body += `<span>${DOWN_ARROW}${item.label}</span>`;
+          body += `<span style="color:${ptsColour};font-weight:700;white-space:nowrap;` +
+                  `font-size:0.75rem;flex-shrink:0;">${ptsLabel}</span>`;
+          body += `</div>`;
         });
         body += `</div>`;
       }
 
-      // ── What higher-scoring species had ──────────────────────────────────
-      if (data.missed && data.missed.length) {
-        body += `<div class="mb-2" style="border-top:1px solid var(--bs-border-color);
-          padding-top:0.4rem;">
-          <div style="font-size:0.7rem;font-weight:700;text-transform:uppercase;
-            letter-spacing:.05em;color:#6c757d;margin-bottom:0.3rem;">Higher-scorers typically had</div>`;
-        data.missed.forEach(m => {
-          body += `<div style="font-size:0.8rem;padding:0.15rem 0;color:#6c757d;">&#x2022; ${m}</div>`;
-        });
-        body += `</div>`;
-      }
-
-      // ── Contextual note ───────────────────────────────────────────────────
+      // ── Footer note ──────────────────────────────────────────────────────
       if (data.note) {
-        body += `<div style="border-top:1px solid var(--bs-border-color);padding-top:0.4rem;
-          font-size:0.75rem;color:#6c757d;line-height:1.45;">${data.note}</div>`;
+        body += `<div style="border-top:1px solid #dee2e6;padding-top:0.35rem;` +
+                `font-size:0.72rem;color:#6c757d;line-height:1.5;font-style:italic;">${data.note}</div>`;
       }
     } else {
-      // Fallback for legacy plain-text or manually validated species
       const fallback = (badgeEl.dataset.scoreReason || '')
         .replace(/&quot;/g, '"').replace(/&#39;/g, "'")
         || 'Score based on relative ranking within species found near this location.';
@@ -4394,12 +4389,13 @@ class SpeciesMixer {
 
     // ── Create popover with manual trigger (allows mousing into it) ───────
     const pop = new bootstrap.Popover(badgeEl, {
-      content:   body,
-      title:     'Suitability score',
-      html:      true,
-      trigger:   'manual',
-      placement: 'left',
-      container: 'body',
+      content:     body,
+      title:       'Suitability score',
+      html:        true,
+      sanitize:    false,  // content is fully internal — no user input reaches here
+      trigger:     'manual',
+      placement:   'left',
+      container:   'body',
       customClass: 'score-badge-popover',
     });
 
