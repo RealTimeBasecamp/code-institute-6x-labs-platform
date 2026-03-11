@@ -96,12 +96,14 @@ def api_generate_mix(request):
         max_species = max(1, min(200, int(data.get('max_species', 60))))
         category_targets = data.get('category_targets', {})
         natives_only = bool(data.get('natives_only', False))
+        score_factors = data.get('score_factors', {})
     except (KeyError, ValueError, json.JSONDecodeError) as exc:
         return JsonResponse({'error': f'Invalid request body: {exc}'}, status=400)
 
     # Inject control params into goals dict (private keys, stripped before AI sees them as goals)
     goals['_category_targets'] = category_targets
     goals['_natives_only'] = natives_only
+    goals['_score_factors'] = score_factors
 
     task_id = str(uuid.uuid4())
     if _ASYNC:
@@ -151,12 +153,14 @@ def api_rescore_mix(request):
         max_species = max(1, min(200, int(data.get('max_species', 60))))
         category_targets = data.get('category_targets', {})
         natives_only = bool(data.get('natives_only', False))
+        score_factors = data.get('score_factors', {})
     except (KeyError, json.JSONDecodeError) as exc:
         return JsonResponse({'error': f'Invalid request body: {exc}'}, status=400)
 
     # Inject control params into goals dict
     goals['_category_targets'] = category_targets
     goals['_natives_only'] = natives_only
+    goals['_score_factors'] = score_factors
 
     task_id = str(uuid.uuid4())
     if _ASYNC:

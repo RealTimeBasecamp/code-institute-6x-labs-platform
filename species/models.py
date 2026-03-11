@@ -217,12 +217,12 @@ class SpeciesMixItem(models.Model):
     suitability_score = models.FloatField(
         null=True,
         blank=True,
-        help_text="AI-assigned suitability score for this species at this location (0–10)"
+        help_text="Suitability score 1–5 (5=excellent, 1=not suitable) for this species at this location"
     )
     suitability_label = models.CharField(
         max_length=20,
         blank=True,
-        help_text="Human-readable suitability: 'good', 'acceptable', or 'not_recommended'"
+        help_text="Suitability label: 'excellent', 'good', 'fair', 'poor', or 'not_suitable'"
     )
 
     # User control

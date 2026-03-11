@@ -170,6 +170,52 @@
 .mixer-location-result:last-child { border-bottom: none; }
 .mixer-location-result:hover { background: color-mix(in srgb, var(--primary-color, var(--bs-primary)) 8%, transparent); }
 
+/* Loading / empty / error states inside dropdown */
+.mixer-location-status {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.6rem 0.75rem;
+  font-size: 0.82rem;
+  color: var(--bs-secondary-color, #6c757d);
+}
+.mixer-location-status--empty { color: var(--bs-secondary-color, #6c757d); }
+.mixer-location-status--error  { color: var(--bs-danger, #dc3545); }
+
+/* Inline spinner for loading state */
+.mixer-location-spinner {
+  display: inline-block;
+  width: 0.85rem;
+  height: 0.85rem;
+  border: 2px solid currentColor;
+  border-right-color: transparent;
+  border-radius: 50%;
+  animation: mixer-spin 0.6s linear infinite;
+  flex-shrink: 0;
+  opacity: 0.6;
+}
+@keyframes mixer-spin {
+  to { transform: rotate(360deg); }
+}
+
+/* Score badge — focusable for accessibility */
+.species-score-badge {
+  border-radius: 3px;
+  outline-offset: 2px;
+}
+.species-score-badge:focus-visible {
+  outline: 2px solid var(--primary-color, var(--bs-primary));
+}
+
+/* Score breakdown popover — wider than default so line items don't wrap */
+.score-badge-popover {
+  min-width: 340px;
+  max-width: 400px;
+}
+.score-badge-popover .popover-body {
+  padding: 0.65rem 0.75rem;
+}
+
 /* ── Location settings rows ──────────────────────────────────── */
 .location-setting-row {
   padding: 0.5rem 0;

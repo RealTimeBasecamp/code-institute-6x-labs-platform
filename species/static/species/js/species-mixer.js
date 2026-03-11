@@ -397,6 +397,30 @@ class SpeciesMixer {
       dropdown.innerHTML = '';
     };
 
+    const showLoading = () => {
+      dropdown.innerHTML = `<div class="mixer-location-status">
+        <span class="mixer-location-spinner"></span>
+        Searching…
+      </div>`;
+      dropdown.classList.remove('d-none');
+    };
+
+    const showNoResults = (query) => {
+      dropdown.innerHTML = `<div class="mixer-location-status mixer-location-status--empty">
+        <i class="bi bi-geo-alt" style="font-size:1rem;opacity:.4;"></i>
+        No locations found for <em>${query.replace(/</g, '&lt;')}</em>
+      </div>`;
+      dropdown.classList.remove('d-none');
+    };
+
+    const showError = () => {
+      dropdown.innerHTML = `<div class="mixer-location-status mixer-location-status--error">
+        <i class="bi bi-wifi-off" style="font-size:1rem;"></i>
+        Unable to reach the geocoding service. Check your connection and try again.
+      </div>`;
+      dropdown.classList.remove('d-none');
+    };
+
     const showResult = (place) => {
       const lat = parseFloat(place.lat);
       const lng = parseFloat(place.lon);
@@ -415,6 +439,9 @@ class SpeciesMixer {
 
     const search = async (query) => {
       if (query.length < 3) { closeDropdown(); return; }
+
+      // Show loading state immediately — visible feedback before API responds
+      showLoading();
 
       // Cancel previous in-flight request by ignoring its result
       const thisRequest = {};
@@ -437,7 +464,7 @@ class SpeciesMixer {
           return { lat, lon, display_name: parts.filter(Boolean).join(', ') };
         });
 
-        if (!results.length) { closeDropdown(); return; }
+        if (!results.length) { showNoResults(query); return; }
 
         dropdown.innerHTML = results.map((r, i) =>
           `<div class="mixer-location-result" data-idx="${i}">${r.display_name}</div>`
@@ -451,14 +478,26 @@ class SpeciesMixer {
           });
         });
       } catch {
-        closeDropdown();
+        if (activeRequest === thisRequest) showError();
       }
     };
 
-    input.addEventListener('input', () => {
+    const triggerSearch = () => {
       clearTimeout(debounceTimer);
-      debounceTimer = setTimeout(() => search(input.value.trim()), 350);
-    });
+      const query = input.value.trim();
+      if (query.length >= 3) {
+        // Show loading state immediately on any input/paste — before debounce fires
+        showLoading();
+        activeRequest = null; // invalidate any current in-flight request display
+      } else {
+        closeDropdown();
+      }
+      debounceTimer = setTimeout(() => search(query), 350);
+    };
+
+    input.addEventListener('input', triggerSearch);
+    // Also handle paste explicitly — some browsers don't fire 'input' synchronously on paste
+    input.addEventListener('paste', () => setTimeout(triggerSearch, 0));
 
     input.addEventListener('keydown', (e) => {
       if (e.key === 'Escape') closeDropdown();
@@ -2136,12 +2175,19 @@ class SpeciesMixer {
       return;
     }
 
+    if (!countryCode) {
+      // Country code unknown (geocoding failed or ocean click) — show no warning.
+      // We can't determine the user is outside Europe without confirmed data.
+      wrap.classList.add('d-none');
+      return;
+    }
+
     wrap.classList.remove('d-none');
-    if (countryCode && EUROPE.has(countryCode)) {
+    if (EUROPE.has(countryCode)) {
       // Tier 1: Europe but not UK
       warnEurope?.classList.remove('d-none');
     } else {
-      // Tier 2: Outside Europe, or null (ocean/unrecognised region)
+      // Tier 2: Confirmed outside Europe
       warnOutside?.classList.remove('d-none');
     }
   }
@@ -2794,6 +2840,11 @@ class SpeciesMixer {
     document.getElementById('refresh-mixes-btn')?.addEventListener('click', () => {
       this._loadRecentMixes();
     });
+
+    // Score factor checkboxes — changing any factor triggers a rescore
+    document.getElementById('score-factors-list')?.addEventListener('change', () => {
+      this._debouncedRescore();
+    });
   }
 
   // ──────────────────────────────────────────────────────────────────────────
@@ -2813,7 +2864,7 @@ class SpeciesMixer {
           'Content-Type': 'application/json',
           'X-CSRFToken': this.config.csrfToken,
         },
-        body: JSON.stringify({ lat: this.lat, lng: this.lng, goals, max_species: this._getMaxSpecies(), category_targets: this._getCategoryTargets(), natives_only: this._getNativesOnly() }),
+        body: JSON.stringify({ lat: this.lat, lng: this.lng, goals, max_species: this._getMaxSpecies(), category_targets: this._getCategoryTargets(), natives_only: this._getNativesOnly(), score_factors: this._getScoreFactors() }),
       });
       const data = await resp.json();
       if (data.task_id) {
@@ -2869,6 +2920,7 @@ class SpeciesMixer {
           max_species: this._getMaxSpecies(),
           category_targets: this._getCategoryTargets(),
           natives_only: this._getNativesOnly(),
+          score_factors: this._getScoreFactors(),
         }),
       });
       const data = await resp.json();
@@ -3269,6 +3321,7 @@ class SpeciesMixer {
     row.style.opacity = '0';
     row.style.transition = 'opacity 0.3s ease';
     tbody.appendChild(row);
+    this._initScoreBadgePopover(row.querySelector('.species-score-badge'));
     requestAnimationFrame(() => { row.style.opacity = '1'; });
   }
 
@@ -3296,7 +3349,7 @@ class SpeciesMixer {
     // Re-render DOM from this.mixItems (called after any change: remove, add, rescore)
     const tbody = document.getElementById('species-mix-tbody');
     // Dispose existing popovers to avoid memory leaks
-    tbody.querySelectorAll('.species-name-cell').forEach(el => {
+    tbody.querySelectorAll('.species-name-cell, .species-score-badge').forEach(el => {
       const pop = bootstrap.Popover.getInstance(el);
       if (pop) pop.dispose();
     });
@@ -3325,13 +3378,23 @@ class SpeciesMixer {
       return (ai === -1 ? 999 : ai) - (bi === -1 ? 999 : bi);
     });
     sortedKeys.forEach(key => {
+      // Sort within each category: highest suitability score first, ratio as tiebreaker
+      groups[key].sort((a, b) => {
+        const sa = a.suitability_score ?? 0, sb = b.suitability_score ?? 0;
+        if (sb !== sa) return sb - sa;
+        return (b.ratio || 0) - (a.ratio || 0);
+      });
       const headerRow = document.createElement('tr');
       headerRow.className = 'species-mixer-group-header';
       headerRow.setAttribute('data-group-header', key);
       const displayName = key.charAt(0).toUpperCase() + key.slice(1);
       headerRow.innerHTML = `<td colspan="9">${this._categoryIcon(key)}<span class="ms-1">${displayName}</span></td>`;
       tbody.appendChild(headerRow);
-      groups[key].forEach(item => tbody.appendChild(this._buildRow(item)));
+      groups[key].forEach(item => {
+        const row = this._buildRow(item);
+        tbody.appendChild(row);
+        this._initScoreBadgePopover(row.querySelector('.species-score-badge'));
+      });
     });
     this._reinitSortableTable();
   }
@@ -3461,7 +3524,7 @@ class SpeciesMixer {
       <td class="col-chars">
         <div class="d-flex flex-wrap gap-0">${goalTags}</div>
       </td>
-      <td class="col-native suitability-cell" data-sort-value="${item.suitability_label || ''}">
+      <td class="col-native suitability-cell" data-sort-value="${item.suitability_score ?? 0}">
         ${nativeBadge}
       </td>
       <td class="col-rho text-muted">${this._previewCellRho(item)}</td>
@@ -3628,7 +3691,11 @@ class SpeciesMixer {
 
     const cell = row.querySelector('.suitability-cell');
     if (cell) {
+      // Dispose any existing score badge popover before replacing the cell
+      const oldBadge = cell.querySelector('.species-score-badge');
+      if (oldBadge) bootstrap.Popover.getInstance(oldBadge)?.dispose();
       cell.innerHTML = this._suitabilityBadge(result.suitability_label, result.suitability_score, result.reason);
+      this._initScoreBadgePopover(cell.querySelector('.species-score-badge'));
     }
 
     // Apply suggested ratios if provided
@@ -4063,6 +4130,14 @@ class SpeciesMixer {
     return document.getElementById('natives-only-toggle')?.checked || false;
   }
 
+  _getScoreFactors() {
+    const factors = {};
+    document.querySelectorAll('.score-factor-check').forEach(cb => {
+      if (cb.dataset.factor) factors[cb.dataset.factor] = cb.checked;
+    });
+    return factors;
+  }
+
   _updateCatCompositionBar() {
     const maxSpecies = this._getMaxSpecies();
     const targets = this._getCategoryTargets();
@@ -4176,40 +4251,190 @@ class SpeciesMixer {
     return matched.slice(0, 3); // cap at 3 to keep cell compact
   }
 
-  // Shared score badge — coloured circle icon + numeric score, tooltip explains environmental fit.
-  // Colour bands: 0–2 red, 3–5 orange, 6–8 yellow, 9–10 green.
-  // Used for both AI-generated mix rows and manual-add validation results.
-  _scoreBadge(score, reason) {
+  // Score badge using 1–5 scale with a rich popover on hover.
+  // 1=Red (not suitable), 2=Amber, 3=Orange, 4=Dark green, 5=Green (excellent).
+  // Returns HTML string — caller must call _initScoreBadgePopover(el) after inserting into DOM.
+  _scoreBadge(score, scoreReason) {
     if (score == null) {
       return '<span class="text-muted" style="font-size:.75rem;">—</span>';
     }
-    const n = Math.round(Math.min(10, Math.max(0, score)));
-    let colour, label;
-    if      (n <= 2) { colour = 'var(--bs-danger,  #dc3545)'; label = 'Poor';      }
-    else if (n <= 5) { colour = 'var(--bs-orange,  #fd7e14)'; label = 'Fair';      }
-    else if (n <= 8) { colour = 'var(--bs-warning, #ffc107)'; label = 'Good';      }
-    else             { colour = 'var(--bs-success, #198754)'; label = 'Excellent'; }
-
-    const tip = reason ? `${label} (${n}/10) — ${reason}` : `${label} (${n}/10)`;
-    // Escape quotes in tooltip text
-    const safeTip = tip.replace(/"/g, '&quot;');
-    return `<span class="species-score-badge" style="color:${colour};" title="${safeTip}" data-bs-toggle="tooltip" data-bs-placement="left">
+    const n = Math.round(Math.min(5, Math.max(1, score)));
+    const BANDS = {
+      1: { colour: '#dc3545', label: 'Not suitable' },
+      2: { colour: '#e65c00', label: 'Poor' },
+      3: { colour: '#fd7e14', label: 'Fair' },
+      4: { colour: '#2e7d32', label: 'Good' },
+      5: { colour: '#198754', label: 'Excellent' },
+    };
+    const { colour, label } = BANDS[n] || BANDS[3];
+    // Encode reason into a data attribute — popover content is built in _initScoreBadgePopover
+    const safeReason = (scoreReason || '').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+    return `<span class="species-score-badge" style="color:${colour}; cursor:pointer;"
+      data-score="${n}" data-score-label="${label}" data-score-reason="${safeReason}">
       <i class="bi bi-circle-fill" style="font-size:0.55rem; vertical-align:middle;"></i>
-      <span style="font-size:0.78rem; font-weight:600; vertical-align:middle;">${n}<span style="font-size:0.65rem; font-weight:400; opacity:0.7;">/10</span></span>
+      <span style="font-size:0.78rem; font-weight:600; vertical-align:middle;">${n}<span style="font-size:0.65rem; font-weight:400; opacity:0.7;">/5</span></span>
     </span>`;
   }
 
-  // Legacy shim — called from row build; maps old suitability fields to score badge.
-  _nativeBadge(item) {
-    // If a numeric score is available, use it directly
-    if (item.suitability_score != null) {
-      return this._scoreBadge(item.suitability_score, item.ai_reason || null);
+  // Initialise Bootstrap popover on a score badge element already in the DOM.
+  // Uses manual trigger + mouseenter/leave delay (same as name-cell popover) so
+  // the user can hover into the popover to copy text or follow links.
+  _initScoreBadgePopover(badgeEl) {
+    if (!badgeEl) return;
+    const n      = parseInt(badgeEl.dataset.score, 10);
+    const label  = badgeEl.dataset.scoreLabel || '';
+    const colour = badgeEl.style.color || '#6c757d';
+
+    // Parse structured JSON reason produced by _score_reason_for()
+    let data = null;
+    try {
+      const raw = badgeEl.dataset.scoreReason || '';
+      const decoded = raw.replace(/&quot;/g, '"').replace(/&#39;/g, "'");
+      data = decoded ? JSON.parse(decoded) : null;
+    } catch { /* legacy plain-text fallback */ }
+
+    const BAND_COLOUR = {
+      1: '#dc3545', 2: '#e65c00', 3: '#fd7e14', 4: '#2e7d32', 5: '#198754',
+    };
+    const BAND_BG = {
+      1: 'rgba(220,53,69,0.10)',
+      2: 'rgba(230,92,0,0.10)',
+      3: 'rgba(253,126,20,0.10)',
+      4: 'rgba(46,125,50,0.10)',
+      5: 'rgba(25,135,84,0.10)',
+    };
+    const scoreColour = BAND_COLOUR[n] || colour;
+    const bg = BAND_BG[n] || 'transparent';
+
+    // ── Score header — score+label row, then raw context on its own line ─────
+    let body = `<div style="background:${bg};border-radius:6px;padding:0.5rem 0.75rem;margin-bottom:0.6rem;">
+      <div style="display:flex;align-items:baseline;gap:0.4rem;">
+        <span style="color:${scoreColour};font-weight:700;font-size:1.25rem;line-height:1;">${n}/5</span>
+        <span style="color:${scoreColour};font-size:0.85rem;font-weight:600;">${label}</span>
+      </div>`;
+
+    if (data) {
+      body += `<div style="font-size:0.72rem;color:#6c757d;margin-top:0.2rem;">raw ${data.raw} pts &bull; ${data.rank_band} of ${data.pool} species</div>`;
     }
-    // Map label-only records (pre-score data) to an approximate numeric score
+    body += `</div>`;
+
+    // Inline SVG arrows — rendered once, reused per line item
+    const UP_SVG = `<svg width="9" height="9" viewBox="0 0 10 10" fill="none"
+      style="margin-right:4px;vertical-align:middle;flex-shrink:0;">
+      <path d="M5 1L9.5 9H0.5L5 1Z" fill="#198754"/>
+    </svg>`;
+    const DOWN_SVG = `<svg width="9" height="9" viewBox="0 0 10 10" fill="none"
+      style="margin-right:4px;vertical-align:middle;flex-shrink:0;">
+      <path d="M5 9L9.5 1H0.5L5 9Z" fill="#dc3545"/>
+    </svg>`;
+    const DASH = `<span style="display:inline-block;width:9px;margin-right:4px;
+      text-align:center;color:#6c757d;flex-shrink:0;">&#x2013;</span>`;
+
+    if (data) {
+      // ── Scored for (green) ────────────────────────────────────────────────
+      if (data.gained && data.gained.length) {
+        body += `<div class="mb-2">
+          <div style="font-size:0.7rem;font-weight:700;text-transform:uppercase;
+            letter-spacing:.05em;color:#198754;margin-bottom:0.3rem;">Scored for</div>`;
+        data.gained.forEach(g => {
+          const pts = g.pts > 0 ? `+${g.pts}` : `${g.pts}`;
+          body += `<div style="display:flex;justify-content:space-between;
+              align-items:center;gap:0.75rem;font-size:0.8rem;padding:0.15rem 0;">
+            <span style="display:flex;align-items:center;">${UP_SVG}${g.label}</span>
+            <span style="color:#198754;font-weight:600;white-space:nowrap;">${pts} pts</span>
+          </div>`;
+        });
+        body += `</div>`;
+      }
+
+      // ── Penalised / missing (amber/red) ───────────────────────────────────
+      if (data.lost && data.lost.length) {
+        body += `<div class="mb-2" style="border-top:1px solid var(--bs-border-color);
+          padding-top:0.4rem;">
+          <div style="font-size:0.7rem;font-weight:700;text-transform:uppercase;
+            letter-spacing:.05em;color:#e65c00;margin-bottom:0.3rem;">Penalised / missing</div>`;
+        data.lost.forEach(item => {
+          const isNeg = item.pts < 0;
+          const ptsText = isNeg ? `${item.pts} pts` : '—';
+          const ptsColour = isNeg ? '#dc3545' : '#6c757d';
+          const arrow = isNeg ? DOWN_SVG : DASH;
+          body += `<div style="display:flex;justify-content:space-between;
+              align-items:center;gap:0.75rem;font-size:0.8rem;padding:0.15rem 0;">
+            <span style="display:flex;align-items:center;">${arrow}${item.label}</span>
+            <span style="color:${ptsColour};font-weight:600;white-space:nowrap;">${ptsText}</span>
+          </div>`;
+        });
+        body += `</div>`;
+      }
+
+      // ── What higher-scoring species had ──────────────────────────────────
+      if (data.missed && data.missed.length) {
+        body += `<div class="mb-2" style="border-top:1px solid var(--bs-border-color);
+          padding-top:0.4rem;">
+          <div style="font-size:0.7rem;font-weight:700;text-transform:uppercase;
+            letter-spacing:.05em;color:#6c757d;margin-bottom:0.3rem;">Higher-scorers typically had</div>`;
+        data.missed.forEach(m => {
+          body += `<div style="font-size:0.8rem;padding:0.15rem 0;color:#6c757d;">&#x2022; ${m}</div>`;
+        });
+        body += `</div>`;
+      }
+
+      // ── Contextual note ───────────────────────────────────────────────────
+      if (data.note) {
+        body += `<div style="border-top:1px solid var(--bs-border-color);padding-top:0.4rem;
+          font-size:0.75rem;color:#6c757d;line-height:1.45;">${data.note}</div>`;
+      }
+    } else {
+      // Fallback for legacy plain-text or manually validated species
+      const fallback = (badgeEl.dataset.scoreReason || '')
+        .replace(/&quot;/g, '"').replace(/&#39;/g, "'")
+        || 'Score based on relative ranking within species found near this location.';
+      body += `<div style="font-size:0.8rem;line-height:1.5;">${fallback}</div>`;
+    }
+
+    // ── Create popover with manual trigger (allows mousing into it) ───────
+    const pop = new bootstrap.Popover(badgeEl, {
+      content:   body,
+      title:     'Suitability score',
+      html:      true,
+      trigger:   'manual',
+      placement: 'left',
+      container: 'body',
+      customClass: 'score-badge-popover',
+    });
+
+    let hideTimer = null;
+    const showPop = () => { clearTimeout(hideTimer); pop.show(); };
+    const hidePop = () => { hideTimer = setTimeout(() => pop.hide(), 200); };
+
+    badgeEl.addEventListener('mouseenter', showPop);
+    badgeEl.addEventListener('mouseleave', hidePop);
+
+    // Keep visible while mouse is inside the popover itself
+    badgeEl.addEventListener('shown.bs.popover', () => {
+      const tip = document.getElementById(badgeEl.getAttribute('aria-describedby'));
+      if (!tip) return;
+      tip.addEventListener('mouseenter', () => clearTimeout(hideTimer));
+      tip.addEventListener('mouseleave', hidePop);
+    });
+  }
+
+  // Called from row build — maps suitability fields to score badge.
+  _nativeBadge(item) {
+    // score_reason (auto-generated) > ai_reason (manual validation) > reason (inclusion text)
+    const scoreReason = item.score_reason || item.ai_reason || item.reason || null;
+    if (item.suitability_score != null) {
+      return this._scoreBadge(item.suitability_score, scoreReason);
+    }
+    // Map label-only records (legacy/pre-score data) to approximate 1–5 score
     const label = (item.suitability_label || '').toLowerCase();
-    const scoreMap = { good: 8, acceptable: 5, not_recommended: 2 };
+    const scoreMap = {
+      excellent: 5, good: 4, fair: 3, poor: 2, not_suitable: 1,
+      // legacy labels
+      acceptable: 3, not_recommended: 1,
+    };
     const fallbackScore = scoreMap[label] ?? null;
-    return this._scoreBadge(fallbackScore, item.ai_reason || null);
+    return this._scoreBadge(fallbackScore, scoreReason);
   }
 
   // Called when a validation result arrives for a manually added species.

@@ -605,8 +605,8 @@ class SpeciesMixAgent:
 
         Returns:
             {
-                'suitability_score': float (0–10),
-                'suitability_label': 'good' | 'acceptable' | 'not_recommended',
+                'suitability_score': int (1–5),
+                'suitability_label': 'excellent' | 'good' | 'fair' | 'poor' | 'not_suitable',
                 'reason': str,
                 'suggested_ratios': [{'species_id': int, 'ratio': float}, ...]
             }
@@ -635,12 +635,13 @@ class SpeciesMixAgent:
                     f'ENVIRONMENTAL CONDITIONS AT LOCATION:\n{env_summary}\n\n'
                     f'CURRENT MIX SPECIES:\n{current_summary}\n\n'
                     f'Tasks:\n'
-                    f'1. Rate this species suitability (0–10) for this location\n'
-                    f'2. Classify: "good" (8-10), "acceptable" (5-7), "not_recommended" (0-4)\n'
-                    f'3. Give a one-sentence reason\n'
+                    f'1. Rate this species suitability on a 1–5 integer scale for this location\n'
+                    f'   1=not_suitable, 2=poor, 3=fair, 4=good, 5=excellent\n'
+                    f'2. Classify: "excellent" (5), "good" (4), "fair" (3), "poor" (2), "not_suitable" (1)\n'
+                    f'3. Give a one-sentence reason explaining the score\n'
                     f'4. Suggest revised ratios for all species including the new one (sum to 1.0)\n\n'
                     f'Return ONLY this JSON:\n'
-                    f'{{"suitability_score": <float>, "suitability_label": "<str>", '
+                    f'{{"suitability_score": <int 1-5>, "suitability_label": "<str>", '
                     f'"reason": "<str>", "suggested_ratios": [{{"species_id": <int>, "ratio": <float>}}]}}'
                 ),
             },
@@ -650,15 +651,15 @@ class SpeciesMixAgent:
         if response:
             content = response['choices'][0]['message']['content'] or ''
             result = self._parse_json_response(content)
-            result.setdefault('suitability_score', 5.0)
-            result.setdefault('suitability_label', 'acceptable')
+            result.setdefault('suitability_score', 3)
+            result.setdefault('suitability_label', 'fair')
             result.setdefault('reason', 'Unable to assess suitability.')
             result.setdefault('suggested_ratios', [])
             return result
 
         return {
-            'suitability_score': 5.0,
-            'suitability_label': 'acceptable',
+            'suitability_score': 3,
+            'suitability_label': 'fair',
             'reason': 'AI validation unavailable — please assess manually.',
             'suggested_ratios': [],
         }
@@ -795,12 +796,18 @@ class SpeciesMixAgent:
         # Private control keys (_category_targets, _natives_only) are passed through as-is;
         # numeric goal keys are cast to int.
         goal_weights = {k: (int(v) if not k.startswith('_') else v) for k, v in goals.items()}
+        # score_factors dict: factor_key -> bool. Missing key defaults to True (enabled).
+        _score_factors = goal_weights.get('_score_factors') or {}
+        def _factor(key):
+            return _score_factors.get(key, True)
         _soil = soil or {}
         _climate = climate or {}
         _hydrology = hydrology or {}
         ph = _soil.get('ph')                              # float, e.g. 5.8
         moisture = _soil.get('moisture_class', 'moist')   # dry / moist / wet
         organic_c = _soil.get('organic_carbon')           # %, proxy for peat
+        clay_pct = _soil.get('clay_pct')                  # % clay (soil texture)
+        sand_pct = _soil.get('sand_pct')                  # % sand (soil texture)
         flood_risk = _hydrology.get('flood_risk', 'low')  # high / medium / low
         water_nearby = _hydrology.get('water_body_nearby', False)
         rainfall = _climate.get('mean_annual_rainfall_mm', 700)
@@ -958,25 +965,28 @@ class SpeciesMixAgent:
             import math as _math
             score = 0
             fam = _family(c)
-            category = _category_from_family(fam)
             sources = c.get('sources', [])
 
-            # A. Observation evidence (logarithmic — prevents common species dominating)
-            # 1 obs→0, 2→6, 5→14, 10→20, 100→40 (capped at 20 to level playing field)
-            obs = max(c.get('observation_count', 1), 1)
-            score += min(int(_math.log2(obs) * 6), 20)
-            # Multi-source bonus: NBN + GBIF = confirmed UK plant (20 pts)
-            score += len(sources) * 10
+            # A. Observation evidence — logarithmic, capped low so it acts as a tie-breaker
+            # rather than a primary score driver. Citizen-science counts are biased toward
+            # common, easily-recorded, urban-accessible species.
+            # 1 obs→0, 2→4, 5→9, 10→13, 50→12 (capped at 12)
+            if _factor('observation_evidence'):
+                obs = max(c.get('observation_count', 1), 1)
+                score += min(int(_math.log2(obs) * 4), 12)
+                # Multi-source bonus: NBN + GBIF both present (up to 10 pts)
+                score += len(sources) * 5
 
-            # A2. NBN Atlas as nativeness proxy
-            # NBN presence = confirmed UK native or long-established plant
-            if 'nbn' in sources:
-                score += 25
-            # NBN-only = rare native, underrecorded in citizen science — reward explicitly
-            if sources == ['nbn']:
-                score += 10
+                # A2. NBN Atlas as nativeness proxy
+                # NBN presence = confirmed UK native or long-established plant
+                if 'nbn' in sources:
+                    score += 20
+                # NBN-only = rare native, underrecorded in citizen science — reward explicitly
+                if sources == ['nbn']:
+                    score += 8
 
             # A3. Match confidence penalty (low-confidence GBIF name matches are unreliable)
+            # Always applied — data quality check, not a user preference
             match_conf = c.get('gbif_traits', {}).get('match_confidence', 100)
             if match_conf < 60:
                 score -= 10
@@ -984,96 +994,142 @@ class SpeciesMixAgent:
                 score -= 5
 
             # A4. UK nativeness bonus/penalty (from GBIF distributions, cached 90 days)
-            nativeness = c.get('uk_nativeness', 'unknown')
-            if nativeness == 'native':
-                score += 30   # confirmed UK native — strongly preferred
-            elif nativeness == 'naturalised':
-                score += 10   # long-established, ecologically integrated
-            elif nativeness == 'introduced':
-                score -= 15  # actively penalise introduced/invasive species
+            # Nativeness is a scientifically robust, stable signal — weighted accordingly.
+            if _factor('uk_nativeness_preference'):
+                nativeness = c.get('uk_nativeness', 'unknown')
+                if nativeness == 'native':
+                    score += 40   # confirmed UK native — primary quality signal
+                elif nativeness == 'naturalised':
+                    score += 15   # long-established, ecologically integrated
+                elif nativeness == 'introduced':
+                    score -= 20  # actively penalise introduced/invasive species
 
-            # B1. Observation bias correction (trees/grasses recorded far less than wildflowers)
-            if category == 'Tree':
-                score += 30
-            elif category == 'Grass':
-                score += 25
-            elif category in ('Fern', 'Moss'):
-                score += 15
-
-            # B2. Positive ecological fit — reward the best families for this site
-            # Flood-tolerant species get a positive bonus on flood-prone sites
-            FLOOD_TOLERANT = {'salicaceae', 'betulaceae', 'iridaceae', 'cyperaceae', 'juncaceae',
-                               'typhaceae', 'osmundaceae', 'amblystegiaceae'}
-            if flood_risk in ('high', 'medium') and fam in FLOOD_TOLERANT:
-                score += 35  # willows, alders, iris, sedges, bulrushes, royal fern
-
-            # Water proximity bonus for riparian specialists
-            if water_nearby and fam in FLOOD_TOLERANT:
-                score += 10
-
-            # Acid soil specialists rewarded on acid sites
-            if ph and ph < 5.5:
-                ACID_SPECIALISTS = {'ericaceae', 'betulaceae', 'pinaceae', 'juncaceae',
-                                    'cyperaceae', 'sphagnaceae', 'vacciniaceae'}
-                if fam in ACID_SPECIALISTS:
-                    score += 25  # heathers, birch, Scots pine, rushes
-
-            # Alkaline specialists rewarded on alkaline sites
-            if ph and ph > 7.0:
-                ALKALINE_SPECIALISTS = {'rosaceae', 'fabaceae', 'orchidaceae', 'asteraceae',
-                                        'poaceae', 'fagaceae', 'brassicaceae'}
-                if fam in ALKALINE_SPECIALISTS:
-                    score += 20  # roses, legumes, orchids, grasses, oaks
-
-            # Wet moisture specialists
-            if moisture == 'wet':
-                WET_SPECIALISTS = {'salicaceae', 'betulaceae', 'cyperaceae', 'juncaceae',
-                                   'iridaceae', 'typhaceae', 'osmundaceae', 'amblystegiaceae',
-                                   'sphagnaceae'}
-                if fam in WET_SPECIALISTS:
+            # A5. Data-sparse native floor
+            # A confirmed UK native or naturalised species with ≤3 local observations is
+            # likely under-recorded, not unsuitable. Compensate so ecological fit (B2)
+            # determines its percentile — not a gap in citizen-science coverage.
+            # Does NOT apply to 'unknown' or 'introduced' nativeness.
+            if _factor('observation_evidence'):
+                _nativeness_a5 = c.get('uk_nativeness', 'unknown')
+                _obs_raw_a5 = c.get('observation_count', 0)
+                if _nativeness_a5 in ('native', 'naturalised') and _obs_raw_a5 <= 3:
                     score += 20
 
-            # Dry moisture specialists
-            if moisture == 'dry':
-                DRY_SPECIALISTS = {'fabaceae', 'lamiaceae', 'cistaceae', 'poaceae',
-                                   'crassulaceae', 'asteraceae', 'thymelaeaceae'}
-                if fam in DRY_SPECIALISTS:
-                    score += 20
+            # B2. Positive ecological fit — reward species whose family is well-matched to the
+            # site's verified environmental data (SoilGrids, EA flood API, OpenLandMap climate).
+            # These are the primary score drivers — ecological fit should dominate over obs count.
 
-            # High rainfall specialists
-            if rainfall > 1200:
-                HIGH_RAIN_SPECIALISTS = {'betulaceae', 'salicaceae', 'ericaceae', 'sphagnaceae',
-                                         'osmundaceae', 'cyperaceae', 'juncaceae'}
-                if fam in HIGH_RAIN_SPECIALISTS:
-                    score += 15
+            # Flood tolerance
+            if _factor('flood_drainage'):
+                FLOOD_TOLERANT = {'salicaceae', 'betulaceae', 'iridaceae', 'cyperaceae', 'juncaceae',
+                                   'typhaceae', 'osmundaceae', 'amblystegiaceae'}
+                if flood_risk in ('high', 'medium') and fam in FLOOD_TOLERANT:
+                    score += 40  # willows, alders, iris, sedges, bulrushes, royal fern
+                # Water proximity bonus for riparian specialists
+                if water_nearby and fam in FLOOD_TOLERANT:
+                    score += 10
 
-            # Drought tolerance bonus for low-rainfall sites
-            if rainfall < 600:
-                DROUGHT_TOLERANT = {'fabaceae', 'lamiaceae', 'cistaceae', 'asteraceae',
-                                    'poaceae', 'crassulaceae'}
-                if fam in DROUGHT_TOLERANT:
-                    score += 15
+            # Soil pH specialists
+            if _factor('soil_ph_compatibility'):
+                if ph and ph < 5.5:
+                    ACID_SPECIALISTS = {'ericaceae', 'betulaceae', 'pinaceae', 'juncaceae',
+                                        'cyperaceae', 'sphagnaceae', 'vacciniaceae'}
+                    if fam in ACID_SPECIALISTS:
+                        score += 30  # heathers, birch, Scots pine, rushes
+                if ph and ph > 7.0:
+                    ALKALINE_SPECIALISTS = {'rosaceae', 'fabaceae', 'orchidaceae', 'asteraceae',
+                                            'poaceae', 'fagaceae', 'brassicaceae'}
+                    if fam in ALKALINE_SPECIALISTS:
+                        score += 25  # roses, legumes, orchids, grasses, oaks
 
-            # Peatland bonus (high organic carbon proxy for bog/fen habitat)
+            # Moisture specialists
+            if _factor('moisture_requirements'):
+                if moisture == 'wet':
+                    WET_SPECIALISTS = {'salicaceae', 'betulaceae', 'cyperaceae', 'juncaceae',
+                                       'iridaceae', 'typhaceae', 'osmundaceae', 'amblystegiaceae',
+                                       'sphagnaceae'}
+                    if fam in WET_SPECIALISTS:
+                        score += 25
+                if moisture == 'dry':
+                    DRY_SPECIALISTS = {'fabaceae', 'lamiaceae', 'cistaceae', 'poaceae',
+                                       'crassulaceae', 'asteraceae', 'thymelaeaceae'}
+                    if fam in DRY_SPECIALISTS:
+                        score += 25
+
+            # Rainfall specialists
+            if _factor('rainfall_climate'):
+                if rainfall > 1200:
+                    HIGH_RAIN_SPECIALISTS = {'betulaceae', 'salicaceae', 'ericaceae', 'sphagnaceae',
+                                             'osmundaceae', 'cyperaceae', 'juncaceae'}
+                    if fam in HIGH_RAIN_SPECIALISTS:
+                        score += 15
+                if rainfall < 600:
+                    DROUGHT_TOLERANT = {'fabaceae', 'lamiaceae', 'cistaceae', 'asteraceae',
+                                        'poaceae', 'crassulaceae'}
+                    if fam in DROUGHT_TOLERANT:
+                        score += 15
+
+            # Peatland bonus — ungated (high organic carbon is site-defining)
             if organic_c and organic_c > 8:
                 PEAT_SPECIALISTS = {'sphagnaceae', 'ericaceae', 'cyperaceae', 'juncaceae',
                                     'brachytheciaceae', 'hylocomiaceae'}
                 if fam in PEAT_SPECIALISTS:
-                    score += 20
+                    score += 25
 
-            # Temperature: cold-climate bonus for sub-alpine sites
-            if mean_temp is not None and mean_temp < 6:
-                MONTANE_FAMILIES = {'ericaceae', 'betulaceae', 'pinaceae', 'salicaceae',
-                                    'poaceae', 'juncaceae', 'cyperaceae', 'sphagnaceae'}
-                if fam in MONTANE_FAMILIES:
-                    score += 20
+            # Temperature and frost hardiness
+            if _factor('temperature_frost'):
+                if mean_temp is not None and mean_temp < 6:
+                    MONTANE_FAMILIES = {'ericaceae', 'betulaceae', 'pinaceae', 'salicaceae',
+                                        'poaceae', 'juncaceae', 'cyperaceae', 'sphagnaceae'}
+                    if fam in MONTANE_FAMILIES:
+                        score += 25
+                if frost_days and frost_days > 60:
+                    FROST_HARDY = {'betulaceae', 'pinaceae', 'fagaceae', 'salicaceae',
+                                   'ericaceae', 'poaceae', 'rosaceae'}
+                    if fam in FROST_HARDY:
+                        score += 15
 
-            # Frost hardiness bonus (many frost days → favour frost-hardy families)
-            if frost_days and frost_days > 60:
-                FROST_HARDY = {'betulaceae', 'pinaceae', 'fagaceae', 'salicaceae',
-                               'ericaceae', 'poaceae', 'rosaceae'}
-                if fam in FROST_HARDY:
-                    score += 10
+            # B3. Soil texture match — clay-tolerant vs sandy-soil specialists
+            if _factor('soil_texture_match') and clay_pct is not None:
+                CLAY_SPECIALISTS = {'salicaceae', 'betulaceae', 'fagaceae', 'cyperaceae',
+                                    'iridaceae', 'ulmaceae', 'tiliaceae'}
+                SANDY_SPECIALISTS = {'pinaceae', 'fabaceae', 'cistaceae', 'lamiaceae',
+                                     'crassulaceae', 'ericaceae', 'thymelaeaceae'}
+                if clay_pct > 35 and fam in CLAY_SPECIALISTS:
+                    score += 15  # clay-tolerant families on heavy clay sites
+                if clay_pct < 15 and sand_pct is not None and sand_pct > 60 and fam in SANDY_SPECIALISTS:
+                    score += 15  # sandy-soil specialists on free-draining sand
+
+            # B4. Companion plant compatibility — bonus if known companion families in pool
+            if _factor('companion_plants'):
+                COMPANION_PAIRS = {
+                    'fabaceae':   {'poaceae', 'asteraceae', 'rosaceae'},   # legumes fix N for grasses
+                    'betulaceae': {'ericaceae', 'sphagnaceae'},             # birch canopy + heather
+                    'rosaceae':   {'fabaceae', 'asteraceae'},               # roses + pollinators
+                    'pinaceae':   {'betulaceae', 'ericaceae'},              # pine + birch/heather
+                }
+                if COMPANION_PAIRS.get(fam, set()) & _pool_families:
+                    score += 10  # has a known companion in the local species pool
+
+            # B5. Growing season suitability
+            if _factor('growing_season') and growing_days is not None:
+                SHORT_SEASON_SPECIALISTS = {'ericaceae', 'betulaceae', 'pinaceae',
+                                            'sphagnaceae', 'cyperaceae', 'poaceae', 'juncaceae'}
+                LONG_SEASON_REQUIRED = {'oleaceae', 'myrtaceae', 'lauraceae'}
+                if growing_days < 150 and fam in SHORT_SEASON_SPECIALISTS:
+                    score += 15  # adapted to short growing season
+                if growing_days < 150 and fam in LONG_SEASON_REQUIRED:
+                    score -= 20  # penalise long-season obligates on short-season sites
+
+            # B6. Altitude / elevation match (derived from temperature/frost proxy)
+            if _factor('altitude_elevation'):
+                UPLAND_SPECIALISTS = {'betulaceae', 'pinaceae', 'ericaceae', 'sphagnaceae',
+                                      'poaceae', 'juncaceae', 'cyperaceae'}
+                LOWLAND_OBLIGATES = {'oleaceae', 'tiliaceae', 'ulmaceae'}
+                if _is_upland and fam in UPLAND_SPECIALISTS:
+                    score += 12  # upland/montane specialists
+                if _is_upland and fam in LOWLAND_OBLIGATES:
+                    score -= 10  # lowland-only families penalised at elevation
 
             # C. Goal alignment
             if goal_weights.get('pollinator', 0) >= 50:
@@ -1107,6 +1163,13 @@ class SpeciesMixAgent:
 
             return score
 
+        # Pre-compute values used inside score_survivor closure.
+        _pool_families = {_family(c) for c in pool}
+        _is_upland = (
+            (mean_temp is not None and mean_temp < 7)
+            or (frost_days is not None and frost_days > 80)
+        )
+
         # Pre-compute regional quality bonuses for all pool candidates in one pass.
         # This avoids N×cache.get() DB queries inside the sort comparator.
         logger.info('_rule_based_generate (%.4f,%.4f): scoring %d survivors...', lat, lng, len(pool))
@@ -1118,6 +1181,146 @@ class SpeciesMixAgent:
         # Compute scores once and cache — reused for both sort and ratio assignment.
         _score_cache = {id(c): score_survivor(c) for c in pool}
         scored = sorted(pool, key=lambda c: _score_cache[id(c)], reverse=True)
+
+        # Normalise raw scores to 1–5 using percentile-band bucketing.
+        # Top 20% of the full pool → 5 (excellent), bottom 20% → 1 (not suitable).
+        # Computed on the full survivor pool so scores are relative to this site.
+        _SUITABILITY_LABELS = {
+            1: 'not_suitable', 2: 'poor', 3: 'fair', 4: 'good', 5: 'excellent',
+        }
+
+        def _normalize_to_1_5(score_cache, _pool):
+            if not _pool:
+                return {}
+            raw = sorted(score_cache[id(c)] for c in _pool)
+            n = len(raw)
+            def _pct(p):
+                return raw[min(int(n * p / 100), n - 1)]
+            p20, p40, p60, p80 = _pct(20), _pct(40), _pct(60), _pct(80)
+            result = {}
+            for c in _pool:
+                s = score_cache[id(c)]
+                if s <= p20:
+                    result[id(c)] = 1
+                elif s <= p40:
+                    result[id(c)] = 2
+                elif s <= p60:
+                    result[id(c)] = 3
+                elif s <= p80:
+                    result[id(c)] = 4
+                else:
+                    result[id(c)] = 5
+            return result
+
+        _norm_cache = _normalize_to_1_5(_score_cache, pool)
+
+        def _score_reason_for(c, norm_score):
+            """Return JSON with structured score breakdown for the frontend tooltip."""
+            import math as _math2
+            import json as _json
+            raw = _score_cache.get(id(c), 0)
+            fam = _family(c)
+            sources = c.get('sources', [])
+            obs = c.get('observation_count', 0)
+            nativeness = c.get('uk_nativeness', 'unknown')
+            match_conf = c.get('gbif_traits', {}).get('match_confidence', 100)
+
+            # --- What helped (label, pts) ---
+            gained = []
+            if nativeness == 'native':
+                gained.append(('Confirmed UK native', 40))
+            elif nativeness == 'naturalised':
+                gained.append(('Naturalised / long-established', 15))
+            # Data-sparse native floor (mirrors A5 in score_survivor)
+            if nativeness in ('native', 'naturalised') and obs <= 3:
+                gained.append(('Under-recorded native — floor bonus', 20))
+            if 'nbn' in sources:
+                gained.append(('In NBN Atlas botanical surveys', 20))
+            if obs > 1:
+                obs_pts = min(int(_math2.log2(obs) * 4), 12)
+                gained.append((f'{obs} local observations recorded', obs_pts))
+            if flood_risk in ('high', 'medium') and fam in {
+                'salicaceae', 'betulaceae', 'cyperaceae', 'juncaceae', 'typhaceae', 'iridaceae'
+            }:
+                gained.append(('Flood-tolerant family — matches site flood risk', 40))
+            if ph and ph < 5.5 and fam in {'ericaceae', 'betulaceae', 'pinaceae', 'juncaceae', 'cyperaceae'}:
+                gained.append((f'Acid-soil specialist (site pH {ph:.1f})', 30))
+            elif ph and ph > 7.0 and fam in {'rosaceae', 'fabaceae', 'orchidaceae', 'asteraceae', 'fagaceae'}:
+                gained.append((f'Alkaline-soil specialist (site pH {ph:.1f})', 25))
+            if moisture == 'wet' and fam in {
+                'salicaceae', 'betulaceae', 'cyperaceae', 'juncaceae', 'sphagnaceae'
+            }:
+                gained.append(('Wet-soil specialist — matches site moisture', 25))
+            elif moisture == 'dry' and fam in {'fabaceae', 'lamiaceae', 'cistaceae', 'poaceae'}:
+                gained.append(('Drought-tolerant — matches site moisture', 25))
+            if _is_upland and fam in {'betulaceae', 'pinaceae', 'ericaceae', 'sphagnaceae', 'poaceae', 'juncaceae'}:
+                gained.append(('Upland / elevated-site specialist', 12))
+
+            # --- What hurt (label, pts as negative) ---
+            lost = []
+            if nativeness == 'introduced':
+                lost.append(('Non-native / introduced species', -20))
+            if match_conf < 60:
+                lost.append((f'Very low GBIF name-match confidence ({match_conf}%)', -10))
+            elif match_conf < 80:
+                lost.append((f'Low GBIF name-match confidence ({match_conf}%)', -5))
+            # Only show observation count gap if the floor bonus did NOT apply
+            if nativeness not in ('native', 'naturalised') or obs > 3:
+                if obs == 0:
+                    lost.append(('No local observations on record', 0))
+                elif obs == 1:
+                    lost.append(('Only 1 local observation on record', 0))
+            if moisture == 'wet' and fam in {'lamiaceae', 'cistaceae', 'fabaceae'}:
+                lost.append((f'Prefers drier soil — site is {moisture}', -10))
+            elif moisture == 'dry' and fam in {
+                'salicaceae', 'betulaceae', 'cyperaceae', 'juncaceae', 'typhaceae'
+            }:
+                lost.append((f'Prefers wetter soil — site is {moisture}', -10))
+            if not gained:
+                lost.append(('No site-specific bonus factors matched', 0))
+
+            # --- What higher-scoring species had that this one didn't ---
+            missed = []
+            if norm_score <= 2:
+                # Don't suggest nativeness if already confirmed
+                if nativeness not in ('native', 'naturalised') and nativeness != 'introduced':
+                    missed.append('UK nativeness confirmed (natives score +40)')
+                # Don't suggest NBN if already present
+                if 'nbn' not in sources:
+                    missed.append('Presence in NBN Atlas surveys (+20)')
+                # If native floor already applied, suggest more data rather than nativeness
+                if nativeness in ('native', 'naturalised') and obs <= 3:
+                    missed.append('More local observations would increase confidence')
+
+            # Rank context
+            rank_band = (
+                'bottom 20%' if norm_score == 1 else
+                '20–40th percentile' if norm_score == 2 else
+                '40–60th percentile' if norm_score == 3 else
+                '60–80th percentile' if norm_score == 4 else
+                'top 20%'
+            )
+            note = (
+                'Passed all hard compatibility filters (pH, moisture, flood risk, temperature). '
+                'Score is relative — all species in this mix are site-compatible.'
+                if norm_score <= 2 else None
+            )
+
+            return _json.dumps({
+                'raw': raw,
+                'pool': len(pool),
+                'rank_band': rank_band,
+                'gained': [
+                    {'label': lbl, 'pts': pts}
+                    for lbl, pts in gained
+                ],
+                'lost': [
+                    {'label': lbl, 'pts': pts}
+                    for lbl, pts in lost
+                ],
+                'missed': missed,
+                'note': note,
+            }, ensure_ascii=False)
 
         _p('Ranking survivors by goal alignment and ecological evidence...')
         logger.info('_rule_based_generate (%.4f,%.4f): selecting from %d scored candidates (target=%d)...', lat, lng, len(scored), self.max_species)
@@ -1287,6 +1490,9 @@ class SpeciesMixAgent:
             }:
                 reason_parts.append('Peatland specialist — organic carbon indicates bog/fen habitat.')
 
+            _ns = _norm_cache.get(id(s), 3)
+            score_reason = _score_reason_for(s, _ns)
+
             item = {
                 'species_id': None,
                 'scientific_name': s['scientific_name'],
@@ -1296,10 +1502,13 @@ class SpeciesMixAgent:
                 'subcategory': _subcategory_from_family(family),
                 'ratio': ratio,
                 'reason': ' '.join(reason_parts),
+                'score_reason': score_reason,
                 'sources': s.get('sources', []),
                 'gbif_key': s.get('gbif_key'),
                 'observation_count': s.get('observation_count', 0),
                 'uk_nativeness': s.get('uk_nativeness', 'unknown'),
+                'suitability_score': _ns,
+                'suitability_label': _SUITABILITY_LABELS[_ns],
             }
             species_mix.append(item)
 

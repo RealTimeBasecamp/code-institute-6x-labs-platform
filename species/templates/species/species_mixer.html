@@ -917,6 +917,76 @@
                       </div>
                     </div>
 
+                    <!-- Suitability score factors checklist -->
+                    <hr class="my-3">
+                    <div class="mb-1">
+                      <label class="small fw-medium mb-2 d-flex align-items-center gap-1">
+                        <i class="bi bi-bar-chart-steps" style="font-size:0.9rem;"></i>
+                        Suitability score factors
+                        <i class="bi bi-info-circle text-muted ms-1 api-toggle-info"
+                           data-bs-toggle="tooltip" data-bs-placement="top"
+                           title="Choose which environmental factors contribute to the 1–5 suitability score shown for each species in the mix. All factors are on by default."></i>
+                      </label>
+                      <div class="d-flex flex-column gap-1" id="score-factors-list">
+                        <div class="form-check form-check-sm">
+                          <input class="form-check-input score-factor-check" type="checkbox" id="sf-soil-ph" data-factor="soil_ph_compatibility" checked>
+                          <label class="form-check-label small" for="sf-soil-ph">Soil pH compatibility</label>
+                        </div>
+                        <div class="form-check form-check-sm">
+                          <input class="form-check-input score-factor-check" type="checkbox" id="sf-flood" data-factor="flood_drainage" checked>
+                          <label class="form-check-label small" for="sf-flood">Flood &amp; drainage</label>
+                        </div>
+                        <div class="form-check form-check-sm">
+                          <input class="form-check-input score-factor-check" type="checkbox" id="sf-moisture" data-factor="moisture_requirements" checked>
+                          <label class="form-check-label small" for="sf-moisture">Moisture requirements</label>
+                        </div>
+                        <div class="form-check form-check-sm">
+                          <input class="form-check-input score-factor-check" type="checkbox" id="sf-rainfall" data-factor="rainfall_climate" checked>
+                          <label class="form-check-label small" for="sf-rainfall">Rainfall &amp; climate</label>
+                        </div>
+                        <div class="form-check form-check-sm">
+                          <input class="form-check-input score-factor-check" type="checkbox" id="sf-temp" data-factor="temperature_frost" checked>
+                          <label class="form-check-label small" for="sf-temp">Temperature &amp; frost hardiness</label>
+                        </div>
+                        <div class="form-check form-check-sm">
+                          <input class="form-check-input score-factor-check" type="checkbox" id="sf-nativeness" data-factor="uk_nativeness_preference" checked>
+                          <label class="form-check-label small" for="sf-nativeness">UK nativeness preference</label>
+                        </div>
+                        <div class="form-check form-check-sm">
+                          <input class="form-check-input score-factor-check" type="checkbox" id="sf-obs" data-factor="observation_evidence" checked>
+                          <label class="form-check-label small" for="sf-obs">Observation evidence</label>
+                        </div>
+                        <div class="form-check form-check-sm">
+                          <input class="form-check-input score-factor-check" type="checkbox" id="sf-soil-texture" data-factor="soil_texture_match" checked>
+                          <label class="form-check-label small" for="sf-soil-texture">
+                            Soil texture match
+                            <span class="badge bg-success bg-opacity-10 text-success ms-1" style="font-size:.6rem;">New</span>
+                          </label>
+                        </div>
+                        <div class="form-check form-check-sm">
+                          <input class="form-check-input score-factor-check" type="checkbox" id="sf-companion" data-factor="companion_plants" checked>
+                          <label class="form-check-label small" for="sf-companion">
+                            Companion plant compatibility
+                            <span class="badge bg-success bg-opacity-10 text-success ms-1" style="font-size:.6rem;">New</span>
+                          </label>
+                        </div>
+                        <div class="form-check form-check-sm">
+                          <input class="form-check-input score-factor-check" type="checkbox" id="sf-season" data-factor="growing_season" checked>
+                          <label class="form-check-label small" for="sf-season">
+                            Growing season suitability
+                            <span class="badge bg-success bg-opacity-10 text-success ms-1" style="font-size:.6rem;">New</span>
+                          </label>
+                        </div>
+                        <div class="form-check form-check-sm">
+                          <input class="form-check-input score-factor-check" type="checkbox" id="sf-altitude" data-factor="altitude_elevation" checked>
+                          <label class="form-check-label small" for="sf-altitude">
+                            Altitude / elevation match
+                            <span class="badge bg-success bg-opacity-10 text-success ms-1" style="font-size:.6rem;">New</span>
+                          </label>
+                        </div>
+                      </div>
+                    </div>
+
                   </div>
                 </div>
               </div>
