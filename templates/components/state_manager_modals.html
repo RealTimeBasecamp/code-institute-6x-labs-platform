@@ -1,0 +1,161 @@
+{#
+  State Manager Modals Component
+  ================================
+  Three confirmation modals for a StateManager instance:
+
+  1. Publish confirmation — "publishing as" user card + JS-populated changelog
+  2. Discard confirmation — warns the action cannot be undone
+  3. Navigate-away warning — intercepts links/back when there are unsaved changes
+
+  Included automatically by state_manager.html — do not include separately.
+
+  Parameters:
+    sm_id         - StateManager instance ID (must match state_manager.html)
+    publish_label - Label for the publish confirm button (default: 'Publish')
+#}
+{% load static %}
+{% with smid=sm_id|default:'default' %}
+
+{# ── 1. Publish confirmation ────────────────────────────────────────────────── #}
+<div class="modal fade" id="{{ smid }}-sm-publish-modal"
+     tabindex="-1" role="dialog" aria-modal="true"
+     aria-labelledby="{{ smid }}-sm-publish-modal-label">
+  <div class="modal-dialog modal-dialog-centered modal-lg">
+    <div class="modal-content p-4 bordered rounded-3 bg-body-tertiary">
+
+      <button type="button" class="btn-close position-absolute top-0 end-0 m-3"
+              data-bs-dismiss="modal" aria-label="Close"></button>
+
+      <div class="d-flex align-items-center mb-3 pe-4">
+        <i class="bi bi-upload fs-4 me-2" aria-hidden="true"></i>
+        <h2 class="h5 mb-0" id="{{ smid }}-sm-publish-modal-label">Publish changes</h2>
+      </div>
+
+      <div class="modal-body">
+        <p class="text-muted small mb-3">
+          Review your changes before publishing. Published changes will be
+          visible to others immediately.
+        </p>
+
+        {# "Publishing as" user card — server-rendered #}
+        <div class="card mb-3">
+          <div class="card-body py-2 px-3 d-flex align-items-center gap-3">
+            {% include 'components/user_avatar.html' with width=36 height=36 %}
+            <div>
+              <div class="text-muted mb-0"
+                   style="font-size:.72rem;letter-spacing:.04em;text-transform:uppercase;">
+                Publishing as
+              </div>
+              <div class="fw-semibold small">
+                {{ request.user.display_name|default:request.user.username }}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {# Summary badges (e.g. "3 species added") — populated by JS via changelogConfig #}
+        <div id="{{ smid }}-sm-pm-summary" class="d-flex flex-wrap gap-2 mb-3">
+          {# JS populates badges here #}
+        </div>
+
+        {# Scrollable change log — populated by JS from SM changelist #}
+        <div id="{{ smid }}-sm-pm-changelog-wrap" class="d-none">
+          <p class="text-muted small mb-1 fw-semibold">Detailed changes</p>
+          <ul class="list-unstyled small sm-pm-changelog mb-0"
+              id="{{ smid }}-sm-pm-changelog">
+            {# JS populates <li> items here #}
+          </ul>
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button type="button" class="btn btn-outline-secondary"
+                data-bs-dismiss="modal">Cancel</button>
+        <button type="button" class="btn btn-primary"
+                id="{{ smid }}-sm-pm-confirm">
+          <i class="bi bi-upload me-1"></i>{{ publish_label|default:'Publish' }}
+        </button>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+{# ── 2. Discard confirmation ───────────────────────────────────────────────── #}
+<div class="modal fade" id="{{ smid }}-sm-discard-modal"
+     tabindex="-1" role="dialog" aria-modal="true"
+     aria-labelledby="{{ smid }}-sm-discard-modal-label">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content p-4 bordered rounded-3 bg-body-tertiary">
+
+      <button type="button" class="btn-close position-absolute top-0 end-0 m-3"
+              data-bs-dismiss="modal" aria-label="Close"></button>
+
+      <div class="d-flex align-items-center mb-3 pe-4">
+        <i class="bi bi-trash fs-4 me-2" aria-hidden="true"></i>
+        <h2 class="h5 mb-0" id="{{ smid }}-sm-discard-modal-label">Discard changes?</h2>
+      </div>
+
+      <div class="modal-body">
+        <p class="mb-1">
+          This will undo
+          <strong id="{{ smid }}-sm-dm-count">all</strong> changes
+          and reset to the last saved state.
+        </p>
+        <p class="text-danger small mb-0">This cannot be undone.</p>
+      </div>
+
+      <div class="modal-footer">
+        <button type="button" class="btn btn-outline-secondary"
+                data-bs-dismiss="modal">Keep changes</button>
+        <button type="button" class="btn btn-danger"
+                id="{{ smid }}-sm-dm-confirm">
+          <i class="bi bi-trash me-1"></i>Discard
+        </button>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+{# ── 3. Navigate-away warning ──────────────────────────────────────────────── #}
+<div class="modal fade" id="{{ smid }}-sm-navaway-modal"
+     tabindex="-1" role="dialog" aria-modal="true"
+     aria-labelledby="{{ smid }}-sm-navaway-modal-label">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content p-4 bordered rounded-3 bg-body-tertiary">
+
+      <button type="button" class="btn-close position-absolute top-0 end-0 m-3"
+              data-bs-dismiss="modal" aria-label="Close"></button>
+
+      <div class="d-flex align-items-center mb-3 pe-4">
+        <i class="bi bi-exclamation-triangle fs-4 me-2" aria-hidden="true"></i>
+        <h2 class="h5 mb-0" id="{{ smid }}-sm-navaway-modal-label">Unsaved changes</h2>
+      </div>
+
+      <div class="modal-body">
+        <p class="mb-1">You have unsaved changes. What would you like to do?</p>
+        <p class="text-muted small mb-0">
+          <strong>Save Draft</strong> will save before leaving.
+          <strong>Discard</strong> will abandon your changes.
+        </p>
+      </div>
+
+      <div class="modal-footer">
+        <button type="button" class="btn btn-outline-secondary"
+                data-bs-dismiss="modal">Stay</button>
+        <button type="button" class="btn btn-outline-danger"
+                id="{{ smid }}-sm-na-discard">
+          <i class="bi bi-trash me-1"></i>Discard &amp; Leave
+        </button>
+        <button type="button" class="btn btn-primary"
+                id="{{ smid }}-sm-na-save">
+          <i class="bi bi-floppy me-1"></i>Save Draft &amp; Leave
+        </button>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+{% endwith %}

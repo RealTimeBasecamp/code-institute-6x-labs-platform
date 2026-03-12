@@ -1133,7 +1133,7 @@ class SpeciesMixAgent:
 
             # B7. Semi-organic / humus-rich soil (OC 5-8%) — rich woodland and transitional peat
             # (OC > 8% is handled separately as full peatland bonus in B2)
-            _oc = soil.get('organic_carbon', 0)
+            _oc = soil.get('organic_carbon') or 0
             if 5.0 <= _oc <= 8.0:
                 _HUMUS = {'ericaceae', 'betulaceae', 'pinaceae', 'sphagnaceae', 'cyperaceae', 'dryopteridaceae', 'athyriaceae', 'osmundaceae'}
                 if fam in _HUMUS:
@@ -1362,7 +1362,7 @@ class SpeciesMixAgent:
                     gained.append(('Riparian / pond edge specialist', 15))
 
             # B7 — semi-organic humus soil
-            _oc_r = _soil.get('organic_carbon', 0)
+            _oc_r = _soil.get('organic_carbon') or 0
             if 5.0 <= _oc_r <= 8.0:
                 if fam in {'ericaceae', 'betulaceae', 'pinaceae', 'sphagnaceae', 'cyperaceae', 'dryopteridaceae', 'athyriaceae', 'osmundaceae'}:
                     gained.append(('Humus-rich / semi-organic soil', 15))

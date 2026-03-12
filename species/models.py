@@ -169,6 +169,19 @@ class SpeciesMix(models.Model):
     generation_model = models.CharField(max_length=100, default='bloom')
     generated_at = models.DateTimeField(null=True, blank=True)
 
+    # Publication state
+    # draft  → mix exists locally, not yet exposed externally
+    # published → persisted to DB and visible
+    #             (future: public sharing, embedding)
+    is_published = models.BooleanField(
+        default=False,
+        help_text="True once the user has published this mix to the database"
+    )
+    published_at = models.DateTimeField(
+        null=True, blank=True,
+        help_text="When the mix was first published"
+    )
+
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 

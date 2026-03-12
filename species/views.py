@@ -1,9 +1,13 @@
-from django.shortcuts import get_object_or_404, render
+import json
+
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.mixins import LoginRequiredMixin
+from django.http import JsonResponse
+from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
-from planting.models import Species
+from django.views.decorators.http import require_http_methods
 from django.views.generic import ListView
+from planting.models import Species
 
 from species.models import SpeciesMix
 
@@ -89,34 +93,18 @@ def _auto_mix_name(user):
 @login_required
 def species_mix_list(request):
     """
-    Species mixer page -- progressive wizard for AI-driven mix generation.
-
-    On GET without a mix_id query parameter, auto-creates a new SpeciesMix
-    (blank, no location or items yet) and injects its ID + name so the frontend
-    can immediately start saving edits to the correct record.
-
-    Accepts ?mix_id=<id> to re-open an existing mix.
+    Landing page — shows the UK map and the user's recent mixes.
+    No mix is created here; clicking a card goes to species_mix_editor,
+    clicking New Mix POSTs to species_mix_create.
     """
-    mix_id = request.GET.get('mix_id')
-    current_mix = None
-
-    if mix_id:
-        try:
-            current_mix = SpeciesMix.objects.get(pk=mix_id, owner=request.user)
-        except SpeciesMix.DoesNotExist:
-            pass
-
-    if current_mix is None:
-        current_mix = SpeciesMix.objects.create(
-            owner=request.user,
-            name=_auto_mix_name(request.user),
-        )
-
-    recent_mixes = SpeciesMix.objects.filter(owner=request.user).order_by('-updated_at')[:8]
+    recent_mixes = (
+        SpeciesMix.objects
+        .filter(owner=request.user)
+        .order_by('-updated_at')[:20]
+    )
     context = {
-        'current_mix_id': current_mix.pk,
-        'current_mix_name': current_mix.name,
         'recent_mixes': recent_mixes,
+        'is_superuser': request.user.is_superuser,
         'breadcrumbs': [
             {
                 'label': 'Species',
@@ -130,9 +118,76 @@ def species_mix_list(request):
                 'is_current': True,
                 'is_ellipsis': False,
             },
-        ]
+        ],
     }
     return render(request, 'species/species_mixer.html', context)
+
+
+@login_required
+@require_http_methods(['POST'])
+def species_mix_create(request):
+    """
+    POST /species/mixer/new/
+    Creates a new SpeciesMix with the user-supplied name and redirects
+    to the editor page.  Called by the name wizard on the landing screen.
+    Body (JSON or form): { name: '...' }
+    """
+    try:
+        body = json.loads(request.body)
+    except (ValueError, AttributeError):
+        body = request.POST
+
+    name = (body.get('name') or '').strip()
+    if not name:
+        count = SpeciesMix.objects.filter(owner=request.user).count()
+        name = f'Species Mix #{count + 1}'
+
+    mix = SpeciesMix.objects.create(owner=request.user, name=name)
+
+    # JSON clients (fetch from JS) get the redirect URL back
+    if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+        return JsonResponse({
+            'mix_id': mix.pk,
+            'redirect': reverse('species:species_mix_editor', args=[mix.pk]),
+        })
+    return redirect('species:species_mix_editor', mix_id=mix.pk)
+
+
+@login_required
+def species_mix_editor(request, mix_id):
+    """
+    Editor page for a specific mix.
+    Loads the mix from the DB and renders the full editor template.
+    404s if the mix doesn't belong to the current user.
+    """
+    mix = get_object_or_404(SpeciesMix, pk=mix_id, owner=request.user)
+    context = {
+        'mix': mix,
+        'mix_id': mix.pk,
+        'mix_name': mix.name,
+        'is_superuser': request.user.is_superuser,
+        'breadcrumbs': [
+            {
+                'label': 'Species',
+                'url': reverse('species:species_list'),
+                'is_current': False,
+                'is_ellipsis': False,
+            },
+            {
+                'label': 'Mixer',
+                'url': reverse('species:species_mixer'),
+                'is_current': False,
+                'is_ellipsis': False,
+            },
+            {
+                'label': mix.name,
+                'url': None,
+                'is_current': True,
+                'is_ellipsis': False,
+            },
+        ],
+    }
+    return render(request, 'species/species_mix_editor.html', context)
 
 
 @login_required

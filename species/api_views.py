@@ -464,8 +464,9 @@ def api_create_mix(request):
     Called by the "Add New Mix" button on the species list page to get
     a fresh mix_id before redirecting to the mixer.
     """
+    data = json.loads(request.body) if request.body else {}
     count = SpeciesMix.objects.filter(owner=request.user).count()
-    name = f'Species Mix #{count + 1}'
+    name = (data.get('name') or '').strip() or f'Species Mix #{count + 1}'
     mix = SpeciesMix.objects.create(owner=request.user, name=name)
     return JsonResponse({
         'mix_id': mix.id,
@@ -565,6 +566,32 @@ def api_delete_mix(request, mix_id):
         return JsonResponse({'error': 'Mix not found'}, status=404)
     mix.delete()
     return JsonResponse({'deleted': True})
+
+
+@login_required
+@require_http_methods(['POST'])
+def api_publish_mix(request, mix_id):
+    """
+    POST /species/mixer/api/mixes/<mix_id>/publish/
+
+    Marks a saved mix as published. Called by the universal StateManager
+    Publish button after a successful Save Draft.
+    """
+    try:
+        mix = SpeciesMix.objects.get(pk=mix_id, owner=request.user)
+    except SpeciesMix.DoesNotExist:
+        return JsonResponse({'error': 'Mix not found'}, status=404)
+
+    mix.is_published = True
+    mix.published_at = timezone.now()
+    mix.save(update_fields=['is_published', 'published_at'])
+
+    return JsonResponse({
+        'success': True,
+        'message': f'"{mix.name}" published successfully.',
+        'mix_id': mix.id,
+        'published_at': mix.published_at.isoformat(),
+    })
 
 
 # =============================================================================
