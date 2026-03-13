@@ -96,12 +96,14 @@ def api_generate_mix(request):
         max_species = max(1, min(200, int(data.get('max_species', 60))))
         category_targets = data.get('category_targets', {})
         natives_only = bool(data.get('natives_only', False))
+        score_factors = data.get('score_factors', {})
     except (KeyError, ValueError, json.JSONDecodeError) as exc:
         return JsonResponse({'error': f'Invalid request body: {exc}'}, status=400)
 
     # Inject control params into goals dict (private keys, stripped before AI sees them as goals)
     goals['_category_targets'] = category_targets
     goals['_natives_only'] = natives_only
+    goals['_score_factors'] = score_factors
 
     task_id = str(uuid.uuid4())
     if _ASYNC:
@@ -151,12 +153,14 @@ def api_rescore_mix(request):
         max_species = max(1, min(200, int(data.get('max_species', 60))))
         category_targets = data.get('category_targets', {})
         natives_only = bool(data.get('natives_only', False))
+        score_factors = data.get('score_factors', {})
     except (KeyError, json.JSONDecodeError) as exc:
         return JsonResponse({'error': f'Invalid request body: {exc}'}, status=400)
 
     # Inject control params into goals dict
     goals['_category_targets'] = category_targets
     goals['_natives_only'] = natives_only
+    goals['_score_factors'] = score_factors
 
     task_id = str(uuid.uuid4())
     if _ASYNC:
@@ -419,6 +423,8 @@ def api_save_mix(request):
     mix.goal_pollinator = int(goals.get('pollinator', 50))
     mix.goal_carbon = int(goals.get('carbon_sequestration', 50))
     mix.goal_wildlife = int(goals.get('wildlife_habitat', 50))
+    mix.max_species = int(data.get('max_species', mix.max_species or 60))
+    mix.mixer_settings = data.get('mixer_settings', {})
     mix.generated_at = timezone.now()
     mix.save()
 
@@ -460,8 +466,9 @@ def api_create_mix(request):
     Called by the "Add New Mix" button on the species list page to get
     a fresh mix_id before redirecting to the mixer.
     """
+    data = json.loads(request.body) if request.body else {}
     count = SpeciesMix.objects.filter(owner=request.user).count()
-    name = f'Species Mix #{count + 1}'
+    name = (data.get('name') or '').strip() or f'Species Mix #{count + 1}'
     mix = SpeciesMix.objects.create(owner=request.user, name=name)
     return JsonResponse({
         'mix_id': mix.id,
@@ -540,6 +547,8 @@ def api_get_mix(request, mix_id):
         'env_data': mix.env_data,
         'cached_candidates': mix.cached_candidates,
         'goals': mix.goals_dict(),
+        'max_species': mix.max_species,
+        'mixer_settings': mix.mixer_settings_dict(),
         'ai_insights': mix.ai_insights,
         'env_summary': mix.env_summary,
         'items': items,
@@ -561,6 +570,32 @@ def api_delete_mix(request, mix_id):
         return JsonResponse({'error': 'Mix not found'}, status=404)
     mix.delete()
     return JsonResponse({'deleted': True})
+
+
+@login_required
+@require_http_methods(['POST'])
+def api_publish_mix(request, mix_id):
+    """
+    POST /species/mixer/api/mixes/<mix_id>/publish/
+
+    Marks a saved mix as published. Called by the universal StateManager
+    Publish button after a successful Save Draft.
+    """
+    try:
+        mix = SpeciesMix.objects.get(pk=mix_id, owner=request.user)
+    except SpeciesMix.DoesNotExist:
+        return JsonResponse({'error': 'Mix not found'}, status=404)
+
+    mix.is_published = True
+    mix.published_at = timezone.now()
+    mix.save(update_fields=['is_published', 'published_at'])
+
+    return JsonResponse({
+        'success': True,
+        'message': f'"{mix.name}" published successfully.',
+        'mix_id': mix.id,
+        'published_at': mix.published_at.isoformat(),
+    })
 
 
 # =============================================================================

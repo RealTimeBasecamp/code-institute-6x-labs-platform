@@ -29,6 +29,10 @@ class SpeciesMixer {
   static STATE_4_GENERATING    = 4;
   static STATE_5_MIX_READY     = 5;
 
+  // Screen constants — controls which panel is visible in the right pane
+  static SCREEN_LANDING = 'landing';
+  static SCREEN_EDITOR  = 'editor';
+
   static POLL_INTERVAL_MS      = 2000;  // 2s polling
   static RESCORE_DEBOUNCE_MS   = 1000; // 1s after slider stops
   static SEARCH_DEBOUNCE_MS    = 300;  // 300ms for species search
@@ -126,7 +130,15 @@ class SpeciesMixer {
     this.cachedCandidates = [];
     this._ecoDataLoaded = false;  // true once eco grid has been populated
 
-    // Mix state — initialMixId comes from the Django view (auto-created on page load)
+    // Screen state — landing (mixes list) or editor (tabs)
+    this.screen = SpeciesMixer.SCREEN_LANDING;
+
+    // Landing screen state
+    this.landingMixes   = [];   // array of mix summaries from api/mixes/
+    this._landingChart  = null; // ECharts instance on map overlay
+    this._landingHoveredMixId = null;
+
+    // Mix state
     this.mixId = config.initialMixId || null;
     this.mixItems = [];      // [{ species_id, name, category, ratio, ai_reason, ... }]
     this.currentTaskId = null;
@@ -170,8 +182,21 @@ class SpeciesMixer {
     const _smCfg = window.SPECIES_MIXER_CONFIG || {};
     this._drainIntervalMs = _smCfg.drainInterval != null ? _smCfg.drainInterval : 200;
 
-    this._initMap();
-    this._initDivider();
+    this.map = initMixerMap();
+    this.map?.on('click', (e) => this._onMapClick(e.lngLat.lat, e.lngLat.lng));
+
+    new MixerSplitPane({
+      onRestored: () => {
+        const nav = document.getElementById('mixer-tabs');
+        if (nav?._pillNav) nav._pillNav.updateIndicator();
+      },
+      onResize: () => {
+        this.map?.resize();
+        this.radarChart?.resize();
+        this.gridChart?.resize();
+        this._positionRadarHandle?.();
+      },
+    });
     this._initTabs();
     this._initLocationSearch();
     this._initLocationRange();
@@ -180,7 +205,17 @@ class SpeciesMixer {
     this._initRadar();
     this._initVirtualGrid();
     this._initSpeciesViz();
-    this._loadRecentMixes();
+    this._initLandingScreen();
+    this._initStateManager();
+
+    // If a mix_id was passed via the URL, load directly into the editor.
+    // Otherwise show the landing screen.
+    if (this.config.initialMixId) {
+      this.showEditor();
+      this._loadMix(this.config.initialMixId);
+    } else {
+      this._loadAndShowLanding();
+    }
   }
 
   // ──────────────────────────────────────────────────────────────────────────
@@ -188,36 +223,6 @@ class SpeciesMixer {
   // ──────────────────────────────────────────────────────────────────────────
 
   // Map style constants and builders are provided by map-styles.js (window.MapStyles).
-
-  _initMap() {
-    if (typeof maplibregl === 'undefined') {
-      console.warn('MapLibre GL not loaded — map will not be interactive.');
-      return;
-    }
-
-    this.map = new maplibregl.Map({
-      container: 'species-mixer-map',
-      style: window.MapStyles.buildStreetStyle(),  // bare street, no terrain
-      center: [-2.5, 54.5],   // UK centre
-      zoom: 4.5,              // show full UK comfortably in the narrow map panel
-    });
-
-    this.map.addControl(new maplibregl.NavigationControl(), 'top-right');
-
-    this.map.on('click', (e) => {
-      this._onMapClick(e.lngLat.lat, e.lngLat.lng);
-    });
-
-    // Once the map style loads, force a resize so MapLibre correctly fills the
-    // split-pane container (CSS layout may not be complete when the Map object
-    // is constructed, leaving the canvas undersized until the first user click).
-    this.map.on('load', () => {
-      // Resize immediately, then once more after the next paint to catch any
-      // remaining layout shift from the flexbox split-pane settling.
-      this.map.resize();
-      requestAnimationFrame(() => this.map.resize());
-    });
-  }
 
   _onMapClick(lat, lng) {
     if (this.state === SpeciesMixer.STATE_4_GENERATING) return; // locked during generation
@@ -306,70 +311,6 @@ class SpeciesMixer {
   }
 
   // ──────────────────────────────────────────────────────────────────────────
-  // Divider drag
-  // ──────────────────────────────────────────────────────────────────────────
-
-  _initDivider() {
-    const pane      = document.getElementById('mixer-pane');
-    const mapPanel  = document.getElementById('mixer-map-panel');
-    const divider   = document.getElementById('mixer-divider');
-    if (!pane || !mapPanel || !divider) return;
-
-    // Restore saved position
-    const saved = parseFloat(localStorage.getItem('mixer-map-pct'));
-    if (saved && saved >= 10 && saved <= 80) {
-      mapPanel.style.flex  = `0 0 ${saved}%`;
-      mapPanel.style.width = `${saved}%`;
-    }
-
-    // Re-measure the pill nav indicator after the panel has its final width.
-    // initPillNavs() fires at DOMContentLoaded before flex layout is resolved,
-    // so getBoundingClientRect() returns stale values — we correct it here.
-    requestAnimationFrame(() => {
-      const nav = document.getElementById('mixer-tabs');
-      if (nav?._pillNav) nav._pillNav.updateIndicator();
-    });
-
-    let dragging = false;
-    let startX   = 0;
-    let startPct = 0;
-
-    divider.addEventListener('mousedown', (e) => {
-      dragging = true;
-      startX   = e.clientX;
-      startPct = (mapPanel.offsetWidth / pane.offsetWidth) * 100;
-      divider.classList.add('dragging');
-      document.body.style.cursor    = 'col-resize';
-      document.body.style.userSelect = 'none';
-      e.preventDefault();
-    });
-
-    document.addEventListener('mousemove', (e) => {
-      if (!dragging) return;
-      const delta = e.clientX - startX;
-      const newPct = Math.min(80, Math.max(10, startPct + (delta / pane.offsetWidth) * 100));
-      mapPanel.style.flex  = `0 0 ${newPct}%`;
-      mapPanel.style.width = `${newPct}%`;
-    });
-
-    document.addEventListener('mouseup', () => {
-      if (!dragging) return;
-      dragging = false;
-      divider.classList.remove('dragging');
-      document.body.style.cursor    = '';
-      document.body.style.userSelect = '';
-      // Persist position
-      const pct = (mapPanel.offsetWidth / pane.offsetWidth) * 100;
-      localStorage.setItem('mixer-map-pct', pct.toFixed(1));
-      // Tell MapLibre and ECharts about the new container size
-      this.map?.resize();
-      this.radarChart?.resize();
-      this.gridChart?.resize();
-      this._positionRadarHandle?.();
-    });
-  }
-
-  // ──────────────────────────────────────────────────────────────────────────
   // Tab switching
   // ──────────────────────────────────────────────────────────────────────────
 
@@ -397,6 +338,30 @@ class SpeciesMixer {
       dropdown.innerHTML = '';
     };
 
+    const showLoading = () => {
+      dropdown.innerHTML = `<div class="mixer-location-status">
+        <span class="mixer-location-spinner"></span>
+        Searching…
+      </div>`;
+      dropdown.classList.remove('d-none');
+    };
+
+    const showNoResults = (query) => {
+      dropdown.innerHTML = `<div class="mixer-location-status mixer-location-status--empty">
+        <i class="bi bi-geo-alt" style="font-size:1rem;opacity:.4;"></i>
+        No locations found for <em>${query.replace(/</g, '&lt;')}</em>
+      </div>`;
+      dropdown.classList.remove('d-none');
+    };
+
+    const showError = () => {
+      dropdown.innerHTML = `<div class="mixer-location-status mixer-location-status--error">
+        <i class="bi bi-wifi-off" style="font-size:1rem;"></i>
+        Unable to reach the geocoding service. Check your connection and try again.
+      </div>`;
+      dropdown.classList.remove('d-none');
+    };
+
     const showResult = (place) => {
       const lat = parseFloat(place.lat);
       const lng = parseFloat(place.lon);
@@ -415,6 +380,9 @@ class SpeciesMixer {
 
     const search = async (query) => {
       if (query.length < 3) { closeDropdown(); return; }
+
+      // Show loading state immediately — visible feedback before API responds
+      showLoading();
 
       // Cancel previous in-flight request by ignoring its result
       const thisRequest = {};
@@ -437,7 +405,7 @@ class SpeciesMixer {
           return { lat, lon, display_name: parts.filter(Boolean).join(', ') };
         });
 
-        if (!results.length) { closeDropdown(); return; }
+        if (!results.length) { showNoResults(query); return; }
 
         dropdown.innerHTML = results.map((r, i) =>
           `<div class="mixer-location-result" data-idx="${i}">${r.display_name}</div>`
@@ -451,14 +419,26 @@ class SpeciesMixer {
           });
         });
       } catch {
-        closeDropdown();
+        if (activeRequest === thisRequest) showError();
       }
     };
 
-    input.addEventListener('input', () => {
+    const triggerSearch = () => {
       clearTimeout(debounceTimer);
-      debounceTimer = setTimeout(() => search(input.value.trim()), 350);
-    });
+      const query = input.value.trim();
+      if (query.length >= 3) {
+        // Show loading state immediately on any input/paste — before debounce fires
+        showLoading();
+        activeRequest = null; // invalidate any current in-flight request display
+      } else {
+        closeDropdown();
+      }
+      debounceTimer = setTimeout(() => search(query), 350);
+    };
+
+    input.addEventListener('input', triggerSearch);
+    // Also handle paste explicitly — some browsers don't fire 'input' synchronously on paste
+    input.addEventListener('paste', () => setTimeout(triggerSearch, 0));
 
     input.addEventListener('keydown', (e) => {
       if (e.key === 'Escape') closeDropdown();
@@ -497,9 +477,13 @@ class SpeciesMixer {
     // Set initial state
     sync(this.searchRadiusKm);
 
-    // Slider → input
+    // Slider → input (live update while dragging)
     slider.addEventListener('input', () => {
       sync(parseInt(slider.value, 10));
+    });
+    // Mark dirty only on release, not on every pixel of drag
+    slider.addEventListener('change', () => {
+      this._smMarkDirty(`Search radius → ${this.searchRadiusKm} km`);
     });
 
     // Input → slider (on change / Enter)
@@ -507,6 +491,7 @@ class SpeciesMixer {
       const raw = parseInt(inputEl.value, 10);
       const clamped = isNaN(raw) ? this.searchRadiusKm : Math.min(RADIUS_MAX, Math.max(RADIUS_MIN, raw));
       sync(clamped);
+      this._smMarkDirty(`Search radius → ${clamped} km`);
     });
 
     // Live clamp while typing so the value display tracks immediately
@@ -2093,7 +2078,8 @@ class SpeciesMixer {
 
   async _fetchLocationName(lat, lng) {
     // Set coords immediately (full precision, no truncation)
-    document.getElementById('coord-display').textContent = `${lat}, ${lng}`;
+    const coordEl = document.getElementById('coord-display');
+    if (coordEl) coordEl.textContent = `${lat}, ${lng}`;
 
     const url = `${this.config.apiUrls.location}?lat=${lat}&lng=${lng}`;
     try {
@@ -2136,12 +2122,19 @@ class SpeciesMixer {
       return;
     }
 
+    if (!countryCode) {
+      // Country code unknown (geocoding failed or ocean click) — show no warning.
+      // We can't determine the user is outside Europe without confirmed data.
+      wrap.classList.add('d-none');
+      return;
+    }
+
     wrap.classList.remove('d-none');
-    if (countryCode && EUROPE.has(countryCode)) {
+    if (EUROPE.has(countryCode)) {
       // Tier 1: Europe but not UK
       warnEurope?.classList.remove('d-none');
     } else {
-      // Tier 2: Outside Europe, or null (ocean/unrecognised region)
+      // Tier 2: Confirmed outside Europe
       warnOutside?.classList.remove('d-none');
     }
   }
@@ -2418,7 +2411,17 @@ class SpeciesMixer {
       }
     };
 
-    input.addEventListener('blur', saveName);
+    let _prevName = input.value;
+    input.addEventListener('focus', () => { _prevName = input.value; });
+    input.addEventListener('blur', () => {
+      const name = input.value.trim();
+      if (name && name !== _prevName && this._sm) {
+        this._sm.dispatchFieldChange({ name: _prevName }, 'name', name,
+          { model: 'SpeciesMix', label: 'Mix name' });
+        _prevName = name;
+      }
+      saveName();
+    });
     input.addEventListener('keydown', (e) => {
       if (e.key === 'Enter') { e.preventDefault(); input.blur(); }
     });
@@ -2454,14 +2457,39 @@ class SpeciesMixer {
     this._goalWeights = {};
     GOALS.forEach(g => { this._goalWeights[g] = 50; });
 
-    // Range slider input
+    // Range slider input — capture value on pointerdown, dispatch to SM on pointerup
     document.querySelectorAll('.goal-slider').forEach((slider) => {
+      let _smPrevWeight = null;
+      slider.addEventListener('pointerdown', (e) => {
+        _smPrevWeight = this._goalWeights[e.target.dataset.goal];
+      });
       slider.addEventListener('input', (e) => {
         if (this.state === SpeciesMixer.STATE_4_GENERATING) return;
         this._goalWeights[e.target.dataset.goal] = Math.max(0, parseInt(e.target.value, 10));
         this._computeHandleFromWeights();
         this._syncGoalSliders();
         this._debouncedRescore();
+      });
+      slider.addEventListener('pointerup', (e) => {
+        if (!this._sm) return;
+        const goal    = e.target.dataset.goal;
+        const newVal  = this._goalWeights[goal];
+        const prevVal = _smPrevWeight;
+        if (prevVal == null || prevVal === newVal) return;
+        // Register action type on first use (lazy, to ensure SM exists)
+        if (!this._sm.actionTypes.has('mix:setGoal')) {
+          this._sm.registerActionType('mix:setGoal', {
+            execute:  ({ goal, val })  => { this._goalWeights[goal] = val; this._syncGoalSliders(); },
+            undo:     ({ goal, prev }) => { this._goalWeights[goal] = prev; this._syncGoalSliders(); },
+            describe: ({ goal, val })  => `Goal ${goal} → ${val}`,
+          });
+        }
+        this._sm.dispatch('mix:setGoal', {
+          executeData: { goal, val: newVal },
+          undoData:    { goal, prev: prevVal },
+          entityRef:   { model: 'SpeciesMix', field: `goal_${goal}` },
+        });
+        _smPrevWeight = null;
       });
     });
 
@@ -2591,6 +2619,7 @@ class SpeciesMixer {
       this._radarHandle = { x: 0, y: 0 };
       this._syncGoalSliders();
       this._debouncedRescore();
+      this._smMarkDirty('Reset goal weights to equal');
     });
 
     // Goal sliders — linked proportional system: all 5 always sum to 100%
@@ -2607,6 +2636,7 @@ class SpeciesMixer {
       const input  = document.getElementById('max-species-input');
       if (slider) slider.value = 60;
       if (input)  input.value  = 60;
+      this._smMarkDirty('Reset to recommended settings');
     });
 
     // Max species — keep slider and number input in sync
@@ -2614,11 +2644,13 @@ class SpeciesMixer {
     const _maxInput  = document.getElementById('max-species-input');
     if (_maxSlider && _maxInput) {
       _maxSlider.addEventListener('input', () => { _maxInput.value = _maxSlider.value; });
+      _maxSlider.addEventListener('change', () => { this._smMarkDirty(`Max species → ${_maxSlider.value}`); });
       _maxInput.addEventListener('input', () => {
         const v = Math.max(1, Math.min(200, parseInt(_maxInput.value, 10) || 60));
         _maxInput.value  = v;
         _maxSlider.value = v;
       });
+      _maxInput.addEventListener('change', () => { this._smMarkDirty(`Max species → ${_maxInput.value}`); });
     }
 
     // Advanced collapse — rotate chevron
@@ -2657,6 +2689,7 @@ class SpeciesMixer {
           });
           this._updateCatCompositionBar();
         }
+        this._smMarkDirty(`Habitat preset → ${btn.dataset.preset}`);
       });
     });
 
@@ -2668,6 +2701,9 @@ class SpeciesMixer {
         if (input) input.value = slider.value;
         this._updateCatCompositionBar();
       });
+      slider.addEventListener('change', () => {
+        this._smMarkDirty(`Category target ${slider.dataset.category} → ${slider.value}`);
+      });
     });
     document.querySelectorAll('.cat-target-value').forEach(input => {
       input.addEventListener('input', () => {
@@ -2678,6 +2714,9 @@ class SpeciesMixer {
         if (slider) slider.value = v;
         this._updateCatCompositionBar();
       });
+      input.addEventListener('change', () => {
+        this._smMarkDirty(`Category target ${input.dataset.category} → ${input.value}`);
+      });
     });
 
     // Reset category targets button
@@ -2686,6 +2725,26 @@ class SpeciesMixer {
         el.value = 6;
       });
       this._updateCatCompositionBar();
+      this._smMarkDirty('Reset category targets');
+    });
+
+    // API source toggles
+    document.querySelectorAll('.api-toggle-item input[type="checkbox"]').forEach(cb => {
+      cb.addEventListener('change', () => {
+        this._smMarkDirty(`Data source ${cb.dataset.api} ${cb.checked ? 'enabled' : 'disabled'}`);
+      });
+    });
+
+    // Natives-only toggle
+    document.getElementById('natives-only-toggle')?.addEventListener('change', (e) => {
+      this._smMarkDirty(`UK natives only: ${e.target.checked}`);
+    });
+
+    // Score factor checkboxes
+    document.querySelectorAll('.score-factor-check').forEach(cb => {
+      cb.addEventListener('change', () => {
+        this._smMarkDirty(`Score factor ${cb.dataset.factor} ${cb.checked ? 'on' : 'off'}`);
+      });
     });
 
     // Initial composition bar render
@@ -2785,14 +2844,19 @@ class SpeciesMixer {
       });
     });
 
-    // New mix card (reset state)
+    // New mix card (legacy bottom grid — opens wizard)
     document.getElementById('new-mix-card')?.addEventListener('click', () => {
-      this._resetMixer();
+      this._openNameWizard();
     });
 
     // Refresh mixes button
     document.getElementById('refresh-mixes-btn')?.addEventListener('click', () => {
-      this._loadRecentMixes();
+      this._loadAndShowLanding();
+    });
+
+    // Score factor checkboxes — changing any factor triggers a rescore
+    document.getElementById('score-factors-list')?.addEventListener('change', () => {
+      this._debouncedRescore();
     });
   }
 
@@ -2813,7 +2877,7 @@ class SpeciesMixer {
           'Content-Type': 'application/json',
           'X-CSRFToken': this.config.csrfToken,
         },
-        body: JSON.stringify({ lat: this.lat, lng: this.lng, goals, max_species: this._getMaxSpecies(), category_targets: this._getCategoryTargets(), natives_only: this._getNativesOnly() }),
+        body: JSON.stringify({ lat: this.lat, lng: this.lng, goals, max_species: this._getMaxSpecies(), category_targets: this._getCategoryTargets(), natives_only: this._getNativesOnly(), score_factors: this._getScoreFactors() }),
       });
       const data = await resp.json();
       if (data.task_id) {
@@ -2869,6 +2933,7 @@ class SpeciesMixer {
           max_species: this._getMaxSpecies(),
           category_targets: this._getCategoryTargets(),
           natives_only: this._getNativesOnly(),
+          score_factors: this._getScoreFactors(),
         }),
       });
       const data = await resp.json();
@@ -3137,6 +3202,22 @@ class SpeciesMixer {
       this._renderInsights(result.insights, result.env_summary);
       this._unlockTab('mix');
       this._transitionTo(SpeciesMixer.STATE_5_MIX_READY);
+
+      // Mark SM dirty — generation result is unsaved
+      if (this._sm) {
+        if (!this._sm.actionTypes.has('mix:generated')) {
+          this._sm.registerActionType('mix:generated', {
+            execute:  () => {},
+            undo:     () => {},
+            describe: () => `Generated species mix (${this.mixItems.length} species)`,
+          });
+        }
+        this._sm.dispatch('mix:generated', {
+          executeData: {},
+          undoData:    {},
+          entityRef:   { model: 'SpeciesMix', field: 'items' },
+        });
+      }
       // Populate treemap global and kick off morph sequence
       window.SPECIES_TREEMAP_DATA = this._buildTreemapData(result.species_mix || []);
       document.getElementById('map-overlay-placeholder')?.classList.remove('d-none');
@@ -3194,13 +3275,16 @@ class SpeciesMixer {
     this._morphTimer = null;
     this._showVirtualGrid();
     document.getElementById('insights-spinner')?.classList.add('d-none');
-    document.getElementById('insights-placeholder')?.classList.remove('d-none');
-    document.getElementById('insights-placeholder').innerHTML = `
-      <div class="text-center text-muted">
-        <i class="bi bi-stop-circle" style="font-size:1.5rem;opacity:.4;"></i>
-        <p class="mt-2 mb-0 small">Generation stopped</p>
-        <small>Adjust your goals and generate again when ready.</small>
-      </div>`;
+    const _stoppedEl = document.getElementById('insights-placeholder');
+    if (_stoppedEl) {
+      _stoppedEl.classList.remove('d-none');
+      _stoppedEl.innerHTML = `
+        <div class="text-center text-muted">
+          <i class="bi bi-stop-circle" style="font-size:1.5rem;opacity:.4;"></i>
+          <p class="mt-2 mb-0 small">Generation stopped</p>
+          <small>Adjust your goals and generate again when ready.</small>
+        </div>`;
+    }
   }
 
   _onGenerationError(msg) {
@@ -3212,14 +3296,17 @@ class SpeciesMixer {
     this._morphTimer = null;
     this._showVirtualGrid();
     // Show error in insights area
-    document.getElementById('insights-placeholder')?.classList.remove('d-none');
-    document.getElementById('insights-placeholder').innerHTML = `
-      <div class="text-center text-danger">
-        <i class="bi bi-exclamation-triangle" style="font-size:1.5rem;"></i>
-        <p class="mt-2 mb-0 small">Generation failed</p>
-        <small>${msg}</small>
-        <br><small class="text-muted">Check your network connection and try again.</small>
-      </div>`;
+    const _errEl = document.getElementById('insights-placeholder');
+    if (_errEl) {
+      _errEl.classList.remove('d-none');
+      _errEl.innerHTML = `
+        <div class="text-center text-danger">
+          <i class="bi bi-exclamation-triangle" style="font-size:1.5rem;"></i>
+          <p class="mt-2 mb-0 small">Generation failed</p>
+          <small>${msg}</small>
+          <br><small class="text-muted">Check your network connection and try again.</small>
+        </div>`;
+    }
   }
 
   // ──────────────────────────────────────────────────────────────────────────
@@ -3269,6 +3356,7 @@ class SpeciesMixer {
     row.style.opacity = '0';
     row.style.transition = 'opacity 0.3s ease';
     tbody.appendChild(row);
+    this._initScoreBadgePopover(row.querySelector('.species-score-badge'));
     requestAnimationFrame(() => { row.style.opacity = '1'; });
   }
 
@@ -3296,7 +3384,7 @@ class SpeciesMixer {
     // Re-render DOM from this.mixItems (called after any change: remove, add, rescore)
     const tbody = document.getElementById('species-mix-tbody');
     // Dispose existing popovers to avoid memory leaks
-    tbody.querySelectorAll('.species-name-cell').forEach(el => {
+    tbody.querySelectorAll('.species-name-cell, .species-score-badge').forEach(el => {
       const pop = bootstrap.Popover.getInstance(el);
       if (pop) pop.dispose();
     });
@@ -3325,13 +3413,23 @@ class SpeciesMixer {
       return (ai === -1 ? 999 : ai) - (bi === -1 ? 999 : bi);
     });
     sortedKeys.forEach(key => {
+      // Sort within each category: highest suitability score first, ratio as tiebreaker
+      groups[key].sort((a, b) => {
+        const sa = a.suitability_score ?? 0, sb = b.suitability_score ?? 0;
+        if (sb !== sa) return sb - sa;
+        return (b.ratio || 0) - (a.ratio || 0);
+      });
       const headerRow = document.createElement('tr');
       headerRow.className = 'species-mixer-group-header';
       headerRow.setAttribute('data-group-header', key);
       const displayName = key.charAt(0).toUpperCase() + key.slice(1);
       headerRow.innerHTML = `<td colspan="9">${this._categoryIcon(key)}<span class="ms-1">${displayName}</span></td>`;
       tbody.appendChild(headerRow);
-      groups[key].forEach(item => tbody.appendChild(this._buildRow(item)));
+      groups[key].forEach(item => {
+        const row = this._buildRow(item);
+        tbody.appendChild(row);
+        this._initScoreBadgePopover(row.querySelector('.species-score-badge'));
+      });
     });
     this._reinitSortableTable();
   }
@@ -3461,7 +3559,7 @@ class SpeciesMixer {
       <td class="col-chars">
         <div class="d-flex flex-wrap gap-0">${goalTags}</div>
       </td>
-      <td class="col-native suitability-cell" data-sort-value="${item.suitability_label || ''}">
+      <td class="col-native suitability-cell" data-sort-value="${item.suitability_score ?? 0}">
         ${nativeBadge}
       </td>
       <td class="col-rho text-muted">${this._previewCellRho(item)}</td>
@@ -3594,13 +3692,22 @@ class SpeciesMixer {
   }
 
   _removeSpecies(speciesId) {
-    this.mixItems = this.mixItems.filter(m => m.species_id !== speciesId);
-    // Redistribute ratios proportionally among remaining items
-    const total = this.mixItems.reduce((s, m) => s + m.ratio, 0);
-    if (total > 0) {
-      this.mixItems.forEach(m => { m.ratio = m.ratio / total; });
+    const removedItem = this.mixItems.find(m => m.species_id === speciesId);
+
+    // If SM is active, let it execute the remove (marks dirty, enables undo, redistributes ratios).
+    // Otherwise mutate directly.
+    if (this._sm && removedItem) {
+      this._sm.dispatch('mix:removeSpecies', {
+        executeData: { speciesId },
+        undoData:    { item: removedItem },
+        entityRef:   { model: 'SpeciesMixItem' },
+      });
+    } else {
+      this.mixItems = this.mixItems.filter(m => m.species_id !== speciesId);
+      const total = this.mixItems.reduce((s, m) => s + m.ratio, 0);
+      if (total > 0) this.mixItems.forEach(m => { m.ratio = m.ratio / total; });
+      this._renderTable();
     }
-    this._renderTable();
   }
 
   _updateRatiosInPlace(newMixData) {
@@ -3628,7 +3735,11 @@ class SpeciesMixer {
 
     const cell = row.querySelector('.suitability-cell');
     if (cell) {
+      // Dispose any existing score badge popover before replacing the cell
+      const oldBadge = cell.querySelector('.species-score-badge');
+      if (oldBadge) bootstrap.Popover.getInstance(oldBadge)?.dispose();
       cell.innerHTML = this._suitabilityBadge(result.suitability_label, result.suitability_score, result.reason);
+      this._initScoreBadgePopover(cell.querySelector('.species-score-badge'));
     }
 
     // Apply suggested ratios if provided
@@ -3871,8 +3982,18 @@ class SpeciesMixer {
       ai_reason: '',
     };
 
-    this.mixItems.push(newItem);
-    this._renderTable();
+    // If SM is active, let it execute the add (marks dirty, enables undo).
+    // Otherwise mutate directly.
+    if (this._sm) {
+      this._sm.dispatch('mix:addSpecies', {
+        executeData: { item: newItem },
+        undoData:    { speciesId: newItem.species_id },
+        entityRef:   { model: 'SpeciesMixItem' },
+      });
+    } else {
+      this.mixItems.push(newItem);
+      this._renderTable();
+    }
 
     // Trigger AI validation
     this._validateSpecies(species.id, newItem.name);
@@ -3907,18 +4028,29 @@ class SpeciesMixer {
       env_data: this.envData,
       cached_candidates: this.cachedCandidates,
       goals: this._getGoals(),
+      max_species: this._getMaxSpecies(),
+      mixer_settings: {
+        search_radius_km: this.searchRadiusKm,
+        natives_only: this._getNativesOnly(),
+        api_sources: this._getApiSources(),
+        category_targets: this._getCategoryTargets(),
+        score_factors: this._getScoreFactors(),
+        active_preset: this._getActivePreset(),
+      },
       ai_insights: document.getElementById('insights-text')?.textContent || '',
       env_summary: document.getElementById('site-summary-text')?.textContent || '',
-      species_items: this.mixItems.map((item, i) => ({
-        species_id: item.species_id,
-        ratio: item.ratio,
-        ai_reason: item.ai_reason || '',
-        suitability_score: item.suitability_score,
-        suitability_label: item.suitability_label || '',
-        is_active: item.is_active,
-        is_manual: item.is_manual,
-        order: i,
-      })),
+      species_items: this.mixItems
+        .filter(item => item.species_id != null)
+        .map((item, i) => ({
+          species_id: item.species_id,
+          ratio: item.ratio,
+          ai_reason: item.ai_reason || '',
+          suitability_score: item.suitability_score,
+          suitability_label: item.suitability_label || '',
+          is_active: item.is_active,
+          is_manual: item.is_manual,
+          order: i,
+        })),
     };
 
     try {
@@ -3935,16 +4067,23 @@ class SpeciesMixer {
         this.mixId = data.mix_id;
         bootstrap.Modal.getInstance(document.getElementById('saveMixModal'))?.hide();
         this._showToast(`Mix "${data.mix_name}" saved successfully.`, 'success');
-        this._loadRecentMixes();
+        this._refreshLandingMixes(); // refresh landing data in background
       } else {
-        this._showToast('Save failed: ' + (data.error || 'Unknown error'), 'danger');
+        const msg = 'Save failed: ' + (data.error || 'Unknown error');
+        this._showToast(msg, 'danger');
+        throw new Error(msg);
       }
     } catch (err) {
-      this._showToast('Save failed: ' + err.message, 'danger');
+      if (!err.message.startsWith('Save failed:')) {
+        this._showToast('Save failed: ' + err.message, 'danger');
+      }
+      throw err; // re-throw so saveDraftFn rejects and SM doesn't set draftSaved
     }
   }
 
   async _loadMix(mixId) {
+    const overlay = document.getElementById('mixer-loading-overlay');
+    overlay?.classList.remove('d-none');
     try {
       const resp = await fetch(
         `${this.config.apiUrls.getMix}${mixId}/`,
@@ -3953,6 +4092,7 @@ class SpeciesMixer {
       const data = await resp.json();
       if (data.error) {
         this._showToast('Could not load mix: ' + data.error, 'danger');
+        overlay?.classList.add('d-none');
         return;
       }
 
@@ -3977,6 +4117,60 @@ class SpeciesMixer {
         if (seg)     seg.style.width = `${val}%`;
       });
 
+      // Restore max_species
+      if (data.max_species != null) {
+        const sl = document.getElementById('max-species-slider');
+        const ip = document.getElementById('max-species-input');
+        if (sl) sl.value = data.max_species;
+        if (ip) ip.value = data.max_species;
+      }
+
+      // Restore mixer_settings (search radius, API toggles, category targets, etc.)
+      const ms = data.mixer_settings || {};
+
+      if (ms.search_radius_km != null) {
+        this.searchRadiusKm = ms.search_radius_km;
+        const sl = document.getElementById('location-range-slider');
+        const ip = document.getElementById('location-range-value');
+        if (sl) sl.value = this.searchRadiusKm;
+        if (ip) ip.value = this.searchRadiusKm;
+      }
+
+      if (ms.natives_only != null) {
+        const t = document.getElementById('natives-only-toggle');
+        if (t) t.checked = ms.natives_only;
+      }
+
+      if (ms.api_sources) {
+        Object.entries(ms.api_sources).forEach(([api, enabled]) => {
+          const cb = document.getElementById(`api-toggle-${api}`);
+          if (cb) cb.checked = enabled;
+        });
+      }
+
+      if (ms.category_targets) {
+        Object.entries(ms.category_targets).forEach(([cat, val]) => {
+          document.querySelectorAll(`.cat-target-slider[data-category="${cat}"]`)
+            .forEach(el => { el.value = val; });
+          document.querySelectorAll(`.cat-target-value[data-category="${cat}"]`)
+            .forEach(el => { el.value = val; });
+        });
+        this._updateCatCompositionBar?.();
+      }
+
+      if (ms.score_factors) {
+        Object.entries(ms.score_factors).forEach(([factor, enabled]) => {
+          const cb = document.querySelector(`.score-factor-check[data-factor="${factor}"]`);
+          if (cb) cb.checked = enabled;
+        });
+      }
+
+      if (ms.active_preset) {
+        document.querySelectorAll('.preset-btn').forEach(btn => {
+          btn.classList.toggle('active', btn.dataset.preset === ms.active_preset);
+        });
+      }
+
       // Render map marker
       if (this.map && this.lat && this.lng) {
         if (this.marker) this.marker.setLngLat([this.lng, this.lat]);
@@ -3988,11 +4182,12 @@ class SpeciesMixer {
       }
 
       // Restore location display
-      document.getElementById('location-display-name').textContent = this.locationName;
+      const locDisplayEl = document.getElementById('location-display-name');
+      if (locDisplayEl) locDisplayEl.textContent = this.locationName;
       const srchInput = document.getElementById('location-search-input');
       if (srchInput) srchInput.value = this.locationName;
-      document.getElementById('coord-display').textContent =
-        this.lat ? `${this.lat}, ${this.lng}` : '';
+      const coordDisplay = document.getElementById('coord-display');
+      if (coordDisplay) coordDisplay.textContent = this.lat ? `${this.lat}, ${this.lng}` : '';
 
       // Assign category-based colours when loading a saved mix
       const loadCatCounters = {};
@@ -4007,23 +4202,649 @@ class SpeciesMixer {
       this._updateEcoData(data.env_data);
       this._renderTable();
       this._renderInsights(data.ai_insights, data.env_summary);
+
+      // Unlock tabs based on what data is available
+      if (this.lat && this.lng) this._unlockTab('goals');
+      if (this.mixItems.length) this._unlockTab('mix');
+
       this._transitionTo(SpeciesMixer.STATE_5_MIX_READY);
 
+      // Wire state manager + show danger zone now that a mix is active
+      this._reinitStateManager(data.id);
+      this._showDangerZone();
+
+      overlay?.classList.add('d-none');
       this._showToast(`Mix "${data.name}" loaded.`, 'info');
     } catch (err) {
+      overlay?.classList.add('d-none');
       this._showToast('Failed to load mix: ' + err.message, 'danger');
     }
   }
 
-  async _loadRecentMixes() {
+  // ── Legacy stub kept for any external callers ────────────────────────────
+  async _loadRecentMixes() { return this._loadAndShowLanding(); }
+
+  // ══════════════════════════════════════════════════════════════════════════
+  // LANDING SCREEN — screen switching, mix cards, ECharts overlay
+  // ══════════════════════════════════════════════════════════════════════════
+
+  /**
+   * Initialise landing screen event listeners (called once in constructor).
+   */
+  _initLandingScreen() {
+    // "New Mix" button in the landing sidebar
+    document.getElementById('landing-new-mix-btn')
+      ?.addEventListener('click', () => this._openNameWizard());
+
+    // "← Mixes" back button in the header
+    document.getElementById('back-to-landing-btn')
+      ?.addEventListener('click', () => this.showLanding());
+
+    // Name wizard modal — enable confirm only when input has text
+    const nameInput   = document.getElementById('new-mix-name-input');
+    const confirmBtn  = document.getElementById('confirm-new-mix-btn');
+    if (nameInput && confirmBtn) {
+      nameInput.addEventListener('input', () => {
+        confirmBtn.disabled = nameInput.value.trim().length === 0;
+      });
+      nameInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' && !confirmBtn.disabled) this._confirmNewMix();
+      });
+      confirmBtn.addEventListener('click', () => this._confirmNewMix());
+    }
+
+    // Auto-focus the name input when modal opens
+    const newMixModal = document.getElementById('newMixModal');
+    if (newMixModal) {
+      newMixModal.addEventListener('shown.bs.modal', () => {
+        document.getElementById('new-mix-name-input')?.focus();
+      });
+    }
+
+    // Delete mix confirmation
+    document.getElementById('confirm-delete-mix-btn')
+      ?.addEventListener('click', () => this._confirmDeleteMix());
+
+    // Delete mix trigger (in danger zone)
+    document.getElementById('delete-mix-btn')
+      ?.addEventListener('click', () => this._openDeleteConfirm());
+  }
+
+  /**
+   * Show the landing screen (right panel → mixes sidebar, map markers visible).
+   * @param {boolean} [skipRefresh=false] - skip re-fetching mixes
+   */
+  showLanding(skipRefresh = false) {
+    // On the editor sub-page the landing sidebar doesn't exist in the DOM —
+    // navigate back to the landing page instead of trying to swap panels.
+    if (!document.getElementById('mixer-landing-sidebar')) {
+      const landingUrl = this.config.apiUrls.mixes
+        ? this.config.apiUrls.mixes.replace('/api/mixes/', '/')
+        : '/species/mixer/';
+      window.location.href = landingUrl;
+      return;
+    }
+
+    this.screen = SpeciesMixer.SCREEN_LANDING;
+
+    // Swap right panel
+    document.getElementById('mixer-landing-sidebar')?.classList.remove('d-none');
+    document.getElementById('mixer-editor-tabs')?.classList.add('d-none');
+
+    // Header buttons
+    document.getElementById('back-to-landing-btn')?.classList.add('d-none');
+    document.getElementById('species-mixer-sm-toolbar')?.classList.add('d-none');
+
+    // Show ECharts overlay
+    document.getElementById('mixer-echarts-overlay')?.classList.remove('d-none');
+
+    if (!skipRefresh) this._loadAndShowLanding();
+  }
+
+  /**
+   * Show the editor screen (right panel → nav-pills tabs, markers hidden).
+   */
+  showEditor() {
+    this.screen = SpeciesMixer.SCREEN_EDITOR;
+
+    // Swap right panel
+    document.getElementById('mixer-landing-sidebar')?.classList.add('d-none');
+    document.getElementById('mixer-editor-tabs')?.classList.remove('d-none');
+
+    // Header buttons
+    document.getElementById('back-to-landing-btn')?.classList.remove('d-none');
+    document.getElementById('species-mixer-sm-toolbar')?.classList.remove('d-none');
+
+    // Hide ECharts overlay (not needed in editor)
+    document.getElementById('mixer-echarts-overlay')?.classList.add('d-none');
+    if (this._landingChart) {
+      this._landingChart.dispose();
+      this._landingChart = null;
+    }
+
+    // Safety resize call in case the tab container just became visible
+    setTimeout(() => this.map?.resize(), 50);
+  }
+
+  /**
+   * Fetch mixes, update landing cards, update map markers.
+   */
+  async _loadAndShowLanding() {
     try {
       const resp = await fetch(this.config.apiUrls.mixes, {
-        headers: { 'X-CSRFToken': this.config.csrfToken },
+        headers: { 'X-Requested-With': 'XMLHttpRequest' },
       });
-      await resp.json();
-      // TODO: re-render #saved-mixes-grid from response mixes
-      // For now, the Django template renders initial state.
+      const data = await resp.json();
+      this.landingMixes = data.mixes || [];
+    } catch {
+      this.landingMixes = [];
+    }
+    this._renderLandingCards(this.landingMixes);
+    this._renderLandingMarkers(this.landingMixes);
+  }
+
+  /**
+   * Refresh landing mix data in the background (after save).
+   * Only updates if we are currently on the landing screen.
+   */
+  async _refreshLandingMixes() {
+    try {
+      const resp = await fetch(this.config.apiUrls.mixes, {
+        headers: { 'X-Requested-With': 'XMLHttpRequest' },
+      });
+      const data = await resp.json();
+      this.landingMixes = data.mixes || [];
+      if (this.screen === SpeciesMixer.SCREEN_LANDING) {
+        this._renderLandingCards(this.landingMixes);
+        this._renderLandingMarkers(this.landingMixes);
+      }
     } catch { /* silent */ }
+  }
+
+  /**
+   * Render mix cards in #landing-mixes-list.
+   * @param {Array} mixes
+   */
+  _renderLandingCards(mixes) {
+    const list = document.getElementById('landing-mixes-list');
+    if (!list) return;
+
+    if (!mixes.length) {
+      list.innerHTML = `
+        <div class="text-center text-muted py-5 small">
+          <i class="bi bi-collection fs-2 d-block mb-2 opacity-50"></i>
+          No mixes yet — create your first one!
+        </div>
+        ${this._landingNewCardHTML()}
+      `;
+      this._bindLandingNewCard();
+      return;
+    }
+
+    const cards = mixes.map(m => {
+      const goals = m.goals || {};
+      const badges = [
+        goals.erosion_control     >= 60 ? '<span class="badge bg-success bg-opacity-10 text-success">Erosion</span>'    : '',
+        goals.pollinator          >= 60 ? '<span class="badge bg-danger bg-opacity-10 text-danger">Pollinator</span>'  : '',
+        goals.carbon_sequestration >= 60 ? '<span class="badge bg-info bg-opacity-10 text-info">Carbon</span>'         : '',
+        goals.wildlife_habitat    >= 60 ? '<span class="badge bg-warning bg-opacity-10 text-warning">Wildlife</span>'  : '',
+        goals.biodiversity        >= 60 ? '<span class="badge bg-primary bg-opacity-10 text-primary">Bio</span>'       : '',
+      ].filter(Boolean).join('');
+
+      const speciesCount = m.item_count || 0;
+      const location     = m.location_name ? this._truncate(m.location_name, 28) : 'No location set';
+      const updated      = m.updated_at ? this._timeAgo(m.updated_at) : '';
+      const hasGps       = m.latitude != null && m.longitude != null;
+      const pinIcon      = hasGps
+        ? '<i class="bi bi-geo-alt-fill text-success me-1" title="Has GPS location"></i>'
+        : '<i class="bi bi-geo-alt text-muted me-1" title="No location"></i>';
+
+      return `
+        <div class="mixer-landing-mix-card" data-mix-id="${m.id}" role="button" tabindex="0">
+          <div class="d-flex align-items-start justify-content-between gap-2">
+            <div class="mixer-landing-mix-card__name flex-1 min-w-0">${this._escapeHtml(m.name)}</div>
+            <i class="bi bi-arrow-up-right-square text-primary flex-shrink-0 small mt-1"></i>
+          </div>
+          <div class="mixer-landing-mix-card__meta mt-1">
+            ${pinIcon}${this._escapeHtml(location)}
+            &middot; ${speciesCount} species
+            ${updated ? `&middot; ${updated}` : ''}
+          </div>
+          ${badges ? `<div class="mt-1 d-flex gap-1 flex-wrap">${badges}</div>` : ''}
+        </div>
+      `;
+    }).join('');
+
+    list.innerHTML = cards + this._landingNewCardHTML();
+
+    // Bind click + hover events
+    list.querySelectorAll('.mixer-landing-mix-card[data-mix-id]').forEach(card => {
+      const id = parseInt(card.dataset.mixId, 10);
+      card.addEventListener('click',      () => this._loadMixFromLanding(id));
+      card.addEventListener('keydown',    e => { if (e.key === 'Enter') this._loadMixFromLanding(id); });
+      card.addEventListener('mouseenter', () => this._onLandingCardHover(id));
+      card.addEventListener('mouseleave', () => this._onLandingCardHoverOut());
+      card.addEventListener('focusin',    () => this._onLandingCardHover(id));
+      card.addEventListener('focusout',   () => this._onLandingCardHoverOut());
+    });
+
+    this._bindLandingNewCard();
+  }
+
+  _landingNewCardHTML() {
+    return `
+      <div class="mixer-landing-mix-card mixer-landing-new-card" id="landing-new-mix-dashed" role="button" tabindex="0">
+        <i class="bi bi-plus-circle fs-4 d-block mb-1"></i>
+        <span class="small fw-semibold">New Mix</span>
+      </div>
+    `;
+  }
+
+  _bindLandingNewCard() {
+    const el = document.getElementById('landing-new-mix-dashed');
+    el?.addEventListener('click',   () => this._openNameWizard());
+    el?.addEventListener('keydown', e => { if (e.key === 'Enter') this._openNameWizard(); });
+  }
+
+  /**
+   * Render ECharts effectScatter circles on the map for each mix with GPS.
+   * The overlay sits over MapLibre with pointer-events:none.
+   * @param {Array} mixes
+   */
+  _renderLandingMarkers(mixes) {
+    if (!this.map || typeof echarts === 'undefined') return;
+
+    const overlay = document.getElementById('mixer-echarts-overlay');
+    if (!overlay) return;
+
+    // Dispose existing chart
+    if (this._landingChart) {
+      this._landingChart.dispose();
+      this._landingChart = null;
+    }
+
+    const mapsWithGps = mixes.filter(m => m.latitude != null && m.longitude != null);
+    if (!mapsWithGps.length) return;
+
+    // Size overlay to match map container
+    const mapEl = document.getElementById('species-mixer-map');
+    if (mapEl) {
+      overlay.style.width  = mapEl.offsetWidth  + 'px';
+      overlay.style.height = mapEl.offsetHeight + 'px';
+    }
+    overlay.classList.remove('d-none');
+
+    this._landingChart = echarts.init(overlay, null, { renderer: 'canvas' });
+    this._landingChart.setOption(this._buildLandingMarkersOption(mapsWithGps));
+
+    // Re-project on map move/zoom
+    const reproject = () => {
+      if (!this._landingChart) return;
+      this._landingChart.setOption(
+        { series: [{ data: this._projectMixesToPixels(mapsWithGps) }] },
+        false
+      );
+    };
+    this.map.on('move',   reproject);
+    this.map.on('zoom',   reproject);
+    this.map.on('resize', reproject);
+    this._landingMapReproject = reproject; // store to remove on showEditor
+  }
+
+  _buildLandingMarkersOption(mixes) {
+    return {
+      animation: false,
+      series: [{
+        type: 'effectScatter',
+        coordinateSystem: 'none',
+        symbolSize: 14,
+        showEffectOn: 'emphasis',
+        rippleEffect: { brushType: 'stroke', scale: 3.5, period: 3 },
+        itemStyle: { color: 'var(--bs-primary, #0d6efd)' },
+        emphasis: { scale: 1.4 },
+        data: this._projectMixesToPixels(mixes),
+      }],
+    };
+  }
+
+  /**
+   * Convert mix lat/lng to pixel coordinates using the current map projection.
+   * @param {Array} mixes
+   * @returns {Array} ECharts data points
+   */
+  _projectMixesToPixels(mixes) {
+    return mixes
+      .filter(m => m.latitude != null && m.longitude != null)
+      .map(m => {
+        const pt = this.map.project([m.longitude, m.latitude]);
+        return {
+          value:     [pt.x, pt.y],
+          mixId:     m.id,
+          name:      m.name,
+          itemStyle: { color: 'var(--bs-primary, #0d6efd)' },
+          showEffectOn: 'emphasis',
+        };
+      });
+  }
+
+  /**
+   * Highlight a mix marker on hover.
+   * @param {number} mixId
+   */
+  _onLandingCardHover(mixId) {
+    this._landingHoveredMixId = mixId;
+
+    // Highlight card
+    document.querySelectorAll('.mixer-landing-mix-card[data-mix-id]').forEach(c => {
+      c.classList.toggle('is-hovered', parseInt(c.dataset.mixId, 10) === mixId);
+    });
+
+    // Update ECharts — hovered item animates on render, others on emphasis
+    if (!this._landingChart) return;
+    const mixes = this.landingMixes.filter(m => m.latitude != null && m.longitude != null);
+    const data = mixes.map(m => {
+      const pt = this.map.project([m.longitude, m.latitude]);
+      const isHovered = m.id === mixId;
+      return {
+        value:        [pt.x, pt.y],
+        mixId:        m.id,
+        symbolSize:   isHovered ? 18 : 12,
+        showEffectOn: isHovered ? 'render' : 'emphasis',
+        itemStyle:    { color: isHovered ? 'var(--bs-success, #198754)' : 'var(--bs-primary, #0d6efd)' },
+        rippleEffect: { brushType: 'stroke', scale: isHovered ? 4 : 3, period: 3 },
+      };
+    });
+    this._landingChart.setOption({ series: [{ data }] }, false);
+  }
+
+  /** Revert all markers to default state. */
+  _onLandingCardHoverOut() {
+    this._landingHoveredMixId = null;
+
+    document.querySelectorAll('.mixer-landing-mix-card[data-mix-id]').forEach(c => {
+      c.classList.remove('is-hovered');
+    });
+
+    if (!this._landingChart) return;
+    const mixes = this.landingMixes.filter(m => m.latitude != null && m.longitude != null);
+    this._landingChart.setOption(
+      { series: [{ data: this._projectMixesToPixels(mixes) }] },
+      false
+    );
+  }
+
+  /**
+   * Load a mix from the landing screen → switch to editor.
+   * @param {number} mixId
+   */
+  _loadMixFromLanding(mixId) {
+    this.showEditor();
+    this._loadMix(mixId);
+  }
+
+  // ══════════════════════════════════════════════════════════════════════════
+  // NAME WIZARD
+  // ══════════════════════════════════════════════════════════════════════════
+
+  _openNameWizard() {
+    const input    = document.getElementById('new-mix-name-input');
+    const confirmBtn = document.getElementById('confirm-new-mix-btn');
+    if (input)     input.value = '';
+    if (confirmBtn) confirmBtn.disabled = true;
+    const modal = new bootstrap.Modal(document.getElementById('newMixModal'));
+    modal.show();
+  }
+
+  async _confirmNewMix() {
+    const input = document.getElementById('new-mix-name-input');
+    const name  = input?.value.trim();
+    if (!name) return;
+
+    const confirmBtn = document.getElementById('confirm-new-mix-btn');
+    if (confirmBtn) {
+      confirmBtn.disabled = true;
+      confirmBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Creating…';
+    }
+
+    try {
+      const resp = await fetch(this.config.apiUrls.createMix, {
+        method:  'POST',
+        headers: {
+          'Content-Type':  'application/json',
+          'X-CSRFToken':   this.config.csrfToken,
+          'X-Requested-With': 'XMLHttpRequest',
+        },
+        body: JSON.stringify({ name }),
+      });
+      const data = await resp.json();
+
+      if (data.mix_id) {
+        // Hide modal
+        bootstrap.Modal.getInstance(document.getElementById('newMixModal'))?.hide();
+
+        // If we have an editorBaseUrl (landing page), navigate to the editor sub-page.
+        // Otherwise fall back to the old in-page show/swap (legacy single-page mode).
+        if (this.config.editorBaseUrl) {
+          window.location.href = this.config.editorBaseUrl + data.mix_id + '/';
+          return;
+        }
+
+        // Legacy in-page mode (both panels on same page)
+        this.mixId = data.mix_id;
+        const nameInput = document.getElementById('mix-name-input');
+        if (nameInput) nameInput.value = data.mix_name || '';
+        const nameBar = document.getElementById('mixer-name-bar');
+        if (nameBar) nameBar.dataset.mixId = data.mix_id;
+
+        this.showEditor();
+        this._resetMixer();
+
+        // Wire state manager to new mix
+        this._reinitStateManager(data.mix_id);
+      } else {
+        this._showToast(data.error || 'Failed to create mix', 'danger');
+      }
+    } catch (err) {
+      this._showToast('Failed to create mix: ' + err.message, 'danger');
+    } finally {
+      if (confirmBtn) {
+        confirmBtn.disabled = false;
+        confirmBtn.innerHTML = '<i class="bi bi-check-lg me-1"></i>Create Mix';
+      }
+    }
+  }
+
+  // ══════════════════════════════════════════════════════════════════════════
+  // UNIVERSAL STATE MANAGER wiring
+  // ══════════════════════════════════════════════════════════════════════════
+
+  _initStateManager() {
+    if (!window.StateManager) return;
+
+    const mixId = this.mixId || null;
+    this._sm = window.StateManager.create('species-mixer', {
+      entityType:   'SpeciesMix',
+      entityId:     mixId,
+      publishEndpoint: mixId
+        ? `${this.config.apiUrls.getMix}${mixId}/publish/`
+        : null,
+      // Save draft calls the existing _saveMix (persists to DB)
+      saveDraftFn: () => this._saveMix(),
+      // Publish modal summary badges
+      changelogConfig: [
+        {
+          label:   'species in mix',
+          icon:    'bi-flower1',
+          countFn: () => this.mixItems.length,
+        },
+        {
+          label:   'goal categories configured',
+          icon:    'bi-bullseye',
+          countFn: () => Object.values(this._goalWeights || {}).filter(v => v > 0).length,
+        },
+      ],
+    });
+
+    // Register generic action types
+    this._sm.registerActionType('mix:updateField', {
+      execute:  ({ obj, field, val })  => { obj[field] = val; },
+      undo:     ({ obj, field, prev }) => { obj[field] = prev; },
+      describe: ({ field, val })       => `Set ${field} to ${val}`,
+    });
+    this._sm.registerActionType('mix:addSpecies', {
+      execute:  ({ item })  => { this.mixItems.push(item); this._renderTable(); },
+      undo:     ({ speciesId }) => {
+        this.mixItems = this.mixItems.filter(i => i.species_id !== speciesId);
+        this._renderTable();
+      },
+      describe: ({ name })  => `Added ${name}`,
+    });
+    this._sm.registerActionType('mix:removeSpecies', {
+      execute:  ({ speciesId }) => {
+        this.mixItems = this.mixItems.filter(i => i.species_id !== speciesId);
+        const total = this.mixItems.reduce((s, m) => s + m.ratio, 0);
+        if (total > 0) this.mixItems.forEach(m => { m.ratio = m.ratio / total; });
+        this._renderTable();
+      },
+      undo:     ({ item })  => { this.mixItems.push(item); this._renderTable(); },
+      describe: ({ speciesId }) => `Removed species`,
+    });
+
+    this._sm.bindToolbar('species-mixer');
+  }
+
+  /** Re-wire state manager when a new mix is created (updates entityId + publishEndpoint). */
+  _reinitStateManager(mixId) {
+    if (!this._sm) return;
+    this._sm.config.entityId      = mixId;
+    this._sm.config.publishEndpoint = `${this.config.apiUrls.getMix}${mixId}/publish/`;
+  }
+
+  /**
+   * Mark the state manager dirty with a non-reversible change description.
+   * Used for settings that affect the next generation but don't have meaningful undo semantics
+   * (e.g. toggling a data source, resetting goals, changing max species count).
+   */
+  _smMarkDirty(description = 'Changed setting') {
+    if (!this._sm) return;
+    const type = 'mix:settingChanged';
+    if (!this._sm.actionTypes.has(type)) {
+      this._sm.registerActionType(type, {
+        execute:  () => {},
+        undo:     () => {},
+        describe: ({ desc }) => desc,
+      });
+    }
+    this._sm.dispatch(type, {
+      executeData: { desc: description },
+      undoData:    { desc: description },
+      entityRef:   { model: 'SpeciesMix', field: 'settings' },
+    });
+  }
+
+  // ══════════════════════════════════════════════════════════════════════════
+  // DANGER ZONE — delete mix
+  // ══════════════════════════════════════════════════════════════════════════
+
+  _showDangerZone() {
+    const zone = document.getElementById('mixer-danger-zone');
+    if (!zone) return;
+    // Show to owner (always true here — API only returns user's own mixes)
+    // or superuser
+    zone.classList.remove('d-none');
+  }
+
+  _openDeleteConfirm() {
+    const mixName = document.getElementById('mix-name-input')?.value || 'this mix';
+
+    // Populate name references
+    const nameEl = document.getElementById('delete-mix-name');
+    const hintEl = document.getElementById('delete-mix-name-hint');
+    if (nameEl) nameEl.textContent = mixName;
+    if (hintEl) hintEl.textContent = mixName;
+
+    // Reset confirm input
+    const input      = document.getElementById('delete-mix-confirm-input');
+    const confirmBtn = document.getElementById('confirm-delete-mix-btn');
+    if (input)      { input.value = ''; input.classList.remove('is-invalid'); }
+    if (confirmBtn) confirmBtn.disabled = true;
+
+    // Enable confirm only when typed name matches exactly
+    if (input) {
+      if (input._deleteHandler) input.removeEventListener('input', input._deleteHandler);
+      input._deleteHandler = () => {
+        const matches = input.value.trim() === mixName.trim();
+        if (confirmBtn) confirmBtn.disabled = !matches;
+        input.classList.toggle('is-invalid', input.value.length > 0 && !matches);
+      };
+      input.addEventListener('input', input._deleteHandler);
+    }
+
+    bootstrap.Modal.getOrCreateInstance(document.getElementById('deleteMixModal')).show();
+  }
+
+  async _confirmDeleteMix() {
+    if (!this.mixId) return;
+    const confirmBtn = document.getElementById('confirm-delete-mix-btn');
+    if (confirmBtn) {
+      confirmBtn.disabled = true;
+      confirmBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Deleting…';
+    }
+    try {
+      const resp = await fetch(
+        `${this.config.apiUrls.getMix}${this.mixId}/delete/`,
+        {
+          method:  'DELETE',
+          headers: {
+            'X-CSRFToken':      this.config.csrfToken,
+            'X-Requested-With': 'XMLHttpRequest',
+          },
+        }
+      );
+      const data = await resp.json();
+      if (data.success || resp.ok) {
+        bootstrap.Modal.getOrCreateInstance(document.getElementById('deleteMixModal')).hide();
+        this._showToast('Mix deleted.', 'info');
+        this.mixId = null;
+        this.showLanding();
+      } else {
+        this._showToast(data.error || 'Failed to delete mix', 'danger');
+        if (confirmBtn) {
+          confirmBtn.disabled = false;
+          confirmBtn.innerHTML = '<i class="bi bi-trash me-1"></i>Delete forever';
+        }
+      }
+    } catch (err) {
+      this._showToast('Failed to delete mix: ' + err.message, 'danger');
+      if (confirmBtn) {
+        confirmBtn.disabled = false;
+        confirmBtn.innerHTML = '<i class="bi bi-trash me-1"></i>Delete forever';
+      }
+    }
+  }
+
+  // ══════════════════════════════════════════════════════════════════════════
+  // Utility helpers
+  // ══════════════════════════════════════════════════════════════════════════
+
+  _truncate(str, len) {
+    return str.length > len ? str.slice(0, len - 1) + '…' : str;
+  }
+
+  _escapeHtml(str) {
+    return String(str)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;');
+  }
+
+  _timeAgo(isoString) {
+    const diff = Math.floor((Date.now() - new Date(isoString)) / 1000);
+    if (diff < 60)   return `${diff}s ago`;
+    if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
+    if (diff < 86400)return `${Math.floor(diff / 3600)}h ago`;
+    return `${Math.floor(diff / 86400)}d ago`;
   }
 
   // ──────────────────────────────────────────────────────────────────────────
@@ -4061,6 +4882,26 @@ class SpeciesMixer {
 
   _getNativesOnly() {
     return document.getElementById('natives-only-toggle')?.checked || false;
+  }
+
+  _getScoreFactors() {
+    const factors = {};
+    document.querySelectorAll('.score-factor-check').forEach(cb => {
+      if (cb.dataset.factor) factors[cb.dataset.factor] = cb.checked;
+    });
+    return factors;
+  }
+
+  _getApiSources() {
+    const result = {};
+    document.querySelectorAll('.api-toggle-item input[type="checkbox"]').forEach(cb => {
+      if (cb.dataset.api) result[cb.dataset.api] = cb.checked;
+    });
+    return result;
+  }
+
+  _getActivePreset() {
+    return document.querySelector('.preset-btn.active')?.dataset.preset || 'balanced';
   }
 
   _updateCatCompositionBar() {
@@ -4176,40 +5017,186 @@ class SpeciesMixer {
     return matched.slice(0, 3); // cap at 3 to keep cell compact
   }
 
-  // Shared score badge — coloured circle icon + numeric score, tooltip explains environmental fit.
-  // Colour bands: 0–2 red, 3–5 orange, 6–8 yellow, 9–10 green.
-  // Used for both AI-generated mix rows and manual-add validation results.
-  _scoreBadge(score, reason) {
+  // Score badge using 1–5 scale with a rich popover on hover.
+  // 1=Red (not suitable), 2=Amber, 3=Orange, 4=Dark green, 5=Green (excellent).
+  // Returns HTML string — caller must call _initScoreBadgePopover(el) after inserting into DOM.
+  _scoreBadge(score, scoreReason) {
     if (score == null) {
       return '<span class="text-muted" style="font-size:.75rem;">—</span>';
     }
-    const n = Math.round(Math.min(10, Math.max(0, score)));
-    let colour, label;
-    if      (n <= 2) { colour = 'var(--bs-danger,  #dc3545)'; label = 'Poor';      }
-    else if (n <= 5) { colour = 'var(--bs-orange,  #fd7e14)'; label = 'Fair';      }
-    else if (n <= 8) { colour = 'var(--bs-warning, #ffc107)'; label = 'Good';      }
-    else             { colour = 'var(--bs-success, #198754)'; label = 'Excellent'; }
-
-    const tip = reason ? `${label} (${n}/10) — ${reason}` : `${label} (${n}/10)`;
-    // Escape quotes in tooltip text
-    const safeTip = tip.replace(/"/g, '&quot;');
-    return `<span class="species-score-badge" style="color:${colour};" title="${safeTip}" data-bs-toggle="tooltip" data-bs-placement="left">
+    const n = Math.round(Math.min(5, Math.max(1, score)));
+    const BANDS = {
+      1: { colour: '#dc3545', label: 'Not suitable' },
+      2: { colour: '#e65c00', label: 'Poor' },
+      3: { colour: '#fd7e14', label: 'Fair' },
+      4: { colour: '#2e7d32', label: 'Good' },
+      5: { colour: '#198754', label: 'Excellent' },
+    };
+    const { colour, label } = BANDS[n] || BANDS[3];
+    // Encode reason into a data attribute — popover content is built in _initScoreBadgePopover
+    const safeReason = (scoreReason || '').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+    return `<span class="species-score-badge" style="color:${colour}; cursor:pointer;"
+      data-score="${n}" data-score-label="${label}" data-score-reason="${safeReason}">
       <i class="bi bi-circle-fill" style="font-size:0.55rem; vertical-align:middle;"></i>
-      <span style="font-size:0.78rem; font-weight:600; vertical-align:middle;">${n}<span style="font-size:0.65rem; font-weight:400; opacity:0.7;">/10</span></span>
+      <span style="font-size:0.78rem; font-weight:600; vertical-align:middle;">${n}<span style="font-size:0.65rem; font-weight:400; opacity:0.7;">/5</span></span>
     </span>`;
   }
 
-  // Legacy shim — called from row build; maps old suitability fields to score badge.
-  _nativeBadge(item) {
-    // If a numeric score is available, use it directly
-    if (item.suitability_score != null) {
-      return this._scoreBadge(item.suitability_score, item.ai_reason || null);
+  // Initialise Bootstrap popover on a score badge element already in the DOM.
+  // Uses manual trigger + mouseenter/leave delay (same as name-cell popover) so
+  // the user can hover into the popover to copy text or follow links.
+  _initScoreBadgePopover(badgeEl) {
+    if (!badgeEl) return;
+    const n      = parseInt(badgeEl.dataset.score, 10);
+    const label  = badgeEl.dataset.scoreLabel || '';
+    const colour = badgeEl.style.color || '#6c757d';
+
+    // Parse structured JSON reason produced by _score_reason_for()
+    let data = null;
+    try {
+      const raw = badgeEl.dataset.scoreReason || '';
+      const decoded = raw.replace(/&quot;/g, '"').replace(/&#39;/g, "'");
+      data = decoded ? JSON.parse(decoded) : null;
+    } catch { /* legacy plain-text fallback */ }
+
+    const BAND_COLOUR = {
+      1: '#dc3545', 2: '#e65c00', 3: '#fd7e14', 4: '#2e7d32', 5: '#198754',
+    };
+    const BAND_BG = {
+      1: 'rgba(220,53,69,0.10)',
+      2: 'rgba(230,92,0,0.10)',
+      3: 'rgba(253,126,20,0.10)',
+      4: 'rgba(46,125,50,0.10)',
+      5: 'rgba(25,135,84,0.10)',
+    };
+    const scoreColour = BAND_COLOUR[n] || colour;
+    const bg = BAND_BG[n] || 'transparent';
+
+    // Unicode arrows — Bootstrap's sanitizer strips SVG, so use text characters
+    const UP_ARROW   = `<span style="color:#198754;font-size:0.75rem;margin-right:5px;font-weight:700;">&#9650;</span>`;
+    const DOWN_ARROW = `<span style="color:#dc3545;font-size:0.75rem;margin-right:5px;font-weight:700;">&#9660;</span>`;
+    const DASH_ICON  = `<span style="color:#6c757d;font-size:0.75rem;margin-right:5px;">&#8211;</span>`;
+
+    // ── Score dots (5 filled/unfilled circles) ────────────────────────────
+    const SCORE_DOTS = Array.from({length: 5}, (_, i) =>
+      `<span style="display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:2px;` +
+      `background:${i < n ? scoreColour : '#dee2e6'};"></span>`
+    ).join('');
+
+    // ── Section 1: Overview ───────────────────────────────────────────────
+    let body = `<div style="background:${bg};border-radius:8px;padding:0.55rem 0.7rem;margin-bottom:0.6rem;">`;
+    // Row 1: score number + label + dots
+    body += `<div style="display:flex;align-items:center;gap:0.4rem;margin-bottom:0.2rem;">`;
+    body += `<span style="color:${scoreColour};font-weight:800;font-size:1.5rem;line-height:1;">${n}</span>`;
+    body += `<span style="color:${scoreColour};font-size:0.75rem;font-weight:500;margin-top:0.4rem;">/5</span>`;
+    body += `<span style="color:${scoreColour};font-size:0.9rem;font-weight:700;margin-left:0.1rem;">${label}</span>`;
+    body += `<span style="margin-left:auto;display:flex;align-items:center;">${SCORE_DOTS}</span>`;
+    body += `</div>`;
+    // Row 2: raw score context
+    if (data) {
+      body += `<div style="font-size:0.72rem;color:#6c757d;">`;
+      body += `Raw score: <strong style="color:inherit;">${data.raw} pts</strong>`;
+      body += ` &nbsp;&#8226;&nbsp; ${data.rank_band} of ${data.pool} candidates`;
+      body += `</div>`;
     }
-    // Map label-only records (pre-score data) to an approximate numeric score
+    body += `</div>`;
+
+    if (data) {
+      // ── Section 2: Pros ──────────────────────────────────────────────────
+      if (data.gained && data.gained.length) {
+        body += `<div style="margin-bottom:0.5rem;">`;
+        body += `<div style="font-size:0.68rem;font-weight:700;text-transform:uppercase;` +
+                `letter-spacing:.06em;color:#198754;margin-bottom:0.2rem;">Pros</div>`;
+        data.gained.forEach(g => {
+          const ptsLabel = g.pts > 0 ? `+${g.pts} pts` : `${g.pts} pts`;
+          body += `<div style="display:flex;justify-content:space-between;align-items:baseline;` +
+                  `gap:0.5rem;font-size:0.8rem;padding:0.14rem 0;` +
+                  `border-bottom:1px solid rgba(0,0,0,0.05);">`;
+          body += `<span>${UP_ARROW}${g.label}</span>`;
+          body += `<span style="color:#198754;font-weight:700;white-space:nowrap;` +
+                  `font-size:0.75rem;flex-shrink:0;">${ptsLabel}</span>`;
+          body += `</div>`;
+        });
+        body += `</div>`;
+      }
+
+      // ── Section 3: Cons (actual penalties / missing data) ────────────────
+      if (data.lost && data.lost.length) {
+        body += `<div style="border-top:1px solid #dee2e6;padding-top:0.4rem;margin-bottom:0.5rem;">`;
+        body += `<div style="font-size:0.68rem;font-weight:700;text-transform:uppercase;` +
+                `letter-spacing:.06em;color:#dc3545;margin-bottom:0.2rem;">Cons</div>`;
+        // All lost items are cons — always use DOWN_ARROW.
+        // pts < 0 = actual penalty shown in red; pts === 0 = informational gap, no pts deducted.
+        (data.lost || []).forEach(item => {
+          const ptsLabel = item.pts < 0 ? `${item.pts} pts` : 'no pts';
+          const ptsColour = item.pts < 0 ? '#dc3545' : '#6c757d';
+          body += `<div style="display:flex;justify-content:space-between;align-items:baseline;` +
+                  `gap:0.5rem;font-size:0.8rem;padding:0.14rem 0;` +
+                  `border-bottom:1px solid rgba(0,0,0,0.05);">`;
+          body += `<span>${DOWN_ARROW}${item.label}</span>`;
+          body += `<span style="color:${ptsColour};font-weight:700;white-space:nowrap;` +
+                  `font-size:0.75rem;flex-shrink:0;">${ptsLabel}</span>`;
+          body += `</div>`;
+        });
+        body += `</div>`;
+      }
+
+      // ── Footer note ──────────────────────────────────────────────────────
+      if (data.note) {
+        body += `<div style="border-top:1px solid #dee2e6;padding-top:0.35rem;` +
+                `font-size:0.72rem;color:#6c757d;line-height:1.5;font-style:italic;">${data.note}</div>`;
+      }
+    } else {
+      const fallback = (badgeEl.dataset.scoreReason || '')
+        .replace(/&quot;/g, '"').replace(/&#39;/g, "'")
+        || 'Score based on relative ranking within species found near this location.';
+      body += `<div style="font-size:0.8rem;line-height:1.5;">${fallback}</div>`;
+    }
+
+    // ── Create popover with manual trigger (allows mousing into it) ───────
+    const pop = new bootstrap.Popover(badgeEl, {
+      content:     body,
+      title:       'Suitability score',
+      html:        true,
+      sanitize:    false,  // content is fully internal — no user input reaches here
+      trigger:     'manual',
+      placement:   'left',
+      container:   'body',
+      customClass: 'score-badge-popover',
+    });
+
+    let hideTimer = null;
+    const showPop = () => { clearTimeout(hideTimer); pop.show(); };
+    const hidePop = () => { hideTimer = setTimeout(() => pop.hide(), 200); };
+
+    badgeEl.addEventListener('mouseenter', showPop);
+    badgeEl.addEventListener('mouseleave', hidePop);
+
+    // Keep visible while mouse is inside the popover itself
+    badgeEl.addEventListener('shown.bs.popover', () => {
+      const tip = document.getElementById(badgeEl.getAttribute('aria-describedby'));
+      if (!tip) return;
+      tip.addEventListener('mouseenter', () => clearTimeout(hideTimer));
+      tip.addEventListener('mouseleave', hidePop);
+    });
+  }
+
+  // Called from row build — maps suitability fields to score badge.
+  _nativeBadge(item) {
+    // score_reason (auto-generated) > ai_reason (manual validation) > reason (inclusion text)
+    const scoreReason = item.score_reason || item.ai_reason || item.reason || null;
+    if (item.suitability_score != null) {
+      return this._scoreBadge(item.suitability_score, scoreReason);
+    }
+    // Map label-only records (legacy/pre-score data) to approximate 1–5 score
     const label = (item.suitability_label || '').toLowerCase();
-    const scoreMap = { good: 8, acceptable: 5, not_recommended: 2 };
+    const scoreMap = {
+      excellent: 5, good: 4, fair: 3, poor: 2, not_suitable: 1,
+      // legacy labels
+      acceptable: 3, not_recommended: 1,
+    };
     const fallbackScore = scoreMap[label] ?? null;
-    return this._scoreBadge(fallbackScore, item.ai_reason || null);
+    return this._scoreBadge(fallbackScore, scoreReason);
   }
 
   // Called when a validation result arrives for a manually added species.

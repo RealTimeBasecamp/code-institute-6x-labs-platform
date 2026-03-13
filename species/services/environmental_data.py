@@ -72,6 +72,10 @@ SPECIES DATABASES (what species grow at this location?):
   🔷  NBN Atlas                  https://records-ws.nbnatlas.org/
       Free, no auth. UK-specific plant records (BSBI data included). ALA query syntax.
 
+  ✅  POWO (Kew)                 https://powo.science.kew.org/api/2/
+      Free, no auth. Plants of the World Online — Kew's authoritative native range
+      data. Used as secondary fallback for UK nativeness when GBIF returns 'unknown'.
+
   🔶  World Flora Online (WFO)   https://list.worldfloraonline.org/api/
       Free, no auth. Authoritative plant taxonomy + name matching.
 
@@ -247,33 +251,88 @@ def _classify_texture(clay: float | None, silt: float | None, sand: float | None
 
 
 # =============================================================================
-# 🔶 OPENLANDMAP — https://api.openlandmap.org/query/point
-# Free, no auth. Soil + land cover point query. Complements SoilGrids.
-# NEXT TO IMPLEMENT: adds land cover class, NDVI, additional soil layers.
+# ✅ OPENLANDMAP — https://api.openlandmap.org/query/point
+# Free, no auth. Land cover (ESA CCI) + WRB soil type at any lat/lng.
+# Complements SoilGrids: SoilGrids gives raw pH/texture; WRB gives the curated
+# soil classification derived from those measurements.
+# Cached 30 days alongside existing climate call.
 # =============================================================================
+
+# ESA CCI land cover integer codes → simplified habitat label
+_ESA_LAND_COVER = {
+    10: 'cropland', 11: 'cropland', 12: 'cropland', 20: 'cropland', 40: 'cropland',
+    30: 'grassland', 130: 'grassland',
+    50: 'forest', 60: 'forest', 61: 'forest', 62: 'forest',
+    70: 'forest', 71: 'forest', 72: 'forest',
+    80: 'forest', 81: 'forest', 82: 'forest', 90: 'forest',
+    100: 'shrubland', 110: 'shrubland',
+    120: 'shrubland', 121: 'shrubland', 122: 'shrubland',
+    140: 'heath_moss',
+    150: 'sparse', 151: 'sparse', 152: 'sparse', 153: 'sparse',
+    160: 'wetland', 170: 'wetland', 180: 'wetland',
+    190: 'urban',
+    200: 'bare', 201: 'bare', 202: 'bare',
+    210: 'water', 220: 'ice',
+}
+
+# WRB/USDA soil group keyword → simplified category for scoring
+_WRB_SOIL_GROUPS = {
+    'histosol': 'peat',     'histosols': 'peat',
+    'gleysol':  'gleyed',   'gleysols':  'gleyed',
+    'fluvisol': 'gleyed',   'fluvisols': 'gleyed',
+    'podzol':   'podzol',   'podzols':   'podzol',   'spodosol': 'podzol',
+    'calcisol': 'calcareous', 'kastanozem': 'calcareous', 'chernozem': 'calcareous',
+    'arenosol': 'sandy',    'arenosols': 'sandy',
+    'vertisol': 'clay_heavy', 'vertisols': 'clay_heavy',
+    'cambisol': 'loamy',    'inceptisol': 'loamy',
+}
+
+
 def fetch_openlandmap(lat: float, lng: float) -> dict:
     """
-    Fetch soil and land cover data from OpenLandMap at lat/lng.
+    Fetch ESA CCI land cover class and WRB soil type from OpenLandMap.
 
     Returns dict with keys:
-      land_cover (str)        — broad land cover class (e.g. 'grassland', 'forest')
-      soil_type (str)         — WRB soil type (e.g. 'Cambisol', 'Histosol')
+      land_cover (str|None) — 'forest', 'grassland', 'shrubland', 'heath_moss',
+                              'wetland', 'cropland', 'urban', 'sparse', or None
+      soil_type  (str|None) — 'peat', 'gleyed', 'podzol', 'calcareous',
+                              'sandy', 'clay_heavy', 'loamy', or None
 
-    NOTE: Not yet implemented. API endpoint: https://api.openlandmap.org/query/point?lat={lat}&lon={lng}
-    Returns JSON with layer-keyed values. Add layer IDs for soil type (sol_grtgroup_usda.soilgrids)
-    and land cover (lcv_landcover_esacci.lc.l4) to the query.
+    Cached for 30 days. Returns None values gracefully if API is unavailable.
     """
-    key = _cache_key('openlandmap', lat, lng)
+    key = _cache_key('openlandmap_lc', lat, lng)
     cached = cache.get(key)
     if cached is not None:
         return cached
 
-    # TODO: implement — add layer IDs and parse response
-    # data = _get(
-    #     'https://api.openlandmap.org/query/point',
-    #     params={'lat': lat, 'lon': lng, 'layer': ['lcv_landcover_esacci.lc.l4', 'sol_grtgroup_usda.soilgrids']}
-    # )
+    # Use list-of-tuples so requests sends repeated ?regex= params correctly
+    data = _get(
+        'https://api.openlandmap.org/query/point',
+        params=[
+            ('lat', lat), ('lon', lng),
+            ('coll', ''), ('mosaic', 'false'), ('oem', 'false'),
+            ('regex', 'lcv_landcover_esacci.lc.l4.*'),
+            ('regex', 'sol_grtgroup_usda.soilgrids.*'),
+        ],
+        timeout=8,
+    )
+
     result = {'land_cover': None, 'soil_type': None}
+    if data and isinstance(data, dict):
+        for layer_key, layer_val in data.items():
+            raw = layer_val.get('value') if isinstance(layer_val, dict) else layer_val
+            if raw is None:
+                continue
+            if 'landcover' in layer_key:
+                try:
+                    result['land_cover'] = _ESA_LAND_COVER.get(int(float(raw)))
+                except (ValueError, TypeError):
+                    pass
+            elif 'soilgrids' in layer_key or 'grtgroup' in layer_key:
+                label = str(raw).lower()
+                result['soil_type'] = next(
+                    (v for k, v in _WRB_SOIL_GROUPS.items() if k in label), 'loamy'
+                )
 
     cache.set(key, result, _CACHE_TTL)
     return result
@@ -891,26 +950,109 @@ def fetch_uk_nativeness(gbif_key: int | None, scientific_name: str = '') -> str:
         cache.set(cache_key, 'unknown', _UK_NATIVE_TTL)
         return 'unknown'
 
+    # Scan ALL UK distribution records and take the highest-priority status.
+    # GBIF often returns multiple records per region (e.g. one NATIVE from the
+    # botanical checklist, one INTRODUCED from a garden record). Returning on
+    # the first match causes species like Ilex aquifolium (English holly) to be
+    # wrongly classified as 'introduced' if that record appears first.
+    # Priority: native > naturalised > introduced > unknown
+    _PRIORITY = {'native': 3, 'naturalised': 2, 'introduced': 1, 'unknown': 0}
+    best = 'unknown'
+
     for dist in data['results']:
         location = (
             dist.get('locationId') or
             dist.get('location') or ''
         ).upper()
-        if any(code in location for code in _UK_TDWG_CODES):
-            means = (dist.get('establishmentMeans') or '').upper()
-            if means == 'NATIVE':
-                result = 'native'
-            elif means in ('INTRODUCED', 'MANAGED', 'INVASIVE'):
-                result = 'introduced'
-            elif means == 'NATURALISED':
-                result = 'naturalised'
-            else:
-                result = 'unknown'
-            cache.set(cache_key, result, _UK_NATIVE_TTL)
-            return result
+        if not any(code in location for code in _UK_TDWG_CODES):
+            continue
+        means = (dist.get('establishmentMeans') or '').upper()
+        if means == 'NATIVE':
+            candidate = 'native'
+        elif means == 'NATURALISED':
+            candidate = 'naturalised'
+        elif means in ('INTRODUCED', 'MANAGED', 'INVASIVE'):
+            candidate = 'introduced'
+        else:
+            candidate = 'unknown'
+        if _PRIORITY[candidate] > _PRIORITY[best]:
+            best = candidate
+        if best == 'native':
+            break  # can't do better — stop early
 
-    cache.set(cache_key, 'unknown', _UK_NATIVE_TTL)
-    return 'unknown'
+    # If GBIF returned nothing useful, try POWO (Plants of the World Online, Kew)
+    # as a secondary authoritative source. POWO distribution data is native-range
+    # focused and directly curated by Kew botanists — it's the most reliable
+    # source for establishing UK native vs introduced status.
+    if best == 'unknown' and scientific_name:
+        powo_result = _fetch_powo_nativeness(scientific_name)
+        if powo_result != 'unknown':
+            best = powo_result
+
+    cache.set(cache_key, best, _UK_NATIVE_TTL)
+    return best
+
+
+def _fetch_powo_nativeness(scientific_name: str) -> str:
+    """
+    Query Plants of the World Online (Kew) for UK nativeness status.
+
+    POWO distribution data is curated by Kew botanists using the WCVP checklist.
+    Returns 'native', 'introduced', 'naturalised', or 'unknown'.
+
+    Used as a secondary fallback when GBIF distributions return no UK data.
+    POWO API: https://powo.science.kew.org/api/2/search (no auth required)
+    """
+    # Search for the species by name
+    search_data = _get(
+        'https://powo.science.kew.org/api/2/search',
+        params={'q': scientific_name, 'f': 'plants_of_the_world_online'},
+        timeout=6,
+    )
+    if not search_data or not search_data.get('results'):
+        return 'unknown'
+
+    # Take the first exact or closest match
+    best_match = None
+    name_lower = scientific_name.lower()
+    for result in search_data['results']:
+        accepted = (result.get('accepted') or True)
+        result_name = (result.get('name') or '').lower()
+        if result_name == name_lower and accepted:
+            best_match = result
+            break
+        if best_match is None and accepted:
+            best_match = result  # fallback: first accepted result
+
+    if not best_match or not best_match.get('url'):
+        return 'unknown'
+
+    # Fetch the taxon detail page for distribution data
+    taxon_url = f"https://powo.science.kew.org/api/2{best_match['url']}"
+    taxon_data = _get(taxon_url, timeout=6)
+    if not taxon_data:
+        return 'unknown'
+
+    # POWO distribution uses regions like 'Great Britain', 'Ireland', 'Channel Islands'
+    # with 'introduced' or 'native' establishment
+    _GB_REGIONS = {'great britain', 'ireland', 'orkney islands', 'hebrides', 'channel islands', 'shetland islands'}
+    _PRIORITY = {'native': 3, 'naturalised': 2, 'introduced': 1, 'unknown': 0}
+    best = 'unknown'
+
+    for dist in taxon_data.get('distribution', {}).get('natives', []):
+        region = (dist.get('name') or '').lower()
+        if region in _GB_REGIONS:
+            best = 'native'
+            break  # confirmed native — stop
+
+    if best == 'unknown':
+        for dist in taxon_data.get('distribution', {}).get('introduced', []):
+            region = (dist.get('name') or '').lower()
+            if region in _GB_REGIONS:
+                if _PRIORITY.get('introduced', 1) > _PRIORITY[best]:
+                    best = 'introduced'
+
+    return best
 
 
 # =============================================================================

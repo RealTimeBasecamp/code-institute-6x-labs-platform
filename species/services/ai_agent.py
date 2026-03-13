@@ -48,6 +48,7 @@ from species.services.environmental_data import (
     fetch_gbif,
     fetch_hydrology,
     fetch_nbn_atlas,
+    fetch_openlandmap,
     fetch_soilgrids,
 )
 
@@ -56,11 +57,15 @@ logger = logging.getLogger(__name__)
 
 def _persist_species_data(species_mix: list) -> None:
     """
-    Upsert planting.Species for every selected species in the mix.
+    Upsert planting.Species for every selected species in the mix and write
+    the resulting DB pk back into each item dict as ``species_id``.
 
-    Runs in a background thread so it doesn't delay the progress event.
-    This grows the global DB cache over time — once a species is stored by
-    gbif_taxon_key it is recognised in every future generation worldwide,
+    Must be called synchronously in the task worker before _set_complete so
+    that species_id values are present in the cached result — the frontend
+    sends them to api_save_mix which uses them as FKs on SpeciesMixItem.
+
+    This also grows the global DB cache over time — once a species is stored
+    by gbif_taxon_key it is recognised in every future generation worldwide,
     skipping expensive GBIF trait-enrichment API calls.
 
     Image URL is written separately by api_species_image when first fetched.
@@ -74,7 +79,7 @@ def _persist_species_data(species_mix: list) -> None:
             if not gbif_key:
                 continue
             try:
-                PlantingSpecies.objects.update_or_create(
+                obj, _ = PlantingSpecies.objects.update_or_create(
                     gbif_taxon_key=gbif_key,
                     defaults={
                         'cultivar': '',  # required field; empty for mixer-sourced species
@@ -93,6 +98,7 @@ def _persist_species_data(species_mix: list) -> None:
                         },
                     },
                 )
+                s['species_id'] = obj.pk  # resolve FK for SpeciesMixItem
             except Exception as exc:  # noqa: BLE001
                 logger.warning('_persist_species_data: failed for gbif_key=%s: %s', gbif_key, exc)
     finally:
@@ -605,8 +611,8 @@ class SpeciesMixAgent:
 
         Returns:
             {
-                'suitability_score': float (0–10),
-                'suitability_label': 'good' | 'acceptable' | 'not_recommended',
+                'suitability_score': int (1–5),
+                'suitability_label': 'excellent' | 'good' | 'fair' | 'poor' | 'not_suitable',
                 'reason': str,
                 'suggested_ratios': [{'species_id': int, 'ratio': float}, ...]
             }
@@ -635,12 +641,13 @@ class SpeciesMixAgent:
                     f'ENVIRONMENTAL CONDITIONS AT LOCATION:\n{env_summary}\n\n'
                     f'CURRENT MIX SPECIES:\n{current_summary}\n\n'
                     f'Tasks:\n'
-                    f'1. Rate this species suitability (0–10) for this location\n'
-                    f'2. Classify: "good" (8-10), "acceptable" (5-7), "not_recommended" (0-4)\n'
-                    f'3. Give a one-sentence reason\n'
+                    f'1. Rate this species suitability on a 1–5 integer scale for this location\n'
+                    f'   1=not_suitable, 2=poor, 3=fair, 4=good, 5=excellent\n'
+                    f'2. Classify: "excellent" (5), "good" (4), "fair" (3), "poor" (2), "not_suitable" (1)\n'
+                    f'3. Give a one-sentence reason explaining the score\n'
                     f'4. Suggest revised ratios for all species including the new one (sum to 1.0)\n\n'
                     f'Return ONLY this JSON:\n'
-                    f'{{"suitability_score": <float>, "suitability_label": "<str>", '
+                    f'{{"suitability_score": <int 1-5>, "suitability_label": "<str>", '
                     f'"reason": "<str>", "suggested_ratios": [{{"species_id": <int>, "ratio": <float>}}]}}'
                 ),
             },
@@ -650,15 +657,15 @@ class SpeciesMixAgent:
         if response:
             content = response['choices'][0]['message']['content'] or ''
             result = self._parse_json_response(content)
-            result.setdefault('suitability_score', 5.0)
-            result.setdefault('suitability_label', 'acceptable')
+            result.setdefault('suitability_score', 3)
+            result.setdefault('suitability_label', 'fair')
             result.setdefault('reason', 'Unable to assess suitability.')
             result.setdefault('suggested_ratios', [])
             return result
 
         return {
-            'suitability_score': 5.0,
-            'suitability_label': 'acceptable',
+            'suitability_score': 3,
+            'suitability_label': 'fair',
             'reason': 'AI validation unavailable — please assess manually.',
             'suggested_ratios': [],
         }
@@ -721,19 +728,22 @@ class SpeciesMixAgent:
         # ── Phase 1 & 2: Collect environmental data + candidate species ──────
         _p = on_progress or (lambda msg, count=None, **kw: None)
 
-        # Fetch all three environmental sources in parallel — they are fully
-        # independent and each can take 5–15s, so serial fetching wastes ~10s.
+        # Fetch all four environmental sources in parallel — they are fully
+        # independent and each can take 5–15s, so serial fetching wastes ~30s.
         _p('Querying Soil Data...')
         _p('Querying Climate Data...')
         _p('Querying Hydrology Data...')
+        _p('Querying Land Cover Data...')
         from concurrent.futures import ThreadPoolExecutor as _EnvTPE, as_completed as _env_ac
-        with _EnvTPE(max_workers=3) as _env_pool:
+        with _EnvTPE(max_workers=4) as _env_pool:
             _soil_f = _env_pool.submit(fetch_soilgrids, lat, lng)
             _climate_f = _env_pool.submit(fetch_climate, lat, lng)
             _hydrology_f = _env_pool.submit(fetch_hydrology, lat, lng)
+            _landcover_f = _env_pool.submit(fetch_openlandmap, lat, lng)
             soil = _soil_f.result()
             climate = _climate_f.result()
             hydrology = _hydrology_f.result()
+            landcover = _landcover_f.result()
 
         if soil is None:
             logger.warning('rule_based_generate (%.4f,%.4f): soil=None', lat, lng)
@@ -757,6 +767,8 @@ class SpeciesMixAgent:
             'soil': soil,
             'climate': climate,
             'hydrology': hydrology,
+            'land_cover': landcover.get('land_cover') if landcover else None,
+            'soil_type': landcover.get('soil_type') if landcover else None,
         })
 
         _p('Searching UK Botanical Survey Records...')
@@ -795,18 +807,26 @@ class SpeciesMixAgent:
         # Private control keys (_category_targets, _natives_only) are passed through as-is;
         # numeric goal keys are cast to int.
         goal_weights = {k: (int(v) if not k.startswith('_') else v) for k, v in goals.items()}
+        # score_factors dict: factor_key -> bool. Missing key defaults to True (enabled).
+        _score_factors = goal_weights.get('_score_factors') or {}
+        def _factor(key):
+            return _score_factors.get(key, True)
         _soil = soil or {}
         _climate = climate or {}
         _hydrology = hydrology or {}
         ph = _soil.get('ph')                              # float, e.g. 5.8
         moisture = _soil.get('moisture_class', 'moist')   # dry / moist / wet
         organic_c = _soil.get('organic_carbon')           # %, proxy for peat
+        clay_pct = _soil.get('clay_pct')                  # % clay (soil texture)
+        sand_pct = _soil.get('sand_pct')                  # % sand (soil texture)
         flood_risk = _hydrology.get('flood_risk', 'low')  # high / medium / low
         water_nearby = _hydrology.get('water_body_nearby', False)
         rainfall = _climate.get('mean_annual_rainfall_mm', 700)
         mean_temp = _climate.get('mean_temp_c')           # °C (None if heuristic)
         frost_days = _climate.get('frost_days_per_year')  # days/yr
         growing_days = _climate.get('growing_season_days')# days with temp > 5°C
+        land_cover = env_data.get('land_cover')           # ESA CCI: 'forest', 'grassland', etc.
+        wrb_soil   = env_data.get('soil_type')            # WRB: 'peat', 'podzol', 'gleyed', etc.
 
         _p('Cross-referencing species against soil, climate and hydrology data...')
         # ── Phase 3: Elimination ──────────────────────────────────────────────
@@ -958,25 +978,28 @@ class SpeciesMixAgent:
             import math as _math
             score = 0
             fam = _family(c)
-            category = _category_from_family(fam)
             sources = c.get('sources', [])
 
-            # A. Observation evidence (logarithmic — prevents common species dominating)
-            # 1 obs→0, 2→6, 5→14, 10→20, 100→40 (capped at 20 to level playing field)
-            obs = max(c.get('observation_count', 1), 1)
-            score += min(int(_math.log2(obs) * 6), 20)
-            # Multi-source bonus: NBN + GBIF = confirmed UK plant (20 pts)
-            score += len(sources) * 10
+            # A. Observation evidence — logarithmic, capped low so it acts as a tie-breaker
+            # rather than a primary score driver. Citizen-science counts are biased toward
+            # common, easily-recorded, urban-accessible species.
+            # 1 obs→0, 2→4, 5→9, 10→13, 50→12 (capped at 12)
+            if _factor('observation_evidence'):
+                obs = max(c.get('observation_count', 1), 1)
+                score += min(int(_math.log2(obs) * 4), 12)
+                # Multi-source bonus: NBN + GBIF both present (up to 10 pts)
+                score += len(sources) * 5
 
-            # A2. NBN Atlas as nativeness proxy
-            # NBN presence = confirmed UK native or long-established plant
-            if 'nbn' in sources:
-                score += 25
-            # NBN-only = rare native, underrecorded in citizen science — reward explicitly
-            if sources == ['nbn']:
-                score += 10
+                # A2. NBN Atlas as nativeness proxy
+                # NBN presence = confirmed UK native or long-established plant
+                if 'nbn' in sources:
+                    score += 20
+                # NBN-only = rare native, underrecorded in citizen science — reward explicitly
+                if sources == ['nbn']:
+                    score += 8
 
             # A3. Match confidence penalty (low-confidence GBIF name matches are unreliable)
+            # Always applied — data quality check, not a user preference
             match_conf = c.get('gbif_traits', {}).get('match_confidence', 100)
             if match_conf < 60:
                 score -= 10
@@ -984,96 +1007,209 @@ class SpeciesMixAgent:
                 score -= 5
 
             # A4. UK nativeness bonus/penalty (from GBIF distributions, cached 90 days)
-            nativeness = c.get('uk_nativeness', 'unknown')
-            if nativeness == 'native':
-                score += 30   # confirmed UK native — strongly preferred
-            elif nativeness == 'naturalised':
-                score += 10   # long-established, ecologically integrated
-            elif nativeness == 'introduced':
-                score -= 15  # actively penalise introduced/invasive species
+            # Nativeness is a scientifically robust, stable signal — weighted accordingly.
+            if _factor('uk_nativeness_preference'):
+                nativeness = c.get('uk_nativeness', 'unknown')
+                if nativeness == 'native':
+                    score += 40   # confirmed UK native — primary quality signal
+                elif nativeness == 'naturalised':
+                    score += 15   # long-established, ecologically integrated
+                elif nativeness == 'introduced':
+                    score -= 20  # actively penalise introduced/invasive species
 
-            # B1. Observation bias correction (trees/grasses recorded far less than wildflowers)
-            if category == 'Tree':
-                score += 30
-            elif category == 'Grass':
-                score += 25
-            elif category in ('Fern', 'Moss'):
-                score += 15
-
-            # B2. Positive ecological fit — reward the best families for this site
-            # Flood-tolerant species get a positive bonus on flood-prone sites
-            FLOOD_TOLERANT = {'salicaceae', 'betulaceae', 'iridaceae', 'cyperaceae', 'juncaceae',
-                               'typhaceae', 'osmundaceae', 'amblystegiaceae'}
-            if flood_risk in ('high', 'medium') and fam in FLOOD_TOLERANT:
-                score += 35  # willows, alders, iris, sedges, bulrushes, royal fern
-
-            # Water proximity bonus for riparian specialists
-            if water_nearby and fam in FLOOD_TOLERANT:
-                score += 10
-
-            # Acid soil specialists rewarded on acid sites
-            if ph and ph < 5.5:
-                ACID_SPECIALISTS = {'ericaceae', 'betulaceae', 'pinaceae', 'juncaceae',
-                                    'cyperaceae', 'sphagnaceae', 'vacciniaceae'}
-                if fam in ACID_SPECIALISTS:
-                    score += 25  # heathers, birch, Scots pine, rushes
-
-            # Alkaline specialists rewarded on alkaline sites
-            if ph and ph > 7.0:
-                ALKALINE_SPECIALISTS = {'rosaceae', 'fabaceae', 'orchidaceae', 'asteraceae',
-                                        'poaceae', 'fagaceae', 'brassicaceae'}
-                if fam in ALKALINE_SPECIALISTS:
-                    score += 20  # roses, legumes, orchids, grasses, oaks
-
-            # Wet moisture specialists
-            if moisture == 'wet':
-                WET_SPECIALISTS = {'salicaceae', 'betulaceae', 'cyperaceae', 'juncaceae',
-                                   'iridaceae', 'typhaceae', 'osmundaceae', 'amblystegiaceae',
-                                   'sphagnaceae'}
-                if fam in WET_SPECIALISTS:
+            # A5. Data-sparse native floor
+            # A confirmed UK native or naturalised species with ≤3 local observations is
+            # likely under-recorded, not unsuitable. Compensate so ecological fit (B2)
+            # determines its percentile — not a gap in citizen-science coverage.
+            # Does NOT apply to 'unknown' or 'introduced' nativeness.
+            if _factor('observation_evidence'):
+                _nativeness_a5 = c.get('uk_nativeness', 'unknown')
+                _obs_raw_a5 = c.get('observation_count', 0)
+                if _nativeness_a5 in ('native', 'naturalised') and _obs_raw_a5 <= 3:
                     score += 20
 
-            # Dry moisture specialists
-            if moisture == 'dry':
-                DRY_SPECIALISTS = {'fabaceae', 'lamiaceae', 'cistaceae', 'poaceae',
-                                   'crassulaceae', 'asteraceae', 'thymelaeaceae'}
-                if fam in DRY_SPECIALISTS:
-                    score += 20
+            # B2. Positive ecological fit — reward species whose family is well-matched to the
+            # site's verified environmental data (SoilGrids, EA flood API, OpenLandMap climate).
+            # These are the primary score drivers — ecological fit should dominate over obs count.
 
-            # High rainfall specialists
-            if rainfall > 1200:
-                HIGH_RAIN_SPECIALISTS = {'betulaceae', 'salicaceae', 'ericaceae', 'sphagnaceae',
-                                         'osmundaceae', 'cyperaceae', 'juncaceae'}
-                if fam in HIGH_RAIN_SPECIALISTS:
-                    score += 15
+            # Flood tolerance
+            if _factor('flood_drainage'):
+                FLOOD_TOLERANT = {'salicaceae', 'betulaceae', 'iridaceae', 'cyperaceae', 'juncaceae',
+                                   'typhaceae', 'osmundaceae', 'amblystegiaceae'}
+                if flood_risk in ('high', 'medium') and fam in FLOOD_TOLERANT:
+                    score += 40  # willows, alders, iris, sedges, bulrushes, royal fern
+                # Water proximity bonus for riparian specialists
+                if water_nearby and fam in FLOOD_TOLERANT:
+                    score += 10
 
-            # Drought tolerance bonus for low-rainfall sites
-            if rainfall < 600:
-                DROUGHT_TOLERANT = {'fabaceae', 'lamiaceae', 'cistaceae', 'asteraceae',
-                                    'poaceae', 'crassulaceae'}
-                if fam in DROUGHT_TOLERANT:
-                    score += 15
+            # Soil pH specialists
+            if _factor('soil_ph_compatibility'):
+                if ph and ph < 5.5:
+                    ACID_SPECIALISTS = {'ericaceae', 'betulaceae', 'pinaceae', 'juncaceae',
+                                        'cyperaceae', 'sphagnaceae', 'vacciniaceae'}
+                    if fam in ACID_SPECIALISTS:
+                        score += 30  # heathers, birch, Scots pine, rushes
+                if ph and ph > 7.0:
+                    ALKALINE_SPECIALISTS = {'rosaceae', 'fabaceae', 'orchidaceae', 'asteraceae',
+                                            'poaceae', 'fagaceae', 'brassicaceae'}
+                    if fam in ALKALINE_SPECIALISTS:
+                        score += 25  # roses, legumes, orchids, grasses, oaks
 
-            # Peatland bonus (high organic carbon proxy for bog/fen habitat)
+            # Moisture specialists
+            if _factor('moisture_requirements'):
+                if moisture == 'wet':
+                    WET_SPECIALISTS = {'salicaceae', 'betulaceae', 'cyperaceae', 'juncaceae',
+                                       'iridaceae', 'typhaceae', 'osmundaceae', 'amblystegiaceae',
+                                       'sphagnaceae'}
+                    if fam in WET_SPECIALISTS:
+                        score += 25
+                if moisture == 'dry':
+                    DRY_SPECIALISTS = {'fabaceae', 'lamiaceae', 'cistaceae', 'poaceae',
+                                       'crassulaceae', 'asteraceae', 'thymelaeaceae'}
+                    if fam in DRY_SPECIALISTS:
+                        score += 25
+
+            # Rainfall specialists
+            if _factor('rainfall_climate'):
+                if rainfall > 1200:
+                    HIGH_RAIN_SPECIALISTS = {'betulaceae', 'salicaceae', 'ericaceae', 'sphagnaceae',
+                                             'osmundaceae', 'cyperaceae', 'juncaceae'}
+                    if fam in HIGH_RAIN_SPECIALISTS:
+                        score += 15
+                if rainfall < 600:
+                    DROUGHT_TOLERANT = {'fabaceae', 'lamiaceae', 'cistaceae', 'asteraceae',
+                                        'poaceae', 'crassulaceae'}
+                    if fam in DROUGHT_TOLERANT:
+                        score += 15
+
+            # Peatland bonus — ungated (high organic carbon is site-defining)
             if organic_c and organic_c > 8:
                 PEAT_SPECIALISTS = {'sphagnaceae', 'ericaceae', 'cyperaceae', 'juncaceae',
                                     'brachytheciaceae', 'hylocomiaceae'}
                 if fam in PEAT_SPECIALISTS:
+                    score += 25
+
+            # Temperature and frost hardiness
+            if _factor('temperature_frost'):
+                if mean_temp is not None and mean_temp < 6:
+                    MONTANE_FAMILIES = {'ericaceae', 'betulaceae', 'pinaceae', 'salicaceae',
+                                        'poaceae', 'juncaceae', 'cyperaceae', 'sphagnaceae'}
+                    if fam in MONTANE_FAMILIES:
+                        score += 25
+                if frost_days and frost_days > 60:
+                    FROST_HARDY = {'betulaceae', 'pinaceae', 'fagaceae', 'salicaceae',
+                                   'ericaceae', 'poaceae', 'rosaceae'}
+                    if fam in FROST_HARDY:
+                        score += 15
+
+            # B3. Soil texture match — clay-tolerant vs sandy-soil specialists
+            if _factor('soil_texture_match') and clay_pct is not None:
+                CLAY_SPECIALISTS = {'salicaceae', 'betulaceae', 'fagaceae', 'cyperaceae',
+                                    'iridaceae', 'ulmaceae', 'tiliaceae'}
+                SANDY_SPECIALISTS = {'pinaceae', 'fabaceae', 'cistaceae', 'lamiaceae',
+                                     'crassulaceae', 'ericaceae', 'thymelaeaceae'}
+                if clay_pct > 35 and fam in CLAY_SPECIALISTS:
+                    score += 15  # clay-tolerant families on heavy clay sites
+                if clay_pct < 15 and sand_pct is not None and sand_pct > 60 and fam in SANDY_SPECIALISTS:
+                    score += 15  # sandy-soil specialists on free-draining sand
+
+            # B4. Summer drought risk — Jul+Aug < 100mm; dry-summer specialists outperform
+            if _factor('rainfall_climate') and climate.get('summer_drought_risk'):
+                _DROUGHT_SUMMER = {'cistaceae', 'lamiaceae', 'thymelaeaceae', 'crassulaceae', 'fabaceae', 'poaceae'}
+                if fam in _DROUGHT_SUMMER:
                     score += 20
 
-            # Temperature: cold-climate bonus for sub-alpine sites
-            if mean_temp is not None and mean_temp < 6:
-                MONTANE_FAMILIES = {'ericaceae', 'betulaceae', 'pinaceae', 'salicaceae',
-                                    'poaceae', 'juncaceae', 'cyperaceae', 'sphagnaceae'}
-                if fam in MONTANE_FAMILIES:
+            # B5. Climate zone alignment — reward families native to the detected climate zone
+            if _factor('temperature_frost'):
+                _zone = climate.get('climate_zone', 'temperate')
+                _ZONE_SPECIALISTS = {
+                    'arctic':        {'ericaceae', 'betulaceae', 'sphagnaceae', 'cyperaceae', 'pinaceae', 'poaceae'},
+                    'continental':   {'pinaceae', 'betulaceae', 'salicaceae', 'poaceae', 'rosaceae'},
+                    'mediterranean': {'cistaceae', 'oleaceae', 'fabaceae', 'lamiaceae', 'thymelaeaceae'},
+                }
+                if fam in _ZONE_SPECIALISTS.get(_zone, set()):
+                    score += 15
+
+            # B6. Riparian / isolated pond — water_body_nearby even at low flood_risk
+            if _factor('flood_drainage') and hydrology.get('water_body_nearby') and hydrology.get('flood_risk') == 'low':
+                _RIPARIAN_EDGE = {'salicaceae', 'betulaceae', 'cyperaceae', 'juncaceae', 'iridaceae', 'osmundaceae', 'amblystegiaceae'}
+                if fam in _RIPARIAN_EDGE:
+                    score += 15
+
+            # B7. Semi-organic / humus-rich soil (OC 5-8%) — rich woodland and transitional peat
+            # (OC > 8% is handled separately as full peatland bonus in B2)
+            _oc = soil.get('organic_carbon') or 0
+            if 5.0 <= _oc <= 8.0:
+                _HUMUS = {'ericaceae', 'betulaceae', 'pinaceae', 'sphagnaceae', 'cyperaceae', 'dryopteridaceae', 'athyriaceae', 'osmundaceae'}
+                if fam in _HUMUS:
+                    score += 15
+
+            # B8. Silty soil (silt_pct > 40) — high water/nutrient retention; riparian generalists
+            if _factor('soil_texture_match') and soil.get('silt_pct', 0) > 40:
+                _SILT_TOLERANT = {'salicaceae', 'asteraceae', 'poaceae', 'juncaceae', 'cyperaceae', 'rosaceae', 'fabaceae'}
+                if fam in _SILT_TOLERANT:
+                    score += 12
+
+            # B9a. Land cover — ESA CCI satellite classification (300m resolution).
+            # Reward families whose native habitat matches the detected land cover class.
+            if _factor('land_cover') and land_cover:
+                _LC_FAMILIES = {
+                    'forest':    {'betulaceae', 'fagaceae', 'pinaceae', 'cupressaceae', 'salicaceae',
+                                  'ulmaceae', 'aceraceae', 'tiliaceae', 'rosaceae', 'dryopteridaceae'},
+                    'grassland': {'poaceae', 'fabaceae', 'asteraceae', 'ranunculaceae', 'apiaceae',
+                                  'cyperaceae', 'juncaceae'},
+                    'shrubland': {'ericaceae', 'rosaceae', 'adoxaceae', 'rhamnaceae', 'grossulariaceae'},
+                    'heath_moss':{'ericaceae', 'sphagnaceae', 'cyperaceae', 'juncaceae', 'poaceae'},
+                    'wetland':   {'sphagnaceae', 'cyperaceae', 'juncaceae', 'typhaceae', 'amblystegiaceae',
+                                  'salicaceae', 'betulaceae', 'osmundaceae'},
+                }
+                if fam in _LC_FAMILIES.get(land_cover, set()):
                     score += 20
 
-            # Frost hardiness bonus (many frost days → favour frost-hardy families)
-            if frost_days and frost_days > 60:
-                FROST_HARDY = {'betulaceae', 'pinaceae', 'fagaceae', 'salicaceae',
-                               'ericaceae', 'poaceae', 'rosaceae'}
-                if fam in FROST_HARDY:
-                    score += 10
+            # B9b. WRB soil type — Kew/ISRIC curated soil classification.
+            # Corroborates SoilGrids pH/texture with a higher-level pedological signal.
+            if _factor('soil_ph_compatibility') and wrb_soil:
+                _WRB_BONUS_FAMILIES = {
+                    'peat':       {'sphagnaceae', 'ericaceae', 'cyperaceae', 'juncaceae', 'betulaceae'},
+                    'gleyed':     {'salicaceae', 'betulaceae', 'cyperaceae', 'juncaceae', 'iridaceae'},
+                    'podzol':     {'pinaceae', 'ericaceae', 'betulaceae', 'sphagnaceae'},
+                    'calcareous': {'fabaceae', 'orchidaceae', 'asteraceae', 'brassicaceae', 'rosaceae'},
+                    'sandy':      {'pinaceae', 'fabaceae', 'cistaceae', 'thymelaeaceae', 'crassulaceae'},
+                    'clay_heavy': {'salicaceae', 'betulaceae', 'fagaceae', 'cyperaceae', 'ulmaceae'},
+                }
+                if fam in _WRB_BONUS_FAMILIES.get(wrb_soil, set()):
+                    score += 18
+
+            # (old B4) Companion plant compatibility — bonus if known companion families in pool
+            if _factor('companion_plants'):
+                COMPANION_PAIRS = {
+                    'fabaceae':   {'poaceae', 'asteraceae', 'rosaceae'},   # legumes fix N for grasses
+                    'betulaceae': {'ericaceae', 'sphagnaceae'},             # birch canopy + heather
+                    'rosaceae':   {'fabaceae', 'asteraceae'},               # roses + pollinators
+                    'pinaceae':   {'betulaceae', 'ericaceae'},              # pine + birch/heather
+                }
+                if COMPANION_PAIRS.get(fam, set()) & _pool_families:
+                    score += 10  # has a known companion in the local species pool
+
+            # B5. Growing season suitability
+            if _factor('growing_season') and growing_days is not None:
+                SHORT_SEASON_SPECIALISTS = {'ericaceae', 'betulaceae', 'pinaceae',
+                                            'sphagnaceae', 'cyperaceae', 'poaceae', 'juncaceae'}
+                LONG_SEASON_REQUIRED = {'oleaceae', 'myrtaceae', 'lauraceae'}
+                if growing_days < 150 and fam in SHORT_SEASON_SPECIALISTS:
+                    score += 15  # adapted to short growing season
+                if growing_days < 150 and fam in LONG_SEASON_REQUIRED:
+                    score -= 20  # penalise long-season obligates on short-season sites
+
+            # B6. Altitude / elevation match (derived from temperature/frost proxy)
+            if _factor('altitude_elevation'):
+                UPLAND_SPECIALISTS = {'betulaceae', 'pinaceae', 'ericaceae', 'sphagnaceae',
+                                      'poaceae', 'juncaceae', 'cyperaceae'}
+                LOWLAND_OBLIGATES = {'oleaceae', 'tiliaceae', 'ulmaceae'}
+                if _is_upland and fam in UPLAND_SPECIALISTS:
+                    score += 12  # upland/montane specialists
+                if _is_upland and fam in LOWLAND_OBLIGATES:
+                    score -= 10  # lowland-only families penalised at elevation
 
             # C. Goal alignment
             if goal_weights.get('pollinator', 0) >= 50:
@@ -1101,11 +1237,29 @@ class SpeciesMixAgent:
                 if fam in WILDLIFE:
                     score += goal_weights['wildlife_habitat'] // 3
 
+            # C5. Biodiversity goal — habitat-forming, structurally diverse families
+            if _factor('biodiversity') and goal_weights.get('biodiversity', 0) >= 50:
+                _bio_w = goal_weights['biodiversity']
+                _BIODIVERSITY = {
+                    'betulaceae', 'salicaceae', 'rosaceae', 'fagaceae', 'ericaceae',
+                    'aquifoliaceae', 'adoxaceae', 'cornaceae', 'rhamnaceae',
+                    'cyperaceae', 'juncaceae', 'orchidaceae',
+                }
+                if fam in _BIODIVERSITY:
+                    score += _bio_w // 3
+
             # D. Regional quality bonus — looked up from pre-computed dict to avoid
             # repeated cache.get() DB queries (one per species per score_survivor call).
             score += _regional_bonus.get(c.get('scientific_name', ''), 0)
 
             return score
+
+        # Pre-compute values used inside score_survivor closure.
+        _pool_families = {_family(c) for c in pool}
+        _is_upland = (
+            (mean_temp is not None and mean_temp < 7)
+            or (frost_days is not None and frost_days > 80)
+        )
 
         # Pre-compute regional quality bonuses for all pool candidates in one pass.
         # This avoids N×cache.get() DB queries inside the sort comparator.
@@ -1118,6 +1272,219 @@ class SpeciesMixAgent:
         # Compute scores once and cache — reused for both sort and ratio assignment.
         _score_cache = {id(c): score_survivor(c) for c in pool}
         scored = sorted(pool, key=lambda c: _score_cache[id(c)], reverse=True)
+
+        # Normalise raw scores to 1–5 using percentile-band bucketing.
+        # Top 20% of the full pool → 5 (excellent), bottom 20% → 1 (not suitable).
+        # Computed on the full survivor pool so scores are relative to this site.
+        _SUITABILITY_LABELS = {
+            1: 'not_suitable', 2: 'poor', 3: 'fair', 4: 'good', 5: 'excellent',
+        }
+
+        def _normalize_to_1_5(score_cache, _pool):
+            if not _pool:
+                return {}
+            raw = sorted(score_cache[id(c)] for c in _pool)
+            n = len(raw)
+            def _pct(p):
+                return raw[min(int(n * p / 100), n - 1)]
+            p20, p40, p60, p80 = _pct(20), _pct(40), _pct(60), _pct(80)
+            result = {}
+            for c in _pool:
+                s = score_cache[id(c)]
+                if s <= p20:
+                    result[id(c)] = 1
+                elif s <= p40:
+                    result[id(c)] = 2
+                elif s <= p60:
+                    result[id(c)] = 3
+                elif s <= p80:
+                    result[id(c)] = 4
+                else:
+                    result[id(c)] = 5
+            return result
+
+        _norm_cache = _normalize_to_1_5(_score_cache, pool)
+
+        def _score_reason_for(c, norm_score):
+            """Return JSON with structured score breakdown for the frontend tooltip."""
+            import math as _math2
+            import json as _json
+            raw = _score_cache.get(id(c), 0)
+            fam = _family(c)
+            sources = c.get('sources', [])
+            obs = c.get('observation_count', 0)
+            nativeness = c.get('uk_nativeness', 'unknown')
+            match_conf = c.get('gbif_traits', {}).get('match_confidence', 100)
+
+            # --- What helped (label, pts) ---
+            gained = []
+            if nativeness == 'native':
+                gained.append(('Confirmed UK native', 40))
+            elif nativeness == 'naturalised':
+                gained.append(('Naturalised / long-established', 15))
+            # Data-sparse native floor (mirrors A5 in score_survivor)
+            if nativeness in ('native', 'naturalised') and obs <= 3:
+                gained.append(('Under-recorded native — floor bonus', 20))
+            if 'nbn' in sources:
+                gained.append(('In NBN Atlas botanical surveys', 20))
+            if obs > 1:
+                obs_pts = min(int(_math2.log2(obs) * 4), 12)
+                gained.append((f'{obs} local observations recorded', obs_pts))
+            if flood_risk in ('high', 'medium') and fam in {
+                'salicaceae', 'betulaceae', 'cyperaceae', 'juncaceae', 'typhaceae', 'iridaceae'
+            }:
+                gained.append(('Flood-tolerant family — matches site flood risk', 40))
+            if ph and ph < 5.5 and fam in {'ericaceae', 'betulaceae', 'pinaceae', 'juncaceae', 'cyperaceae'}:
+                gained.append((f'Acid-soil specialist (site pH {ph:.1f})', 30))
+            elif ph and ph > 7.0 and fam in {'rosaceae', 'fabaceae', 'orchidaceae', 'asteraceae', 'fagaceae'}:
+                gained.append((f'Alkaline-soil specialist (site pH {ph:.1f})', 25))
+            if moisture == 'wet' and fam in {
+                'salicaceae', 'betulaceae', 'cyperaceae', 'juncaceae', 'sphagnaceae'
+            }:
+                gained.append(('Wet-soil specialist — matches site moisture', 25))
+            elif moisture == 'dry' and fam in {'fabaceae', 'lamiaceae', 'cistaceae', 'poaceae'}:
+                gained.append(('Drought-tolerant — matches site moisture', 25))
+            if _is_upland and fam in {'betulaceae', 'pinaceae', 'ericaceae', 'sphagnaceae', 'poaceae', 'juncaceae'}:
+                gained.append(('Upland / elevated-site specialist', 12))
+
+            # B4 — summer drought specialist
+            if _climate.get('summer_drought_risk') and fam in {'cistaceae', 'lamiaceae', 'thymelaeaceae', 'crassulaceae', 'fabaceae', 'poaceae'}:
+                gained.append(('Summer drought specialist', 20))
+
+            # B5 — climate zone match
+            _zone_r = _climate.get('climate_zone', 'temperate')
+            _ZONE_SPEC_R = {
+                'arctic':        {'ericaceae', 'betulaceae', 'sphagnaceae', 'cyperaceae', 'pinaceae', 'poaceae'},
+                'continental':   {'pinaceae', 'betulaceae', 'salicaceae', 'poaceae', 'rosaceae'},
+                'mediterranean': {'cistaceae', 'oleaceae', 'fabaceae', 'lamiaceae', 'thymelaeaceae'},
+            }
+            if fam in _ZONE_SPEC_R.get(_zone_r, set()):
+                gained.append((f'Climate zone match ({_zone_r})', 15))
+
+            # B6 — riparian / pond edge
+            if _hydrology.get('water_body_nearby') and _hydrology.get('flood_risk') == 'low':
+                if fam in {'salicaceae', 'betulaceae', 'cyperaceae', 'juncaceae', 'iridaceae', 'osmundaceae', 'amblystegiaceae'}:
+                    gained.append(('Riparian / pond edge specialist', 15))
+
+            # B7 — semi-organic humus soil
+            _oc_r = _soil.get('organic_carbon') or 0
+            if 5.0 <= _oc_r <= 8.0:
+                if fam in {'ericaceae', 'betulaceae', 'pinaceae', 'sphagnaceae', 'cyperaceae', 'dryopteridaceae', 'athyriaceae', 'osmundaceae'}:
+                    gained.append(('Humus-rich / semi-organic soil', 15))
+
+            # B8 — silty soil
+            if _soil.get('silt_pct', 0) > 40:
+                if fam in {'salicaceae', 'asteraceae', 'poaceae', 'juncaceae', 'cyperaceae', 'rosaceae', 'fabaceae'}:
+                    gained.append(('Silty soil specialist', 12))
+
+            # B9a — land cover match
+            _lc_r = env_data.get('land_cover')
+            if _lc_r:
+                _LC_FAM_R = {
+                    'forest':    {'betulaceae', 'fagaceae', 'pinaceae', 'cupressaceae', 'salicaceae',
+                                  'ulmaceae', 'aceraceae', 'tiliaceae', 'rosaceae', 'dryopteridaceae'},
+                    'grassland': {'poaceae', 'fabaceae', 'asteraceae', 'ranunculaceae', 'apiaceae',
+                                  'cyperaceae', 'juncaceae'},
+                    'shrubland': {'ericaceae', 'rosaceae', 'adoxaceae', 'rhamnaceae', 'grossulariaceae'},
+                    'heath_moss':{'ericaceae', 'sphagnaceae', 'cyperaceae', 'juncaceae', 'poaceae'},
+                    'wetland':   {'sphagnaceae', 'cyperaceae', 'juncaceae', 'typhaceae', 'amblystegiaceae',
+                                  'salicaceae', 'betulaceae', 'osmundaceae'},
+                }
+                if fam in _LC_FAM_R.get(_lc_r, set()):
+                    gained.append((f'Land cover match ({_lc_r})', 20))
+
+            # B9b — WRB soil type
+            _wrb_r = env_data.get('soil_type')
+            if _wrb_r:
+                _WRB_R = {
+                    'peat':       {'sphagnaceae', 'ericaceae', 'cyperaceae', 'juncaceae', 'betulaceae'},
+                    'gleyed':     {'salicaceae', 'betulaceae', 'cyperaceae', 'juncaceae', 'iridaceae'},
+                    'podzol':     {'pinaceae', 'ericaceae', 'betulaceae', 'sphagnaceae'},
+                    'calcareous': {'fabaceae', 'orchidaceae', 'asteraceae', 'brassicaceae', 'rosaceae'},
+                    'sandy':      {'pinaceae', 'fabaceae', 'cistaceae', 'thymelaeaceae', 'crassulaceae'},
+                    'clay_heavy': {'salicaceae', 'betulaceae', 'fagaceae', 'cyperaceae', 'ulmaceae'},
+                }
+                if fam in _WRB_R.get(_wrb_r, set()):
+                    gained.append((f'Soil type match — {_wrb_r}', 18))
+
+            # Goal alignment — show which goal sliders contributed
+            _GOAL_FAMILIES_R = {
+                'pollinator':           {'rosaceae', 'fabaceae', 'lamiaceae', 'asteraceae', 'apiaceae',
+                                         'boraginaceae', 'scrophulariaceae', 'campanulaceae',
+                                         'primulaceae', 'ranunculaceae', 'violaceae', 'geraniaceae'},
+                'erosion_control':      {'salicaceae', 'betulaceae', 'pinaceae', 'fabaceae', 'poaceae',
+                                         'cyperaceae', 'juncaceae', 'fagaceae', 'rosaceae'},
+                'carbon_sequestration': {'pinaceae', 'betulaceae', 'fagaceae', 'aceraceae', 'salicaceae',
+                                         'cupressaceae', 'taxodiaceae', 'ulmaceae', 'juglandaceae'},
+                'wildlife_habitat':     {'rosaceae', 'betulaceae', 'fagaceae', 'salicaceae', 'aquifoliaceae',
+                                         'adoxaceae', 'rhamnaceae', 'ericaceae', 'cornaceae'},
+                'biodiversity':         {'betulaceae', 'salicaceae', 'rosaceae', 'fagaceae', 'ericaceae',
+                                         'aquifoliaceae', 'adoxaceae', 'cornaceae', 'rhamnaceae',
+                                         'cyperaceae', 'juncaceae', 'orchidaceae'},
+            }
+            _GOAL_LABELS_R = {
+                'pollinator':           'Pollinator support goal',
+                'erosion_control':      'Erosion control goal',
+                'carbon_sequestration': 'Carbon sequestration goal',
+                'wildlife_habitat':     'Wildlife habitat goal',
+                'biodiversity':         'Biodiversity goal',
+            }
+            for _gk, _gfams in _GOAL_FAMILIES_R.items():
+                _gw = goal_weights.get(_gk, 0)
+                if _gw >= 50 and fam in _gfams:
+                    gained.append((f'{_GOAL_LABELS_R[_gk]} ({_gw}% weight)', _gw // 3))
+
+            # --- What hurt (label, pts as negative) ---
+            lost = []
+            if nativeness == 'introduced':
+                lost.append(('Non-native / introduced species', -20))
+            if match_conf < 60:
+                lost.append((f'Very low GBIF name-match confidence ({match_conf}%)', -10))
+            elif match_conf < 80:
+                lost.append((f'Low GBIF name-match confidence ({match_conf}%)', -5))
+            # Only show observation count gap if the floor bonus did NOT apply
+            if nativeness not in ('native', 'naturalised') or obs > 3:
+                if obs == 0:
+                    lost.append(('No local observations on record', 0))
+                elif obs == 1:
+                    lost.append(('Only 1 local observation on record', 0))
+            if moisture == 'wet' and fam in {'lamiaceae', 'cistaceae', 'fabaceae'}:
+                lost.append((f'Prefers drier soil — site is {moisture}', -10))
+            elif moisture == 'dry' and fam in {
+                'salicaceae', 'betulaceae', 'cyperaceae', 'juncaceae', 'typhaceae'
+            }:
+                lost.append((f'Prefers wetter soil — site is {moisture}', -10))
+            if not gained:
+                lost.append(('No site-specific bonus factors matched', 0))
+
+            # Rank context
+            rank_band = (
+                'bottom 20%' if norm_score == 1 else
+                '20–40th percentile' if norm_score == 2 else
+                '40–60th percentile' if norm_score == 3 else
+                '60–80th percentile' if norm_score == 4 else
+                'top 20%'
+            )
+            note = (
+                'Passed all hard compatibility filters (pH, moisture, flood risk, temperature). '
+                'Score is relative — all species in this mix are site-compatible.'
+                if norm_score <= 2 else None
+            )
+
+            return _json.dumps({
+                'raw': raw,
+                'pool': len(pool),
+                'rank_band': rank_band,
+                'gained': [
+                    {'label': lbl, 'pts': pts}
+                    for lbl, pts in gained
+                ],
+                'lost': [
+                    {'label': lbl, 'pts': pts}
+                    for lbl, pts in lost
+                ],
+                'note': note,
+            }, ensure_ascii=False)
 
         _p('Ranking survivors by goal alignment and ecological evidence...')
         logger.info('_rule_based_generate (%.4f,%.4f): selecting from %d scored candidates (target=%d)...', lat, lng, len(scored), self.max_species)
@@ -1287,6 +1654,9 @@ class SpeciesMixAgent:
             }:
                 reason_parts.append('Peatland specialist — organic carbon indicates bog/fen habitat.')
 
+            _ns = _norm_cache.get(id(s), 3)
+            score_reason = _score_reason_for(s, _ns)
+
             item = {
                 'species_id': None,
                 'scientific_name': s['scientific_name'],
@@ -1296,10 +1666,13 @@ class SpeciesMixAgent:
                 'subcategory': _subcategory_from_family(family),
                 'ratio': ratio,
                 'reason': ' '.join(reason_parts),
+                'score_reason': score_reason,
                 'sources': s.get('sources', []),
                 'gbif_key': s.get('gbif_key'),
                 'observation_count': s.get('observation_count', 0),
                 'uk_nativeness': s.get('uk_nativeness', 'unknown'),
+                'suitability_score': _ns,
+                'suitability_label': _SUITABILITY_LABELS[_ns],
             }
             species_mix.append(item)
 
@@ -1310,15 +1683,6 @@ class SpeciesMixAgent:
             count=len(species_mix),
             species_batch=species_mix,
         )
-
-        # Persist species data to DB global cache (fire in background thread so
-        # it doesn't delay the progress event reaching the frontend).
-        import threading as _persist_threading
-        _persist_threading.Thread(
-            target=_persist_species_data,
-            args=(species_mix,),
-            daemon=True,
-        ).start()
 
         env_summary = self._format_env_summary(env_data)
         n_candidates = len(candidates)
@@ -1540,6 +1904,10 @@ class SpeciesMixAgent:
         hydro = env_data.get('hydrology', {})
         if hydro.get('flood_risk'):
             parts.append(f"Flood risk: {hydro['flood_risk']}")
+        if env_data.get('land_cover'):
+            parts.append(f"Land cover: {env_data['land_cover']}")
+        if env_data.get('soil_type'):
+            parts.append(f"Soil type: {env_data['soil_type']}")
         return ' · '.join(parts) if parts else 'Environmental data partial.'
 
     def _format_candidates(self, candidates: list) -> str:

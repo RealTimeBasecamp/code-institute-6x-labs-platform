@@ -147,6 +147,16 @@ class SpeciesMix(models.Model):
         help_text="Maximum number of species to include in the final mix (1–200)"
     )
 
+    # User-configured generation settings (search radius, API sources, etc.)
+    mixer_settings = models.JSONField(
+        default=dict,
+        blank=True,
+        help_text=(
+            "User-configured generation settings: search_radius_km, natives_only, "
+            "api_sources, category_targets, score_factors, active_preset"
+        ),
+    )
+
     # Goal weights (0–100)
     goal_erosion = models.IntegerField(default=50)
     goal_biodiversity = models.IntegerField(default=50)
@@ -169,6 +179,19 @@ class SpeciesMix(models.Model):
     generation_model = models.CharField(max_length=100, default='bloom')
     generated_at = models.DateTimeField(null=True, blank=True)
 
+    # Publication state
+    # draft  → mix exists locally, not yet exposed externally
+    # published → persisted to DB and visible
+    #             (future: public sharing, embedding)
+    is_published = models.BooleanField(
+        default=False,
+        help_text="True once the user has published this mix to the database"
+    )
+    published_at = models.DateTimeField(
+        null=True, blank=True,
+        help_text="When the mix was first published"
+    )
+
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -179,6 +202,24 @@ class SpeciesMix(models.Model):
 
     def __str__(self):
         return f"{self.name} ({self.owner})"
+
+    def mixer_settings_dict(self):
+        """Return mixer_settings with defaults filled in for missing keys."""
+        s = self.mixer_settings or {}
+        return {
+            'search_radius_km': s.get('search_radius_km', 25),
+            'natives_only': s.get('natives_only', False),
+            'api_sources': s.get('api_sources', {
+                'soil': True, 'climate': True, 'hydrology': True,
+                'gbif': True, 'nbn': True,
+            }),
+            'category_targets': s.get('category_targets', {
+                'Tree': 6, 'Shrub': 6, 'Wildflower': 6,
+                'Grass': 6, 'Fern': 6, 'Moss': 6,
+            }),
+            'score_factors': s.get('score_factors', {}),
+            'active_preset': s.get('active_preset', 'balanced'),
+        }
 
     def goals_dict(self):
         """Return goal weights as a dict for passing to the AI agent."""
@@ -217,12 +258,12 @@ class SpeciesMixItem(models.Model):
     suitability_score = models.FloatField(
         null=True,
         blank=True,
-        help_text="AI-assigned suitability score for this species at this location (0–10)"
+        help_text="Suitability score 1–5 (5=excellent, 1=not suitable) for this species at this location"
     )
     suitability_label = models.CharField(
         max_length=20,
         blank=True,
-        help_text="Human-readable suitability: 'good', 'acceptable', or 'not_recommended'"
+        help_text="Suitability label: 'excellent', 'good', 'fair', 'poor', or 'not_suitable'"
     )
 
     # User control

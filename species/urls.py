@@ -9,6 +9,8 @@ urlpatterns = [
     path('', views.SpeciesListView.as_view(), name='species_list'),
     path('species/<str:name>/', views.species_detail, name='species_detail'),
     path('mixer/', views.species_mix_list, name='species_mixer'),
+    path('mixer/new/', views.species_mix_create, name='species_mix_create'),
+    path('mixer/<int:mix_id>/', views.species_mix_editor, name='species_mix_editor'),
 
     # -- Species Mixer API (must come before mixer/<str:name>/ to avoid capture)
 
@@ -31,6 +33,7 @@ urlpatterns = [
     path('mixer/api/mixes/', api_views.api_list_mixes, name='api_list_mixes'),
     path('mixer/api/mixes/<int:mix_id>/', api_views.api_get_mix, name='api_get_mix'),
     path('mixer/api/mixes/<int:mix_id>/delete/', api_views.api_delete_mix, name='api_delete_mix'),
+    path('mixer/api/mixes/<int:mix_id>/publish/', api_views.api_publish_mix, name='api_publish_mix'),
 
     # Species search (for manual add)
     path('mixer/api/species-search/', api_views.api_species_search, name='api_species_search'),

@@ -1,20 +1,95 @@
-{# State manager component: Undo, Redo, Save Draft, Discard Changes, Publish buttons #}
+{#
+  State Manager Toolbar Component
+  ================================
+  Renders Undo, Redo, Save Draft, Discard, Publish buttons wired to a
+  window.StateManager instance.
 
+  Include parameters (all optional):
+  -----------------------------------
+  sm_id          - StateManager instance ID used for data-sm-id (default: 'default')
+  publish_label  - Text on the Publish button          (default: 'Publish')
+  draft_label    - Text on the Save Draft button       (default: 'Save Draft')
+  show_undo      - Show Undo button    (default: True)
+  show_redo      - Show Redo button    (default: True)
+  show_draft     - Show Save Draft btn (default: True)
+  show_discard   - Show Discard btn    (default: True)
+  show_publish   - Show Publish btn    (default: True)
+  extra_class    - Extra CSS classes on the wrapper div
 
-<div class="d-flex flex-wrap align-items-center gap-2">
-    <button class="btn btn-secondary btn-square" id="undoChanges" title="Undo" data-bs-toggle="modal" data-bs-target="#featureComingSoonModal">
-        <i class="bi bi-arrow-counterclockwise"></i>
-    </button>
-    <button class="btn btn-secondary btn-square" id="redoChanges" title="Redo" data-bs-toggle="modal" data-bs-target="#featureComingSoonModal">
-        <i class="bi bi-arrow-clockwise"></i>
-    </button>
-    <button class="btn btn-secondary" id="saveDraft" data-bs-toggle="modal" data-bs-target="#featureComingSoonModal">
-        <i class="bi bi-floppy"></i> Save Draft
-    </button>
-    <button class="btn btn-secondary" id="discardChanges" data-bs-toggle="modal" data-bs-target="#featureComingSoonModal">
-        <i class="bi bi-x-lg"></i> Discard Changes
-    </button>
-    <button class="btn btn-primary" id="publish" data-bs-toggle="modal" data-bs-target="#featureComingSoonModal">
-        <i class="bi bi-upload" ></i> Publish
-    </button>
+  The component reads `sm_id` to scope all button IDs, e.g.:
+    <id>-sm-undo, <id>-sm-redo, <id>-sm-save-draft,
+    <id>-sm-discard, <id>-sm-publish
+
+  Usage example:
+    {% include 'components/state_manager.html' with
+        sm_id='species-mixer'
+        publish_label='Publish Mix'
+        draft_label='Save Draft'
+    %}
+
+  The JS initialisation (`StateManager.create(...)`) and `bindButtons()`
+  call must be done in your page's JS, passing the matching element IDs.
+#}
+{% load static %}
+<link rel="stylesheet" href="{% static 'css/components/state-manager.css' %}">
+{% with smid=sm_id|default:'default' %}
+<div class="sm-toolbar d-flex flex-wrap align-items-center gap-2 {{ extra_class }}"
+     data-sm-id="{{ smid }}"
+     id="{{ smid }}-sm-toolbar">
+
+  {% if show_undo != False %}
+  <button class="btn btn-secondary btn-square sm-toolbar__btn"
+          id="{{ smid }}-sm-undo"
+          title="Undo (Ctrl+Z)"
+          disabled>
+    <i class="bi bi-arrow-counterclockwise"></i>
+  </button>
+  {% endif %}
+
+  {% if show_redo != False %}
+  <button class="btn btn-secondary btn-square sm-toolbar__btn"
+          id="{{ smid }}-sm-redo"
+          title="Redo (Ctrl+Shift+Z)"
+          disabled>
+    <i class="bi bi-arrow-clockwise"></i>
+  </button>
+  {% endif %}
+
+  {% if show_draft != False %}
+  <button class="btn btn-secondary sm-toolbar__btn sm-toolbar__btn--draft"
+          id="{{ smid }}-sm-save-draft"
+          title="Save draft locally (Ctrl+S)"
+          disabled>
+    <i class="bi bi-floppy"></i> {{ draft_label|default:'Save Draft' }}
+  </button>
+  {% endif %}
+
+  {% if show_discard != False %}
+  <button class="btn btn-secondary sm-toolbar__btn"
+          id="{{ smid }}-sm-discard"
+          title="Discard all changes"
+          disabled>
+    <i class="bi bi-x-lg"></i> Discard Changes
+  </button>
+  {% endif %}
+
+  {% if show_publish != False %}
+  <button class="btn btn-primary sm-toolbar__btn sm-toolbar__btn--publish"
+          id="{{ smid }}-sm-publish"
+          title="Publish to database"
+          disabled>
+    <i class="bi bi-upload"></i> {{ publish_label|default:'Publish' }}
+  </button>
+  {% endif %}
+
+  {# Dirty indicator dot — visible when there are unsaved changes #}
+  <span class="sm-dirty-dot d-none"
+        id="{{ smid }}-sm-dirty-dot"
+        title="Unsaved changes"
+        aria-hidden="true"></span>
 </div>
+
+{# Confirmation modals — publish, discard, navigate-away #}
+{% include 'components/state_manager_modals.html' with sm_id=smid publish_label=publish_label %}
+
+{% endwith %}
