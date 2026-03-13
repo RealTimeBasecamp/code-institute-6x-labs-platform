@@ -147,6 +147,16 @@ class SpeciesMix(models.Model):
         help_text="Maximum number of species to include in the final mix (1–200)"
     )
 
+    # User-configured generation settings (search radius, API sources, etc.)
+    mixer_settings = models.JSONField(
+        default=dict,
+        blank=True,
+        help_text=(
+            "User-configured generation settings: search_radius_km, natives_only, "
+            "api_sources, category_targets, score_factors, active_preset"
+        ),
+    )
+
     # Goal weights (0–100)
     goal_erosion = models.IntegerField(default=50)
     goal_biodiversity = models.IntegerField(default=50)
@@ -192,6 +202,24 @@ class SpeciesMix(models.Model):
 
     def __str__(self):
         return f"{self.name} ({self.owner})"
+
+    def mixer_settings_dict(self):
+        """Return mixer_settings with defaults filled in for missing keys."""
+        s = self.mixer_settings or {}
+        return {
+            'search_radius_km': s.get('search_radius_km', 25),
+            'natives_only': s.get('natives_only', False),
+            'api_sources': s.get('api_sources', {
+                'soil': True, 'climate': True, 'hydrology': True,
+                'gbif': True, 'nbn': True,
+            }),
+            'category_targets': s.get('category_targets', {
+                'Tree': 6, 'Shrub': 6, 'Wildflower': 6,
+                'Grass': 6, 'Fern': 6, 'Moss': 6,
+            }),
+            'score_factors': s.get('score_factors', {}),
+            'active_preset': s.get('active_preset', 'balanced'),
+        }
 
     def goals_dict(self):
         """Return goal weights as a dict for passing to the AI agent."""

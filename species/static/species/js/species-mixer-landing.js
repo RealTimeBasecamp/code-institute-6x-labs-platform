@@ -30,30 +30,20 @@ class SpeciesMixerLanding {
     this.map    = null;
     this._chart = null;
     this._hoveredId = null;
+    this._mapReady   = false;
+    this._mixesReady = false;
 
-    this._initMap();
+    this.map = initMixerMap({
+      onLoad: () => {
+        this._mapReady = true;
+        this._tryRenderMarkers();
+      },
+    });
+
+    new MixerSplitPane();  // restores saved divider position; no resize callbacks needed on landing
+
     this._initEvents();
     this._loadMixes();
-  }
-
-  // ── Map ──────────────────────────────────────────────────────────────────
-
-  _initMap() {
-    if (typeof maplibregl === 'undefined') return;
-
-    this.map = new maplibregl.Map({
-      container: 'species-mixer-map',
-      style: window.MapStyles ? window.MapStyles.buildStreetStyle() : 'https://demotiles.maplibre.org/style.json',
-      center: [-2.5, 54.5],
-      zoom: 4.5,
-    });
-
-    this.map.addControl(new maplibregl.NavigationControl(), 'top-right');
-
-    this.map.on('load', () => {
-      this.map.resize();
-      requestAnimationFrame(() => this.map.resize());
-    });
   }
 
   // ── Events ───────────────────────────────────────────────────────────────
@@ -94,7 +84,12 @@ class SpeciesMixerLanding {
       this.mixes = [];
     }
     this._renderCards();
-    this._renderMarkers();
+    this._mixesReady = true;
+    this._tryRenderMarkers();
+  }
+
+  _tryRenderMarkers() {
+    if (this._mapReady && this._mixesReady) this._renderMarkers();
   }
 
   // ── Cards ─────────────────────────────────────────────────────────────────
@@ -124,10 +119,10 @@ class SpeciesMixerLanding {
       const url = this.config.editorBaseUrl + id + '/';
       card.addEventListener('click',      () => { window.location.href = url; });
       card.addEventListener('keydown',    e => { if (e.key === 'Enter') window.location.href = url; });
-      card.addEventListener('mouseenter', () => this._onHover(id));
-      card.addEventListener('mouseleave', () => this._onHoverOut());
-      card.addEventListener('focusin',    () => this._onHover(id));
-      card.addEventListener('focusout',   () => this._onHoverOut());
+      card.addEventListener('mouseenter', () => this._onHover(id, true));
+      card.addEventListener('mouseleave', () => this._onHoverOut(true));
+      card.addEventListener('focusin',    () => this._onHover(id, true));
+      card.addEventListener('focusout',   () => this._onHoverOut(true));
     });
 
     this._bindNewCard();
@@ -180,111 +175,60 @@ class SpeciesMixerLanding {
     el?.addEventListener('keydown', e => { if (e.key === 'Enter') this._openNameWizard(); });
   }
 
-  // ── ECharts overlay markers ───────────────────────────────────────────────
+  // ── Map markers (MapLibre native markers + CSS pulse) ────────────────────
 
   _renderMarkers() {
-    if (!this.map || typeof echarts === 'undefined') return;
+    if (!this.map) return;
 
-    const overlay = document.getElementById('mixer-echarts-overlay');
-    if (!overlay) return;
+    // Remove any existing markers
+    this._clearMarkers();
 
-    // Destroy previous instance
-    if (this._chart) { this._chart.dispose(); this._chart = null; }
-
-    // API returns latitude/longitude (not lat/lng)
     const mixesWithCoords = this.mixes.filter(m => m.latitude != null && m.longitude != null);
     if (!mixesWithCoords.length) return;
 
-    // Size overlay to match map container
-    const mapEl = document.getElementById('mixer-map-panel');
-    overlay.style.width  = mapEl.offsetWidth  + 'px';
-    overlay.style.height = mapEl.offsetHeight + 'px';
+    this._markers = mixesWithCoords.map(m => {
+      const el = document.createElement('div');
+      el.className = 'mix-map-marker';
+      el.dataset.mixId = m.id;
 
-    this._chart = echarts.init(overlay, null, { renderer: 'canvas' });
+      el.addEventListener('mouseenter', () => this._onHover(m.id, false));
+      el.addEventListener('mouseleave', () => this._onHoverOut(false));
+      el.addEventListener('click', () => {
+        window.location.href = this.config.editorBaseUrl + m.id + '/';
+      });
 
-    const project = () => mixesWithCoords.map(m => {
-      const pt = this.map.project([m.longitude, m.latitude]);
-      return {
-        value:  [pt.x, pt.y],
-        mixId:  m.id,
-        name:   m.name,
-        itemStyle: { color: 'var(--bs-primary, #0d6efd)' },
-        symbolSize: 14,
-        showEffectOn: 'emphasis',
-      };
+      const marker = new maplibregl.Marker({ element: el, anchor: 'center' })
+        .setLngLat([m.longitude, m.latitude])
+        .addTo(this.map);
+
+      return { mixId: m.id, marker, el };
     });
-
-    const buildOption = (data) => ({
-      series: [{
-        type: 'effectScatter',
-        coordinateSystem: 'none',
-        data,
-        rippleEffect: { brushType: 'stroke', scale: 4, period: 3 },
-        zlevel: 2,
-      }],
-    });
-
-    this._chart.setOption(buildOption(project()));
-
-    const reproject = () => {
-      if (!this._chart) return;
-      this._chart.setOption(buildOption(project()), false);
-    };
-
-    this.map.on('move',   reproject);
-    this.map.on('zoom',   reproject);
-    this.map.on('resize', reproject);
-    this._reproject = reproject;
-
-    // Resize chart when map container resizes
-    new ResizeObserver(() => {
-      if (!this._chart) return;
-      overlay.style.width  = mapEl.offsetWidth  + 'px';
-      overlay.style.height = mapEl.offsetHeight + 'px';
-      this._chart.resize();
-      reproject();
-    }).observe(mapEl);
   }
 
-  _onHover(mixId) {
+  _clearMarkers() {
+    (this._markers || []).forEach(({ marker }) => marker.remove());
+    this._markers = [];
+  }
+
+  _onHover(mixId, updateCards = true) {
     this._hoveredId = mixId;
-    // Highlight card
-    document.querySelectorAll('.mixer-landing-mix-card[data-mix-id]').forEach(c => {
-      c.classList.toggle('is-hovered', parseInt(c.dataset.mixId, 10) === mixId);
+    if (updateCards) {
+      document.querySelectorAll('.mixer-landing-mix-card[data-mix-id]').forEach(c => {
+        c.classList.toggle('is-hovered', parseInt(c.dataset.mixId, 10) === mixId);
+      });
+    }
+    // Highlight the matching marker
+    (this._markers || []).forEach(({ mixId: id, el }) => {
+      el.classList.toggle('is-hovered', id === mixId);
     });
-    // Highlight ECharts marker
-    if (!this._chart) return;
-    const mixesWithCoords = this.mixes.filter(m => m.latitude != null && m.longitude != null);
-    const data = mixesWithCoords.map(m => {
-      const pt = this.map.project([m.longitude, m.latitude]);
-      const isHovered = m.id === mixId;
-      return {
-        value: [pt.x, pt.y],
-        mixId: m.id,
-        symbolSize:   isHovered ? 18 : 14,
-        showEffectOn: isHovered ? 'render' : 'emphasis',
-        itemStyle: { color: isHovered ? 'var(--bs-success, #198754)' : 'var(--bs-primary, #0d6efd)' },
-      };
-    });
-    this._chart.setOption({ series: [{ data }] }, false);
   }
 
-  _onHoverOut() {
+  _onHoverOut(updateCards = true) {
     this._hoveredId = null;
-    document.querySelectorAll('.mixer-landing-mix-card.is-hovered').forEach(c => c.classList.remove('is-hovered'));
-    if (!this._chart) return;
-    const mixesWithCoords = this.mixes.filter(m => m.latitude != null && m.longitude != null);
-    const data = mixesWithCoords.map(m => {
-      const pt = this.map.project([m.longitude, m.latitude]);
-      return {
-        value: [pt.x, pt.y],
-        mixId: m.id,
-        symbolSize: 14,
-        showEffectOn: 'emphasis',
-        itemStyle: { color: 'var(--bs-primary, #0d6efd)' },
-      };
-    });
-    this._chart.setOption({ series: [{ data }] }, false);
+    if (updateCards) {
+      document.querySelectorAll('.mixer-landing-mix-card.is-hovered').forEach(c => c.classList.remove('is-hovered'));
+    }
+    (this._markers || []).forEach(({ el }) => el.classList.remove('is-hovered'));
   }
 
   // ── Name wizard ───────────────────────────────────────────────────────────

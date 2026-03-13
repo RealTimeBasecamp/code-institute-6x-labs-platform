@@ -357,8 +357,28 @@
   line-height: 1.4;
 }
 
+/* ── Right-panel loading overlay ────────────────────────────── */
+.mixer-loading-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  background: color-mix(in srgb, var(--bs-body-bg) 60%, transparent);
+  border-radius: inherit;
+  pointer-events: all;
+}
+
+.mixer-loading-overlay.d-none {
+  display: none !important;
+}
+
 /* ── Split-pane shell ────────────────────────────────────────── */
 .mixer-pane {
+  position: relative;
   display: flex;
   /* Fill viewport minus: page-content top padding (2rem) + page header + name bar + bottom gap.
      --header-height is not set globally so we don't use it; the fixed 5rem covers everything above. */
@@ -2002,14 +2022,54 @@
 }
 
 /* ═══════════════════════════════════════════════════════════════════
-   ECHARTS OVERLAY (landing screen mix markers on map)
+   LANDING MAP MARKERS (MapLibre native markers with CSS pulse)
    ═══════════════════════════════════════════════════════════════════ */
 
-.mixer-echarts-overlay {
-  position: absolute;
-  inset: 0;
-  pointer-events: none;  /* clicks pass through to MapLibre */
+.mix-map-marker {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: var(--bs-primary, #0d6efd);
+  border: 2.5px solid #fff;
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--bs-primary, #0d6efd) 35%, transparent);
+  cursor: pointer;
+  position: relative;
+  transition: transform 0.15s ease, background 0.15s ease, box-shadow 0.15s ease;
   z-index: 2;
+}
+
+/* Ripple ring */
+.mix-map-marker::after {
+  content: '';
+  position: absolute;
+  inset: -6px;
+  border-radius: 50%;
+  border: 2px solid var(--bs-primary, #0d6efd);
+  opacity: 0.6;
+  animation: mix-marker-pulse 2.4s ease-out infinite;
+}
+
+@keyframes mix-marker-pulse {
+  0%   { transform: scale(0.7); opacity: 0.6; }
+  70%  { transform: scale(1.6); opacity: 0; }
+  100% { transform: scale(1.6); opacity: 0; }
+}
+
+/* Hover / card-highlighted state */
+.mix-map-marker.is-hovered {
+  background: var(--bs-success, #198754);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--bs-success, #198754) 35%, transparent);
+  transform: scale(1.4);
+}
+
+.mix-map-marker.is-hovered::after {
+  border-color: var(--bs-success, #198754);
+  animation: mix-marker-pulse-hovered 1s ease-out infinite;
+}
+
+@keyframes mix-marker-pulse-hovered {
+  0%   { transform: scale(0.8); opacity: 0.7; }
+  100% { transform: scale(2);   opacity: 0; }
 }
 
 /* ═══════════════════════════════════════════════════════════════════

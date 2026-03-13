@@ -182,8 +182,21 @@ class SpeciesMixer {
     const _smCfg = window.SPECIES_MIXER_CONFIG || {};
     this._drainIntervalMs = _smCfg.drainInterval != null ? _smCfg.drainInterval : 200;
 
-    this._initMap();
-    this._initDivider();
+    this.map = initMixerMap();
+    this.map?.on('click', (e) => this._onMapClick(e.lngLat.lat, e.lngLat.lng));
+
+    new MixerSplitPane({
+      onRestored: () => {
+        const nav = document.getElementById('mixer-tabs');
+        if (nav?._pillNav) nav._pillNav.updateIndicator();
+      },
+      onResize: () => {
+        this.map?.resize();
+        this.radarChart?.resize();
+        this.gridChart?.resize();
+        this._positionRadarHandle?.();
+      },
+    });
     this._initTabs();
     this._initLocationSearch();
     this._initLocationRange();
@@ -210,36 +223,6 @@ class SpeciesMixer {
   // ──────────────────────────────────────────────────────────────────────────
 
   // Map style constants and builders are provided by map-styles.js (window.MapStyles).
-
-  _initMap() {
-    if (typeof maplibregl === 'undefined') {
-      console.warn('MapLibre GL not loaded — map will not be interactive.');
-      return;
-    }
-
-    this.map = new maplibregl.Map({
-      container: 'species-mixer-map',
-      style: window.MapStyles.buildStreetStyle(),  // bare street, no terrain
-      center: [-2.5, 54.5],   // UK centre
-      zoom: 4.5,              // show full UK comfortably in the narrow map panel
-    });
-
-    this.map.addControl(new maplibregl.NavigationControl(), 'top-right');
-
-    this.map.on('click', (e) => {
-      this._onMapClick(e.lngLat.lat, e.lngLat.lng);
-    });
-
-    // Once the map style loads, force a resize so MapLibre correctly fills the
-    // split-pane container (CSS layout may not be complete when the Map object
-    // is constructed, leaving the canvas undersized until the first user click).
-    this.map.on('load', () => {
-      // Resize immediately, then once more after the next paint to catch any
-      // remaining layout shift from the flexbox split-pane settling.
-      this.map.resize();
-      requestAnimationFrame(() => this.map.resize());
-    });
-  }
 
   _onMapClick(lat, lng) {
     if (this.state === SpeciesMixer.STATE_4_GENERATING) return; // locked during generation
@@ -325,70 +308,6 @@ class SpeciesMixer {
     document.getElementById('site-summary-placeholder')?.classList.remove('d-none');
     // Hide coverage warning
     document.getElementById('location-coverage-warning')?.classList.add('d-none');
-  }
-
-  // ──────────────────────────────────────────────────────────────────────────
-  // Divider drag
-  // ──────────────────────────────────────────────────────────────────────────
-
-  _initDivider() {
-    const pane      = document.getElementById('mixer-pane');
-    const mapPanel  = document.getElementById('mixer-map-panel');
-    const divider   = document.getElementById('mixer-divider');
-    if (!pane || !mapPanel || !divider) return;
-
-    // Restore saved position
-    const saved = parseFloat(localStorage.getItem('mixer-map-pct'));
-    if (saved && saved >= 10 && saved <= 80) {
-      mapPanel.style.flex  = `0 0 ${saved}%`;
-      mapPanel.style.width = `${saved}%`;
-    }
-
-    // Re-measure the pill nav indicator after the panel has its final width.
-    // initPillNavs() fires at DOMContentLoaded before flex layout is resolved,
-    // so getBoundingClientRect() returns stale values — we correct it here.
-    requestAnimationFrame(() => {
-      const nav = document.getElementById('mixer-tabs');
-      if (nav?._pillNav) nav._pillNav.updateIndicator();
-    });
-
-    let dragging = false;
-    let startX   = 0;
-    let startPct = 0;
-
-    divider.addEventListener('mousedown', (e) => {
-      dragging = true;
-      startX   = e.clientX;
-      startPct = (mapPanel.offsetWidth / pane.offsetWidth) * 100;
-      divider.classList.add('dragging');
-      document.body.style.cursor    = 'col-resize';
-      document.body.style.userSelect = 'none';
-      e.preventDefault();
-    });
-
-    document.addEventListener('mousemove', (e) => {
-      if (!dragging) return;
-      const delta = e.clientX - startX;
-      const newPct = Math.min(80, Math.max(10, startPct + (delta / pane.offsetWidth) * 100));
-      mapPanel.style.flex  = `0 0 ${newPct}%`;
-      mapPanel.style.width = `${newPct}%`;
-    });
-
-    document.addEventListener('mouseup', () => {
-      if (!dragging) return;
-      dragging = false;
-      divider.classList.remove('dragging');
-      document.body.style.cursor    = '';
-      document.body.style.userSelect = '';
-      // Persist position
-      const pct = (mapPanel.offsetWidth / pane.offsetWidth) * 100;
-      localStorage.setItem('mixer-map-pct', pct.toFixed(1));
-      // Tell MapLibre and ECharts about the new container size
-      this.map?.resize();
-      this.radarChart?.resize();
-      this.gridChart?.resize();
-      this._positionRadarHandle?.();
-    });
   }
 
   // ──────────────────────────────────────────────────────────────────────────
@@ -558,9 +477,13 @@ class SpeciesMixer {
     // Set initial state
     sync(this.searchRadiusKm);
 
-    // Slider → input
+    // Slider → input (live update while dragging)
     slider.addEventListener('input', () => {
       sync(parseInt(slider.value, 10));
+    });
+    // Mark dirty only on release, not on every pixel of drag
+    slider.addEventListener('change', () => {
+      this._smMarkDirty(`Search radius → ${this.searchRadiusKm} km`);
     });
 
     // Input → slider (on change / Enter)
@@ -568,6 +491,7 @@ class SpeciesMixer {
       const raw = parseInt(inputEl.value, 10);
       const clamped = isNaN(raw) ? this.searchRadiusKm : Math.min(RADIUS_MAX, Math.max(RADIUS_MIN, raw));
       sync(clamped);
+      this._smMarkDirty(`Search radius → ${clamped} km`);
     });
 
     // Live clamp while typing so the value display tracks immediately
@@ -4104,18 +4028,29 @@ class SpeciesMixer {
       env_data: this.envData,
       cached_candidates: this.cachedCandidates,
       goals: this._getGoals(),
+      max_species: this._getMaxSpecies(),
+      mixer_settings: {
+        search_radius_km: this.searchRadiusKm,
+        natives_only: this._getNativesOnly(),
+        api_sources: this._getApiSources(),
+        category_targets: this._getCategoryTargets(),
+        score_factors: this._getScoreFactors(),
+        active_preset: this._getActivePreset(),
+      },
       ai_insights: document.getElementById('insights-text')?.textContent || '',
       env_summary: document.getElementById('site-summary-text')?.textContent || '',
-      species_items: this.mixItems.map((item, i) => ({
-        species_id: item.species_id,
-        ratio: item.ratio,
-        ai_reason: item.ai_reason || '',
-        suitability_score: item.suitability_score,
-        suitability_label: item.suitability_label || '',
-        is_active: item.is_active,
-        is_manual: item.is_manual,
-        order: i,
-      })),
+      species_items: this.mixItems
+        .filter(item => item.species_id != null)
+        .map((item, i) => ({
+          species_id: item.species_id,
+          ratio: item.ratio,
+          ai_reason: item.ai_reason || '',
+          suitability_score: item.suitability_score,
+          suitability_label: item.suitability_label || '',
+          is_active: item.is_active,
+          is_manual: item.is_manual,
+          order: i,
+        })),
     };
 
     try {
@@ -4147,6 +4082,8 @@ class SpeciesMixer {
   }
 
   async _loadMix(mixId) {
+    const overlay = document.getElementById('mixer-loading-overlay');
+    overlay?.classList.remove('d-none');
     try {
       const resp = await fetch(
         `${this.config.apiUrls.getMix}${mixId}/`,
@@ -4155,6 +4092,7 @@ class SpeciesMixer {
       const data = await resp.json();
       if (data.error) {
         this._showToast('Could not load mix: ' + data.error, 'danger');
+        overlay?.classList.add('d-none');
         return;
       }
 
@@ -4178,6 +4116,60 @@ class SpeciesMixer {
         if (display) display.textContent = `${val}%`;
         if (seg)     seg.style.width = `${val}%`;
       });
+
+      // Restore max_species
+      if (data.max_species != null) {
+        const sl = document.getElementById('max-species-slider');
+        const ip = document.getElementById('max-species-input');
+        if (sl) sl.value = data.max_species;
+        if (ip) ip.value = data.max_species;
+      }
+
+      // Restore mixer_settings (search radius, API toggles, category targets, etc.)
+      const ms = data.mixer_settings || {};
+
+      if (ms.search_radius_km != null) {
+        this.searchRadiusKm = ms.search_radius_km;
+        const sl = document.getElementById('location-range-slider');
+        const ip = document.getElementById('location-range-value');
+        if (sl) sl.value = this.searchRadiusKm;
+        if (ip) ip.value = this.searchRadiusKm;
+      }
+
+      if (ms.natives_only != null) {
+        const t = document.getElementById('natives-only-toggle');
+        if (t) t.checked = ms.natives_only;
+      }
+
+      if (ms.api_sources) {
+        Object.entries(ms.api_sources).forEach(([api, enabled]) => {
+          const cb = document.getElementById(`api-toggle-${api}`);
+          if (cb) cb.checked = enabled;
+        });
+      }
+
+      if (ms.category_targets) {
+        Object.entries(ms.category_targets).forEach(([cat, val]) => {
+          document.querySelectorAll(`.cat-target-slider[data-category="${cat}"]`)
+            .forEach(el => { el.value = val; });
+          document.querySelectorAll(`.cat-target-value[data-category="${cat}"]`)
+            .forEach(el => { el.value = val; });
+        });
+        this._updateCatCompositionBar?.();
+      }
+
+      if (ms.score_factors) {
+        Object.entries(ms.score_factors).forEach(([factor, enabled]) => {
+          const cb = document.querySelector(`.score-factor-check[data-factor="${factor}"]`);
+          if (cb) cb.checked = enabled;
+        });
+      }
+
+      if (ms.active_preset) {
+        document.querySelectorAll('.preset-btn').forEach(btn => {
+          btn.classList.toggle('active', btn.dataset.preset === ms.active_preset);
+        });
+      }
 
       // Render map marker
       if (this.map && this.lat && this.lng) {
@@ -4221,8 +4213,10 @@ class SpeciesMixer {
       this._reinitStateManager(data.id);
       this._showDangerZone();
 
+      overlay?.classList.add('d-none');
       this._showToast(`Mix "${data.name}" loaded.`, 'info');
     } catch (err) {
+      overlay?.classList.add('d-none');
       this._showToast('Failed to load mix: ' + err.message, 'danger');
     }
   }
@@ -4896,6 +4890,18 @@ class SpeciesMixer {
       if (cb.dataset.factor) factors[cb.dataset.factor] = cb.checked;
     });
     return factors;
+  }
+
+  _getApiSources() {
+    const result = {};
+    document.querySelectorAll('.api-toggle-item input[type="checkbox"]').forEach(cb => {
+      if (cb.dataset.api) result[cb.dataset.api] = cb.checked;
+    });
+    return result;
+  }
+
+  _getActivePreset() {
+    return document.querySelector('.preset-btn.active')?.dataset.preset || 'balanced';
   }
 
   _updateCatCompositionBar() {

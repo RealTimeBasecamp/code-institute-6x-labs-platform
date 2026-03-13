@@ -57,11 +57,15 @@ logger = logging.getLogger(__name__)
 
 def _persist_species_data(species_mix: list) -> None:
     """
-    Upsert planting.Species for every selected species in the mix.
+    Upsert planting.Species for every selected species in the mix and write
+    the resulting DB pk back into each item dict as ``species_id``.
 
-    Runs in a background thread so it doesn't delay the progress event.
-    This grows the global DB cache over time — once a species is stored by
-    gbif_taxon_key it is recognised in every future generation worldwide,
+    Must be called synchronously in the task worker before _set_complete so
+    that species_id values are present in the cached result — the frontend
+    sends them to api_save_mix which uses them as FKs on SpeciesMixItem.
+
+    This also grows the global DB cache over time — once a species is stored
+    by gbif_taxon_key it is recognised in every future generation worldwide,
     skipping expensive GBIF trait-enrichment API calls.
 
     Image URL is written separately by api_species_image when first fetched.
@@ -75,7 +79,7 @@ def _persist_species_data(species_mix: list) -> None:
             if not gbif_key:
                 continue
             try:
-                PlantingSpecies.objects.update_or_create(
+                obj, _ = PlantingSpecies.objects.update_or_create(
                     gbif_taxon_key=gbif_key,
                     defaults={
                         'cultivar': '',  # required field; empty for mixer-sourced species
@@ -94,6 +98,7 @@ def _persist_species_data(species_mix: list) -> None:
                         },
                     },
                 )
+                s['species_id'] = obj.pk  # resolve FK for SpeciesMixItem
             except Exception as exc:  # noqa: BLE001
                 logger.warning('_persist_species_data: failed for gbif_key=%s: %s', gbif_key, exc)
     finally:
@@ -1678,15 +1683,6 @@ class SpeciesMixAgent:
             count=len(species_mix),
             species_batch=species_mix,
         )
-
-        # Persist species data to DB global cache (fire in background thread so
-        # it doesn't delay the progress event reaching the frontend).
-        import threading as _persist_threading
-        _persist_threading.Thread(
-            target=_persist_species_data,
-            args=(species_mix,),
-            daemon=True,
-        ).start()
 
         env_summary = self._format_env_summary(env_data)
         n_candidates = len(candidates)

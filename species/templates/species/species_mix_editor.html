@@ -48,6 +48,15 @@
      ═══════════════════════════════════════════════════════════════════════ -->
 <div class="mixer-pane" id="mixer-pane">
 
+  <!-- Loading overlay — shown while _loadMix fetches an existing mix; covers map + panel -->
+  {% if mix_id %}
+  <div class="mixer-loading-overlay" id="mixer-loading-overlay">
+    <div class="spinner-border text-primary" role="status">
+      <span class="visually-hidden">Loading mix…</span>
+    </div>
+  </div>
+  {% endif %}
+
   <!-- ── LEFT: Map ──────────────────────────────────────────────────────── -->
   <div class="mixer-pane__map" id="mixer-map-panel">
     <div id="species-mixer-map" class="w-100 h-100"></div>
@@ -1348,6 +1357,7 @@
 <script src="{% static 'js/components/sortable-table.js' %}" defer></script>
 <script src="{% static 'js/components/expandable-card.js' %}" defer></script>
 <script src="{% static 'js/components/map-styles.js' %}"></script>
+<script src="{% static 'js/components/mixer-split-pane.js' %}"></script>
 {# Universal state manager — must load before species-mixer.js #}
 <script src="{% static 'js/core/state-manager.js' %}"></script>
 {# chart-viz + scenes provide the parliament/treemap/scatter morph animation #}

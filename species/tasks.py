@@ -122,6 +122,11 @@ def run_mix_generation(task_id: str, lat: float, lng: float, goals: dict, max_sp
         if not result.get('species_mix'):
             _set_error(task_id, 'The AI did not return any species. Please try again.')
             return
+        # Resolve species_id by upserting planting.Species records.
+        # Must run synchronously before _set_complete so cached result has
+        # valid FKs — frontend sends them to api_save_mix for SpeciesMixItem.
+        from species.services.ai_agent import _persist_species_data
+        _persist_species_data(result['species_mix'])
         # Strip gbif_traits from cached_candidates before storing in task cache.
         # gbif_traits is a large nested dict (~5KB per species × 80 = 400KB) that
         # DatabaseCache / memcached can't reliably store. The traits are already
