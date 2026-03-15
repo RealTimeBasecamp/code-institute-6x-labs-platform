@@ -1,0 +1,197 @@
+{% extends 'components/modals/settings_modal.html' %}
+{% load static %}
+
+{% block settings_modal_id %}{{ modal_id|default:'UserSettingsModal' }}{% endblock %}
+{% block settings_modal_title %}Settings{% endblock %}
+
+{% block settings_sidebar %}
+  <div class="settings-sidebar-group-header">Account</div>
+  <button class="settings-sidebar-item active" data-section="account">
+    <i class="bi bi-person"></i> Account
+  </button>
+
+  <div class="settings-sidebar-group-header">Preferences</div>
+  <button class="settings-sidebar-item" data-section="preferences">
+    <i class="bi bi-palette"></i> Theme
+  </button>
+{% endblock %}
+
+{% block settings_panels %}
+  {# ---- Account ---- #}
+  <div class="settings-section active" data-section="account">
+    <div class="settings-section-title">Account</div>
+
+    <div class="settings-account-card">
+      {% include 'components/user_avatar.html' with user=user height=48 width=48 %}
+      <div class="settings-account-info">
+        <div class="settings-account-name">{{ user.display_name|default:user.get_full_name|default:user.username }}</div>
+        <div class="settings-account-email">{{ user.email }}</div>
+        <div class="settings-account-tier">{{ user.subscription_tier.name|default:"Sapling" }} plan</div>
+      </div>
+    </div>
+
+    <div class="settings-content-group-header">Profile</div>
+
+    <div class="settings-row">
+      <div class="settings-row-info">
+        <div class="settings-row-label">Display name</div>
+        <div class="settings-row-description">{{ user.display_name|default:user.username }}</div>
+      </div>
+    </div>
+
+    <div class="settings-row">
+      <div class="settings-row-info">
+        <div class="settings-row-label">Email</div>
+        <div class="settings-row-description">{{ user.email }}</div>
+      </div>
+    </div>
+  </div>
+
+  {# ---- Preferences ---- #}
+  <div class="settings-section" data-section="preferences">
+    <div class="settings-section-title">Theme</div>
+
+    {# Hidden inputs wired to settings-modal.js auto-save (PATCH /api/user-preferences/) #}
+    <input type="hidden" id="id_theme" data-field="theme" value="{{ user.theme|default:'default' }}">
+    <input type="hidden" id="id_theme_mode" data-field="theme_mode" value="{{ user.theme_mode|default:'system' }}">
+
+    <div class="settings-content-group-header">Color Theme</div>
+
+    <div class="theme-selector d-flex flex-wrap gap-3 mb-4">
+
+      <!-- Default Theme -->
+      <div class="theme-card" data-theme="default" tabindex="0" role="button" aria-label="Default theme">
+        <div class="theme-preview">
+          <div class="preview-navbar" style="background: #202020;"></div>
+          <div class="preview-body">
+            <div class="preview-sidebar" style="background: #191919;"></div>
+            <div class="preview-content" style="background: #191919;">
+              <div class="preview-accent" style="background: #059acc;"></div>
+            </div>
+          </div>
+        </div>
+        <div class="theme-label">Default</div>
+      </div>
+
+      <!-- Moon Theme -->
+      <div class="theme-card" data-theme="moon" tabindex="0" role="button" aria-label="Moon theme">
+        <div class="theme-preview">
+          <div class="preview-navbar" style="background: #2b3035;"></div>
+          <div class="preview-body">
+            <div class="preview-sidebar" style="background: #212529;"></div>
+            <div class="preview-content" style="background: #212529;">
+              <div class="preview-accent" style="background: #818cf8;"></div>
+            </div>
+          </div>
+        </div>
+        <div class="theme-label">Moon</div>
+      </div>
+
+      <!-- Gaia Theme -->
+      <div class="theme-card" data-theme="gaia" tabindex="0" role="button" aria-label="Gaia theme">
+        <div class="theme-preview">
+          <div class="preview-navbar" style="background: #1a2f26;"></div>
+          <div class="preview-body">
+            <div class="preview-sidebar" style="background: #0d1f1a;"></div>
+            <div class="preview-content" style="background: #0d1f1a;">
+              <div class="preview-accent" style="background: #22c55e;"></div>
+            </div>
+          </div>
+        </div>
+        <div class="theme-label">Gaia</div>
+      </div>
+
+      <!-- Sunset Theme -->
+      <div class="theme-card" data-theme="sunset" tabindex="0" role="button" aria-label="Sunset theme">
+        <div class="theme-preview">
+          <div class="preview-navbar" style="background: #2a1a10;"></div>
+          <div class="preview-body">
+            <div class="preview-sidebar" style="background: #1a0f0a;"></div>
+            <div class="preview-content" style="background: #1a0f0a;">
+              <div class="preview-accent" style="background: #f97316;"></div>
+            </div>
+          </div>
+        </div>
+        <div class="theme-label">Sunset</div>
+      </div>
+
+      <!-- Honeycomb Theme -->
+      <div class="theme-card" data-theme="honeycomb" tabindex="0" role="button" aria-label="Honeycomb theme">
+        <div class="theme-preview">
+          <div class="preview-navbar" style="background: #2a2110;"></div>
+          <div class="preview-body">
+            <div class="preview-sidebar" style="background: #1a1508;"></div>
+            <div class="preview-content" style="background: #1a1508;">
+              <div class="preview-accent" style="background: #f59e0b;"></div>
+            </div>
+          </div>
+        </div>
+        <div class="theme-label">Honeycomb</div>
+      </div>
+
+      <!-- Ocean Theme -->
+      <div class="theme-card" data-theme="ocean" tabindex="0" role="button" aria-label="Ocean theme">
+        <div class="theme-preview">
+          <div class="preview-navbar" style="background: #1e293b;"></div>
+          <div class="preview-body">
+            <div class="preview-sidebar" style="background: #0f172a;"></div>
+            <div class="preview-content" style="background: #0f172a;">
+              <div class="preview-accent" style="background: #0ea5e9;"></div>
+            </div>
+          </div>
+        </div>
+        <div class="theme-label">Ocean</div>
+      </div>
+
+      <!-- 6xLabs Theme -->
+      <div class="theme-card" data-theme="6xlabs" tabindex="0" role="button" aria-label="6xLabs theme">
+        <div class="theme-preview">
+          <div class="preview-navbar" style="background: #2a2a2a;"></div>
+          <div class="preview-body">
+            <div class="preview-sidebar" style="background: #202020;"></div>
+            <div class="preview-content" style="background: #202020;">
+              <div class="preview-accent" style="background: #e7a267;"></div>
+            </div>
+          </div>
+        </div>
+        <div class="theme-label">6xLabs</div>
+      </div>
+
+    </div>
+
+    <div class="settings-content-group-header">Display Mode</div>
+
+    {% load ui_tags %}
+    {% make_tabs 'light:Light:bi-sun,dark:Dark:bi-moon-stars,system:(System):bi-display' as mode_tabs %}
+    {% include 'components/nav_pills.html' with tabs=mode_tabs id='mode-selector' variant='text' class='mode-selector' %}
+    <div class="form-text mt-2 mb-3">
+      System mode automatically matches your device's light/dark setting.
+    </div>
+  </div>
+
+  <style>
+  .theme-card {
+    cursor: pointer;
+    border: 2px solid var(--bs-border-color);
+    border-radius: 8px;
+    padding: 8px;
+    transition: all 0.2s ease;
+    position: relative;
+    width: calc(33.333% - 12px);
+    min-width: 80px;
+  }
+  .theme-card:hover { border-color: var(--bs-secondary-color); transform: translateY(-2px); }
+  .theme-card:focus { outline: none; border-color: var(--primary-color); box-shadow: 0 0 0 3px rgba(var(--bs-primary-rgb), 0.25); }
+  .theme-card.selected { border-color: var(--primary-color); background: var(--bs-tertiary-bg); }
+  .theme-card.selected::after { content: '\f26b'; font-family: 'bootstrap-icons'; position: absolute; top: 4px; right: 4px; color: var(--primary-color); font-size: 14px; }
+  .theme-preview { border-radius: 4px; overflow: hidden; height: 50px; display: flex; flex-direction: column; }
+  .preview-navbar { height: 8px; width: 100%; }
+  .preview-body { flex: 1; display: flex; }
+  .preview-sidebar { width: 25%; }
+  .preview-content { flex: 1; display: flex; align-items: center; justify-content: center; padding: 4px; }
+  .preview-accent { width: 60%; height: 8px; border-radius: 2px; }
+  .theme-label { text-align: center; font-size: 0.8rem; margin-top: 6px; color: var(--bs-body-color); }
+  .mode-selector.nav-pills { margin-bottom: 0.5rem; }
+</style>
+{% endblock %}
+

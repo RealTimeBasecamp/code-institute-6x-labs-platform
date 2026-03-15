@@ -4,21 +4,47 @@
 /* ===== LIGHT MODE ===== */
 [data-theme="gaia"][data-bs-theme="light"] {
   --primary-color: #16a34a;
+  --bs-primary: var(--primary-color);
+  --bs-primary-rgb: 22, 163, 74;
   --bs-body-bg: #f5f9f7;
   --bs-body-color: #1e4d3d;
   --bs-secondary-color: #4a7c5d;
   --bs-tertiary-bg: #e8f3ed;
   --bs-border-color: #c7dfd1;
-  --bs-hover-bg: #e0ebe5;
+  --bs-hover-bg: color-mix(in srgb, var(--primary-color) 10%, var(--bs-body-bg));
+
+  /* Chart palette — forest green anchor, earthy naturals, each hue distinct */
+  --chart-1: #16a34a; /* primary   — forest green */
+  --chart-2: #0e7490; /* teal      — cool shifted, clearly not green */
+  --chart-3: #b45309; /* amber     — warm earthy contrast */
+  --chart-4: #7c3aed; /* plum      — cool purple, very distinct */
+  --chart-5: #be185d; /* berry     — warm pink, earthy feel */
+  --chart-6: #a16207; /* ochre     — golden brown, pairs with green */
+  --chart-7: #0f766e; /* deep teal — darker cool anchor */
+  --chart-8: #65a30d; /* lime      — warm analogue of primary */
+  --chart-9: #b91c1c; /* terracotta — earthy warm red */
 }
 
 /* ===== DARK MODE ===== */
 [data-theme="gaia"][data-bs-theme="dark"] {
   --primary-color: #22c55e;
+  --bs-primary: var(--primary-color);
+  --bs-primary-rgb: 34, 197, 94;
   --bs-body-bg: #0d1f1a;
   --bs-body-color: #c7dfd1;
   --bs-secondary-color: #7ba88a;
   --bs-tertiary-bg: #1a2f26;
   --bs-border-color: #2d4a3d;
-  --bs-hover-bg: #243a31;
+  --bs-hover-bg: color-mix(in srgb, var(--primary-color) 12%, var(--bs-body-bg));
+
+  /* Chart palette — brightened for dark, same hue spread as light */
+  --chart-1: #4ade80; /* primary   — bright green */
+  --chart-2: #22d3ee; /* teal      — bright cool cyan-teal */
+  --chart-3: #fbbf24; /* amber     — warm bright gold */
+  --chart-4: #a78bfa; /* plum      — soft bright violet */
+  --chart-5: #f472b6; /* berry     — bright pink */
+  --chart-6: #facc15; /* ochre     — bright yellow-gold */
+  --chart-7: #2dd4bf; /* deep teal — bright aqua */
+  --chart-8: #a3e635; /* lime      — warm yellow-green */
+  --chart-9: #f87171; /* terracotta — bright coral-red */
 }

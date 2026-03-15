@@ -10,64 +10,9 @@ class Migration(migrations.Migration):
 
     dependencies = [
         ('core', '0001_initial'),
-        ('planting', '0001_initial'),
-        ('seed_catalogue', '0001_initial'),
     ]
 
     operations = [
-        migrations.CreateModel(
-            name='PlantingZone',
-            fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('zone_code', models.IntegerField(db_index=True)),
-                ('name', models.CharField(blank=True, max_length=255)),
-                ('zone_boundary_polygon', models.JSONField()),
-                ('active', models.BooleanField(db_index=True, default=False)),
-                ('created_at', models.DateTimeField(auto_now_add=True)),
-                ('updated_at', models.DateTimeField(auto_now=True)),
-            ],
-        ),
-        migrations.CreateModel(
-            name='SiteNote',
-            fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('content', models.TextField()),
-                ('timestamp', models.DateTimeField(auto_now_add=True)),
-            ],
-        ),
-        migrations.CreateModel(
-            name='SiteVisit',
-            fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('visit_type', models.CharField(choices=[('planting', 'Planting'), ('prospecting', 'Prospecting'), ('inspection', 'Inspection')], default='prospecting', max_length=20)),
-                ('timestamp', models.DateTimeField(auto_now_add=True, db_index=True)),
-                ('duration_minutes', models.IntegerField(blank=True, null=True)),
-                ('notes', models.TextField(blank=True, null=True)),
-                ('plants_checked', models.IntegerField(default=0)),
-                ('plants_alive', models.IntegerField(default=0)),
-                ('plants_dead', models.IntegerField(default=0)),
-                ('fungi_applied', models.IntegerField(default=0)),
-                ('total_co2_sequestered_kg', models.DecimalField(blank=True, decimal_places=2, max_digits=12, null=True)),
-                ('avg_health_index', models.DecimalField(blank=True, decimal_places=2, max_digits=4, null=True)),
-                ('avg_plant_height_m', models.DecimalField(blank=True, decimal_places=2, max_digits=5, null=True)),
-                ('avg_canopy_width_m', models.DecimalField(blank=True, decimal_places=2, max_digits=5, null=True)),
-                ('avg_soil_moisture', models.DecimalField(blank=True, decimal_places=2, max_digits=5, null=True)),
-            ],
-            options={
-                'ordering': ['-timestamp'],
-            },
-        ),
-        migrations.CreateModel(
-            name='SiteVisitContributor',
-            fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('role', models.CharField(choices=[('pilot', 'Drone Pilot'), ('technician', 'Technician'), ('guest', 'Guest')], max_length=50)),
-                ('guest_name', models.CharField(blank=True, max_length=255, null=True)),
-                ('guest_email', models.EmailField(blank=True, max_length=255, null=True)),
-                ('guest_phone', models.CharField(blank=True, max_length=30, null=True)),
-                ('guest_organization', models.CharField(blank=True, max_length=255, null=True)),
-            ],
-        ),
         migrations.CreateModel(
             name='Status',
             fields=[
@@ -82,47 +27,6 @@ class Migration(migrations.Migration):
             options={
                 'verbose_name_plural': 'Statuses',
             },
-        ),
-        migrations.CreateModel(
-            name='Plant',
-            fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('date_planted', models.DateField(blank=True, db_index=True, null=True)),
-                ('latitude', models.DecimalField(db_index=True, decimal_places=7, max_digits=10)),
-                ('longitude', models.DecimalField(db_index=True, decimal_places=7, max_digits=11)),
-                ('altitude', models.DecimalField(blank=True, decimal_places=2, max_digits=7, null=True)),
-                ('elevation', models.DecimalField(blank=True, decimal_places=2, max_digits=7, null=True)),
-                ('queue_order', models.IntegerField(blank=True, db_index=True, null=True)),
-                ('current_status', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.PROTECT, related_name='plants', to='planting.plantstatus')),
-                ('original_plant', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='replants', to='projects.plant')),
-                ('seed_batch', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.PROTECT, related_name='plants', to='seed_catalogue.seedbatch')),
-                ('species', models.ForeignKey(on_delete=django.db.models.deletion.PROTECT, related_name='plants', to='planting.species')),
-                ('planting_zone', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.PROTECT, related_name='plants', to='projects.plantingzone')),
-            ],
-        ),
-        migrations.CreateModel(
-            name='FungiVisit',
-            fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('quantity_ml', models.DecimalField(blank=True, decimal_places=2, max_digits=6, null=True)),
-                ('fungi_batch', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.PROTECT, related_name='fungi_visits', to='seed_catalogue.fungibatch')),
-                ('fungi_species', models.ForeignKey(on_delete=django.db.models.deletion.PROTECT, to='planting.species')),
-                ('plant', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='fungi_visits', to='projects.plant')),
-            ],
-        ),
-        migrations.CreateModel(
-            name='PlantVisit',
-            fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('height_m', models.DecimalField(blank=True, decimal_places=2, max_digits=5, null=True)),
-                ('health_index', models.DecimalField(blank=True, decimal_places=2, max_digits=4, null=True)),
-                ('canopy_width_m', models.DecimalField(blank=True, decimal_places=2, max_digits=5, null=True)),
-                ('soil_moisture_level', models.DecimalField(blank=True, decimal_places=2, max_digits=5, null=True)),
-                ('co2_sequestered_kg', models.DecimalField(blank=True, decimal_places=2, max_digits=10, null=True)),
-                ('photo_evidence', models.JSONField(blank=True, default=list)),
-                ('plant', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='visits', to='projects.plant')),
-                ('status', models.ForeignKey(on_delete=django.db.models.deletion.PROTECT, to='planting.plantstatus')),
-            ],
         ),
         migrations.CreateModel(
             name='Project',
@@ -181,40 +85,6 @@ class Migration(migrations.Migration):
                 ('created_at', models.DateTimeField(auto_now_add=True)),
                 ('updated_at', models.DateTimeField(auto_now=True)),
                 ('project', models.ForeignKey(on_delete=django.db.models.deletion.PROTECT, related_name='sites', to='projects.project')),
-            ],
-        ),
-        migrations.CreateModel(
-            name='SeedBatchUsage',
-            fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('quantity_used_g', models.DecimalField(decimal_places=2, max_digits=10)),
-                ('seeds_planted_estimate', models.IntegerField(blank=True, null=True)),
-                ('timestamp', models.DateTimeField(auto_now_add=True)),
-                ('notes', models.TextField(blank=True, null=True)),
-                ('seed_batch', models.ForeignKey(on_delete=django.db.models.deletion.PROTECT, related_name='usages', to='seed_catalogue.seedbatch')),
-                ('site', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='seed_usages', to='projects.site')),
-            ],
-        ),
-        migrations.AddField(
-            model_name='plantingzone',
-            name='site',
-            field=models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='planting_zones', to='projects.site'),
-        ),
-        migrations.AddField(
-            model_name='plant',
-            name='site',
-            field=models.ForeignKey(on_delete=django.db.models.deletion.PROTECT, related_name='plants', to='projects.site'),
-        ),
-        migrations.CreateModel(
-            name='FungiBatchUsage',
-            fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('weight_used_grams', models.DecimalField(decimal_places=2, max_digits=10)),
-                ('quantity_used_ml', models.DecimalField(blank=True, decimal_places=2, max_digits=10, null=True)),
-                ('timestamp', models.DateTimeField(auto_now_add=True)),
-                ('notes', models.TextField(blank=True, null=True)),
-                ('fungi_batch', models.ForeignKey(on_delete=django.db.models.deletion.PROTECT, related_name='usages', to='seed_catalogue.fungibatch')),
-                ('site', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='fungi_usages', to='projects.site')),
             ],
         ),
     ]

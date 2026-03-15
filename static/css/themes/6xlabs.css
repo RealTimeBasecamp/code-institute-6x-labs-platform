@@ -1,0 +1,50 @@
+/* ===== 6XLABS THEME ===== */
+/* Brand theme — warm terracotta-peach primary on clean neutrals */
+
+/* ===== LIGHT MODE ===== */
+[data-theme="6xlabs"][data-bs-theme="light"] {
+  --primary-color: #e7a267;
+  --bs-primary: var(--primary-color);
+  --bs-primary-rgb: 231, 162, 103;
+  --bs-body-bg: #f9fafc;
+  --bs-body-color: #54534e;
+  --bs-secondary-color: #8a8880;
+  --bs-tertiary-bg: #f0f1f4;
+  --bs-border-color: #dddbd6;
+  --bs-hover-bg: color-mix(in srgb, var(--primary-color) 10%, var(--bs-body-bg));
+
+  /* Chart palette — warm peach anchor, brand-feel hues, each clearly distinct */
+  --chart-1: #e7a267; /* primary    — terracotta peach */
+  --chart-2: #0f766e; /* teal       — cool contrast, clean and crisp */
+  --chart-3: #7c3aed; /* plum       — deep violet, premium feel */
+  --chart-4: #b91c1c; /* rust-red   — warm, distinct from peach */
+  --chart-5: #15803d; /* forest     — natural earthy green */
+  --chart-6: #0891b2; /* steel-blue — cool calm anchor */
+  --chart-7: #be185d; /* berry      — vivid warm accent */
+  --chart-8: #a16207; /* ochre      — warm gold, pairs with peach */
+  --chart-9: #1d4ed8; /* navy       — deep cool contrast */
+}
+
+/* ===== DARK MODE ===== */
+[data-theme="6xlabs"][data-bs-theme="dark"] {
+  --primary-color: #e7a267;
+  --bs-primary: var(--primary-color);
+  --bs-primary-rgb: 231, 162, 103;
+  --bs-body-bg: #202020;
+  --bs-body-color: #f9fafc;
+  --bs-secondary-color: #9a9896;
+  --bs-tertiary-bg: #2a2a2a;
+  --bs-border-color: #3d3d3a;
+  --bs-hover-bg: color-mix(in srgb, var(--primary-color) 12%, var(--bs-body-bg));
+
+  /* Chart palette — brightened for dark, same hue spread as light */
+  --chart-1: #f4b97e; /* primary    — bright warm peach */
+  --chart-2: #2dd4bf; /* teal       — bright aqua-teal */
+  --chart-3: #a78bfa; /* plum       — bright soft violet */
+  --chart-4: #f87171; /* rust-red   — bright coral-red */
+  --chart-5: #4ade80; /* forest     — bright natural green */
+  --chart-6: #38bdf8; /* steel-blue — bright sky blue */
+  --chart-7: #f472b6; /* berry      — bright vivid pink */
+  --chart-8: #fbbf24; /* ochre      — bright warm amber */
+  --chart-9: #60a5fa; /* navy       — bright periwinkle */
+}

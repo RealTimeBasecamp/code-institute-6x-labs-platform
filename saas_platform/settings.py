@@ -50,14 +50,14 @@ INSTALLED_APPS = [
     'allauth.socialaccount.providers.google',
     'allauth.socialaccount.providers.apple',
     'django_countries',
+    # Background task queue
+    'django_dramatiq',
     # Local apps (order matters for dependencies)
     'core',
     'users',
     'planting',
-    'seed_catalogue',
-    'drones',
+    'species',
     'projects',
-    'reports',
 ]
 
 MIDDLEWARE = [
@@ -180,6 +180,91 @@ MEDIA_URL = '/media/'
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
+# =============================================================================
+# CACHE (Redis in production, database cache in development)
+# =============================================================================
+REDIS_URL = os.environ.get('REDIS_URL', '')
+
+def _redis_available(url):
+    """Quick probe: attempt a socket connect to Redis, return bool."""
+    if not url:
+        return False
+    import socket
+    try:
+        from urllib.parse import urlparse
+        p = urlparse(url)
+        host, port = p.hostname or 'localhost', p.port or 6379
+        s = socket.create_connection((host, port), timeout=0.5)
+        s.close()
+        return True
+    except OSError:
+        return False
+
+_REDIS_UP = _redis_available(REDIS_URL)
+
+if _REDIS_UP:
+    CACHES = {
+        'default': {
+            'BACKEND': 'django.core.cache.backends.redis.RedisCache',
+            'LOCATION': REDIS_URL,
+            'TIMEOUT': 60 * 60 * 24 * 30,  # 30 days
+        }
+    }
+else:
+    # No Redis — use the database as a cache store.
+    # Run: python manage.py createcachetable   (once, to create the table)
+    CACHES = {
+        'default': {
+            'BACKEND': 'django.core.cache.backends.db.DatabaseCache',
+            'LOCATION': 'django_cache',
+            'TIMEOUT': 60 * 60 * 24,  # 1 day
+        }
+    }
+
+# =============================================================================
+# DRAMATIQ (Background task queue — Redis in production, stub in dev)
+# =============================================================================
+if _REDIS_UP:
+    DRAMATIQ_BROKER = {
+        'BROKER': 'dramatiq.brokers.redis.RedisBroker',
+        'OPTIONS': {
+            'url': REDIS_URL,
+        },
+        'MIDDLEWARE': [
+            'dramatiq.middleware.AgeLimit',
+            'dramatiq.middleware.TimeLimit',
+            'dramatiq.middleware.Retries',
+            'django_dramatiq.middleware.DbConnectionsMiddleware',
+        ],
+    }
+else:
+    # StubBroker: tasks registered but not queued.
+    # In dev the api_views run generation synchronously instead.
+    DRAMATIQ_BROKER = {
+        'BROKER': 'dramatiq.brokers.stub.StubBroker',
+        'OPTIONS': {},
+        'MIDDLEWARE': [
+            'dramatiq.middleware.AgeLimit',
+            'dramatiq.middleware.TimeLimit',
+            'dramatiq.middleware.Retries',
+        ],
+    }
+
+# Expose whether async dispatch is available to application code
+SPECIES_MIXER_ASYNC = _REDIS_UP
+
+# =============================================================================
+# SPECIES MIXER — AI (BLOOM via Hugging Face text-generation-inference)
+# =============================================================================
+# TGI server URL — run locally:
+#   docker run -d --gpus all -p 8080:80 \
+#     ghcr.io/huggingface/text-generation-inference:latest \
+#     --model-id bigscience/bloomz-7b1-mt --max-total-tokens 4096
+TGI_BASE_URL = os.environ.get('TGI_BASE_URL', 'http://localhost:8080')
+
+# Maximum number of species to include in an AI-generated mix
+SPECIES_MIX_MAX_SPECIES = int(os.environ.get('SPECIES_MIX_MAX_SPECIES', '60'))
+
 # Custom user model
 AUTH_USER_MODEL = 'users.User'
 
@@ -204,9 +289,15 @@ ACCOUNT_SESSION_REMEMBER = True
 LOGGING = {
     'version': 1,
     'disable_existing_loggers': False,
+    'formatters': {
+        'simple': {
+            'format': '[%(levelname)s] %(name)s: %(message)s',
+        },
+    },
     'handlers': {
         'console': {
             'class': 'logging.StreamHandler',
+            'formatter': 'simple',
         },
     },
     'loggers': {

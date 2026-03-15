@@ -1,0 +1,2095 @@
+/* ===== Species Mixer Component ===== */
+
+/* ── Mix name bar ────────────────────────────────────────────── */
+.mixer-name-bar {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  margin-bottom: 0.5rem;
+}
+
+.mixer-name-label {
+  font-size: 0.8rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--bs-secondary-color);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.mixer-name-wrap {
+  display: flex;
+  align-items: center;
+  border: 1px solid var(--bs-border-color);
+  border-radius: var(--bs-border-radius);
+  background: var(--bs-tertiary-bg);
+  padding: 0 0.65rem;
+  transition: border-color 0.15s, box-shadow 0.15s;
+  max-width: 36rem;
+  flex: 1;
+}
+
+.mixer-name-wrap:focus-within {
+  border-color: var(--primary-color, var(--bs-primary));
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--primary-color, var(--bs-primary)) 20%, transparent);
+}
+
+.mixer-name-input {
+  flex: 1;
+  border: none;
+  background: transparent;
+  padding: 0.5rem 0;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--bs-body-color);
+  outline: none;
+  width: 100%;
+}
+
+.mixer-name-input::placeholder {
+  color: var(--bs-secondary-color);
+  font-weight: 400;
+}
+
+/* ── Coordinates copy capsule ────────────────────────────────── */
+.coord-copy-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.3rem 0.65rem;
+  border-radius: var(--bs-border-radius-pill);
+  border: 1px solid var(--bs-border-color);
+  background: var(--bs-tertiary-bg);
+  color: var(--bs-secondary-color);
+  font-size: 0.8rem;
+  font-family: var(--bs-font-monospace, monospace);
+  cursor: pointer;
+  transition: border-color 0.15s, color 0.15s, background 0.15s;
+  white-space: nowrap;
+}
+
+.coord-copy-btn:hover {
+  border-color: var(--primary-color, var(--bs-primary));
+  color: var(--primary-color, var(--bs-primary));
+  background: color-mix(in srgb, var(--primary-color, var(--bs-primary)) 8%, transparent);
+}
+
+.coord-copy-btn__icon {
+  font-size: 0.75rem;
+  opacity: 0.7;
+}
+
+.coord-copy-btn__copy-icon {
+  font-size: 0.7rem;
+  opacity: 0.5;
+  transition: opacity 0.15s;
+}
+
+.coord-copy-btn:hover .coord-copy-btn__copy-icon {
+  opacity: 1;
+}
+
+/* No location set yet — inert appearance, no interaction */
+.coord-copy-btn--empty {
+  opacity: 0.4;
+  cursor: default;
+  pointer-events: none;
+}
+
+.coord-copy-btn--empty .coord-copy-btn__copy-icon {
+  display: none;
+}
+
+/* ── Location search (inside Location tab) ───────────────────── */
+.mixer-location-search-wrap {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  border: 1px solid var(--bs-border-color);
+  border-radius: var(--bs-border-radius);
+  background: var(--bs-tertiary-bg);
+  padding: 0 0.65rem;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.mixer-location-search-wrap:focus-within {
+  border-color: var(--primary-color, var(--bs-primary));
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--primary-color, var(--bs-primary)) 20%, transparent);
+}
+
+.mixer-location-field__icon {
+  font-size: 0.85rem;
+  color: var(--bs-secondary-color);
+  flex-shrink: 0;
+  margin-right: 0.5rem;
+}
+
+.mixer-location-input {
+  flex: 1;
+  border: none;
+  background: transparent;
+  padding: 0.5rem 0;
+  font-size: 0.875rem;
+  color: var(--bs-body-color);
+  outline: none;
+  width: 100%;
+}
+
+.mixer-location-input::placeholder {
+  color: var(--bs-secondary-color);
+}
+
+/* Autocomplete dropdown */
+.mixer-location-dropdown {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  background: var(--bs-body-bg);
+  border: 1px solid var(--bs-border-color);
+  border-radius: var(--bs-border-radius);
+  box-shadow: 0 0.25rem 0.5rem rgba(0, 0, 0, 0.15);
+  z-index: 1060;
+  max-height: 16rem;
+  overflow-y: auto;
+}
+
+.mixer-location-result {
+  padding: 0.5rem 0.75rem;
+  font-size: 0.85rem;
+  cursor: pointer;
+  border-bottom: 1px solid var(--bs-border-color);
+  color: var(--bs-body-color);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  transition: background 0.1s;
+}
+
+.mixer-location-result:last-child { border-bottom: none; }
+.mixer-location-result:hover { background: color-mix(in srgb, var(--primary-color, var(--bs-primary)) 8%, transparent); }
+
+/* Loading / empty / error states inside dropdown */
+.mixer-location-status {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.6rem 0.75rem;
+  font-size: 0.82rem;
+  color: var(--bs-secondary-color, #6c757d);
+}
+.mixer-location-status--empty { color: var(--bs-secondary-color, #6c757d); }
+.mixer-location-status--error  { color: var(--bs-danger, #dc3545); }
+
+/* Inline spinner for loading state */
+.mixer-location-spinner {
+  display: inline-block;
+  width: 0.85rem;
+  height: 0.85rem;
+  border: 2px solid currentColor;
+  border-right-color: transparent;
+  border-radius: 50%;
+  animation: mixer-spin 0.6s linear infinite;
+  flex-shrink: 0;
+  opacity: 0.6;
+}
+@keyframes mixer-spin {
+  to { transform: rotate(360deg); }
+}
+
+/* Score badge — focusable for accessibility */
+.species-score-badge {
+  border-radius: 3px;
+  outline-offset: 2px;
+}
+.species-score-badge:focus-visible {
+  outline: 2px solid var(--primary-color, var(--bs-primary));
+}
+
+/* Score breakdown popover — wider than default so line items don't wrap */
+.score-badge-popover {
+  min-width: 340px;
+  max-width: 400px;
+}
+.score-badge-popover .popover-body {
+  padding: 0.65rem 0.75rem;
+}
+
+/* ── Location settings rows ──────────────────────────────────── */
+.location-setting-row {
+  padding: 0.5rem 0;
+}
+
+.location-setting-row + .location-setting-row {
+  border-top: 1px solid var(--bs-border-color-translucent);
+  margin-top: 0.25rem;
+  padding-top: 0.75rem;
+}
+
+.location-setting-row__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.4rem;
+}
+
+.location-setting-row__label {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: var(--bs-body-color);
+  margin-bottom: 0;
+  cursor: default;
+}
+
+.location-setting-row__icon {
+  font-size: 0.8rem;
+  opacity: 0.6;
+}
+
+.location-setting-row__value {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--primary-color, var(--bs-primary));
+  min-width: 3.5rem;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ── Editable slider number inputs ───────────────────────────── */
+.slider-input-wrap {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.15rem;
+  border: 1px solid var(--bs-border-color-translucent);
+  border-radius: var(--bs-border-radius-sm);
+  background: var(--bs-tertiary-bg);
+  padding: 0 0.3rem;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.slider-input-wrap:focus-within {
+  border-color: var(--primary-color, var(--bs-primary));
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--primary-color, var(--bs-primary)) 20%, transparent);
+}
+
+.slider-number-input {
+  border: none;
+  background: transparent;
+  outline: none;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--bs-body-color);
+  font-variant-numeric: tabular-nums;
+  width: 3.2rem;
+  text-align: right;
+  padding: 0.1rem 0;
+  /* Hide browser spin arrows */
+  -moz-appearance: textfield;
+}
+
+.slider-number-input::-webkit-outer-spin-button,
+.slider-number-input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.slider-number-input:disabled {
+  color: var(--bs-secondary-color);
+  cursor: default;
+  opacity: 0.7;
+}
+
+.slider-input-wrap:has(.slider-number-input:disabled) {
+  opacity: 0.7;
+  cursor: default;
+}
+
+.slider-number-unit {
+  font-size: 0.75rem;
+  color: var(--bs-secondary-color);
+  font-weight: 500;
+  white-space: nowrap;
+  padding-bottom: 0.05rem;
+}
+
+/* Goal slider value inputs — match standard slider-input-wrap appearance */
+.species-mixer-goal-slider .slider-input-wrap {
+  background: var(--bs-tertiary-bg);
+  border-color: var(--bs-border-color-translucent);
+  padding: 0 0.3rem;
+}
+
+.species-mixer-goal-slider .slider-input-wrap:focus-within {
+  border-color: var(--goal-colour);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--goal-colour) 20%, transparent);
+  border-radius: var(--bs-border-radius-sm);
+  padding: 0 0.3rem;
+}
+
+.species-mixer-goal-slider .slider-number-input {
+  color: var(--bs-secondary-color);
+  width: 2.4rem;
+}
+
+.species-mixer-goal-slider .slider-number-input:not(:disabled) {
+  color: var(--bs-body-color);
+}
+
+.location-range-slider {
+  height: 0.35rem;
+  padding: 0;
+  margin-bottom: 0.3rem;
+  accent-color: var(--primary-color, var(--bs-primary));
+}
+
+.location-range-slider:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.location-setting-row__hint {
+  font-size: 0.75rem;
+  color: var(--bs-secondary-color);
+  line-height: 1.4;
+}
+
+/* ── Right-panel loading overlay ────────────────────────────── */
+.mixer-loading-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  background: color-mix(in srgb, var(--bs-body-bg) 60%, transparent);
+  border-radius: inherit;
+  pointer-events: all;
+}
+
+.mixer-loading-overlay.d-none {
+  display: none !important;
+}
+
+/* ── Split-pane shell ────────────────────────────────────────── */
+.mixer-pane {
+  position: relative;
+  display: flex;
+  /* Fill viewport minus: page-content top padding (2rem) + page header + name bar + bottom gap.
+     --header-height is not set globally so we don't use it; the fixed 5rem covers everything above. */
+  height: calc(100dvh - 5rem);
+  min-height: 500px;
+  border: 1px solid var(--bs-border-color);
+  border-radius: var(--bs-border-radius-lg);
+  overflow: hidden;
+  background: var(--bs-body-bg);
+  margin-bottom: 1rem;
+}
+
+.mixer-pane__map {
+  position: relative;
+  flex: 0 0 30%;
+  width: 30%;
+  min-width: 200px;
+  overflow: hidden;
+}
+
+.mixer-pane__divider {
+  flex: 0 0 5px;
+  cursor: col-resize;
+  background: transparent;
+  position: relative;
+  transition: background 0.15s;
+  user-select: none;
+}
+
+.mixer-pane__divider::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 2px;
+  background: var(--bs-border-color);
+  transition: background 0.15s;
+}
+
+.mixer-pane__divider:hover::after,
+.mixer-pane__divider.dragging::after {
+  background: var(--bs-primary, #059acc);
+}
+
+.mixer-pane__panel {
+  flex: 1 1 0;
+  display: flex;
+  flex-direction: column;
+  min-width: 280px;
+  overflow: hidden;
+}
+
+/* ── Map placeholder overlay (Goals / Mix tabs) ──────────────── */
+/* Radar chart panel — opaque so the live map beneath is hidden cleanly */
+.mixer-map-placeholder {
+  position: absolute;
+  inset: 0;
+  background: var(--bs-body-bg);
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  justify-content: flex-start;
+  z-index: 10;
+  color: var(--bs-body-color);
+  padding: 0.5rem;
+  overflow: hidden;
+}
+
+/* Wrapper so the handle can be absolutely positioned over the canvas */
+.mixer-radar-wrap {
+  position: relative;
+  width: 100%;
+  flex: 1 1 0;
+  min-height: 0;
+}
+
+/* ECharts radar chart — fills the wrapper */
+.mixer-radar-chart {
+  width: 100%;
+  height: 100%;
+  min-height: 200px;
+}
+
+/* Draggable handle dot */
+.mixer-radar-handle {
+  position: absolute;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--primary-color, var(--bs-primary));
+  border: 2px solid #fff;
+  box-shadow: 0 1px 6px rgba(0,0,0,0.4);
+  transform: translate(-50%, -50%);
+  cursor: grab;
+  z-index: 20;
+  transition: box-shadow 0.15s;
+}
+.mixer-radar-handle:active,
+.mixer-radar-handle.dragging {
+  cursor: grabbing;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.5);
+}
+
+/* ── Species generation visualiser (metaball → parliament → treemap) ─── */
+/* Fills the full left panel absolutely — same footprint as the live map. */
+.mixer-species-viz-wrap {
+  position: absolute;
+  inset: 0;
+  z-index: 20;
+  background: var(--bs-body-bg);
+  overflow: hidden;
+}
+
+.mixer-species-viz-chart {
+  width: 100%;
+  height: 100%;
+}
+
+/* ── Virtual grid (ECharts scatter on Mix tab) ───────────────── */
+.mixer-virtual-grid-wrap {
+  width: 100%;
+  flex: 1 1 0;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  background: var(--bs-body-bg);
+  border: 1px solid var(--bs-border-color);
+  border-radius: var(--bs-border-radius);
+  overflow: hidden;
+}
+
+/* Square chart area — JS sets explicit px width/height via _syncChartSquare().
+   CSS just makes the element a block; the ResizeObserver in JS drives the size. */
+.mixer-virtual-grid-wrap > .position-relative {
+  flex-shrink: 0;
+  align-self: center;
+}
+
+/* ECharts canvas — fills the square wrapper */
+.mixer-virtual-grid-chart {
+  width: 100%;
+  height: 100%;
+}
+
+/* Mix data stats inside the visualiser panel */
+#mix-data-card {
+  flex: 0 0 auto;
+  border-top: 1px solid var(--bs-border-color);
+  padding: 0.5rem;
+  background: var(--bs-body-bg);
+}
+
+#mix-data-card .mix-data-stat {
+  padding: 0.4rem 0.5rem;
+}
+
+#mix-data-card .mix-data-stat__icon {
+  font-size: 1rem;
+}
+
+#mix-data-card .mix-data-stat__value {
+  font-size: 0.9rem;
+}
+
+#mix-data-card .mix-data-stat__label {
+  font-size: 0.6rem;
+}
+
+/* ── Timeline scrubber ───────────────────────────────────────── */
+.timeline-scrubber {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.4rem 0.6rem;
+  background: var(--bs-tertiary-bg);
+  border-top: 1px solid var(--bs-border-color);
+}
+
+/* Play/pause button */
+.timeline-play-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.875rem;
+  height: 1.875rem;
+  padding: 0;
+  flex-shrink: 0;
+  border: none;
+  border-radius: var(--bs-border-radius-sm);
+  background: transparent;
+  color: var(--bs-secondary-color);
+  cursor: pointer;
+  transition: background 0.1s, color 0.1s;
+}
+
+.timeline-play-btn:hover {
+  background: var(--bs-hover-bg);
+  color: var(--bs-body-color);
+}
+
+.timeline-play-btn i {
+  font-size: 0.9rem !important;
+  line-height: 1;
+}
+
+.timeline-play-btn.is-playing {
+  color: var(--primary-color, var(--bs-primary));
+}
+
+/* Year labels */
+.timeline-year-label {
+  font-size: 0.75rem !important;
+  color: var(--bs-secondary-color);
+  font-weight: 500;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+/* Track wrapper — takes all remaining space */
+.timeline-track-wrap {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+}
+
+/* The track bar */
+.timeline-track {
+  position: relative;
+  width: 100%;
+  height: 4px;
+  background: var(--bs-border-color);
+  border-radius: 2px;
+  cursor: pointer;
+}
+
+/* Filled progress region */
+.timeline-progress {
+  position: absolute;
+  left: 0;
+  top: 0;
+  height: 100%;
+  width: 0%;
+  background: var(--primary-color, var(--bs-primary));
+  border-radius: 2px;
+  pointer-events: none;
+  transition: width 0.05s linear;
+}
+
+/* Draggable handle */
+.timeline-handle {
+  position: absolute;
+  top: 50%;
+  left: 0%;
+  transform: translate(-50%, -50%);
+  width: 14px;
+  height: 14px;
+  background: var(--primary-color, var(--bs-primary));
+  border-radius: 50%;
+  cursor: grab;
+  transition: transform 0.05s linear, box-shadow 0.1s;
+}
+
+.timeline-handle:hover,
+.timeline-handle:focus {
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--primary-color, var(--bs-primary)) 25%, transparent);
+  outline: none;
+}
+
+.timeline-handle:active {
+  cursor: grabbing;
+}
+
+/* Editable end-year input */
+.timeline-end-year {
+  width: 3rem;
+  border: 1px solid var(--bs-border-color);
+  border-radius: var(--bs-border-radius-sm);
+  background: var(--bs-body-bg);
+  color: var(--bs-body-color);
+  font-size: 0.75rem !important;
+  font-weight: 600;
+  text-align: center;
+  padding: 0.1rem 0.25rem;
+  flex-shrink: 0;
+  -moz-appearance: textfield;
+}
+
+.timeline-end-year::-webkit-outer-spin-button,
+.timeline-end-year::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.timeline-end-year:focus {
+  outline: none;
+  border-color: var(--primary-color, var(--bs-primary));
+}
+
+/* Controls bar — top bar only now */
+.mixer-grid-controls {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  padding: 0.5rem 0.75rem;
+  gap: 0.5rem;
+}
+
+/* Top controls bar — matches expandable-card header background */
+.mixer-grid-controls--top {
+  padding: 0.3rem 0.5rem;
+  justify-content: flex-start;
+  flex-wrap: nowrap;
+  gap: 0.25rem;
+  background: var(--bs-tertiary-bg);
+}
+
+/* ── Grid toolbar — icon buttons + scale dropdown ────────────── */
+
+/* Dropdown wrapper (positioning context) */
+.grid-toolbar-dropdown {
+  position: relative;
+}
+
+/* Icon/scale button — matches editor vp-toolbar-btn style */
+.grid-toolbar-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  /* Square for icon-only buttons */
+  height: 1.875rem;
+  width: 1.875rem;
+  padding: 0;
+  border: none;
+  border-radius: var(--bs-border-radius-sm);
+  background: transparent;
+  color: var(--bs-secondary-color);
+  cursor: pointer;
+  transition: background 0.1s, color 0.1s;
+}
+
+/* Icon inside button — explicit size to beat the global 1rem rule */
+.grid-toolbar-btn i {
+  font-size: 0.875rem !important;
+  line-height: 1;
+}
+
+.grid-toolbar-btn:hover:not(:disabled) {
+  background: var(--bs-hover-bg);
+  color: var(--bs-body-color);
+}
+
+.grid-toolbar-btn.is-open {
+  background: var(--bs-hover-bg);
+  color: var(--bs-body-color);
+}
+
+.grid-toolbar-btn--disabled,
+.grid-toolbar-btn:disabled {
+  opacity: 0.45;
+  cursor: default;
+  pointer-events: none;
+}
+
+/* Scale button — wider than square, has a label + chevron */
+.grid-toolbar-btn--scale {
+  width: auto;
+  padding: 0 0.5rem;
+  gap: 0.3rem;
+  border: 1px solid var(--bs-border-color);
+  background: var(--bs-body-bg);
+  min-width: 4.5rem;
+  font-weight: 500;
+}
+
+.grid-toolbar-btn--scale:hover:not(:disabled) {
+  background: var(--bs-hover-bg);
+  border-color: var(--bs-border-color);
+}
+
+.grid-toolbar-btn--scale span,
+.grid-toolbar-btn--scale i {
+  font-size: 0.78rem !important;
+}
+
+.grid-toolbar-chevron {
+  opacity: 0.6;
+  transition: transform 0.15s;
+}
+
+.grid-toolbar-btn.is-open .grid-toolbar-chevron {
+  transform: rotate(180deg);
+}
+
+/* Dropdown menu panel */
+.grid-toolbar-menu {
+  display: none;
+  position: fixed;   /* positioned by JS to avoid overflow clipping */
+  z-index: 9999;
+  min-width: 10rem;
+  padding: 0.25rem 0;
+  background: var(--bs-body-bg);
+  border: 1px solid var(--bs-border-color);
+  border-radius: var(--bs-border-radius);
+  box-shadow: 0 4px 12px rgba(0,0,0,.18);
+}
+
+.grid-toolbar-menu.is-open {
+  display: block;
+}
+
+/* Wide menu for the scale slider */
+.grid-toolbar-menu--wide {
+  min-width: 16rem;
+  padding: 0.5rem 0.75rem;
+}
+
+/* Dropdown menu header */
+.grid-toolbar-menu-header {
+  padding: 0.35rem 0.75rem 0.2rem;
+  font-size: 0.7rem !important;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--bs-secondary-color);
+  user-select: none;
+  pointer-events: none;
+}
+
+/* Dropdown items */
+.grid-toolbar-item {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  padding: 0.3rem 0.75rem;
+  border: none;
+  background: transparent;
+  color: var(--bs-body-color);
+  font-size: 0.8rem !important;
+  text-align: left;
+  cursor: pointer;
+  transition: background 0.1s;
+}
+
+.grid-toolbar-item:hover {
+  background: var(--bs-hover-bg);
+}
+
+.grid-toolbar-item.is-selected {
+  color: var(--primary-color, var(--bs-primary));
+  font-weight: 600;
+}
+
+/* Scale slider row inside dropdown */
+.grid-toolbar-slider-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.grid-vp-slider {
+  flex: 1;
+  height: 4px;
+  -webkit-appearance: none;
+  appearance: none;
+  background: var(--bs-border-color);
+  border-radius: 2px;
+  cursor: pointer;
+}
+
+.grid-vp-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 14px;
+  height: 14px;
+  background: var(--primary-color, var(--bs-primary));
+  border-radius: 50%;
+  cursor: pointer;
+}
+
+.grid-vp-slider::-moz-range-thumb {
+  width: 14px;
+  height: 14px;
+  background: var(--primary-color, var(--bs-primary));
+  border-radius: 50%;
+  border: none;
+  cursor: pointer;
+}
+
+.grid-vp-slider-value-input {
+  width: 3.8rem;
+  border: 1px solid var(--bs-border-color);
+  border-radius: var(--bs-border-radius-sm);
+  background: var(--bs-tertiary-bg);
+  color: var(--bs-body-color);
+  font-size: 0.78rem !important;
+  font-weight: 500;
+  text-align: right;
+  padding: 0.1rem 0.3rem;
+  -moz-appearance: textfield;
+}
+
+.grid-vp-slider-value-input::-webkit-outer-spin-button,
+.grid-vp-slider-value-input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.grid-vp-slider-unit {
+  font-size: 0.75rem !important;
+  color: var(--bs-secondary-color);
+  font-weight: 500;
+}
+
+/* ── Right panel tab bar ─────────────────────────────────────── */
+.mixer-panel-tabs {
+  flex: 0 0 auto;
+  padding: 0.5rem 0.75rem 0;
+}
+
+/* Customise the nav-pills component for the mixer tab bar using its own CSS variables.
+   The component's sliding indicator + capsule container are kept — we just theme them. */
+.mixer-nav-pills {
+  /* Use full-width pill style that matches the panel width */
+  width: 100%;
+  margin-bottom: 0;
+  /* Theme: primary-coloured indicator on a subtle tinted track */
+  --pill-bg: var(--bs-tertiary-bg);
+  --pill-active-bg: var(--primary-color, var(--bs-primary));
+  --pill-active-text-color: #fff;
+  --pill-text-color: var(--bs-secondary-color);
+  --pill-radius: var(--bs-border-radius);
+  --pill-height: 2.25rem;
+  --pill-padding: 0.2rem;
+}
+
+/* ── Scrollable tab content area ─────────────────────────────── */
+.mixer-tab-content {
+  flex: 1 1 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 0.75rem 0.75rem;
+  min-width: 0;
+}
+
+/* Tab panes need position:relative for the Goals lock overlay to anchor */
+.mixer-tab-content .tab-pane {
+  position: relative;
+  min-width: 0;
+  max-width: 100%;
+}
+
+/* Goals tab — reduce internal spacing so content fits without scrolling */
+#tab-goals .species-mixer-goal-slider { margin-bottom: 0.5rem !important; }
+#tab-goals .card { margin-bottom: 0.5rem !important; }
+#tab-goals > p.text-muted { margin-bottom: 0.4rem !important; }
+
+/* Consistent generate button positioning across tabs */
+.generate-cta-wrap {
+  /* No extra margin — button sits flush at top of tab content */
+}
+
+/* The results container in the Mix tab — lock overlay anchors here, not the whole pane */
+.mixer-mix-results {
+  position: relative;
+  min-height: 12rem; /* ensures lock overlay is visible even before content loads */
+}
+
+/* ── Lock overlay — blurs content + shows message ────────────── */
+.mixer-tab-lock {
+  position: absolute;
+  inset: 0;
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  background: color-mix(in srgb, var(--bs-body-bg) 60%, transparent);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  z-index: 5;
+  text-align: center;
+  border-radius: var(--bs-border-radius);
+}
+
+/* ── Step prompt card ────────────────────────────────────────── */
+.mixer-step-prompt {
+  border-style: dashed;
+  background-color: var(--bs-tertiary-bg);
+}
+
+/* ── Map empty state (centred over map) ──────────────────────── */
+.species-mixer-map-empty {
+  padding: 2rem;
+  text-align: center;
+  color: var(--bs-secondary-color);
+  background: transparent;
+  z-index: 5;
+}
+
+/* Location badge overlaid on the map */
+.mixer-location-badge {
+  position: absolute;
+  bottom: 0.75rem;
+  left: 0.75rem;
+  z-index: 10;
+  padding: 0.35rem 0.75rem;
+  border-radius: var(--bs-border-radius-pill);
+  background-color: rgba(25, 135, 84, 0.9);  /* success green */
+  backdrop-filter: blur(4px);
+  color: #fff;
+  font-size: 0.8rem;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  max-width: 90%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.mixer-location-badge .btn {
+  font-size: 0.7rem;
+  color: rgba(255,255,255,.85) !important;
+}
+
+.species-mixer-select {
+  max-width: 10rem;
+  font-size: 0.8rem;
+  background-color: var(--bs-tertiary-bg) !important;
+  border-color: var(--bs-border-color-translucent) !important;
+}
+
+.species-mixer-select:focus {
+  border-color: var(--bs-primary) !important;
+  box-shadow: 0 0 0 0.2rem rgba(var(--bs-primary-rgb), 0.15) !important;
+}
+
+/* ── Goals generating shield ─────────────────────────────────── */
+/* Covers the card-body during STATE_4 — click opens stop modal */
+.goals-generating-shield {
+  position: absolute;
+  inset: 0;
+  z-index: 10;
+  cursor: default;
+  border-radius: var(--bs-border-radius);
+}
+
+/* Card greyed out while generating */
+#goals-sliders-card.goals-generating {
+  opacity: 0.45;
+  transition: opacity 0.2s ease;
+}
+#goals-sliders-card {
+  transition: opacity 0.2s ease;
+}
+
+/* ── Goal Sliders ────────────────────────────────────────────── */
+.species-mixer-goal-slider .form-range {
+  height: 0.4rem;
+  --bs-form-range-thumb-bg: var(--goal-colour);
+  --bs-form-range-thumb-box-shadow: 0 0 0 1px var(--bs-body-bg), 0 0 0 0.25rem color-mix(in srgb, var(--goal-colour) 25%, transparent);
+  --bs-form-range-thumb-active-bg: color-mix(in srgb, var(--goal-colour) 70%, #fff);
+  --bs-form-range-thumb-focus-box-shadow: 0 0 0 1px var(--bs-body-bg), 0 0 0 0.25rem color-mix(in srgb, var(--goal-colour) 25%, transparent);
+}
+.species-mixer-goal-slider .form-range::-webkit-slider-thumb {
+  background-color: var(--goal-colour) !important;
+}
+.species-mixer-goal-slider .form-range::-moz-range-thumb {
+  background-color: var(--goal-colour) !important;
+  border-color:     var(--goal-colour) !important;
+}
+
+/* Per-goal colours injected via --goal-colour on the slider wrapper */
+.species-mixer-goal-slider--erosion_control      { --goal-colour: #78716c; }
+.species-mixer-goal-slider--biodiversity         { --goal-colour: #3b82f6; }
+.species-mixer-goal-slider--pollinator           { --goal-colour: #f59e0b; }
+.species-mixer-goal-slider--carbon_sequestration { --goal-colour: #10b981; }
+.species-mixer-goal-slider--wildlife_habitat     { --goal-colour: #8b5cf6; }
+
+.species-mixer-goal-slider .goal-value {
+  min-width: 2.5rem;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Stacked allocation bar — shows how 100% is split across goals */
+.goal-allocation-bar {
+  display: flex;
+  height: 6px;
+  border-radius: 999px;
+  overflow: hidden;
+  gap: 2px;
+  margin-top: 0.25rem;
+}
+
+.goal-allocation-segment {
+  height: 100%;
+  border-radius: 999px;
+  transition: width 0.2s ease;
+  min-width: 0;
+}
+
+.goal-alloc--erosion_control      { background: #78716c; }
+.goal-alloc--biodiversity         { background: #3b82f6; }
+.goal-alloc--pollinator           { background: #f59e0b; }
+.goal-alloc--carbon_sequestration { background: #10b981; }
+.goal-alloc--wildlife_habitat     { background: #8b5cf6; }
+
+/* ── Mix Blender ─────────────────────────────────────────────── */
+.species-mixer-blend-row .form-range {
+  height: 0.4rem;
+}
+
+.species-mixer-blend-row .blend-value {
+  min-width: 2.5rem;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ── Species Table ───────────────────────────────────────────── */
+#species-mix-card {
+  min-width: 0;
+  max-width: 100%;
+}
+
+/* Species mix card: table goes edge-to-edge — no bottom padding, last row gets the card's rounded corners */
+#species-mix-card .expandable-card__body::after,
+#species-mix-card .expandable-card__body::before {
+  display: none;
+}
+
+#species-table-wrapper {
+  width: 100%;
+  max-width: 100%;
+  overflow: hidden;
+}
+
+/* Remove bottom border on the last table row so it doesn't double up with the card border */
+#species-mix-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.species-mixer-table {
+  font-size: 0.8rem;
+  table-layout: fixed;
+  width: 100%;
+  max-width: 100%;
+}
+
+/* Column widths — % so all columns scale with the table */
+.species-mixer-table .col-check  { width: 4%; }
+.species-mixer-table .col-dot    { width: 3%; }
+.species-mixer-table .col-species { width: 22%; }
+.species-mixer-table .col-chars  { width: 27%; }
+.species-mixer-table .col-native { width: 15%; }
+.species-mixer-table .col-rho   { width: 7%; }
+.species-mixer-table .col-pi    { width: 7%; }
+.species-mixer-table .col-n     { width: 7%; }
+.species-mixer-table .col-del   { width: 4%; }
+
+.species-mixer-table thead th {
+  background-color: var(--bs-tertiary-bg);
+  border-bottom: 2px solid var(--bs-border-color);
+  font-weight: 600;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--bs-secondary-color);
+  padding: 0.4rem 0.35rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.species-mixer-table thead .col-rho,
+.species-mixer-table thead .col-pi,
+.species-mixer-table thead .col-n {
+  text-align: center;
+  font-family: 'Georgia', serif;
+  font-style: italic;
+  text-transform: none;
+  letter-spacing: 0;
+  font-size: 0.9rem;
+}
+
+.species-mixer-table tbody td {
+  padding: 0.4rem 0.35rem;
+}
+.species-mixer-table tbody td:first-child { padding-left: 0.6rem; }
+.species-mixer-table tbody td:last-child  { padding-right: 0.6rem; }
+.species-mixer-table thead th:first-child { padding-left: 0.6rem; }
+.species-mixer-table thead th:last-child  { padding-right: 0.6rem; }
+.species-mixer-table tbody td {
+  vertical-align: middle;
+  border-bottom: 1px solid var(--bs-border-color);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: normal;
+}
+
+
+/* Species name — allow two-line wrap */
+.species-mixer-table .species-name-cell {
+  white-space: normal;
+  line-height: 1.3;
+}
+
+/* Numeric columns — centered */
+.species-mixer-table .col-rho,
+.species-mixer-table .col-pi,
+.species-mixer-table .col-n {
+  text-align: center;
+}
+
+/* Delete column — never clip */
+.species-mixer-table .col-del {
+  overflow: visible;
+  text-align: center;
+  padding: 0.25rem 0.35rem;
+}
+
+/* Group header rows — left-aligned category dividers */
+.species-mixer-group-header td {
+  background-color: var(--bs-tertiary-bg);
+  font-weight: 600;
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--bs-secondary-color);
+  padding: 0.3rem 0.6rem !important;
+  border-bottom: 1px solid var(--bs-border-color);
+  text-align: left;
+}
+
+/* Species rows — subtle hover */
+.species-mixer-row {
+  transition: background-color 0.1s ease;
+}
+.species-mixer-row:hover {
+  background-color: var(--bs-tertiary-bg);
+}
+
+/* Colour dot matching map point */
+.species-colour-dot {
+  display: inline-block;
+  width: 0.7rem;
+  height: 0.7rem;
+  border-radius: 50%;
+  vertical-align: middle;
+  border: 1px solid rgba(0, 0, 0, 0.12);
+}
+
+/* ── Characteristic pills (benefits + category) ──────────────── */
+.species-char-pill {
+  font-size: 0.65rem;
+  font-weight: 500;
+  padding: 0.2em 0.55em;
+  border-radius: 999px;
+  background-color: color-mix(in srgb, var(--bs-secondary) 12%, transparent);
+  color: var(--bs-secondary-color);
+  border: 1px solid color-mix(in srgb, var(--bs-secondary) 20%, transparent);
+  white-space: nowrap; /* individual pill stays on one line, but the flex container wraps */
+}
+
+.species-cat-pill {
+  font-size: 0.65rem;
+  font-weight: 500;
+  padding: 0.2em 0.55em;
+  border-radius: 999px;
+  background-color: color-mix(in srgb, var(--bs-primary) 10%, transparent);
+  color: var(--bs-primary);
+  border: 1px solid color-mix(in srgb, var(--bs-primary) 20%, transparent);
+  white-space: nowrap;
+}
+
+/* ── Goal-alignment pills (shown in characteristics column) ─────── */
+.species-goal-pill {
+  font-size: 0.62rem;
+  font-weight: 500;
+  padding: 0.2em 0.5em;
+  border-radius: 999px;
+  white-space: nowrap;
+  border: 1px solid transparent;
+}
+/* Each goal gets its own colour family */
+.species-goal-pill--pollinator {
+  background: color-mix(in srgb, #f59e0b 12%, transparent);
+  color: #b45309;
+  border-color: color-mix(in srgb, #f59e0b 25%, transparent);
+}
+.species-goal-pill--erosion_control {
+  background: color-mix(in srgb, #78716c 12%, transparent);
+  color: #57534e;
+  border-color: color-mix(in srgb, #78716c 25%, transparent);
+}
+.species-goal-pill--carbon_sequestration {
+  background: color-mix(in srgb, #10b981 12%, transparent);
+  color: #047857;
+  border-color: color-mix(in srgb, #10b981 25%, transparent);
+}
+.species-goal-pill--wildlife_habitat {
+  background: color-mix(in srgb, #8b5cf6 12%, transparent);
+  color: #6d28d9;
+  border-color: color-mix(in srgb, #8b5cf6 25%, transparent);
+}
+.species-goal-pill--biodiversity {
+  background: color-mix(in srgb, #3b82f6 12%, transparent);
+  color: #1d4ed8;
+  border-color: color-mix(in srgb, #3b82f6 25%, transparent);
+}
+
+/* ── Goal icon colours (used directly on <i> in slider labels) ── */
+.goal-icon--erosion_control      { color: #78716c; }
+.goal-icon--biodiversity         { color: #3b82f6; }
+.goal-icon--pollinator           { color: #f59e0b; }
+.goal-icon--carbon_sequestration { color: #10b981; }
+.goal-icon--wildlife_habitat     { color: #8b5cf6; }
+
+/* ── Native / Invasive status badges ─────────────────────────── */
+.species-status-pill {
+  font-size: 0.65rem;
+  font-weight: 600;
+  padding: 0.2em 0.6em;
+  border-radius: 999px;
+  letter-spacing: 0.01em;
+  white-space: nowrap;
+}
+
+.species-status-pill--native {
+  background-color: color-mix(in srgb, var(--bs-success) 12%, transparent);
+  color: var(--bs-success);
+  border: 1px solid color-mix(in srgb, var(--bs-success) 25%, transparent);
+}
+
+.species-status-pill--invasive {
+  background-color: color-mix(in srgb, var(--bs-danger) 12%, transparent);
+  color: var(--bs-danger);
+  border: 1px solid color-mix(in srgb, var(--bs-danger) 25%, transparent);
+}
+
+.species-status-pill--suitable {
+  background-color: color-mix(in srgb, var(--bs-info) 12%, transparent);
+  color: var(--bs-info);
+  border: 1px solid color-mix(in srgb, var(--bs-info) 25%, transparent);
+}
+
+/* ── Skeleton rows (pre-generation blur) ─────────────────────── */
+.mix-skeleton-row {
+  filter: blur(4px);
+  pointer-events: none;
+  user-select: none;
+  opacity: 0.5;
+}
+
+.skeleton-cell {
+  display: inline-block;
+  height: 0.75em;
+  border-radius: 4px;
+  width: 3rem;
+  background: var(--bs-tertiary-bg, #e0e0e0);
+  /* No animation by default — shimmer only activates during active generation */
+}
+
+/* Shimmer fires only when the tbody has .is-generating (set by JS at generation start, removed on complete/error) */
+#species-mix-tbody.is-generating .skeleton-cell {
+  background: linear-gradient(
+    90deg,
+    var(--bs-tertiary-bg, #f2f2f2) 25%,
+    var(--bs-secondary-bg, #e0e0e0) 50%,
+    var(--bs-tertiary-bg, #f2f2f2) 75%
+  );
+  background-size: 40rem 100%;
+  animation: skeleton-shimmer 1.4s ease-in-out infinite;
+}
+
+.skeleton-cell.skeleton-dot {
+  width: 0.7rem;
+  height: 0.7rem;
+  border-radius: 50%;
+}
+
+/* ── Add Species modal list ──────────────────────────────────── */
+.add-species-results {
+  max-height: 22rem;
+  overflow-y: auto;
+}
+
+.add-species-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.add-species-item {
+  padding: 0.6rem 0.75rem;
+  border-radius: var(--bs-border-radius);
+  border: 1px solid var(--bs-border-color);
+  cursor: pointer;
+  transition: background-color 0.1s, border-color 0.1s;
+}
+
+.add-species-item:hover {
+  background-color: var(--bs-tertiary-bg);
+  border-color: var(--bs-primary);
+}
+
+.add-species-item--selected {
+  background-color: color-mix(in srgb, var(--bs-primary) 10%, transparent);
+  border-color: var(--bs-primary);
+}
+
+.add-species-item--added {
+  opacity: 0.55;
+  cursor: not-allowed;
+  background-color: var(--bs-tertiary-bg);
+}
+
+/* ── Species mix table toolbar (search + category filter) ────── */
+.species-mix-toolbar {
+  border-bottom: 1px solid var(--bs-border-color);
+}
+
+.species-mix-toolbar .form-control-sm,
+.species-mix-toolbar .form-select-sm {
+  font-size: 0.8rem;
+  background-color: var(--bs-tertiary-bg);
+  border-color: var(--bs-border-color-translucent);
+}
+
+.species-mix-toolbar .form-control-sm:focus,
+.species-mix-toolbar .form-select-sm:focus {
+  border-color: var(--bs-primary);
+  box-shadow: 0 0 0 0.2rem rgba(var(--bs-primary-rgb), 0.15);
+}
+
+/* ── AI Insights placeholder ─────────────────────────────────── */
+.species-mixer-ai-placeholder {
+  min-height: 6rem;
+  border-radius: var(--bs-border-radius);
+  border: 1px dashed var(--bs-border-color);
+  background-color: var(--bs-body-bg);
+}
+
+/* ── Saved / Recent Mixes ────────────────────────────────────── */
+.species-mixer-saved-mix {
+  cursor: pointer;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+  border: 1px solid var(--bs-border-color);
+}
+
+.species-mixer-saved-mix:hover {
+  border-color: var(--bs-primary, #059acc);
+  box-shadow: 0 0 0 0.15rem rgba(5, 154, 204, 0.12);
+}
+
+.species-mixer-saved-mix--empty {
+  border-style: dashed;
+  min-height: 6rem;
+}
+
+.species-mixer-saved-mix--empty:hover {
+  border-color: var(--bs-primary, #059acc);
+  background-color: var(--bs-hover-bg);
+}
+
+/* ── Species search autocomplete dropdown ────────────────────── */
+.species-search-dropdown {
+  top: 100%;
+  left: 0;
+  right: 0;
+  z-index: 1050;
+  max-height: 15rem;
+  overflow-y: auto;
+  border: 1px solid var(--bs-border-color);
+  border-radius: var(--bs-border-radius);
+  box-shadow: var(--bs-box-shadow);
+  background-color: var(--bs-body-bg);
+}
+
+.species-search-dropdown .list-group-item {
+  font-size: 0.85rem;
+  border-left: none;
+  border-right: none;
+  cursor: pointer;
+}
+
+.species-search-dropdown .list-group-item:first-child {
+  border-top: none;
+}
+
+/* ── Env data chips ───────────────────────────────────────────── */
+.env-chip {
+  font-size: 0.75rem;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+}
+
+/* ── Skeleton shimmer ─────────────────────────────────────────── */
+@keyframes skeleton-shimmer {
+  0%   { background-position: -40rem 0; }
+  100% { background-position: 40rem 0; }
+}
+
+.skeleton-line {
+  display: inline-block;
+  height: 0.85em;
+  border-radius: var(--bs-border-radius-sm, 0.25rem);
+  background: linear-gradient(
+    90deg,
+    var(--bs-tertiary-bg, #f2f2f2) 25%,
+    var(--bs-secondary-bg, #e0e0e0) 50%,
+    var(--bs-tertiary-bg, #f2f2f2) 75%
+  );
+  background-size: 40rem 100%;
+  animation: skeleton-shimmer 1.4s ease-in-out infinite;
+  vertical-align: middle;
+}
+
+.location-name-skeleton {
+  display: block;
+  height: 1rem;
+  border-radius: var(--bs-border-radius-sm, 0.25rem);
+  background: linear-gradient(
+    90deg,
+    var(--bs-tertiary-bg, #f2f2f2) 25%,
+    var(--bs-secondary-bg, #e0e0e0) 50%,
+    var(--bs-tertiary-bg, #f2f2f2) 75%
+  );
+  background-size: 40rem 100%;
+  animation: skeleton-shimmer 1.4s ease-in-out infinite;
+}
+
+/* ── Ecological data panel ────────────────────────────────────── */
+.eco-data-panel {
+  border-radius: var(--bs-border-radius);
+  overflow: hidden;
+}
+
+/* The 2×4 ecological data grid */
+.eco-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 0.5rem 1rem;
+  padding: 0.25rem 0;
+}
+
+.eco-stat {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  min-width: 0;
+}
+
+.eco-stat__icon {
+  font-size: 0.95rem;
+  margin-top: 0.1rem;
+  flex-shrink: 0;
+  opacity: 0.75;
+}
+
+.eco-stat__body {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.eco-stat__label {
+  font-size: 0.68rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--bs-secondary-color);
+  font-weight: 600;
+  line-height: 1.2;
+  white-space: nowrap;
+}
+
+.eco-stat__info {
+  font-size: 0.6rem;
+  opacity: 0.5;
+  cursor: pointer;
+  vertical-align: middle;
+  transition: opacity 0.15s;
+}
+.eco-stat__info:hover { opacity: 1; }
+
+.eco-stat__val {
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: var(--bs-body-color);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ── Generation live feed panel ───────────────────────────────── */
+.generation-feed-panel {
+  padding: 1rem 1.25rem;
+  border-bottom: 1px solid var(--bs-border-color);
+}
+
+.generation-feed-header {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 0.75rem;
+}
+
+.generation-feed-header__text {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  flex: 1 1 0;
+  min-width: 0;
+}
+
+.generation-feed-log {
+  font-size: 0.8rem;
+  color: var(--bs-secondary-color);
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  margin-bottom: 0.75rem;
+  overflow: hidden;
+}
+
+.feed-line {
+  display: flex;
+  align-items: baseline;
+  gap: 0.4rem;
+  animation: feed-line-in 0.25s ease both;
+}
+
+@keyframes feed-line-in {
+  from { opacity: 0; transform: translateY(4px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.feed-line__icon {
+  font-size: 0.65rem;
+  color: var(--bs-success, #198754);
+  flex-shrink: 0;
+  margin-top: 0.15em;
+}
+
+.feed-line--success .feed-line__icon {
+  color: var(--bs-success, #198754);
+}
+
+.feed-line--success span {
+  color: var(--bs-success, #198754);
+  font-weight: 500;
+}
+
+.feed-line--warning .feed-line__icon {
+  color: var(--bs-warning, #ffc107);
+}
+
+.feed-line--warning span {
+  color: var(--bs-warning, #ffc107);
+}
+
+.feed-line--error .feed-line__icon {
+  color: var(--bs-danger, #dc3545);
+}
+
+.feed-line--error span {
+  color: var(--bs-danger, #dc3545);
+  font-weight: 500;
+}
+
+.generation-progress {
+  height: 3px;
+  border-radius: var(--bs-border-radius-pill);
+  overflow: hidden;
+}
+
+.generation-progress .progress-bar {
+  transition: width 0.5s ease;
+}
+
+/* ── API toggle checkboxes ────────────────────────────────────── */
+.api-toggles {
+  padding-left: 2rem;
+  padding-right: 2rem;
+  padding-top: 1rem;
+  padding-bottom: 1rem;
+  background: var(--bs-tertiary-bg);
+  border-radius: var(--bs-border-radius);
+  border: 1px solid var(--bs-border-color-translucent);
+  overflow: hidden;
+}
+
+/* Compensate for Bootstrap row negative margins */
+.api-toggles > .row {
+  margin-left: 0;
+  margin-right: 0;
+}
+
+.api-toggles > .row > [class*="col-"] {
+  padding-left: 0.25rem;
+  padding-right: 0.25rem;
+}
+
+.api-toggle-item {
+  padding: 0.4rem 0.5rem;
+  border-radius: var(--bs-border-radius-sm);
+  transition: background 0.15s;
+  margin: 0;
+}
+
+.api-toggle-item:hover {
+  background: var(--bs-secondary-bg);
+}
+
+.api-toggle-item .form-check-label {
+  font-size: 0.8rem;
+  cursor: pointer;
+  min-width: 0;
+  flex-wrap: nowrap;
+  overflow: hidden;
+}
+
+.api-toggle-item .form-check-label span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+}
+
+.api-toggle-item .api-toggle-info {
+  flex-shrink: 0;
+}
+
+.api-toggle-info {
+  font-size: 0.7rem;
+  cursor: help;
+  opacity: 0.6;
+  transition: opacity 0.15s;
+}
+
+.api-toggle-info:hover {
+  opacity: 1;
+}
+
+/* Feed line source attribution link */
+.feed-line__source {
+  font-size: 0.7rem;
+  color: var(--bs-secondary-color);
+  text-decoration: none;
+  margin-left: 0.25rem;
+  opacity: 0.8;
+}
+
+.feed-line__source:hover {
+  color: var(--bs-primary);
+  opacity: 1;
+}
+
+/* Generation history section */
+.generation-history {
+  border-top: 1px solid var(--bs-border-color-translucent);
+  padding-top: 0.75rem;
+}
+
+.generation-history .generation-feed-log {
+  max-height: 12rem;
+  overflow-y: auto;
+  margin-bottom: 0;
+}
+
+/* ── Mix Data Stats Grid ─────────────────────────────────────── */
+.mix-data-stat {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem;
+  background: var(--bs-tertiary-bg);
+  border-radius: var(--bs-border-radius);
+  border: 1px solid var(--bs-border-color-translucent);
+  height: 100%;
+}
+
+.mix-data-stat__icon {
+  font-size: 1.25rem;
+  color: var(--bs-secondary-color);
+  flex-shrink: 0;
+}
+
+.mix-data-stat__content {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.mix-data-stat__label {
+  font-size: 0.7rem;
+  color: var(--bs-secondary-color);
+  text-transform: uppercase;
+  letter-spacing: 0.025em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  order: -1;
+}
+
+.mix-data-stat__value {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: var(--bs-body-color);
+  line-height: 1.2;
+}
+
+/* ── Responsive adjustments ──────────────────────────────────── */
+@media (max-width: 767.98px) {
+  /* Stack pane vertically on mobile */
+  .mixer-pane {
+    flex-direction: column;
+    height: auto;
+  }
+
+  .mixer-pane__map {
+    flex: 0 0 45vh;
+    width: 100% !important;
+  }
+
+  .mixer-pane__divider {
+    display: none;
+  }
+
+  .species-mixer-select {
+    max-width: 7rem;
+  }
+}
+
+@media (max-width: 575.98px) {
+  .species-mixer-search {
+    max-width: 100%;
+  }
+}
+
+/* ── Chart loading overlay ────────────────────────────────────── */
+.chart-loading-overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  /* Solid background - blur doesn't work when chart content hasn't rendered */
+  background: var(--bs-body-bg, #fff);
+  z-index: 10;
+  border-radius: var(--bs-border-radius);
+}
+
+.chart-loading-content {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.75rem 1.25rem;
+  background: var(--bs-tertiary-bg, #f8f9fa);
+  border: 1px solid var(--bs-border-color);
+  border-radius: var(--bs-border-radius);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+  font-size: 0.875rem;
+  color: var(--bs-body-color);
+}
+
+/* Animated ellipsis */
+.loading-ellipsis::after {
+  content: '';
+  animation: ellipsis 1.5s infinite;
+}
+
+@keyframes ellipsis {
+  0%   { content: ''; }
+  25%  { content: '.'; }
+  50%  { content: '..'; }
+  75%  { content: '...'; }
+  100% { content: ''; }
+}
+
+/* ── Category composition bar ─────────────────────────────────── */
+.cat-composition-bar {
+  display: flex;
+  height: 10px;
+  border-radius: 5px;
+  overflow: hidden;
+  background: var(--bs-secondary-bg);
+  border: 1px solid var(--bs-border-color);
+}
+
+.cat-comp-seg {
+  transition: width 0.3s ease;
+  height: 100%;
+  flex-shrink: 0;
+}
+
+.cat-comp--tree       { background: #2E7D32; }
+.cat-comp--shrub      { background: #7CB342; }
+.cat-comp--wildflower { background: #7B1FA2; }
+.cat-comp--grass      { background: #F57C00; }
+.cat-comp--fern       { background: #C0CA33; }
+.cat-comp--moss       { background: #78909C; }
+.cat-comp--fill {
+  background: var(--bs-border-color);
+  flex-grow: 1;
+}
+
+/* ── Preset buttons ───────────────────────────────────────────── */
+.preset-btn.active {
+  background-color: var(--bs-primary);
+  color: #fff;
+  border-color: var(--bs-primary);
+}
+
+/* ── Advanced collapse chevron rotation ──────────────────────── */
+#advanced-settings-toggle[aria-expanded="true"] #advanced-chevron {
+  transform: rotate(90deg);
+}
+
+/* ── Species popover circular avatar image ───────────────────── */
+.sp-pop-img {
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  object-fit: cover;
+  flex-shrink: 0;
+  border: 2px solid var(--bs-border-color);
+  background-color: var(--bs-tertiary-bg);
+}
+
+.popover-header .d-flex {
+  align-items: center;
+  flex-wrap: nowrap;
+  min-width: 0;
+}
+
+.popover-header .d-flex strong {
+  white-space: normal;
+  word-break: break-word;
+  min-width: 0;
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   LANDING SCREEN — right panel sidebar
+   ═══════════════════════════════════════════════════════════════════ */
+
+/* Landing sidebar fills the right panel the same way the editor tabs do */
+.mixer-landing-sidebar {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow-y: auto;
+  padding: 1rem 1.25rem;
+}
+
+.mixer-landing-sidebar__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-bottom: 0.75rem;
+  border-bottom: 1px solid var(--bs-border-color);
+  flex-shrink: 0;
+}
+
+/* Editor tabs wrapper — same full-height flex layout */
+.mixer-editor-tabs {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow: hidden;
+}
+
+/* Scrollable list of mix cards */
+.mixer-landing-mixes-list {
+  flex: 1;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding-bottom: 1rem;
+}
+
+/* Individual mix cards in the landing sidebar */
+.mixer-landing-mix-card {
+  cursor: pointer;
+  border: 1px solid var(--bs-border-color);
+  border-radius: var(--bs-border-radius);
+  padding: 0.75rem 0.875rem;
+  transition: border-color 0.15s, box-shadow 0.15s, background-color 0.15s;
+  background: var(--bs-body-bg);
+}
+
+.mixer-landing-mix-card:hover,
+.mixer-landing-mix-card.is-hovered {
+  border-color: var(--primary-color, var(--bs-primary));
+  box-shadow: 0 0 0 2px
+    color-mix(
+      in srgb,
+      var(--primary-color, var(--bs-primary)) 15%,
+      transparent
+    );
+  background: var(--bs-tertiary-bg);
+}
+
+.mixer-landing-mix-card__name {
+  font-weight: 600;
+  font-size: 0.875rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.mixer-landing-mix-card__meta {
+  font-size: 0.76rem;
+  color: var(--bs-secondary-color);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* "New Mix" dashed card */
+.mixer-landing-new-card {
+  border-style: dashed;
+  text-align: center;
+  color: var(--bs-secondary-color);
+  background: transparent;
+  padding: 1rem;
+}
+
+.mixer-landing-new-card:hover {
+  color: var(--primary-color, var(--bs-primary));
+  border-color: var(--primary-color, var(--bs-primary));
+  background: color-mix(
+    in srgb,
+    var(--primary-color, var(--bs-primary)) 5%,
+    transparent
+  );
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   LANDING MAP MARKERS (MapLibre native markers with CSS pulse)
+   ═══════════════════════════════════════════════════════════════════ */
+
+.mix-map-marker {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: var(--bs-primary, #0d6efd);
+  border: 2.5px solid #fff;
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--bs-primary, #0d6efd) 35%, transparent);
+  cursor: pointer;
+  position: relative;
+  transition: transform 0.15s ease, background 0.15s ease, box-shadow 0.15s ease;
+  z-index: 2;
+}
+
+/* Ripple ring */
+.mix-map-marker::after {
+  content: '';
+  position: absolute;
+  inset: -6px;
+  border-radius: 50%;
+  border: 2px solid var(--bs-primary, #0d6efd);
+  opacity: 0.6;
+  animation: mix-marker-pulse 2.4s ease-out infinite;
+}
+
+@keyframes mix-marker-pulse {
+  0%   { transform: scale(0.7); opacity: 0.6; }
+  70%  { transform: scale(1.6); opacity: 0; }
+  100% { transform: scale(1.6); opacity: 0; }
+}
+
+/* Hover / card-highlighted state */
+.mix-map-marker.is-hovered {
+  background: var(--bs-success, #198754);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--bs-success, #198754) 35%, transparent);
+  transform: scale(1.4);
+}
+
+.mix-map-marker.is-hovered::after {
+  border-color: var(--bs-success, #198754);
+  animation: mix-marker-pulse-hovered 1s ease-out infinite;
+}
+
+@keyframes mix-marker-pulse-hovered {
+  0%   { transform: scale(0.8); opacity: 0.7; }
+  100% { transform: scale(2);   opacity: 0; }
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   STATE MANAGER TOOLBAR
+   ═══════════════════════════════════════════════════════════════════ */
+
+/* Dirty indicator dot (pulsing when unsaved changes exist) */
+.sm-dirty-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--bs-warning);
+  flex-shrink: 0;
+  animation: sm-pulse 1.6s ease-in-out infinite;
+}
+
+@keyframes sm-pulse {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.35; }
+}
+
+

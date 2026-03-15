@@ -1,40 +1,43 @@
+/**
+ * Interactive Map Styles
+ * Shared styles for the map component in two contexts:
+ *
+ * 1. Editor viewport (full-screen) - .interactive-map-flex used directly
+ * 2. Card component (standalone) - wrapped in .interactive-map-card
+ *
+ * Includes:
+ * - Base map layout (flex container, sidebar)
+ * - Card context overrides (fixed height, map/sidebar split)
+ * - MapLibre control theming
+ * - Info panel overlay
+ * - Map settings control
+ * - Responsive adjustments
+ */
+
 /* ==========================================================================
-   Interactive Map Card Component
+   Base Layout - Shared by both contexts
    ========================================================================== */
 
-/* Card wrapper - contains the entire map + sidebar */
-.interactive-map-card {
-  background: var(--bs-tertiary-bg, #f8f9fa);
-  border-radius: 1rem;
-  overflow: hidden;
-  padding: 0.25rem;
-}
-
-/* Flex container for map and sidebar */
+/* Main flex container for the map */
 .interactive-map-flex {
   display: flex;
-  flex-direction: row;
+  flex: 1;
   width: 100%;
-  height: 650px;
-  gap: 1rem;
-}
-
-/* ==========================================================================
-   Map Container (70% width)
-   ========================================================================== */
-.interactive-map-flex .map-container {
-  flex: 0 0 70%;
-  width: 70%;
   height: 100%;
-  position: relative;
-  border-radius: 0.5rem;
   overflow: hidden;
-  background: var(--bs-body-bg, #fff);
+  position: relative;   /* anchor for absolutely-positioned overlays */
 }
 
-/* Map and ECharts layers fill the container */
-.interactive-map-flex #map,
+/* Map element fills available space */
+.interactive-map-flex #map {
+  flex: 1;
+  width: 100%;
+  height: 100%;
+}
+
+/* ECharts overlay */
 .interactive-map-flex #echarts-layer {
+  pointer-events: none;
   position: absolute;
   top: 0;
   left: 0;
@@ -42,13 +45,7 @@
   height: 100%;
 }
 
-.interactive-map-flex #echarts-layer {
-  pointer-events: none;
-}
-
-/* ==========================================================================
-   Sidebar (30% width)
-   ========================================================================== */
+/* Sidebar (30% width) */
 .interactive-map-flex .map-sidebar {
   flex: 0 0 calc(30% - 1rem);
   width: calc(30% - 1rem);
@@ -66,13 +63,11 @@
   margin-bottom: 0.5rem;
 }
 
-/* Sidebar content area */
 .map-sidebar .tab-content {
   flex: 1;
   overflow-y: auto;
 }
 
-/* Remove default paragraph vertical margins inside sidebar to tighten spacing */
 .map-sidebar p {
   margin-top: 0;
   margin-bottom: 0;
@@ -85,13 +80,54 @@
 }
 
 /* ==========================================================================
+   Card Context - Standalone map card component
+   Scoped under .interactive-map-card to avoid affecting editor viewport
+   ========================================================================== */
+
+/* Card wrapper */
+.interactive-map-card {
+  background: var(--bs-tertiary-bg, #f8f9fa);
+  border-radius: 1rem;
+  overflow: hidden;
+  padding: 0.25rem;
+}
+
+/* Fixed-height flex container for card context */
+.interactive-map-card .interactive-map-flex {
+  flex-direction: row;
+  height: 650px;
+  gap: 1rem;
+}
+
+/* Map container (full width in card) */
+.interactive-map-card .interactive-map-flex .map-container {
+  flex: 1;
+  width: 100%;
+  height: 100%;
+  position: relative;
+  border-radius: 0.5rem;
+  overflow: hidden;
+  background: var(--bs-body-bg);
+}
+
+/* Map and ECharts layers fill the card container */
+.interactive-map-card .interactive-map-flex #map,
+.interactive-map-card .interactive-map-flex #echarts-layer {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+}
+
+/* ==========================================================================
    Info Panel (floating overlay on map)
    ========================================================================== */
 .info-panel {
   position: absolute;
   top: 10px;
   left: 10px;
-  background: rgba(255, 255, 255, 0.95);
+  background: color-mix(in srgb, var(--bs-body-bg) 95%, transparent);
   padding: 1rem;
   border-radius: 0.5rem;
   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.15);
@@ -101,14 +137,124 @@
 
 .info-panel h3 {
   margin: 0 0 0.5rem 0;
-  font-size: 1rem;
+  font-size: var(--editor-font-xl);
   color: var(--bs-body-color);
 }
 
 .info-panel p {
-  font-size: 0.875rem;
+  font-size: var(--editor-font-lg);
   color: var(--bs-secondary-color);
   margin: 0;
+}
+
+/* ==========================================================================
+   MapLibre Controls - Styled to match editor theme
+   ========================================================================== */
+
+/* Control group container */
+.maplibregl-ctrl-group {
+  background: var(--bs-body-bg) !important;
+  border: 1px solid var(--bs-border-color) !important;
+  border-radius: var(--editor-radius-base) !important;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15) !important;
+  overflow: hidden;
+}
+
+/* Individual control buttons */
+.maplibregl-ctrl-group button {
+  width: 32px !important;
+  height: 32px !important;
+  background: var(--bs-body-bg) !important;
+  border: none !important;
+  border-bottom: 1px solid var(--bs-border-color) !important;
+  cursor: pointer;
+  display: flex !important;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.maplibregl-ctrl-group button:last-child {
+  border-bottom: none !important;
+}
+
+.maplibregl-ctrl-group button:hover {
+  background: var(--bs-secondary-bg) !important;
+}
+
+.maplibregl-ctrl-group button:active {
+  background: color-mix(in srgb, var(--primary-color, var(--bs-primary)) 25%, transparent) !important;
+}
+
+/* Icon styling - lighter icons for light theme */
+.maplibregl-ctrl-group button .maplibregl-ctrl-icon {
+  opacity: 0.35;
+}
+
+.maplibregl-ctrl-group button:hover .maplibregl-ctrl-icon {
+  opacity: 0.6;
+}
+
+/* Dark mode icon filter - invert for visibility */
+[data-bs-theme="dark"] .maplibregl-ctrl-group button .maplibregl-ctrl-icon {
+  filter: invert(1);
+  opacity: 0.6;
+}
+
+[data-bs-theme="dark"] .maplibregl-ctrl-group button:hover .maplibregl-ctrl-icon {
+  opacity: 0.9;
+}
+
+/* Compass control - has different structure */
+.maplibregl-ctrl-compass {
+  background: var(--bs-body-bg) !important;
+}
+
+/* Scale control */
+.maplibregl-ctrl-scale {
+  background: color-mix(in srgb, var(--bs-body-bg) 80%, transparent) !important;
+  border: 1px solid var(--bs-border-color) !important;
+  border-radius: var(--editor-radius-sm) !important;
+  color: var(--bs-body-color) !important;
+  font-size: var(--editor-font-sm) !important;
+  padding: var(--editor-spacing-xs) var(--editor-spacing-base) !important;
+  line-height: 1.2;
+}
+
+/* Attribution control */
+.maplibregl-ctrl-attrib {
+  background: color-mix(in srgb, var(--bs-body-bg) 85%, transparent) !important;
+  border-radius: var(--editor-radius-sm) !important;
+  font-size: var(--editor-font-xs) !important;
+  padding: var(--editor-spacing-xs) var(--editor-spacing-sm) !important;
+}
+
+.maplibregl-ctrl-attrib a {
+  color: var(--bs-secondary-color) !important;
+}
+
+.maplibregl-ctrl-attrib a:hover {
+  color: var(--bs-body-color) !important;
+}
+
+/* Attribution collapse button (i) */
+.maplibregl-ctrl-attrib-button {
+  background: var(--bs-body-bg) !important;
+  border: 1px solid var(--bs-border-color) !important;
+  border-radius: 50% !important;
+  width: var(--editor-button-height) !important;
+  height: var(--editor-button-height) !important;
+  opacity: 0.8;
+}
+
+.maplibregl-ctrl-attrib-button:hover {
+  opacity: 1;
+  background: var(--bs-secondary-bg) !important;
+}
+
+/* Dark mode attribution button */
+[data-bs-theme="dark"] .maplibregl-ctrl-attrib-button {
+  filter: invert(1);
 }
 
 /* ==========================================================================
@@ -119,9 +265,9 @@
 }
 
 .map-settings-btn {
-  background: #fff;
+  background: var(--bs-body-bg);
   border: none;
-  border-radius: 4px;
+  border-radius: var(--editor-radius-base);
   width: 29px;
   height: 29px;
   cursor: pointer;
@@ -132,24 +278,25 @@
 }
 
 .map-settings-btn:hover {
-  background: #f0f0f0;
+  background: var(--bs-secondary-bg);
 }
 
 .map-settings-btn svg {
-  width: 18px;
-  height: 18px;
-  fill: #333;
+  width: var(--editor-icon-lg);
+  height: var(--editor-icon-lg);
+  fill: var(--bs-body-color);
 }
 
 .map-settings-panel {
   position: absolute;
   top: 100%;
   right: 0;
-  margin-top: 8px;
-  background: #fff;
-  border-radius: 8px;
+  margin-top: var(--editor-spacing-md);
+  background: var(--bs-body-bg);
+  border-radius: var(--editor-radius-base);
+  border: 1px solid var(--bs-border-color);
   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
-  padding: 12px 16px;
+  padding: var(--editor-spacing-lg) var(--editor-spacing-lg);
   min-width: 200px;
   display: none;
   z-index: 1000;
@@ -160,39 +307,39 @@
 }
 
 .map-settings-panel h4 {
-  margin: 0 0 12px 0;
-  padding-bottom: 8px;
-  border-bottom: 1px solid #eee;
-  font-size: 14px;
-  color: #333;
+  margin: 0 0 var(--editor-spacing-lg) 0;
+  padding-bottom: var(--editor-spacing-md);
+  border-bottom: 1px solid var(--bs-border-color);
+  font-size: var(--editor-font-lg);
+  color: var(--bs-body-color);
   font-weight: 600;
 }
 
 .map-settings-option {
   display: flex;
   align-items: center;
-  padding: 8px 0;
+  padding: var(--editor-spacing-md) 0;
   cursor: pointer;
   user-select: none;
 }
 
 .map-settings-option:hover {
-  background: #f8f8f8;
-  margin: 0 -16px;
-  padding: 8px 16px;
+  background: var(--bs-secondary-bg);
+  margin: 0 calc(-1 * var(--editor-spacing-lg));
+  padding: var(--editor-spacing-md) var(--editor-spacing-lg);
 }
 
 .map-settings-option input[type="checkbox"] {
-  width: 18px;
-  height: 18px;
+  width: var(--editor-icon-lg);
+  height: var(--editor-icon-lg);
   margin-right: 10px;
   cursor: pointer;
-  accent-color: #3388ff;
+  accent-color: var(--primary-color, var(--bs-primary));
 }
 
 .map-settings-option label {
-  font-size: 13px;
-  color: #444;
+  font-size: var(--editor-font-md);
+  color: var(--bs-secondary-color);
   cursor: pointer;
   flex: 1;
 }
@@ -200,63 +347,356 @@
 .map-settings-input-group {
   display: flex;
   align-items: center;
-  padding: 8px 0;
+  padding: var(--editor-spacing-md) 0;
 }
 
 .map-settings-input-group label {
-  font-size: 13px;
-  color: #444;
+  font-size: var(--editor-font-md);
+  color: var(--bs-secondary-color);
   flex: 1;
 }
 
 .map-settings-input-group input[type="number"] {
   width: 70px;
-  padding: 4px 8px;
-  border: 1px solid #ccc;
-  border-radius: 4px;
-  font-size: 13px;
+  padding: var(--editor-spacing-sm) var(--editor-spacing-md);
+  border: 1px solid var(--bs-border-color);
+  border-radius: var(--editor-radius-base);
+  font-size: var(--editor-font-md);
   text-align: center;
+  background: var(--bs-body-bg);
+  color: var(--bs-body-color);
 }
 
 .map-settings-input-group input[type="number"]:focus {
   outline: none;
-  border-color: #3388ff;
-  box-shadow: 0 0 0 2px rgba(51, 136, 255, 0.2);
+  border-color: var(--primary-color, var(--bs-primary));
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--primary-color, var(--bs-primary)) 20%, transparent);
 }
 
 .map-settings-input-group input[type="number"]:disabled {
-  background-color: #f5f5f5;
-  color: #999;
+  background-color: var(--bs-tertiary-bg);
+  color: var(--bs-secondary-color);
   cursor: not-allowed;
-  border-color: #ddd;
+  border-color: var(--bs-border-color);
 }
 
 .map-settings-divider {
   height: 1px;
-  background: #eee;
-  margin: 8px 0;
+  background: var(--bs-border-color);
+  margin: var(--editor-spacing-md) 0;
+}
+
+/* ==========================================================================
+   Map Search Bar (top-left of viewport)
+   ========================================================================== */
+
+.map-search {
+  position: absolute;
+  top: var(--editor-spacing-lg);
+  left: var(--editor-spacing-lg);
+  z-index: 5;
+  display: flex;
+  align-items: center;
+  gap: 0;
+}
+
+.map-search-btn {
+  width: 32px;
+  height: 32px;
+  background: var(--bs-body-bg);
+  border: 1px solid var(--bs-border-color);
+  border-radius: var(--editor-radius-base);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--bs-secondary-color);
+  font-size: var(--editor-font-md) !important;
+  transition: background 0.15s;
+  flex-shrink: 0;
+}
+
+.map-search-btn:hover {
+  background: var(--bs-secondary-bg);
+  color: var(--bs-body-color);
+}
+
+.map-search-input {
+  width: 0;
+  padding: 0;
+  border: none;
+  opacity: 0;
+  font-size: var(--editor-font-md) !important;
+  background: var(--bs-body-bg);
+  color: var(--bs-body-color);
+  border-radius: 0 var(--editor-radius-base) var(--editor-radius-base) 0;
+  transition: width 0.2s ease, opacity 0.2s ease, padding 0.2s ease;
+  outline: none;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+  border: 1px solid var(--bs-border-color);
+  border-left: none;
+}
+
+.map-search.is-expanded .map-search-btn {
+  border-radius: var(--editor-radius-base) 0 0 var(--editor-radius-base);
+}
+
+.map-search.is-expanded .map-search-input {
+  width: 160px;
+  padding: var(--editor-spacing-sm) var(--editor-spacing-md);
+  opacity: 1;
+}
+
+/* Error shake animation */
+.map-search-input.is-error {
+  animation: map-search-shake 0.4s ease;
+  border-color: #ef4444;
+}
+
+@keyframes map-search-shake {
+  0%, 100% { transform: translateX(0); }
+  20%      { transform: translateX(-4px); }
+  40%      { transform: translateX(4px); }
+  60%      { transform: translateX(-3px); }
+  80%      { transform: translateX(3px); }
+}
+
+/* ==========================================================================
+   Tool Options Panel (Blender-style, bottom-left of viewport)
+   ========================================================================== */
+
+.viewport-tool-options {
+  position: absolute;
+  bottom: calc(30px + var(--editor-spacing-lg));  /* above MapLibre scale control */
+  left: var(--editor-spacing-lg);
+  z-index: 5;
+  min-width: 180px;
+  max-width: 260px;
+  background: color-mix(in srgb, var(--bs-body-bg) 92%, transparent);
+  border: 1px solid var(--bs-border-color);
+  border-radius: var(--editor-radius-base);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.18);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  overflow: hidden;
+  font-size: var(--editor-font-md) !important;
+}
+
+.viewport-tool-options-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--editor-spacing-sm) var(--editor-spacing-md);
+  border-bottom: 1px solid var(--bs-border-color);
+  background: color-mix(in srgb, var(--bs-body-bg) 60%, transparent);
+  user-select: none;
+}
+
+.viewport-tool-options-title {
+  font-size: var(--editor-font-sm) !important;
+  font-weight: 600;
+  color: var(--bs-body-color);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.viewport-tool-options-toggle {
+  background: none;
+  border: none;
+  padding: 0;
+  margin: 0;
+  cursor: pointer;
+  color: var(--bs-secondary-color);
+  line-height: 1;
+  font-size: var(--editor-font-sm) !important;
+}
+
+.viewport-tool-options-toggle:hover {
+  color: var(--bs-body-color);
+}
+
+.viewport-tool-options-body {
+  padding: var(--editor-spacing-sm) var(--editor-spacing-md);
+}
+
+/* Style property rows inside the panel to be compact */
+.viewport-tool-options-body .window-property-row {
+  padding: var(--editor-spacing-xs) 0;
+  gap: var(--editor-spacing-sm);
+}
+
+.viewport-tool-options-body .window-property-label {
+  font-size: var(--editor-font-sm) !important;
+  min-width: 42px;
+}
+
+.viewport-tool-options-body .window-property-value input,
+.viewport-tool-options-body .window-property-value select {
+  font-size: var(--editor-font-sm) !important;
+  padding: var(--editor-spacing-xs) var(--editor-spacing-sm);
+  height: auto;
+}
+
+.viewport-tool-options-body .window-property-value input[type="range"] {
+  height: auto;
+  padding: 0;
+}
+
+.viewport-tool-options-body .window-property-value input[type="color"] {
+  width: 28px;
+  height: 22px;
+  padding: 1px;
+  border: 1px solid var(--bs-border-color);
+  border-radius: var(--editor-radius-sm);
+  cursor: pointer;
+  background: none;
+}
+
+.viewport-tool-options-body .range-value-display {
+  font-size: var(--editor-font-sm) !important;
+  min-width: 28px;
+  text-align: center;
+}
+
+/* ==========================================================================
+   Project Guard Overlay (no project open)
+   ========================================================================== */
+
+.project-guard-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: color-mix(in srgb, var(--bs-body-bg) 80%, transparent);
+  backdrop-filter: blur(2px);
+  -webkit-backdrop-filter: blur(2px);
+}
+
+.project-guard-message {
+  text-align: center;
+  padding: 2rem;
+  max-width: 320px;
+}
+
+.project-guard-message i {
+  font-size: 2.5rem;
+  color: var(--bs-secondary-color);
+  margin-bottom: 0.75rem;
+  display: block;
+}
+
+.project-guard-message h5 {
+  font-size: var(--editor-font-xl);
+  color: var(--bs-body-color);
+  margin: 0 0 0.5rem;
+}
+
+.project-guard-message p {
+  font-size: var(--editor-font-md);
+  color: var(--bs-secondary-color);
+  margin: 0;
+}
+
+/* ==========================================================================
+   Transform Gizmo Overlay (UE5-style)
+   ========================================================================== */
+
+.gizmo-overlay {
+  position: absolute;
+  pointer-events: none;
+  z-index: 4;
+  transform: translate(-50%, -50%);
+}
+
+.gizmo-overlay svg {
+  overflow: visible;
+  pointer-events: none;
+}
+
+.gizmo-handle {
+  pointer-events: all;
+  cursor: grab;
+}
+
+.gizmo-handle:hover {
+  filter: brightness(1.4);
+}
+
+.gizmo-handle.is-dragging {
+  cursor: grabbing;
+  filter: brightness(1.6);
+}
+
+.gizmo-handle-x { cursor: ew-resize; }
+.gizmo-handle-y { cursor: ns-resize; }
+.gizmo-handle-xy { cursor: move; }
+.gizmo-handle-rotate { cursor: crosshair; }
+.gizmo-handle-uniform { cursor: nwse-resize; }
+
+/* Gizmo axis lines */
+.gizmo-axis {
+  pointer-events: none;
+  opacity: 0.9;
+}
+
+/* Gizmo arrowheads */
+.gizmo-arrowhead {
+  pointer-events: none;
+}
+
+/* Rotation ring */
+.gizmo-ring {
+  fill: none;
+  pointer-events: none;
+  opacity: 0.8;
+}
+
+/* Angle indicator shown during rotation drag */
+.gizmo-angle-indicator {
+  pointer-events: none;
+  opacity: 0.5;
+}
+
+/* Locked component feedback — fade in/out lock icon next to gizmo */
+.gizmo-locked-indicator {
+  position: absolute;
+  top: -20px;
+  left: 8px;
+  pointer-events: none;
+  color: var(--bs-warning, #FFC107);
+  filter: drop-shadow(0 1px 4px rgba(0, 0, 0, 0.6));
+  animation: gizmo-lock-flash 1s ease-in-out forwards;
+}
+
+@keyframes gizmo-lock-flash {
+  0%   { opacity: 0; transform: scale(0.6); }
+  20%  { opacity: 1; transform: scale(1.1); }
+  35%  { opacity: 1; transform: scale(1); }
+  70%  { opacity: 1; transform: scale(1); }
+  100% { opacity: 0; transform: scale(0.8); }
 }
 
 /* ==========================================================================
    Responsive Adjustments
    ========================================================================== */
 @media (max-width: 992px) {
-  .interactive-map-flex {
+  .interactive-map-card .interactive-map-flex {
     flex-direction: column;
     height: auto;
     gap: 1rem;
   }
 
-  .interactive-map-flex .map-container {
+  .interactive-map-card .interactive-map-flex .map-container {
     flex: none;
     width: 100%;
     height: 450px;
   }
 
-  .interactive-map-flex .map-sidebar {
-    flex: none;
-    width: 100%;
-    height: auto;
-    min-height: 200px;
-  }
+
 }

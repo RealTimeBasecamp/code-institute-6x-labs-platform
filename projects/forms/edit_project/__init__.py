@@ -11,6 +11,7 @@ from django.contrib import messages
 from django.db import transaction
 from django.shortcuts import get_object_or_404
 
+from core.utils.parsers import serialize_value
 from core.wizard import BaseWizardView, _clean_value
 from core.wizards import register_wizard
 from projects.models import Project
@@ -35,7 +36,7 @@ class ProjectEditWizard(BaseWizardView):
 
     wizard_name = 'project_edit'
     mode = 'update'  # This wizard updates existing objects
-    success_url = '/projects/project-planner/{slug}/'
+    success_url = '/projects/{slug}/'
     success_message = 'Project updated successfully!'
 
     forms = [
@@ -63,20 +64,9 @@ class ProjectEditWizard(BaseWizardView):
 
     def get_initial_data(self, request):
         """Pre-populate forms with existing project data."""
-        from decimal import Decimal
-
         project = self.get_project_instance(request)
         if not project:
             return {}
-
-        # Helper function to convert Decimal and other objects to JSON-serializable values
-        def serialize_value(value):
-            if isinstance(value, Decimal):
-                return str(value)
-            # Handle django-countries CountryField
-            if hasattr(value, 'code'):
-                return value.code
-            return value
 
         initial_data = {
             # Step 0: Basic Info

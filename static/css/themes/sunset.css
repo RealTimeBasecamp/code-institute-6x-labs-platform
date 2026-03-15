@@ -4,21 +4,47 @@
 /* ===== LIGHT MODE ===== */
 [data-theme="sunset"][data-bs-theme="light"] {
   --primary-color: #ea580c;
+  --bs-primary: var(--primary-color);
+  --bs-primary-rgb: 234, 88, 12;
   --bs-body-bg: #fff8f3;
   --bs-body-color: #5c3018;
   --bs-secondary-color: #8b5a3c;
   --bs-tertiary-bg: #fef0e6;
   --bs-border-color: #f4d4c1;
-  --bs-hover-bg: #fce8d9;
+  --bs-hover-bg: color-mix(in srgb, var(--primary-color) 10%, var(--bs-body-bg));
+
+  /* Chart palette — burnt orange anchor, sunset hues, each clearly distinct */
+  --chart-1: #ea580c; /* primary    — burnt orange */
+  --chart-2: #0f766e; /* teal       — cool contrast, like sky meeting horizon */
+  --chart-3: #b91c1c; /* deep red   — warm but clearly not orange */
+  --chart-4: #7c3aed; /* violet     — dusk purple, distinct cool */
+  --chart-5: #b45309; /* gold       — warm sunset gold, analogous */
+  --chart-6: #0e7490; /* slate-blue — cool anchor, horizon blue */
+  --chart-7: #be185d; /* magenta    — vivid warm dusk accent */
+  --chart-8: #15803d; /* forest     — cool earthy green contrast */
+  --chart-9: #d97706; /* amber      — mid warm, between orange and gold */
 }
 
 /* ===== DARK MODE ===== */
 [data-theme="sunset"][data-bs-theme="dark"] {
   --primary-color: #f97316;
+  --bs-primary: var(--primary-color);
+  --bs-primary-rgb: 249, 115, 22;
   --bs-body-bg: #1a0f0a;
   --bs-body-color: #f4d4c1;
   --bs-secondary-color: #c89872;
   --bs-tertiary-bg: #2a1a10;
   --bs-border-color: #4a3020;
-  --bs-hover-bg: #3a2518;
+  --bs-hover-bg: color-mix(in srgb, var(--primary-color) 12%, var(--bs-body-bg));
+
+  /* Chart palette — brightened for dark, same hue spread as light */
+  --chart-1: #fb923c; /* primary    — bright sunset orange */
+  --chart-2: #2dd4bf; /* teal       — bright aqua, sky-meets-sea */
+  --chart-3: #f87171; /* deep red   — bright coral-red */
+  --chart-4: #a78bfa; /* violet     — bright soft dusk purple */
+  --chart-5: #fbbf24; /* gold       — bright warm amber-gold */
+  --chart-6: #38bdf8; /* slate-blue — bright horizon blue */
+  --chart-7: #f472b6; /* magenta    — bright vivid pink */
+  --chart-8: #4ade80; /* forest     — bright natural green */
+  --chart-9: #fcd34d; /* amber      — bright warm yellow */
 }

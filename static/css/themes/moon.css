@@ -4,21 +4,47 @@
 /* ===== LIGHT MODE ===== */
 [data-theme="moon"][data-bs-theme="light"] {
   --primary-color: #6366f1;
+  --bs-primary: var(--primary-color);
+  --bs-primary-rgb: 99, 102, 241;
   --bs-body-bg: #ffffff;
   --bs-body-color: #212529;
   --bs-secondary-color: #6c757d;
   --bs-tertiary-bg: #f8f9fa;
   --bs-border-color: #dee2e6;
-  --bs-hover-bg: #e7f3f8;
+  --bs-hover-bg: color-mix(in srgb, var(--primary-color) 10%, var(--bs-body-bg));
+
+  /* Chart palette — indigo anchor, cool moonlit hues, each clearly distinct */
+  --chart-1: #6366f1; /* primary     — indigo */
+  --chart-2: #0891b2; /* steel-blue  — cool shifted, not purple */
+  --chart-3: #d97706; /* gold        — warm contrast against cool indigo */
+  --chart-4: #0f766e; /* teal        — cool green, distinct from blue */
+  --chart-5: #be185d; /* rose        — warm pink, high contrast */
+  --chart-6: #7c3aed; /* violet      — analogous but clearly different */
+  --chart-7: #15803d; /* sage        — natural earthy contrast */
+  --chart-8: #b45309; /* amber       — warm dark, distinct from gold */
+  --chart-9: #0e7490; /* slate       — muted cool anchor */
 }
 
 /* ===== DARK MODE ===== */
 [data-theme="moon"][data-bs-theme="dark"] {
   --primary-color: #818cf8;
+  --bs-primary: var(--primary-color);
+  --bs-primary-rgb: 129, 140, 248;
   --bs-body-bg: #212529;
   --bs-body-color: #dee2e6;
   --bs-secondary-color: #adb5bd;
   --bs-tertiary-bg: #2b3035;
   --bs-border-color: #495057;
-  --bs-hover-bg: #1a3a4a;
+  --bs-hover-bg: color-mix(in srgb, var(--primary-color) 12%, var(--bs-body-bg));
+
+  /* Chart palette — brightened for dark, same hue spread as light */
+  --chart-1: #818cf8; /* primary     — soft bright indigo */
+  --chart-2: #22d3ee; /* steel-blue  — bright cyan-teal */
+  --chart-3: #fbbf24; /* gold        — bright warm amber */
+  --chart-4: #2dd4bf; /* teal        — bright aqua */
+  --chart-5: #f472b6; /* rose        — bright warm pink */
+  --chart-6: #a78bfa; /* violet      — bright soft purple */
+  --chart-7: #4ade80; /* sage        — bright natural green */
+  --chart-8: #fb923c; /* amber       — bright warm orange */
+  --chart-9: #38bdf8; /* slate       — bright sky-blue anchor */
 }

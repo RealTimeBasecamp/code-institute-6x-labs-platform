@@ -6,8 +6,8 @@
     "location": {
         "center": [-0.9105, 51.4243],
         "zoom": 15,
-        "pitch": 45,
-        "bearing": -17.6
+        "pitch": 0,
+        "bearing": 0
     },
     "layers": {
         "echarts": true,

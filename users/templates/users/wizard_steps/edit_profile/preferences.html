@@ -105,29 +105,29 @@ JS handler: static/js/components/theme-preferences.js
         <div class="theme-label">Ocean</div>
       </div>
 
+      <!-- 6xLabs Theme -->
+      <div class="theme-card" data-theme="6xlabs" tabindex="0" role="button" aria-label="6xLabs theme">
+        <div class="theme-preview">
+          <div class="preview-navbar" style="background: #2a2a2a;"></div>
+          <div class="preview-body">
+            <div class="preview-sidebar" style="background: #202020;"></div>
+            <div class="preview-content" style="background: #202020;">
+              <div class="preview-accent" style="background: #e7a267;"></div>
+            </div>
+          </div>
+        </div>
+        <div class="theme-label">6xLabs</div>
+      </div>
+
     </div>
   </div>
 
   <!-- Mode Selection -->
   <div class="mb-3">
     <label class="form-label fw-semibold">Display Mode</label>
-    <ul class="nav nav-pills nav-pills--icons mode-selector" role="group" aria-label="Display mode selection">
-      <li class="nav-item" role="presentation">
-        <button type="button" class="nav-link mode-btn" data-mode="light" aria-label="Light mode">
-          <i class="bi bi-sun"></i><span class="mode-label">Light</span>
-        </button>
-      </li>
-      <li class="nav-item" role="presentation">
-        <button type="button" class="nav-link mode-btn" data-mode="dark" aria-label="Dark mode">
-          <i class="bi bi-moon-stars"></i><span class="mode-label">Dark</span>
-        </button>
-      </li>
-      <li class="nav-item" role="presentation">
-        <button type="button" class="nav-link mode-btn" data-mode="system" aria-label="System mode">
-          <i class="bi bi-display"></i><span class="mode-label">(System)</span>
-        </button>
-      </li>
-    </ul>
+    {% load ui_tags %}
+    {% make_tabs 'light:Light:bi-sun,dark:Dark:bi-moon-stars,system:(System):bi-display' as mode_tabs %}
+    {% include 'components/nav_pills.html' with tabs=mode_tabs id='mode-selector' variant='text' class='mode-selector' %}
     <div class="form-text mt-2">
       System mode automatically matches your device's light/dark setting.
     </div>
@@ -220,29 +220,9 @@ JS handler: static/js/components/theme-preferences.js
     color: var(--bs-body-color);
   }
 
-  /* Mode Selector - uses pill-nav component */
+  /* Mode Selector - uses nav-pills component */
   .mode-selector.nav-pills {
     margin-bottom: 0.5rem;
-  }
-
-  /* Align icon and label inline for mode buttons */
-  .mode-selector .mode-btn {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.5rem;
-    padding: .35rem .6rem;
-  }
-
-  .mode-selector .mode-btn .bi {
-    font-size: 1.05rem;
-    line-height: 1;
-    display: inline-block;
-  }
-
-  .mode-label {
-    margin: 0;
-    font-size: 0.95rem;
-    line-height: 1;
   }
 
   @media (max-width: 400px) {

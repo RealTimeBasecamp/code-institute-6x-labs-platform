@@ -1,0 +1,199 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block meta_title %}Species Catalogue{% endblock %}
+{% block page_title %}Species Catalogue{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/components/sortable-table.css' %}">
+<style>
+  .sp-thumb {
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 2px solid var(--bs-border-color);
+    background-color: var(--bs-tertiary-bg);
+    flex-shrink: 0;
+  }
+  .sp-thumb-initials {
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    border: 2px solid var(--bs-border-color);
+    background-color: var(--bs-secondary-bg);
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--bs-secondary-color);
+  }
+</style>
+{% endblock %}
+
+{% block header_contents %}
+  <span class="text-muted small">
+    {{ total_cached }} species cached
+  </span>
+{% endblock %}
+
+{% block content %}
+
+  {# Filters #}
+  <form method="get" class="d-flex flex-wrap gap-2 mb-3 align-items-center">
+    <input
+      type="search"
+      name="q"
+      value="{{ search_q }}"
+      placeholder="Search species..."
+      class="form-control form-control-sm"
+      style="max-width: 260px;">
+    <select name="category" class="form-select form-select-sm" style="max-width: 180px;">
+      <option value="">All categories</option>
+      {% for cat in categories %}
+        <option value="{{ cat }}" {% if filter_category == cat %}selected{% endif %}>
+          {{ cat|title }}
+        </option>
+      {% endfor %}
+    </select>
+    <button type="submit" class="btn btn-sm btn-outline-secondary">Filter</button>
+    {% if search_q or filter_category %}
+      <a href="{% url 'species:species_list' %}" class="btn btn-sm btn-link text-muted">Clear</a>
+    {% endif %}
+  </form>
+
+  {% if species_list %}
+    <table class="table table-hover sortable-table align-middle">
+      <thead class="table-sm">
+        <tr>
+          <th style="width:52px"></th>
+          <th data-sortable>Common name</th>
+          <th data-sortable>Scientific name</th>
+          <th data-sortable>Category</th>
+          <th data-sortable>Family</th>
+          <th data-sortable>Nativeness</th>
+          <th>Benefits</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for sp in species_list %}
+          {% with cached=sp.mixer_cached_data %}
+          <tr>
+            {# Thumbnail — img with onerror fallback to initials div #}
+            <td class="pe-0">
+              {% if sp.gbif_image_url %}
+                <img
+                  src="{{ sp.gbif_image_url }}"
+                  alt=""
+                  class="sp-thumb"
+                  onerror="this.style.display='none';this.nextElementSibling.style.display='flex';">
+                <div class="sp-thumb-initials" style="display:none;">
+                  {{ sp.common_name|default:sp.scientific_name|slice:":2"|upper }}
+                </div>
+              {% else %}
+                <div class="sp-thumb-initials">
+                  {{ sp.common_name|default:sp.scientific_name|slice:":2"|upper }}
+                </div>
+              {% endif %}
+            </td>
+
+            {# Common name #}
+            <td>
+              <div class="fw-medium">{{ sp.common_name|default:"—" }}</div>
+            </td>
+
+            {# Scientific name #}
+            <td>
+              <span class="text-muted fst-italic small">
+                {{ sp.scientific_name|default:"—" }}
+              </span>
+            </td>
+
+            {# Category #}
+            <td>
+              <span class="badge bg-secondary bg-opacity-10 text-secondary">
+                {{ sp.category|title|default:"—" }}
+              </span>
+            </td>
+
+            {# Family (from mixer_cached_data) #}
+            <td class="text-muted small">
+              {{ cached.family|default:"—"|title }}
+            </td>
+
+            {# UK nativeness #}
+            <td>
+              {% if sp.uk_nativeness_cached == 'native' %}
+                <span class="badge bg-success bg-opacity-15 text-success">Native</span>
+              {% elif sp.uk_nativeness_cached == 'naturalised' %}
+                <span class="badge bg-info bg-opacity-15 text-info">Naturalised</span>
+              {% elif sp.uk_nativeness_cached == 'introduced' %}
+                <span class="badge bg-warning bg-opacity-15 text-warning">Introduced</span>
+              {% else %}
+                <span class="text-muted small">—</span>
+              {% endif %}
+            </td>
+
+            {# Ecological benefits #}
+            <td>
+              <div class="d-flex flex-wrap gap-1">
+                {% for benefit in sp.ecological_benefits|slice:":3" %}
+                  <span class="badge bg-primary bg-opacity-10 text-primary" style="font-size:.65rem;"
+                        title="{{ benefit }}">
+                    {{ benefit|lower|truncatechars:14 }}
+                  </span>
+                {% endfor %}
+              </div>
+            </td>
+          </tr>
+          {% endwith %}
+        {% endfor %}
+      </tbody>
+    </table>
+
+    {# Pagination #}
+    {% if is_paginated %}
+      <nav>
+        <ul class="pagination pagination-sm justify-content-center">
+          {% if page_obj.has_previous %}
+            <li class="page-item">
+              <a class="page-link" href="?{% if search_q %}q={{ search_q }}&{% endif %}{% if filter_category %}category={{ filter_category }}&{% endif %}page={{ page_obj.previous_page_number }}">
+                &laquo;
+              </a>
+            </li>
+          {% endif %}
+          <li class="page-item disabled">
+            <span class="page-link">
+              Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}
+            </span>
+          </li>
+          {% if page_obj.has_next %}
+            <li class="page-item">
+              <a class="page-link" href="?{% if search_q %}q={{ search_q }}&{% endif %}{% if filter_category %}category={{ filter_category }}&{% endif %}page={{ page_obj.next_page_number }}">
+                &raquo;
+              </a>
+            </li>
+          {% endif %}
+        </ul>
+      </nav>
+    {% endif %}
+
+  {% else %}
+    <div class="text-center py-5 text-muted">
+      <i class="bi bi-tree fs-1 d-block mb-2 opacity-25"></i>
+      <p class="mb-1">No species cached yet.</p>
+      <p class="small">
+        Generate a species mix using the
+        <a href="{% url 'species:species_mixer' %}">Species Mixer</a>
+        — species will appear here automatically.
+      </p>
+    </div>
+  {% endif %}
+
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'js/components/sortable-table.js' %}" defer></script>
+{% endblock %}

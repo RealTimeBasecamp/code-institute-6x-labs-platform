@@ -1,0 +1,147 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block meta_title %}Fungi catalogue{% endblock %}
+{% block page_title %}Fungi catalogue{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/components/sortable-table.css' %}">
+{% endblock %}
+
+{# TODO: #}
+- Create fungi creation wizard modal
+- Hook up fungi view/url
+- Get fungi data into context
+- Update table to match fungi fields
+- Add delete functionality
+
+{# endcoment #}
+
+{% block header_contents %}
+  <button
+      type="button"
+      class="btn btn-primary"
+      data-bs-toggle="modal"
+      data-bs-target="#fungiCreationWizard">
+      <i class="bi bi-funnel-fill me-1"></i>Add new fungi
+  </button>
+
+  {# Include the fungi creation wizard modal TODO #}
+  {% include "components/modals/wizard_modal.html" with
+    modal_id="fungiCreationWizard"
+    wizard_name="fungi_creation"
+    modal_title="Create New Fungi"
+    modal_icon="bi bi-funnel-fill"
+  %}
+  {# end fungi creation wizard modal #}
+
+{% endblock %}
+
+{% block content %}
+
+  {# Toolbar: Nav pills (switch table/grid) and Search (search bar moved here by JS) #}
+  {% load ui_tags %}
+  <div class="d-flex justify-content-between align-items-center mb-3" id="customers-toolbar">
+    <div class="d-flex align-items-center">
+      {% make_tabs 'table:Table:bi-list:Table view,grid:Grid:bi-grid-3x3-gap-fill:Grid view' as view_tabs %}
+      {% include 'components/nav_pills.html' with tabs=view_tabs id='view-toggle' variant='text' %}
+    </div>
+
+    {# Search bar will be injected here by sortable-table.js (data-search-toolbar) #}
+
+  {# Tab content #}
+  <div class="tab-content">
+    {# Table view #}
+    <div class="tab-pane fade show active" id="table-view" role="tabpanel">
+      <table class="table sortable-table" data-search-toolbar="fungi-toolbar">
+        <thead>
+          <tr>
+            <th scope="col">#</th>
+            <th scope="col" data-sortable>common_name</th>
+            <th scope="col" data-sortable>category</th>
+            <th scope="col" data-sortable>cultivar</th>
+            <th scope="col">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for fungi in fungi_list %}
+          <tr data-fungi-name="{{ fungi.name|lower }}">
+            <th scope="row" data-row-number>{{ forloop.counter }}</th>
+            <td><a href="{% url 'fungi:fungi_detail' fungi.slug %}">{{ fungi.name }}</a></td>
+            <td>{{ fungi.category }}</td>
+            <td>{{ fungi.cultivar }}</td>
+            <td>{{ fungi.area_hectares }}</td>
+            {% if user_has_own_projects %}
+              <td>
+                {% if fungi.created_by == user %}
+                  <a role="button"
+                    class="bi bi-trash text-danger"
+                    data-bs-toggle="modal"
+                    data-bs-target="#deleteModal{{ fungi.slug }}">
+                  </a>
+                {% endif %}
+              </td>
+            {% endif %}
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+    {# Grid view #}
+    <div class="tab-pane fade" id="grid-view" role="tabpanel">
+      <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 row-cols-xl-4 g-4">
+        {% for fungi in fungi_list %}
+        <div class="col" data-fungi-name="{{ fungi.name|lower }}">
+          <div class="card h-100">
+            <div class="card-body">
+              <div class="card-title">
+                <a href="{% url 'fungi:fungi_detail' fungi.slug %}" class="text-decoration-none">
+                  {{ fungi.name }}
+                </a>
+              </div>
+              <p class="card-text">
+                <span class="badge bg-secondary">{{ fungi.category }}</span>
+              </p>
+              <ul class="list-unstyled small text-muted">
+                <li><i class="bi bi-cloud me-1"></i>CO₂: {{ fungi.total_co2_sequestered_kg|default:"—" }} kg</li>
+                <li><i class="bi bi-map me-1"></i>Area: {{ fungi.area_hectares }} ha</li>
+              </ul>
+            </div>
+            {% if fungi.created_by == user %}
+            <div class="card-footer bg-transparent border-0">
+              <a role="button"
+                class="btn btn-sm btn-outline-danger"
+                data-bs-toggle="modal"
+                data-bs-target="#deleteModal{{ fungi.slug }}">
+                <i class="bi bi-trash"></i> Delete
+              </a>
+            </div>
+            {% endif %}
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+
+  {# Delete modals for each fungi - pass fungi context for wizard #}
+  {% for fungi in fungi_list %}
+    {% include "components/modals/wizard_modal.html" with
+      modal_id="deleteModal"|add:fungi.slug
+      wizard_name="fungi_delete"
+      modal_title="Delete Fungi"
+      modal_icon="bi bi-trash"
+      wizard_mode="delete"
+      wizard_context='{"fungi_slug":"'|add:fungi.slug|add:'"}'
+    %}
+  {% endfor %}
+
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'js/components/sortable-table.js' %}" defer></script>
+<script src="{% static 'js/components/view-toggle.js' %}" defer></script>
+{% endblock %}
+
+

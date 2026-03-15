@@ -1,0 +1,60 @@
+{% load static %}
+
+<!-- MapLibre GL JS -->
+<link
+  href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css"
+  rel="stylesheet"
+/>
+
+<!-- Component CSS -->
+<link rel="stylesheet" href="{% static 'planting/css/interactive-map.css' %}" />
+
+<!-- Map Container -->
+<div class="interactive-map-card">
+  <div class="interactive-map-flex">
+    <div class="map-container">
+      <!-- Base MapLibre Map with 3D -->
+      <div id="map"></div>
+
+      <!-- ECharts Overlay Layer -->
+      <div id="echarts-layer"></div>
+
+    </div>
+  </div>
+</div>
+
+<!-- Component JS -->
+<script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
+
+<!-- Apache ECharts -->
+<script src="https://cdn.jsdelivr.net/npm/echarts@5.5.1/dist/echarts.min.js"></script>
+
+<!-- ECharts GL for 3D charts -->
+<script src="https://cdn.jsdelivr.net/npm/echarts-gl@2.0.9/dist/echarts-gl.min.js"></script>
+
+{# Expose page globals before loading the interactive-map script so it
+   can read them synchronously on init. This prevents a race where the map
+   initializes before these variables are defined. #}
+{% if site_bounds_map_json %}
+<script>
+  window.siteBoundsMap = {{ site_bounds_map_json|safe }};
+</script>
+{% else %}
+<script>window.siteBoundsMap = {};</script>
+{% endif %}
+{% if project %}
+<script>window.currentProjectSlug = "{{ project.slug }}";</script>
+{% else %}
+<script>window.currentProjectSlug = "";</script>
+{% endif %}
+{% if project and project.coordinates %}
+<script>
+  // Expose project first coordinates to the map code as [lng, lat]
+  window.projectCoordinatesFirst = [{{ project.coordinates.longitude|default:0|floatformat:6 }}, {{ project.coordinates.latitude|default:0|floatformat:6 }}];
+</script>
+{% else %}
+<script>window.projectCoordinatesFirst = null;</script>
+{% endif %}
+
+<script src="{% static 'js/components/map-styles.js' %}"></script>
+<script src="{% static 'planting/js/interactive-map.js' %}"></script>

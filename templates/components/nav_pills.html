@@ -1,0 +1,67 @@
+{#
+  NAV PILLS COMPONENT - Reusable Tab Navigation
+
+  Bootstrap pills with sliding indicator animation.
+  Requires: nav-pills.js and nav-pills.css
+
+  USAGE:
+    {% load ui_tags %}
+    {% make_tabs 'simple:Simple,advanced:Advanced' as tabs %}
+    {% include 'components/nav_pills.html' with tabs=tabs id='my-nav' %}
+    <div class="tab-content">
+      <div class="tab-pane fade show active" id="tab-simple">...</div>
+      <div class="tab-pane fade" id="tab-advanced">...</div>
+    </div>
+
+  PARAMETERS:
+    tabs    - List from make_tabs or view context
+    id      - HTML id for nav element (optional)
+    variant - 'text', 'icons', or blank (optional)
+    fill    - True to expand to parent width (default: centered, fit to content)
+    class   - Extra CSS classes (optional)
+
+  make_tabs FORMAT:
+    'id:label'                    - Text only
+    'id:label:icon'               - With Bootstrap icon
+    'id:label:icon:title'         - With tooltip
+
+  EXAMPLES:
+    {% include 'components/nav_pills.html' with tabs=tabs %}              (Centered, fit to content)
+    {% include 'components/nav_pills.html' with tabs=tabs fill=True %}    (Expand to parent width)
+
+  VARIANTS:
+    (none)  - Standard pills with text
+    'text'  - Text with optional icon prefix
+    'icons' - Icon-only (label used as tooltip)
+#}
+
+{% load static %}
+<link rel="stylesheet" href="{% static 'css/components/nav-pills.css' %}">
+<script src="{% static 'js/components/nav-pills.js' %}" defer></script>
+
+{% with nav_id=id|default:"nav-pills" %}
+{% if not fill %}<div class="d-flex justify-content-center">{% endif %}
+<nav class="nav nav-pills{% if variant %} nav-pills--{{ variant }}{% endif %}{% if fill %} nav-pills--fill{% endif %}{% if class %} {{ class }}{% endif %}" id="{{ nav_id }}" role="tablist">
+  {% for tab in tabs %}
+    <div class="nav-item" role="presentation">
+      <button
+        class="nav-link{% if forloop.first %} active{% endif %}"
+        id="{{ nav_id }}-{{ tab.id }}-tab"
+        data-bs-toggle="tab"
+        data-bs-target="#tab-{{ tab.id }}"
+        type="button"
+        role="tab"
+        aria-controls="tab-{{ tab.id }}"
+        aria-selected="{% if forloop.first %}true{% else %}false{% endif %}"
+        {% if tab.title %}title="{{ tab.title }}"{% endif %}
+      >
+        {% if tab.icon %}
+          <i class="bi {{ tab.icon }}{% if variant == 'text' %} me-1{% endif %}"></i>
+        {% endif %}
+        {% if variant != 'icons' %}{{ tab.label }}{% endif %}
+      </button>
+    </div>
+  {% endfor %}
+</nav>
+{% if not fill %}</div>{% endif %}
+{% endwith %}

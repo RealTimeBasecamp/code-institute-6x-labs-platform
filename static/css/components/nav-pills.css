@@ -28,6 +28,7 @@
   height: var(--pill-height);
   gap: 0;
   flex-shrink: 0;
+  overflow: hidden; /* Prevent indicator from bleeding outside container */
 }
 
 .nav-pills {
@@ -40,7 +41,7 @@
   content: '';
   position: absolute;
   top: var(--pill-padding);
-  left: var(--pill-padding);
+  left: 0;
   height: calc(var(--pill-height) - var(--pill-padding) * 2);
   width: var(--indicator-width, 0);
   background: var(--pill-active-bg);
@@ -128,4 +129,20 @@
 /* Text variant */
 :is(.pill-nav--text, .nav-pills--text) .nav-link {
   padding: 0 1.25rem;
+}
+
+/* Fill variant - expands to parent width with equal item distribution */
+.pill-nav--fill,
+.nav-pills--fill {
+  display: flex !important;
+  width: 100%;
+}
+
+:is(.pill-nav--fill, .nav-pills--fill) .nav-item {
+  flex: 1 1 0;
+}
+
+:is(.pill-nav--fill, .nav-pills--fill) .nav-link {
+  width: 100%;
+  justify-content: center;
 }

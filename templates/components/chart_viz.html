@@ -1,0 +1,45 @@
+{% comment %}
+Chart Viz Component — Reusable dashboard card wrapping a ChartViz visualization.
+
+Usage:
+  {% include 'components/chart_viz.html' with
+      id='myChart'
+      scene='parliament'
+      label='Parliament'
+      subtitle='Seat distribution morphing'
+      card_class='chart-viz-hero'
+  %}
+
+  Optionally override height:
+      height='20rem'
+
+Parameters:
+  id         (required) Unique HTML element id on the page
+  scene      (required) ChartViz scene name:
+               pie-entry | pie | parliament | survey | bar | bar-polar |
+               particles | metaball | map | bar-racing | line-racing |
+               treemap | treemap-complex | circle-packing | sunburst |
+               calendar-heatmap | calendar-scatter | gauge-car |
+               word-cloud | liquid-fill | all
+  label      Card header title (default: scene name)
+  subtitle   Card subtitle (default: empty)
+  card_class Extra CSS class(es) on .dash-card (controls height via CSS, e.g.
+               chart-viz-hero, chart-viz-showcase; grid cards: no class needed,
+               .chart-viz-grid on the parent row handles it)
+  height     Optional inline height override (e.g. '18rem') — omit to use CSS
+{% endcomment %}
+
+<div class="dash-card{% if card_class %} {{ card_class }}{% endif %}">
+  <div class="dash-card-header">
+    <h4>{{ label|default:scene }}</h4>
+    {% if subtitle %}<span class="dash-card-subtitle">{{ subtitle }}</span>{% endif %}
+  </div>
+  <div class="chart-container">
+    <div
+      id="{{ id }}"
+      class="chart-wrap"
+      {% if height %}style="height: {{ height }};"{% endif %}
+      data-chart-viz-scene="{{ scene }}"
+    ></div>
+  </div>
+</div>

@@ -1,0 +1,62 @@
+{% load static %}
+{% comment %}
+Notion-Style Settings Modal - Base Template
+
+Provides the two-panel layout shell (sidebar + content area).
+Child templates extend this and fill the blocks with their own sections.
+
+Usage:
+  {% extends 'components/modals/settings_modal.html' %}
+  {% block settings_modal_id %}mySettingsModal{% endblock %}
+  {% block settings_modal_title %}My Settings{% endblock %}
+  {% block settings_sidebar %}...{% endblock %}
+  {% block settings_panels %}...{% endblock %}
+
+Include the child template where needed:
+  {% include 'path/to/child_settings_modal.html' %}
+{% endcomment %}
+
+<link rel="stylesheet" href="{% static 'css/components/settings-modal.css' %}" />
+
+<div
+  class="modal fade settings-modal"
+  id="{% block settings_modal_id %}settingsModal{% endblock %}"
+  tabindex="-1"
+  role="dialog"
+  aria-labelledby="settingsModalLabel"
+  aria-hidden="true"
+>
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-body">
+
+        <h2 id="settingsModalLabel" class="visually-hidden">
+          {% block settings_modal_title %}Settings{% endblock %}
+        </h2>
+
+        <button
+          type="button"
+          class="settings-close"
+          data-bs-dismiss="modal"
+          aria-label="Close"
+        >
+          <i class="bi bi-x-lg"></i>
+        </button>
+
+        <div class="settings-layout">
+          {# Left sidebar with section links #}
+          <nav class="settings-sidebar" aria-label="Settings sections">
+            {% block settings_sidebar %}{% endblock %}
+          </nav>
+
+          {# Right content area #}
+          <div class="settings-content">
+            <span class="settings-save-indicator">Saved</span>
+            {% block settings_panels %}{% endblock %}
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+</div>

@@ -3,7 +3,7 @@
  * MapLibre GL JS with 3D terrain + Apache ECharts overlay for data visualization
  * 
  * @description A modular map component that supports:
- *   - 3D terrain visualization with AWS elevation tiles
+ *   - 3D terrain visualization with Mapterhorn elevation tiles (ESA Copernicus DEM)
  *   - ECharts data overlay for custom visualizations
  *   - Fill-extrusion layers for 3D polygon rendering
  *   - Configurable settings via external JSON config
@@ -19,10 +19,7 @@
     const DEPENDENCY_CHECK_INTERVAL = 100;
     const DEPENDENCY_MAX_ATTEMPTS = 50;
 
-    const TILE_SOURCES = {
-        osm: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-        terrain: 'https://s3.amazonaws.com/elevation-tiles-prod/terrarium/{z}/{x}/{y}.png'
-    };
+    // Map style constants and builders are provided by map-styles.js (window.MapStyles).
 
     const DEFAULT_CONFIG = {
         project: { name: 'My Project', description: '' },
@@ -82,154 +79,6 @@
     }
 
     // ============================================
-    // Map Style Builder
-    // ============================================
-    
-    function buildMapStyle(config) {
-        return {
-            version: 8,
-            glyphs: 'https://demotiles.maplibre.org/font/{fontstack}/{range}.pbf',
-            sources: {
-                'osm-tiles': {
-                    type: 'raster',
-                    tiles: [TILE_SOURCES.osm],
-                    tileSize: 256,
-                    attribution: '&copy; OpenStreetMap contributors'
-                },
-                'terrainSource': {
-                    type: 'raster-dem',
-                    tiles: [TILE_SOURCES.terrain],
-                    tileSize: 256,
-                    encoding: 'terrarium',
-                    maxzoom: 15
-                },
-                'hillshadeSource': {
-                    type: 'raster-dem',
-                    tiles: [TILE_SOURCES.terrain],
-                    tileSize: 256,
-                    encoding: 'terrarium',
-                    maxzoom: 15
-                }
-            },
-            layers: [
-                {
-                    id: 'osm-tiles-layer',
-                    type: 'raster',
-                    source: 'osm-tiles',
-                    minzoom: 0,
-                    maxzoom: 19
-                },
-                {
-                    id: 'hillshade-layer',
-                    type: 'hillshade',
-                    source: 'hillshadeSource',
-                    layout: {
-                        visibility: config.layers.hillshade ? 'visible' : 'none'
-                    },
-                    paint: {
-                        'hillshade-shadow-color': '#473B24',
-                        'hillshade-illumination-anchor': 'map',
-                        'hillshade-exaggeration': 0.5
-                    }
-                }
-            ],
-            terrain: config.terrain.enabled ? {
-                source: 'terrainSource',
-                exaggeration: config.terrain.exaggeration
-            } : undefined
-        };
-    }
-
-    // ============================================
-    // Layer Settings Control
-    // ============================================
-    
-    class LayerSettingsControl {
-        constructor(config) {
-            this._config = config;
-        }
-
-        onAdd(map) {
-            this._map = map;
-            this._container = document.createElement('div');
-            this._container.className = 'maplibregl-ctrl maplibregl-ctrl-group map-settings-control';
-            
-            this._createButton();
-            this._createPanel();
-            this._setupEventListeners();
-            
-            return this._container;
-        }
-
-        _createButton() {
-            const btn = document.createElement('button');
-            btn.className = 'map-settings-btn';
-            btn.type = 'button';
-            btn.title = 'Layer Settings';
-            btn.innerHTML = `
-                <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M19.14 12.94c.04-.31.06-.63.06-.94 0-.31-.02-.63-.06-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.04.31-.06.63-.06.94s.02.63.06.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z"/>
-                </svg>
-            `;
-            this._btn = btn;
-            this._container.appendChild(btn);
-        }
-
-        _createPanel() {
-            const { layers, terrain } = this._config;
-            const panel = document.createElement('div');
-            panel.className = 'map-settings-panel';
-            panel.innerHTML = `
-                <h4>Layer Settings</h4>
-                <div class="map-settings-option">
-                    <input type="checkbox" id="toggle-echarts" ${layers.echarts ? 'checked' : ''}>
-                    <label for="toggle-echarts">Show ECharts Data</label>
-                </div>
-                <div class="map-settings-option">
-                    <input type="checkbox" id="toggle-extrusion" ${layers.extrusion ? 'checked' : ''}>
-                    <label for="toggle-extrusion">Show 3D Extrusions</label>
-                </div>
-                <div class="map-settings-divider"></div>
-                <div class="map-settings-option">
-                    <input type="checkbox" id="toggle-hillshade" ${layers.hillshade ? 'checked' : ''}>
-                    <label for="toggle-hillshade">Show Map Shadows</label>
-                </div>
-                <div class="map-settings-divider"></div>
-                <div class="map-settings-input-group">
-                    <label for="terrain-exaggeration">Terrain Scale</label>
-                    <input type="number" id="terrain-exaggeration" value="${terrain.exaggeration}" min="0" max="10" step="0.5">
-                </div>
-            `;
-            this._panel = panel;
-            this._container.appendChild(panel);
-        }
-
-        _setupEventListeners() {
-            // Toggle panel visibility
-            this._btn.addEventListener('click', (e) => {
-                e.stopPropagation();
-                this._panel.classList.toggle('open');
-            });
-
-            // Close panel when clicking outside
-            document.addEventListener('click', (e) => {
-                if (!this._container.contains(e.target)) {
-                    this._panel.classList.remove('open');
-                }
-            });
-        }
-
-        onRemove() {
-            this._container.parentNode.removeChild(this._container);
-            this._map = undefined;
-        }
-
-        getPanel() {
-            return this._panel;
-        }
-    }
-
-    // ============================================
     // Interactive Map Controller
     // ============================================
     
@@ -260,8 +109,6 @@
             this._addDemoData();
             this._setupMapEvents();
             this._exposeAPI();
-
-            console.log(`Interactive Map initialized: ${this.config.project.name}`);
         }
 
         /**
@@ -272,7 +119,11 @@
 
             this.map = new maplibregl.Map({
                 container: 'map',
-                style: buildMapStyle(this.config),
+                style: window.MapStyles.buildStreetStyle({
+                    terrain:              this.config.terrain.enabled,
+                    hillshade:            this.config.layers.hillshade,
+                    terrainExaggeration:  this.config.terrain.exaggeration,
+                }),
                 center: location.center,
                 zoom: location.zoom,
                 pitch: location.pitch,
@@ -283,11 +134,7 @@
 
             // Add controls
             this.map.addControl(new maplibregl.NavigationControl({ visualizePitch: true }), 'top-right');
-            this.map.addControl(new maplibregl.TerrainControl({ source: 'terrainSource', exaggeration: 1.5 }), 'top-right');
             this.map.addControl(new maplibregl.ScaleControl(), 'bottom-left');
-            
-            const settingsControl = new LayerSettingsControl(this.config);
-            this.map.addControl(settingsControl, 'top-right');
         }
 
         /**
@@ -369,7 +216,6 @@
                 });
             }
 
-            console.log(`Generated ${count} sample points in bounding box`);
         }
 
         /**
@@ -395,8 +241,6 @@
         _onMapLoad() {
             this._addExtrusionLayers();
             this._updateECharts();
-            this._setupSettingsListeners();
-            console.log('MapLibre 3D extrusion layer ready!');
         }
 
         /**
@@ -443,43 +287,6 @@
             const terrainEnabled = !!e.terrain;
             this.toggleExtrusion(terrainEnabled);
             this.toggleHillshade(terrainEnabled);
-            console.log('Terrain toggled:', terrainEnabled ? '3D ON' : '2D ON');
-        }
-
-        /**
-         * Setup settings panel event listeners
-         */
-        _setupSettingsListeners() {
-            this._bindCheckbox('toggle-echarts', (checked) => this.toggleECharts(checked));
-            this._bindCheckbox('toggle-extrusion', (checked) => this.toggleExtrusion(checked));
-            this._bindCheckbox('toggle-hillshade', (checked) => this.toggleHillshade(checked));
-            this._bindTerrainInput();
-        }
-
-        _bindCheckbox(id, callback) {
-            const checkbox = document.getElementById(id);
-            if (checkbox) {
-                checkbox.addEventListener('change', (e) => callback(e.target.checked));
-            }
-        }
-
-        _bindTerrainInput() {
-            const input = document.getElementById('terrain-exaggeration');
-            if (!input) return;
-
-            input.addEventListener('input', (e) => {
-                const value = parseFloat(e.target.value);
-                if (!isNaN(value) && value >= 0 && value <= 10) {
-                    this.setTerrainExaggeration(value);
-                }
-            });
-
-            input.addEventListener('blur', (e) => {
-                let value = parseFloat(e.target.value);
-                value = Math.max(0, Math.min(10, isNaN(value) ? 0 : value));
-                e.target.value = value;
-                this.setTerrainExaggeration(value);
-            });
         }
 
         // ============================================
@@ -489,8 +296,6 @@
         toggleECharts(show) {
             this.echartsVisible = typeof show === 'boolean' ? show : !this.echartsVisible;
             this.echartsLayer.style.display = this.echartsVisible ? 'block' : 'none';
-            this._syncCheckbox('toggle-echarts', this.echartsVisible);
-            console.log('ECharts Layer:', this.echartsVisible ? 'ON' : 'OFF');
             return this.echartsVisible;
         }
 
@@ -504,8 +309,6 @@
                 }
             });
 
-            this._syncCheckbox('toggle-extrusion', this.extrusionVisible);
-            console.log('3D Extrusion:', this.extrusionVisible ? 'ON' : 'OFF');
             return this.extrusionVisible;
         }
 
@@ -514,16 +317,7 @@
             if (this.map.getLayer('hillshade-layer')) {
                 this.map.setLayoutProperty('hillshade-layer', 'visibility', visibility);
             }
-            this._syncCheckbox('toggle-hillshade', show);
-            console.log('Hillshade:', show ? 'ON' : 'OFF');
             return show;
-        }
-
-        _syncCheckbox(id, checked) {
-            const checkbox = document.getElementById(id);
-            if (checkbox && checkbox.checked !== checked) {
-                checkbox.checked = checked;
-            }
         }
 
         // ============================================
@@ -713,6 +507,23 @@
             });
         }
 
+        setMapStyle(mode) {
+            const styleDef = window.MapStyles.STYLES[mode];
+            if (!styleDef) return;
+            // Pass terrain options so satellite/street keep terrain when enabled
+            const terrainOpts = {
+                terrain:             this.config.terrain.enabled,
+                hillshade:           this.config.layers.hillshade,
+                terrainExaggeration: this.config.terrain.exaggeration,
+            };
+            this.map.setStyle(styleDef.build(terrainOpts));
+            // Re-add extrusion layers and ECharts after style swap (style change clears all layers)
+            this.map.once('styledata', () => {
+                this._addExtrusionLayers();
+                this._updateECharts();
+            });
+        }
+
         setTerrainExaggeration(value) {
             this.map.setTerrain({ source: 'terrainSource', exaggeration: value });
             
@@ -720,7 +531,6 @@
             if (input && parseFloat(input.value) !== value) {
                 input.value = value;
             }
-            console.log('Terrain exaggeration:', value);
         }
 
         setExtrusionHeight(height) {
@@ -773,20 +583,16 @@
                 setExtrusionHeight: (h) => this.setExtrusionHeight(h),
 
                 // Manual update
-                updateECharts: () => this._updateECharts()
+                updateECharts: () => this._updateECharts(),
+
+                // Map style switching
+                setMapStyle: (mode) => this.setMapStyle(mode)
             };
 
-            this._logAPI();
-        }
-
-        _logAPI() {
-            console.log('=== Interactive Map API ===');
-            console.log('addPolygon(name, [[lng,lat],...], {color, strokeColor, value, height})');
-            console.log('addPoints([{lng, lat, value, color, size, name}, ...])');
-            console.log('addPoint(lng, lat, {value, color, size, name})');
-            console.log('addLine([[lng,lat],...], {color, width, name})');
-            console.log('toggleExtrusion() | toggleHillshade() | toggleECharts()');
-            console.log('flyTo(lng, lat, zoom) | setTerrainExaggeration(value)');
+            // Listen for render-mode changes from the viewport toolbar
+            document.addEventListener('viewportToolbar.renderModeChange', (e) => {
+                this.setMapStyle(e.detail.renderMode);
+            });
         }
     }
 
@@ -805,7 +611,6 @@
                 // Expecting [lng, lat]
                 controller.config.location = controller.config.location || {};
                 controller.config.location.center = window.projectCoordinatesFirst;
-                console.log('Interactive Map: using project coordinates for initial center', window.projectCoordinatesFirst);
             }
         } catch (err) {
             // ignore
@@ -827,7 +632,6 @@
                     const curSlug = typeof window.currentProjectSlug !== 'undefined' ? String(window.currentProjectSlug) : '';
                     if (curSlug !== _lastProjectSlug) {
                         _lastProjectSlug = curSlug;
-                        console.log('Interactive Map: detected project slug change ->', curSlug);
                         if (window.projectCoordinatesFirst && Array.isArray(window.projectCoordinatesFirst) && window.projectCoordinatesFirst.length >= 2) {
                             // update controller config and move map
                             controller.config.location = controller.config.location || {};
@@ -839,8 +643,6 @@
                                     try { controller.map.setCenter(window.projectCoordinatesFirst); } catch (e2) {}
                                 }
                             }
-                        } else {
-                            console.log('Interactive Map: no project coordinates available for new slug');
                         }
                     }
                 } catch (err) {
@@ -943,6 +745,13 @@
                 if (drawingMode) return;
                 if (!controller.map) return;
                 drawingMode = true;
+
+                // Switch to 2D view for drawing if user preference enabled
+                const prefs = window.editorContext && window.editorContext.preferences;
+                if (!prefs || prefs.autoTopdownDrawing !== false) {
+                    controller.map.easeTo({ pitch: 0, bearing: 0, duration: 400 });
+                }
+
                 alert('Drag on the map to draw a square: click, drag and release to finish.');
 
                 // Create temporary preview source/layers if not present
@@ -1212,8 +1021,8 @@
             if (window.currentProjectSlug) return window.currentProjectSlug;
             try {
                 const parts = window.location.pathname.split('/').filter(Boolean);
-                // Expect pattern: projects/project-planner/<slug>
-                const idx = parts.indexOf('project-planner');
+                // Expect pattern: projects/<slug>
+                const idx = parts.indexOf('projects');
                 if (idx >= 0 && parts.length > idx + 1) return parts[idx + 1];
             } catch (e) {
                 // ignore
@@ -1233,13 +1042,11 @@
         }
 
         if (publishBtn) {
-            console.log('Interactive Map: publish button attached (id=', publishBtn.id, ')');
             try { publishBtn.type = 'button'; } catch (e) {}
             publishBtn.addEventListener('click', async (e) => {
                 if (e && e.preventDefault) e.preventDefault();
                 return; // early return: disable publish action
                 const resolvedSlug = resolveProjectSlug();
-                console.log('Interactive Map: publish clicked', { staged: (localSites||[]).length, projectSlug: resolvedSlug });
                 if (!resolvedSlug) {
                     alert('No project selected. Cannot publish.');
                     return;
@@ -1255,7 +1062,7 @@
                 };
 
                 try {
-                    const resp = await fetch(`/projects/project-planner/${resolvedSlug}/api/publish-sites/`, {
+                    const resp = await fetch(`/projects/${resolvedSlug}/api/publish-sites/`, {
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json',
@@ -1270,7 +1077,6 @@
                     }
 
                     const data = await resp.json();
-                    console.log('Published sites:', data);
 
                     // Insert created server rows into the sites table and update site bounds map
                     try {
@@ -1385,7 +1191,6 @@
                     highlightSiteRow(currentSiteIdx);
                 }
 
-                console.log('Deleted local site:', localName);
                 return;
             }
 
@@ -1419,14 +1224,13 @@
                     highlightSiteRow(currentSiteIdx);
                 }
 
-                console.log('Deleted site row (DOM):', siteName || idx);
             }
 
             const resolvedDeleteSlug = resolveProjectSlug();
             if (!isNaN(siteId) && resolvedDeleteSlug) {
                 // Call server to delete site
                 try {
-                    const resp = await fetch(`/projects/project-planner/${resolvedDeleteSlug}/api/delete-site/`, {
+                    const resp = await fetch(`/projects/${resolvedDeleteSlug}/api/delete-site/`, {
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json',
@@ -1441,7 +1245,6 @@
                     }
 
                     const data = await resp.json();
-                    console.log('Server deleted site:', data);
                     await finalizeDelete();
                 } catch (err) {
                     console.error('Server delete failed:', err);

@@ -1,0 +1,124 @@
+/**
+ * ChartViz Library Styles
+ *
+ * The target element (the .chart-wrap div) gets .chart-viz-container added by JS.
+ * Inner ECharts div and canvas overlay both fill it via absolute positioning.
+ * The .chart-wrap already has an explicit height (set via inline style or CSS),
+ * so absolute children resolve correctly.
+ */
+
+/* ===== CONTAINER ===== */
+
+.chart-viz-container {
+  position: relative !important;
+  overflow: hidden;
+  /* width/height come from the .chart-wrap parent or inline style */
+}
+
+/* ===== ECHARTS MOUNT ===== */
+
+.chart-viz-canvas {
+  position: absolute !important;
+  top: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  bottom: 0 !important;
+  width: 100% !important;
+  height: 100% !important;
+}
+
+/* ===== PARTICLE CANVAS ===== */
+
+.chart-viz-overlay {
+  position: absolute !important;
+  top: 0 !important;
+  left: 0 !important;
+  width: 100% !important;
+  height: 100% !important;
+  pointer-events: none;
+}
+
+/* ===== SCENE LABEL ===== */
+
+.chart-viz-label {
+  position: absolute;
+  bottom: 0.4rem;
+  right: 0.65rem;
+  font-size: 0.6875rem;
+  color: var(--bs-secondary-color);
+  pointer-events: none;
+  opacity: 0.55;
+  letter-spacing: 0.02em;
+  z-index: 5;
+}
+
+/* ===== CARD HEIGHT OVERRIDES ===== */
+/* Override .chart-wrap heights for taller viz cards */
+
+/* Grid scene cards — taller than default 12rem */
+.chart-viz-grid .chart-wrap {
+  height: 20rem !important;
+}
+
+/* Hero card (particle) */
+.chart-viz-hero .chart-wrap {
+  height: 22rem !important;
+}
+
+/* Showcase card (all-scenes cycle) */
+.chart-viz-showcase .chart-wrap {
+  height: 22rem !important;
+}
+
+/* ===== SCENE GRID SPACING ===== */
+
+.chart-viz-grid {
+  row-gap: 1.5rem;
+}
+
+/* Spacing between full-width scene rows in the advanced tab */
+#tab-advanced .dashboard-container .row {
+  margin-bottom: 1.5rem;
+}
+#tab-advanced .dashboard-container .row:last-child {
+  margin-bottom: 0;
+}
+
+/* ===== RESPONSIVE ===== */
+
+@media (max-width: 991.98px) {
+  .chart-viz-grid .chart-wrap {
+    height: 18rem !important;
+  }
+  .chart-viz-hero .chart-wrap {
+    height: 18rem !important;
+  }
+  .chart-viz-showcase .chart-wrap {
+    height: 18rem !important;
+  }
+}
+
+@media (max-width: 767.98px) {
+  .chart-viz-grid .chart-wrap {
+    height: 16rem !important;
+  }
+  .chart-viz-hero .chart-wrap {
+    height: 15rem !important;
+  }
+  .chart-viz-showcase .chart-wrap {
+    height: 15rem !important;
+  }
+  .chart-viz-grid {
+    row-gap: 1rem;
+  }
+}
+
+@media (max-width: 575.98px) {
+  .chart-viz-grid .chart-wrap {
+    height: 14rem !important;
+  }
+  .chart-viz-hero .chart-wrap,
+  .chart-viz-showcase .chart-wrap {
+    height: 13rem !important;
+  }
+}

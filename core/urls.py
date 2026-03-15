@@ -8,6 +8,20 @@ urlpatterns = [
     path('', views.login_view, name='login'),
     path('dashboard/', views.dashboard, name='dashboard'),
 
+    # User preferences API
+    path(
+        'api/user-preferences/',
+        views.user_preferences_api,
+        name='user_preferences_api',
+    ),
+
+    # # State Management API
+    # path(
+    #     'api/state/publish/',
+    #     state_api.publish_changes,
+    #     name='state_publish'
+    # ),
+
     # Wizard API endpoints
     path(
         'api/wizard/<str:wizard_name>/start/',

@@ -4,21 +4,47 @@
 /* ===== LIGHT MODE ===== */
 [data-theme="ocean"][data-bs-theme="light"] {
   --primary-color: #0284c7;
+  --bs-primary: var(--primary-color);
+  --bs-primary-rgb: 2, 132, 199;
   --bs-body-bg: #f0f4f8;
   --bs-body-color: #334155;
   --bs-secondary-color: #64748b;
   --bs-tertiary-bg: #e2e8f0;
   --bs-border-color: #cbd5e1;
-  --bs-hover-bg: #e2e8f0;
+  --bs-hover-bg: color-mix(in srgb, var(--primary-color) 10%, var(--bs-body-bg));
+
+  /* Chart palette — ocean blue anchor, maritime hues, each clearly distinct */
+  --chart-1: #0284c7; /* primary   — ocean blue */
+  --chart-2: #0f766e; /* sea-teal  — shifted green, not blue */
+  --chart-3: #c2410c; /* coral     — warm contrast, like a sunset at sea */
+  --chart-4: #6d28d9; /* deep violet — cool contrast, sea-depth feel */
+  --chart-5: #0e7490; /* slate-blue — muted cool analogue */
+  --chart-6: #b45309; /* sand-gold  — warm sandy accent */
+  --chart-7: #be185d; /* deep rose  — distinct warm, far on wheel */
+  --chart-8: #15803d; /* sea-green  — natural complement to blue */
+  --chart-9: #1d4ed8; /* navy       — darker cool anchor */
 }
 
 /* ===== DARK MODE ===== */
 [data-theme="ocean"][data-bs-theme="dark"] {
   --primary-color: #0ea5e9;
+  --bs-primary: var(--primary-color);
+  --bs-primary-rgb: 14, 165, 233;
   --bs-body-bg: #0f172a;
   --bs-body-color: #e2e8f0;
   --bs-secondary-color: #94a3b8;
   --bs-tertiary-bg: #1e293b;
   --bs-border-color: #334155;
-  --bs-hover-bg: #334155;
+  --bs-hover-bg: color-mix(in srgb, var(--primary-color) 12%, var(--bs-body-bg));
+
+  /* Chart palette — brightened for dark, same hue spread as light */
+  --chart-1: #38bdf8; /* primary   — bright sky blue */
+  --chart-2: #2dd4bf; /* sea-teal  — bright aqua-teal */
+  --chart-3: #fb923c; /* coral     — bright warm orange */
+  --chart-4: #a78bfa; /* violet    — bright soft purple */
+  --chart-5: #22d3ee; /* slate-blue — bright cyan */
+  --chart-6: #fbbf24; /* sand-gold  — bright warm amber */
+  --chart-7: #f472b6; /* rose       — bright pink */
+  --chart-8: #4ade80; /* sea-green  — bright natural green */
+  --chart-9: #60a5fa; /* navy       — bright periwinkle anchor */
 }

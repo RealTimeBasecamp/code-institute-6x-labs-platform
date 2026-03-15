@@ -261,7 +261,7 @@ The interactive map has three modes with the sidebar (Sites, Zones and Point plo
 - The map is rendered using [**MapLibre.**](https://maplibre.org/)
 - The points are rendered using an [**Apache Echarts**](https://echarts.apache.org/en/index.html) layer on top of the MapLibre render pass.
 - The additional tile data is rendered using OpenStreetMap ([**OSM**](https://tile.openstreetmap.org)).
-- The additional terrain/shadow detail is rendered using AWS ([**Amazon Terrarium**](https://aws.amazon.com/marketplace/pp/prodview-x7vtai3hasf26)).
+- The additional terrain/shadow detail is rendered using [**Mapterhorn**](https://mapterhorn.com) (ESA Copernicus DEM, hosted on Cloudflare R2).
 
 **Future updates**
 <br>

@@ -10,6 +10,10 @@
 (function () {
   'use strict';
 
+  // Guard against multiple declarations
+  if (window._dropdownInitialized) return;
+  window._dropdownInitialized = true;
+
   /**
    * Initialize all custom dropdowns on the page
    */

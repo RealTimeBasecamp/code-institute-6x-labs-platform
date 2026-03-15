@@ -168,11 +168,11 @@
 }
 
 .sidebar-link:hover {
-  background-color: var(--bs-hover-bg) !important;
+  background-color: color-mix(in srgb, var(--primary-color) 12%, var(--bs-body-bg)) !important;
 }
 
 .sidebar-link.active {
-  background-color: var(--bs-hover-bg) !important;
+  background-color: color-mix(in srgb, var(--primary-color) 22%, var(--bs-body-bg)) !important;
   font-weight: 500;
 }
 
