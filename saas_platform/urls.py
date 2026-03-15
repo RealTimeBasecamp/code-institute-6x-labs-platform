@@ -23,7 +23,4 @@ urlpatterns = [
     path('admin/', admin.site.urls),
     path('accounts/', include('allauth.urls')),  # Django-allauth URLs
     path('projects/', include("projects.urls"), name="projects"),
-    path('reports/', include("reports.urls"), name="reports"),
-    path('customers/', include("customers.urls"), name="customers"),
-    path('species/', include("species.urls"), name="species"),
 ]

@@ -1,10 +1,8 @@
 """
 Planting app models.
 
-Contains domain-specific models for plant species and status tracking,
-and per-user editor preferences.
+Contains domain-specific models for plant species and status tracking.
 """
-from django.conf import settings
 from django.db import models
 
 
@@ -347,53 +345,3 @@ class Species(models.Model):
             return f"{self.common_name} ({self.cultivar})"
         return self.cultivar
 
-
-# =============================================================================
-# EDITOR PREFERENCES (Per-user settings for the project planner editor)
-# =============================================================================
-class EditorPreferences(models.Model):
-    """
-    Per-user preferences for the project planner editor.
-
-    Auto-created on first access via get_or_create in views.
-    Persists across devices (server-side, not localStorage).
-
-    Data comes from: Editor settings UI or API.
-    Used by: Project planner editor frontend (window.editorContext.preferences).
-    """
-    user = models.OneToOneField(
-        settings.AUTH_USER_MODEL,
-        on_delete=models.CASCADE,
-        related_name='editor_preferences',
-    )
-
-    # UI
-    ui_scale = models.FloatField(
-        default=1.0,
-        help_text="Editor UI scale multiplier (0.8-1.2)",
-    )
-
-    # Drawing tools
-    auto_topdown_drawing = models.BooleanField(
-        default=True,
-        help_text="Automatically set map to top-down view when using drawing tools",
-    )
-    north_up_drawing = models.BooleanField(
-        default=True,
-        help_text="Rotate map to face North when entering top-down drawing mode",
-    )
-
-    class Meta:
-        verbose_name = "Editor Preferences"
-        verbose_name_plural = "Editor Preferences"
-
-    def __str__(self):
-        return f"Editor prefs for {self.user}"
-
-    def to_dict(self):
-        """Serialize preferences to a dict for JSON/template context."""
-        return {
-            'ui_scale': self.ui_scale,
-            'auto_topdown_drawing': self.auto_topdown_drawing,
-            'north_up_drawing': self.north_up_drawing,
-        }

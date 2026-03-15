@@ -16,7 +16,7 @@ from django.utils.html import format_html
 
 from core.utils.parsers import pipe_separated_list, safe_float, safe_int
 
-from .models import EditorPreferences, PlantStatus, Species
+from .models import PlantStatus, Species
 
 logger = logging.getLogger(__name__)
 
@@ -185,10 +185,3 @@ class SpeciesAdmin(admin.ModelAdmin):
             self.message_user(request, f'CSV import failed: {exc}', level=messages.ERROR)
 
 
-@admin.register(EditorPreferences)
-class EditorPreferencesAdmin(admin.ModelAdmin):
-    """Admin configuration for EditorPreferences model."""
-
-    list_display = ['user', 'ui_scale', 'auto_topdown_drawing']
-    search_fields = ['user__username', 'user__email']
-    raw_id_fields = ['user']

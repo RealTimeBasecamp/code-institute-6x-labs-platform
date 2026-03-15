@@ -29,7 +29,7 @@ class ProjectCreationWizard(BaseWizardView):
     """
 
     wizard_name = 'project_creation'
-    success_url = '/projects/project-planner/{slug}/'
+    success_url = '/projects/{slug}/'
 
     forms = [
         ProjectBasicInfoForm,

@@ -36,7 +36,7 @@ class ProjectEditWizard(BaseWizardView):
 
     wizard_name = 'project_edit'
     mode = 'update'  # This wizard updates existing objects
-    success_url = '/projects/project-planner/{slug}/'
+    success_url = '/projects/{slug}/'
     success_message = 'Project updated successfully!'
 
     forms = [

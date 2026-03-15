@@ -102,10 +102,6 @@
             {% endif %}
         </div>
 
-        <!-- Right side: Action buttons -->
-        {% if user.is_superuser or user.is_staff %}
-          {% include 'components/state_manager.html' %}
-        {% endif %}
     </div>
 
     <!-- Last updated timestamp -->
@@ -122,21 +118,6 @@
   </div>
 </section>
 
-<section>
-  {% card
-    card_title="Project Images"
-    card_icon="bi bi-image"
-    card_body='<p>Images go here</p>'
-  %}
-</section>
-
-<section>
-  {% card
-    card_title="Project Description"
-    card_icon="bi bi-card-text"
-    card_body=project.description
-  %}
-</section>
 
 <section>
   {% load ui_tags %}

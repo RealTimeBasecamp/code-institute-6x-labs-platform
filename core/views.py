@@ -5,11 +5,10 @@ from django.contrib.auth.decorators import login_required
 from django.http import JsonResponse, HttpResponseBadRequest
 from django.utils.timezone import now
 
-from projects.models import Project
-from planting import models
 from django.db.models import Sum
-from reports.models import GlobalMetrics, update_global_metrics
 from django.db.models.functions import ExtractYear
+
+from projects.models import Project
 
 app_name = 'core'
 
@@ -30,15 +29,14 @@ def login_view(request):
 
 @login_required
 def dashboard(request):
-    # (Re)calculate global metrics using existing model aggregation helpers
-    # Note: update_global_metrics() uses model-level aggregates defined in `reports.models`.
-    update_global_metrics()
-    metrics = GlobalMetrics.get_instance()
-
-    num_projects = metrics.total_projects or Project.objects.count()
-    # Global metrics store CO2 in kilograms; convert to tonnes for display
-    total_co2 = int((metrics.total_co2_sequestered_kg or 0) / 1000)
-    total_plants = metrics.total_plants or Project.objects.aggregate(total=Sum('total_plants'))['total'] or 0
+    num_projects = Project.objects.count()
+    aggregates = Project.objects.aggregate(
+        total_co2=Sum('total_co2_sequestered_kg'),
+        total_plants=Sum('total_plants'),
+    )
+    # CO2 stored in kg; convert to tonnes for display
+    total_co2 = int((aggregates['total_co2'] or 0) / 1000)
+    total_plants = aggregates['total_plants'] or 0
 
     # Build a simple year-series for plants using stored per-project totals (uses existing project aggregates)
     plants_by_year_qs = Project.objects.exclude(created_at__isnull=True).annotate(year=ExtractYear('created_at')).values('year').annotate(total_plants=Sum('total_plants')).order_by('year')

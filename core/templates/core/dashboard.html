@@ -6,24 +6,10 @@
 
 {% block extra_css %}
 <link rel="stylesheet" href="{% static 'css/dashboard.css' %}">
-<link rel="stylesheet" href="{% static 'css/components/chart-viz.css' %}">
 {% endblock %}
 
 {% block content %}
-  {# Toolbar: Nav pills (switch table/grid) and Search (search bar moved here by JS) #}
-  {% load ui_tags %}
-  <div class="d-flex justify-content-between align-items-center mb-3" id="dashboard-toolbar">
-    <div class="d-flex align-items-center">
-      <!-- Remove icons from tabs -->
-      {% make_tabs 'simple:Simple,advanced:Advanced' as view_tabs %}
-      {% include 'components/nav_pills.html' with tabs=view_tabs id='view-toggle' variant='text' %}
-    </div>
-    {# Search bar will be injected here by sortable-table.js (data-search-toolbar) #}
-  </div>
-
-  {# Tab content #}
   <div class="tab-content">
-    {# Table view #}
     <div class="tab-pane fade show active" id="tab-simple" role="tabpanel">
         <div class="container-fluid dashboard-container">
           {# Full-width overview chart - shows plants planted over time #}
@@ -122,156 +108,17 @@
         </div>
       </div>
 
-      <div class="tab-pane fade" id="tab-advanced" role="tabpanel">
-        <div class="container-fluid dashboard-container">
-
-          {# Auto-cycle showcase — all scenes morphing #}
-          <div class="row">
-            <div class="col-12">
-              {% include 'components/chart_viz.html' with
-                  id='vizAllScenes'
-                  scene='all'
-                  label='All Scenes'
-                  subtitle='Auto-cycling through all chart types with universal morphing transitions'
-                  card_class='chart-viz-showcase'
-              %}
-            </div>
-          </div>
-
-          {# Pie + Parliament #}
-          <div class="row">
-            <div class="col-12 col-lg-6">
-              {% include 'components/chart_viz.html' with
-                  id='vizPie'
-                  scene='pie'
-                  label='Pie'
-                  subtitle='Standard donut chart'
-                  card_class='chart-viz-hero'
-              %}
-            </div>
-            <div class="col-12 col-lg-6">
-              {% include 'components/chart_viz.html' with
-                  id='vizParliament'
-                  scene='parliament'
-                  label='Parliament'
-                  subtitle='Hemicycle custom series'
-                  card_class='chart-viz-hero'
-              %}
-            </div>
-          </div>
-
-          {# Bar + Metaball #}
-          <div class="row">
-            <div class="col-12 col-lg-6">
-              {% include 'components/chart_viz.html' with
-                  id='vizBar'
-                  scene='bar'
-                  label='Bar'
-                  subtitle='Standard cartesian bar'
-                  card_class='chart-viz-hero'
-              %}
-            </div>
-            <div class="col-12 col-lg-6">
-              {% include 'components/chart_viz.html' with
-                  id='vizMetaball'
-                  scene='metaball'
-                  label='Metaball'
-                  subtitle='Bézier blob morphing'
-                  card_class='chart-viz-hero'
-              %}
-            </div>
-          </div>
-
-          {# Particles #}
-          <div class="row">
-            <div class="col-12">
-              {% include 'components/chart_viz.html' with
-                  id='vizParticles'
-                  scene='particles'
-                  label='Particles'
-                  subtitle='3D wave — native ECharts custom series'
-                  card_class='chart-viz-hero'
-              %}
-            </div>
-          </div>
-
-          {# Line racing #}
-          <div class="row">
-            <div class="col-12">
-              {% include 'components/chart_viz.html' with
-                  id='vizLineRacing'
-                  scene='line-racing'
-                  label='Line Racing'
-                  subtitle='Life expectancy by country — dataset transforms'
-                  card_class='chart-viz-hero'
-              %}
-            </div>
-          </div>
-
-          {# Hierarchy family #}
-          <div class="row">
-            <div class="col-12 col-lg-4">
-              {% include 'components/chart_viz.html' with
-                  id='vizTreemap'
-                  scene='treemap'
-                  label='Treemap'
-                  subtitle='ECharts package size — zoom interaction'
-                  card_class='chart-viz-hero'
-              %}
-            </div>
-            <div class="col-12 col-lg-4">
-              {% include 'components/chart_viz.html' with
-                  id='vizTreemapComplex'
-                  scene='treemap-complex'
-                  label='Treemap Complex'
-                  subtitle='Styled treemap with depth colours'
-                  card_class='chart-viz-hero'
-              %}
-            </div>
-            <div class="col-12 col-lg-4">
-              {% include 'components/chart_viz.html' with
-                  id='vizCirclePacking'
-                  scene='circle-packing'
-                  label='Circle Packing'
-                  subtitle='Hierarchical bubble layout'
-                  card_class='chart-viz-hero'
-              %}
-            </div>
-          </div>
-
-          {# Calendar scatter #}
-          <div class="row">
-            <div class="col-12">
-              {% include 'components/chart_viz.html' with
-                  id='vizCalendarScatter'
-                  scene='calendar-scatter'
-                  label='Calendar Scatter'
-                  subtitle='Scatter + effect scatter on calendar'
-                  card_class='chart-viz-hero'
-              %}
-            </div>
-          </div>
-
-        </div>
-      </div>
     </div>
-
-</div>
+  </div>
 
 {% endblock %}
 
 {% block extra_js %}
 {# ECharts core #}
 <script src="https://cdn.jsdelivr.net/npm/echarts@5/dist/echarts.min.js"></script>
-{# ChartViz data files — must load before chart-viz-scenes.js #}
-<script src="{% static 'js/components/data/pie-data.js' %}"></script>
-{# ChartViz library #}
-<script src="{% static 'js/components/chart-viz.js' %}"></script>
-<script src="{% static 'js/components/chart-viz-scenes.js' %}"></script>
 <script src="{% static 'js/dashboard.js' %}"></script>
 <script>
   document.addEventListener('DOMContentLoaded', function() {
-    // Dashboard data from Django context
     var dashboardData = {
       numProjects: {{ num_projects|default:0 }},
       totalCo2: {{ total_co2|default:0 }},
@@ -280,43 +127,7 @@
       plantsYears: {{ plants_years|default:'[]'|safe }},
       plantsValues: {{ plants_values|default:'[]'|safe }}
     };
-
-    // Initialize simple-tab charts with data
     DashboardCharts.init(dashboardData);
-
-    // Preload JSON data files needed by advanced-tab scenes (async, before tab is shown)
-    var dataBase = '{% static "js/components/data/" %}';
-    function loadJson(file, cb) {
-      fetch(dataBase + file).then(function(r) { return r.json(); }).then(cb).catch(function(){});
-    }
-    loadJson('echarts-package-size.json', function(d) { window.ECHARTS_PACKAGE_SIZE = d; });
-    loadJson('gh-contributions-2020.json', function(d) { window.GH_CONTRIBUTIONS = d; });
-    loadJson('life-expectancy-table.json', function(d) { window.LIFE_EXPECTANCY_DATA = d; });
-
-    // ChartViz: lazy-init when advanced tab is shown.
-    // ECharts returns 0×0 when initialised on a hidden element — this avoids that.
-    var vizInitialized = false;
-    function initAllViz() {
-      if (vizInitialized) return;
-      vizInitialized = true;
-      document.querySelectorAll('[data-chart-viz-scene]').forEach(function(el) {
-        ChartViz.create(el, {
-          type: el.dataset.chartVizScene,
-          animDuration: 1200,
-          cycleDuration: 3000
-        });
-      });
-    }
-
-    var advancedTabBtn = document.querySelector('[data-bs-target="#tab-advanced"]');
-    if (advancedTabBtn) {
-      advancedTabBtn.addEventListener('shown.bs.tab', initAllViz);
-    }
-    // Also init immediately if advanced tab is already active (e.g. via URL hash)
-    var advancedPane = document.getElementById('tab-advanced');
-    if (advancedPane && advancedPane.classList.contains('show')) {
-      initAllViz();
-    }
   });
 </script>
 

@@ -57,10 +57,7 @@ INSTALLED_APPS = [
     'users',
     'planting',
     'species',
-    'drones',
     'projects',
-    'reports',
-    'customers',
 ]
 
 MIDDLEWARE = [
@@ -307,19 +304,6 @@ LOGGING = {
         'django': {
             'handlers': ['console'],
             'level': 'ERROR',
-        },
-        # Environmental data APIs — DEBUG shows raw values, missing counts,
-        # and parsed results so fetch issues can be diagnosed quickly.
-        'species.services.environmental_data': {
-            'handlers': ['console'],
-            'level': 'DEBUG',
-            'propagate': False,
-        },
-        # AI agent — INFO shows which path (TGI / rule-based) was taken.
-        'species.services.ai_agent': {
-            'handlers': ['console'],
-            'level': 'INFO',
-            'propagate': False,
         },
     },
 }

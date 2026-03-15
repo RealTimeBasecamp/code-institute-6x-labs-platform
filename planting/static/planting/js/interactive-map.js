@@ -1021,8 +1021,8 @@
             if (window.currentProjectSlug) return window.currentProjectSlug;
             try {
                 const parts = window.location.pathname.split('/').filter(Boolean);
-                // Expect pattern: projects/project-planner/<slug>
-                const idx = parts.indexOf('project-planner');
+                // Expect pattern: projects/<slug>
+                const idx = parts.indexOf('projects');
                 if (idx >= 0 && parts.length > idx + 1) return parts[idx + 1];
             } catch (e) {
                 // ignore
@@ -1062,7 +1062,7 @@
                 };
 
                 try {
-                    const resp = await fetch(`/projects/project-planner/${resolvedSlug}/api/publish-sites/`, {
+                    const resp = await fetch(`/projects/${resolvedSlug}/api/publish-sites/`, {
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json',
@@ -1230,7 +1230,7 @@
             if (!isNaN(siteId) && resolvedDeleteSlug) {
                 // Call server to delete site
                 try {
-                    const resp = await fetch(`/projects/project-planner/${resolvedDeleteSlug}/api/delete-site/`, {
+                    const resp = await fetch(`/projects/${resolvedDeleteSlug}/api/delete-site/`, {
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json',
