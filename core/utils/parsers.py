@@ -135,9 +135,9 @@ def serialize_value(value):
         return getattr(value, 'pk', None)
     if isinstance(value, (datetime, date)):
         return value.isoformat()
-    # django-countries CountryField exposes a .code attribute
-    if hasattr(value, 'code') and isinstance(getattr(value, 'code', None), str):
-        return value.code
+    # django-countries CountryField exposes a .code attribute (may be None for blank)
+    if hasattr(value, 'code') and hasattr(value, 'name'):
+        return value.code or None
     if isinstance(value, (list, tuple)):
         return [serialize_value(v) for v in value]
     if isinstance(value, dict):

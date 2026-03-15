@@ -88,6 +88,9 @@ def serialize_form_data(data):
             return {k: _serialize_value(v) for k, v in value.items()}
         if isinstance(value, (datetime, date)):
             return value.isoformat()
+        # django-countries Country objects have a .code attribute (may be None for blank)
+        if hasattr(value, 'code') and hasattr(value, 'name'):
+            return value.code or None
         return value
 
     return {key: _serialize_value(value) for key, value in data.items()}
@@ -544,14 +547,20 @@ class BaseWizardView(View, ABC):
         except json.JSONDecodeError:
             pass
 
-        # Get initial data (edit wizards use context to load existing data)
-        initial_data = self.get_initial_data(request)
-        if initial_data:
-            wizard_data['step_data'] = initial_data
-            self.save_wizard_data(request, wizard_data)
+        try:
+            # Get initial data (edit wizards use context to load existing data)
+            initial_data = self.get_initial_data(request)
+            if initial_data:
+                wizard_data['step_data'] = initial_data
+                self.save_wizard_data(request, wizard_data)
 
-        # Render the requested step directly (skip rendering step 0 if not needed)
-        return self._render_step(request, start_step, wizard_data)
+            # Render the requested step directly (skip rendering step 0 if not needed)
+            return self._render_step(request, start_step, wizard_data)
+        except Exception as e:
+            return JsonResponse({
+                'success': False,
+                'error': str(e)
+            }, status=500)
 
     def _resolve_form_to_step(self, form_name):
         """
@@ -675,6 +684,10 @@ class BaseWizardView(View, ABC):
                 self.clear_wizard_data(request)
             return JsonResponse(result)
         except Exception as e:
+            import traceback
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.error('Wizard submit error: %s\n%s', str(e), traceback.format_exc())
             return JsonResponse({
                 'success': False,
                 'error': str(e)

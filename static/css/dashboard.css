@@ -91,6 +91,11 @@
   height: 14rem;
 }
 
+/* Project breakdown charts — taller than default metric cards */
+#tab-project-breakdown .chart-wrap {
+  height: 18rem;
+}
+
 /* ===== LOADING STATE ===== */
 .chart-loading {
   position: absolute;
@@ -127,6 +132,10 @@
   .chart-wrap-wide {
     height: 13rem;
   }
+
+  #tab-project-breakdown .chart-wrap {
+    height: 16rem;
+  }
 }
 
 /* Tablets */
@@ -149,6 +158,10 @@
 
   .chart-wrap-wide {
     height: 12rem;
+  }
+
+  #tab-project-breakdown .chart-wrap {
+    height: 15rem;
   }
 }
 
@@ -173,6 +186,10 @@
   .chart-wrap-wide {
     height: 11rem;
   }
+
+  #tab-project-breakdown .chart-wrap {
+    height: 14rem;
+  }
 }
 
 /* Mobile portrait */
@@ -196,6 +213,10 @@
 
   .chart-wrap-wide {
     height: 10rem;
+  }
+
+  #tab-project-breakdown .chart-wrap {
+    height: 13rem;
   }
 }
 
