@@ -21,6 +21,13 @@
     localStorage.setItem("theme", theme);
     localStorage.setItem("theme-mode", mode);
   }
+
+  // Validate theme is a known value; reset to default if not
+  const validThemes = ['default', 'moon', 'gaia', 'sunset', 'honeycomb', 'ocean', '6xlabs'];
+  if (!validThemes.includes(theme)) {
+    theme = "default";
+    localStorage.setItem("theme", theme);
+  }
   const w = localStorage.getItem("sidebar-width");
   const offcanvasState = localStorage.getItem("offcanvas-state") || "open";
 

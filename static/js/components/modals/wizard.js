@@ -922,11 +922,17 @@
   }
 
   // Auto-initialize wizards with data-wizard-auto-init attribute
-  document.addEventListener("DOMContentLoaded", function () {
-    document.querySelectorAll("[data-wizard-auto-init]").forEach((modal) => {
-      new WizardManager(modal.id);
+  // Guard prevents double-initialization if this script is ever loaded more than once
+  if (!window._wizardAutoInitDone) {
+    window._wizardAutoInitDone = true;
+    document.addEventListener("DOMContentLoaded", function () {
+      document.querySelectorAll("[data-wizard-auto-init]").forEach((modal) => {
+        if (!modal._wizardManager) {
+          modal._wizardManager = new WizardManager(modal.id);
+        }
+      });
     });
-  });
+  }
 
   // Export for global access
   window.WizardManager = WizardManager;

@@ -157,7 +157,12 @@
    */
   function initialize() {
     // Load saved theme and mode
-    const savedTheme = getCurrentTheme();
+    const validThemes = ['default', 'moon', 'gaia', 'sunset', 'honeycomb', 'ocean', '6xlabs'];
+    const rawTheme = getCurrentTheme();
+    const savedTheme = validThemes.includes(rawTheme) ? rawTheme : DEFAULT_THEME;
+    if (!validThemes.includes(rawTheme)) {
+      localStorage.setItem('theme', DEFAULT_THEME);
+    }
     const savedMode = getCurrentMode();
 
     // Apply theme and mode
