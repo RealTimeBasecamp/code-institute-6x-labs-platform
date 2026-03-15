@@ -11,10 +11,12 @@ Data returned to: JSON responses via the wizard view handlers
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_protect
 from django.views.decorators.http import require_POST
+from django.contrib.auth.decorators import login_required
 
 from .wizards import get_wizard, wizard_exists
 
 
+@login_required
 @csrf_protect
 @require_POST
 def wizard_dispatch(request, wizard_name, action='start', step=None):

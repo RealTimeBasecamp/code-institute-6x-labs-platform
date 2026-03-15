@@ -108,7 +108,7 @@ def api_generate_mix(request):
     task_id = str(uuid.uuid4())
     if _ASYNC:
         try:
-            cache.set(_task_key(task_id), {'status': 'queued'}, timeout=600)
+            cache.set(_task_key(task_id), {'status': 'queued', 'user_id': request.user.id}, timeout=600)
             run_mix_generation.send(task_id, lat, lng, goals, max_species)
         except Exception as exc:
             logger.error('Failed to dispatch mix generation task: %s', exc)
@@ -120,7 +120,7 @@ def api_generate_mix(request):
         # No Redis — run in a background thread so the POST returns immediately
         # and the frontend can poll for live progress events.
         # DatabaseCache is shared across threads in the same process.
-        cache.set(_task_key(task_id), {'status': 'queued'}, timeout=600)
+        cache.set(_task_key(task_id), {'status': 'queued', 'user_id': request.user.id}, timeout=600)
         _run_in_thread(run_mix_generation, task_id, lat, lng, goals, max_species)
     return JsonResponse({'task_id': task_id})
 
@@ -164,10 +164,10 @@ def api_rescore_mix(request):
 
     task_id = str(uuid.uuid4())
     if _ASYNC:
-        cache.set(_task_key(task_id), {'status': 'queued'}, timeout=300)
+        cache.set(_task_key(task_id), {'status': 'queued', 'user_id': request.user.id}, timeout=300)
         run_mix_rescore.send(task_id, cached_env_data, cached_candidates, goals, current_mix, max_species)
     else:
-        cache.set(_task_key(task_id), {'status': 'queued'}, timeout=300)
+        cache.set(_task_key(task_id), {'status': 'queued', 'user_id': request.user.id}, timeout=300)
         _run_in_thread(run_mix_rescore, task_id, cached_env_data, cached_candidates, goals, current_mix, max_species)
     return JsonResponse({'task_id': task_id})
 
@@ -220,10 +220,10 @@ def api_validate_species(request):
 
     task_id = str(uuid.uuid4())
     if _ASYNC:
-        cache.set(_task_key(task_id), {'status': 'queued'}, timeout=180)
+        cache.set(_task_key(task_id), {'status': 'queued', 'user_id': request.user.id}, timeout=180)
         run_species_validation.send(task_id, species_data, cached_env_data, current_mix)
     else:
-        cache.set(_task_key(task_id), {'status': 'queued'}, timeout=180)
+        cache.set(_task_key(task_id), {'status': 'queued', 'user_id': request.user.id}, timeout=180)
         _run_in_thread(run_species_validation, task_id, species_data, cached_env_data, current_mix)
     return JsonResponse({'task_id': task_id})
 
@@ -248,6 +248,12 @@ def api_task_status(request, task_id):
         { status: 'complete', result: { species_mix, env_summary, insights, env_data, ... } }
     """
     state = _get_task_status(task_id)
+    if state.get('status') == 'not_found':
+        return JsonResponse({'status': 'not_found', 'progress': []})
+    # Only allow the task owner (or staff) to poll this task
+    if not (request.user.is_staff or request.user.is_superuser or state.get('user_id') == request.user.id):
+        from django.http import HttpResponseForbidden
+        return HttpResponseForbidden('Permission denied')
     # Ensure progress is always present so frontend can safely read it in any state
     state.setdefault('progress', [])
     # For running tasks, extract partial species list from species_added events
