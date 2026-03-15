@@ -2,9 +2,9 @@
 
 <img alt="desktop" src="./assets/6xLabsDrones.png">
 
-This project is an interactive platform for the drone reforestation enterprise 6x Labs. This platform is designed to plan and store reforestation project data as well as display detailed carbon sequestration information for the customer. The projects planned here will eventually be planted using drones in the real world.
+This project is an platform for the drone reforestation enterprise 6x Labs. This platform is designed to plan and store reforestation project data as well as display detailed carbon sequestration information for the customer.
 
-From a user's perspective, they should be able to view reforestation projects planned and run by 6x Labs, and, if they are a registered user, they can create, edit and delete Projects.
+From a user's perspective, they should be able to view reforestation projects, and, if they are a registered user, they can create, edit and delete Projects.
 
 In terms of design, a modern and minimalistic colour theme was chosen in order to streamline the UX and keep the focus on the raw data. This design is reflected across the whole site. The site UX is inspired by platforms such as Notion, ensuring a modern and easy to use interface.
 
@@ -154,11 +154,6 @@ As the rest of the website is very minimalist, the design for certain aspects wa
 
 - Apply null and required fields to all relevant entry boxes to validate the user-inputted data.
 
-**As a user, I will be redirected to an upgrade page if I click on a button or page that my current tier is not authorised for.**
-
-- User UX will automatically take them to an upgrade page
-
-- Users need to visually see which tier they are using.
 
 **As a user I want to be able to see an interactive map showing project information such as the location in the world.**
 
@@ -174,39 +169,16 @@ As the rest of the website is very minimalist, the design for certain aspects wa
 
 - As a site admin/user, I should be able to filter map information, update the 2D/3D View mode and edit the map settings.
 
-**As a site admin, I want to be able to control the current changes and state of a project to make the user experience more standardised.**
-
-- Undo, redo buttons that actively iterate through the edited version history.
-
-- A function that marks the system as "dirty" when something has been edited. These changes can be saved as a draft or discarded.
-
-- A publish changes/project button that saves the draft changes to the project and then updates the UI with a timestamp.
-
-**As a site admin, I can render a point on the interactive map based on the settings that are configured. This is so the seed locations can be exported to a drone to be planted.**
-
-- As a site user, I can select which algorithm to use for the point plotting on the map (Poisson-disc distribution/ Sample elimination).
-
-- The points can be saved to the database.
-
-**As a site admin, I can manage a seed catalogue database table so this information can be accessed in other project pages.**
-
-- As a site admin, I can view, edit and delete individual seed species entries in the database table
-
-- As a site user I can view and filter each column by species name, country of origin, primary country, total alive instances etc.
-
-**As a site user I can use the interactive map to plot seed points.**
-
-- Multiple nested criteria acceptance points
 
 **As a site user, I want to view and export the calculated project breakdown information, such as total CO2 captured, so I can meet government regulations.**
 
-- The user can select which type of carbon regulatory body from a dropdown, and it will filter the data accordingly.
+- The user can select which type of carbon regulatory body from a dropdown.
 
 - The user can view individual graphs showcasing the project or site-specific breakdown information.
 
-- The user can export a .csv or .pdf file containing the breakdown information.
 
-The completed sprint was made up of 35 issues, 21 of which were "must have", making up 60% of the overall project issues. Ultimately a lot of the issues planned were outside the scope of the Django project MVP and will be implemented in the future.
+The completed sprint was made up of 16 issues, 3 of which were "must have", 2 should have, 3 could have and 6 won't have. All of the issues were implemented apart from the won't haves. Ultimately a lot of the issues planned were outside the scope of the Django project MVP and will be implemented in the future.
+
 
 <img alt="Linear sprint overview" src="./assets/Linear_001.PNG">
 
@@ -228,6 +200,8 @@ These can be hidden/unhidden using the "Show sub-issues" display flag. This kept
 <img alt="Linear sub-issues toggle" src="./assets/SubIssues.png">
 <img alt="Linear kanban board" src="./assets/Linear_005.png">
 
+A copy of the linear issues can be found here on the repo Project page on Github
+[**Linear**](https://github.com/users/RealTimeBasecamp/projects/2)
 
 ## Features
 **Dashboard Page**
@@ -398,41 +372,41 @@ The site was tested on the following browsers for compatibility:
 ### Chrome ###
 |   Test	|  Expected Result 	|  Actual Result	|
 |---	|---	|---	|
-|   Click Home menu	|  success 	|  success 	|
-|   Click projects menu	|  success 	|  success 	|
-|   Click project planner menu	|  success 	|  success 	|
-|   Click the project (Grid/Table) buttons	|  success 	|  success 	|
-|   Click teamspace menu	|  success 	|  success 	|
-|   Click Light/Dark mode toggle	|  success 	|  success 	|
-|   Click the sidebar button	|  success 	|  success 	|
-|   Drag the sidebar	|  success 	|  success 	|
-|   Click Logout	|  success 	|  success 	|
-|   Click individual project	|  success 	|  success 	|
-|   Create, delete a project	|  success 	|  success 	|
-|   Edit a project field	|  success 	|  success 	|
-|   Register new account	|  success 	|  success 	|
-|   Access admin interface	|  success 	|  success 	|
-|   Responsivity	|  success 	|  Functional, Mobile needs improvement 	|
+|   Click Home button (6x Labs logo)	|  Takes user to the dashboard 	|  success 	|
+|   Click projects menu	|  Takes user to project list page 	|  success 	|
+|   Click the project (Grid/Table) buttons	|  View project list as a grid of cubes instead of table 	|  success 	|
+|   Click teamspace menu	|  Opens teamspace popout modal 	|  success 	|
+|   Click settings button	|  Opens settings modal 	|  success 	|
+|   Click Light/Dark mode toggle	|  Change theme modes between light/dark 	|  success 	|
+|   Click the sidebar button	|  Hides/opens sidebar menu 	|  success 	|
+|   Drag the sidebar	|  Expands/shrinks the sidebar menu 	|  success 	|
+|   Click Logout	|  Logs the user out and returns to login page 	|  success 	|
+|   Click individual project	|  Loads the project/slug page 	|  success 	|
+|   Click Add new project	button |  Opens project creation modal 	|  success 	|
+|   Click Edit button within a project field	|  Opens the edit wizard 	|  success 	|
+|   Register new account	|  Creates the user and opens onboarding 	|  success 	|
+|   Access admin interface	|  Opens the user admin interface 	|  success 	|
+|   Responsivity	|  Mobile/screensizes view responsive 	|  Functional, Mobile needs improvement 	|
 
 
 ### Edge ###
 |   Test	|  Expected Result 	|  Actual Result	|
 |---	|---	|---	|
-|   Click Home menu	|  success 	|  success 	|
-|   Click projects menu	|  success 	|  success 	|
-|   Click project planner menu	|  success 	|  success 	|
-|   Click the project (Grid/Table) buttons	|  success 	|  success 	|
-|   Click teamspace menu	|  success 	|  success 	|
-|   Click Light/Dark mode toggle	|  success 	|  success 	|
-|   Click the sidebar button	|  success 	|  success 	|
-|   Drag the sidebar	|  success 	|  success 	|
-|   Click Logout	|  success 	|  success 	|
-|   Click individual project	|  success 	|  success 	|
-|   Create, delete a project	|  success 	|  success 	|
-|   Edit a project field	|  success 	|  success 	|
-|   Register new account	|  success 	|  success 	|
-|   Access admin interface	|  success 	|  success 	|
-|   Responsivity	|  success 	|  Functional, Mobile needs improvement 	|
+|   Click Home button (6x Labs logo)	|  Takes user to the dashboard 	|  success 	|
+|   Click projects menu	|  Takes user to project list page 	|  success 	|
+|   Click the project (Grid/Table) buttons	|  View project list as a grid of cubes instead of table 	|  success 	|
+|   Click teamspace menu	|  Opens teamspace popout modal 	|  success 	|
+|   Click settings button	|  Opens settings modal 	|  success 	|
+|   Click Light/Dark mode toggle	|  Change theme modes between light/dark 	|  success 	|
+|   Click the sidebar button	|  Hides/opens sidebar menu 	|  success 	|
+|   Drag the sidebar	|  Expands/shrinks the sidebar menu 	|  success 	|
+|   Click Logout	|  Logs the user out and returns to login page 	|  success 	|
+|   Click individual project	|  Loads the project/slug page 	|  success 	|
+|   Click Add new project	button |  Opens project creation modal 	|  success 	|
+|   Click Edit button within a project field	|  Opens the edit wizard 	|  success 	|
+|   Register new account	|  Creates the user and opens onboarding 	|  success 	|
+|   Access admin interface	|  Opens the user admin interface 	|  success 	|
+|   Responsivity	|  Mobile/screensizes view responsive 	|  Functional, Mobile needs improvement 	|	|
 
 
 ### Lighthouse
@@ -486,6 +460,19 @@ All JavaScript files were validated using ESLint configured within VS Code. The 
 - Best practice violations (var vs let/const usage)
 
 Any issues identified were resolved before deployment to ensure clean, maintainable frontend code.
+
+## AI Usage
+
+AI was used throughout the project for both planning, implementation and debugging. Initially ChatGPT/Copilot was used within VS code but eventually Claude Code was used instead as it's more robust. The "Plan" mode was used throughout the project to understand the project architecture better and to make efficient use of view, model, template URL relationships. Using AI made it easier to find issues and debug them without endless hours googling problems. The Claude CLI integration was useful for live testing within the console. AI was also useful to convert my models from python to DBML format, which was used to generate the ERD diagram using dbdiagram.io.
+
+### UX/UI improvements
+Many CSS file improvements were implemented with AI to speed up the UX process. Figma AI was useful to generate the initial layout, then an screenshot or CSS reference could be provided to claude to recreate it.
+
+### Performance
+There were multiple times the code was refactored to improve performance and maintainability using ai. This was executed by adding in a file path and using the plan mode along with additional context about what performance improvements would be useful. AI was also used a way to test brute forcing security issues which would have been hard to implement manually without knowledge of cybersecurity backdoors.
+
+### AI Influenced workflow
+Once the AI process was proven to be useful it became a natural part of the workflow. It did not replace critical thinking but it did speed up the boilerplate creation process.
 
 
 ## Deployment

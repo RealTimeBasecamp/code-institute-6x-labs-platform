@@ -129,7 +129,13 @@
                 pitch: location.pitch,
                 bearing: location.bearing,
                 maxPitch: 85,
-                antialias: true
+                antialias: true,
+                transformRequest: (url) => {
+                    if (url.includes('mapterhorn.com')) {
+                        return { url, referrer: window.location.origin };
+                    }
+                    return { url };
+                },
             });
 
             // Add controls

@@ -164,6 +164,10 @@ def project_detail(request, slug):
         site_bounds_rows: Coordinate data for map bounds
     """
     project = get_object_or_404(Project, slug=slug)
+
+    if not (request.user.is_staff or request.user.is_superuser or project.created_by == request.user):
+        return HttpResponseForbidden('You do not have permission to view this project.')
+
     projects = Project.objects.all().order_by(Lower('name'))
     sites = project.sites.all()
 
@@ -649,9 +653,9 @@ def export_geopackage(request, slug, site_id):
     from django.http import HttpResponse as HR
     from .geopackage import export_components
 
-    project, site = _get_project_and_site(slug, site_id)
-    if isinstance(project, JsonResponse):
-        return project
+    project, site, has_perm = _get_project_and_site(request, slug, site_id)
+    if not has_perm:
+        return HttpResponseForbidden('Permission denied')
 
     components = site.map_components.all()
     data = export_components(components)
@@ -670,9 +674,9 @@ def import_geopackage(request, slug, site_id):
     if request.method != 'POST':
         return JsonResponse({'error': 'Method not allowed'}, status=405)
 
-    project, site = _get_project_and_site(slug, site_id)
-    if isinstance(project, JsonResponse):
-        return project
+    project, site, has_perm = _get_project_and_site(request, slug, site_id)
+    if not has_perm:
+        return HttpResponseForbidden('Permission denied')
 
     uploaded = request.FILES.get('file')
     if not uploaded:

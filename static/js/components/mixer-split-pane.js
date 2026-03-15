@@ -116,6 +116,12 @@ function initMixerMap(options = {}) {
     style,
     center: [-2.5, 54.5],  // UK centre
     zoom:   4.5,            // show full UK comfortably in the narrow map panel
+    transformRequest: (url) => {
+      if (url.includes('mapterhorn.com')) {
+        return { url, referrer: window.location.origin };
+      }
+      return { url };
+    },
   });
 
   map.addControl(new maplibregl.NavigationControl(), 'top-right');
