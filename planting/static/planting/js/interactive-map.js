@@ -1142,7 +1142,6 @@
         async function deleteSelectedSite() {
             const rows = getSiteRows();
             if (!rows || rows.length === 0) {
-                alert('No sites available to delete.');
                 return;
             }
 

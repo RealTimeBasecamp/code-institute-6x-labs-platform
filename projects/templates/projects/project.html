@@ -118,7 +118,6 @@
   </div>
 </section>
 
-
 <section>
   {% load ui_tags %}
   <div class="container mt-4">
@@ -157,7 +156,7 @@
 
         {# Controls row - Carbon Regulatory Body dropdown and View Scope toggle #}
         <div class="row mb-4">
-          <div class="col-lg-6 col-12 mb-3 mb-lg-0">
+          <div class="col-lg-4 col-12">
             <div class="d-flex align-items-center gap-2 mb-2">
               <span class="fw-medium">Carbon Regulatory Body</span>
               <i class="bi bi-info-circle text-muted"
@@ -172,23 +171,6 @@
             %}
           </div>
 
-          <div class="col-lg-6 col-12">
-            <div class="d-flex align-items-center gap-2 mb-2">
-              <span class="fw-medium">View Scope</span>
-              <i class="bi bi-info-circle text-muted"
-                data-bs-toggle="tooltip"
-                data-bs-placement="top"
-                data-bs-title="Toggle between viewing data for the current site or the entire project."></i>
-            </div>
-            <div class="view-scope-toggle d-inline-flex align-items-center gap-2 px-3 py-2 rounded border bg-body-tertiary">
-              <span class="view-scope-label" data-scope="site">Current Site</span>
-              <label class="toggle-switch m-0">
-                <input type="checkbox" id="viewScopeToggle" aria-label="Toggle view scope between current site and entire project">
-                <span class="slider"></span>
-              </label>
-              <span class="view-scope-label text-muted" data-scope="project">Entire Project</span>
-            </div>
-          </div>
         </div>
 
         {# Three metric cards in a row - matching dashboard layout #}
@@ -199,13 +181,8 @@
                 <h4>CO₂ Sequestered</h4>
                 <span class="dash-card-subtitle">Total carbon captured</span>
               </div>
-              <div class="chart-container loading">
+              <div class="chart-container">
                 <div id="pbCo2Chart" class="chart-wrap"></div>
-                <div class="chart-loading">
-                  <div class="spinner-border spinner-border-sm text-primary" role="status">
-                    <span class="visually-hidden">Loading...</span>
-                  </div>
-                </div>
               </div>
             </div>
           </div>
@@ -216,13 +193,8 @@
                 <h4>Project Area</h4>
                 <span class="dash-card-subtitle">Total site coverage</span>
               </div>
-              <div class="chart-container loading">
+              <div class="chart-container">
                 <div id="pbAreaChart" class="chart-wrap"></div>
-                <div class="chart-loading">
-                  <div class="spinner-border spinner-border-sm text-primary" role="status">
-                    <span class="visually-hidden">Loading...</span>
-                  </div>
-                </div>
               </div>
             </div>
           </div>
@@ -233,13 +205,8 @@
                 <h4>Total Plants</h4>
                 <span class="dash-card-subtitle">Plants in this project</span>
               </div>
-              <div class="chart-container loading">
+              <div class="chart-container">
                 <div id="pbPlantsChart" class="chart-wrap"></div>
-                <div class="chart-loading">
-                  <div class="spinner-border spinner-border-sm text-primary" role="status">
-                    <span class="visually-hidden">Loading...</span>
-                  </div>
-                </div>
               </div>
             </div>
           </div>
@@ -276,7 +243,14 @@
 </section>
 
 <script src="https://cdn.jsdelivr.net/npm/echarts@5/dist/echarts.min.js"></script>
-<script src="{% static 'projects/js/project_breakdown.js' %}" defer></script>
+<script src="{% static 'projects/js/project_breakdown.js' %}"></script>
+<script>
+  document.addEventListener('shown.bs.tab', function(e) {
+    if (e.target.id.endsWith('-project-breakdown-tab')) {
+      ProjectBreakdownCharts.init();
+    }
+  });
+</script>
 
 {% if user.is_authenticated %}
 {% if project.created_by == user or user.is_superuser or user.is_staff %}

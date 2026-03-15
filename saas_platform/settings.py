@@ -305,5 +305,9 @@ LOGGING = {
             'handlers': ['console'],
             'level': 'ERROR',
         },
+        'core': {
+            'handlers': ['console'],
+            'level': 'ERROR',
+        },
     },
 }
