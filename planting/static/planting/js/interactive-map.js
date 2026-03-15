@@ -1126,8 +1126,9 @@
 
         // Delete selected site handler (trash button)
         (function wireDeleteButton() {
-            // Find a button that contains a trash icon
-            const trashIcon = document.querySelector('button i.bi-trash');
+            // Scope to the map card to avoid matching unrelated trash buttons on the page
+            const mapCard = document.querySelector('.interactive-map-card');
+            const trashIcon = mapCard && mapCard.querySelector('button i.bi-trash');
             const deleteBtn = trashIcon ? trashIcon.closest('button') : null;
             if (!deleteBtn) return;
 
