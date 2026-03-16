@@ -47,6 +47,7 @@ Note: Step titles and count are loaded from the backend wizard class (single sou
      tabindex="-1"
      data-wizard-name="{{ wizard_name }}"
      data-wizard-auto-init
+     {% if auto_show %}data-wizard-auto-show{% endif %}
      {% if wizard_context %}data-wizard-context="{{ wizard_context }}"{% endif %}
      {% if wizard_mode %}data-wizard-mode="{{ wizard_mode }}"{% endif %}
      data-bs-backdrop="static"

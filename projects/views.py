@@ -165,9 +165,6 @@ def project_detail(request, slug):
     """
     project = get_object_or_404(Project, slug=slug)
 
-    if not (request.user.is_staff or request.user.is_superuser or project.created_by == request.user):
-        return HttpResponseForbidden('You do not have permission to view this project.')
-
     projects = Project.objects.all().order_by(Lower('name'))
     sites = project.sites.all()
 

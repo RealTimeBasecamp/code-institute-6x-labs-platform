@@ -930,6 +930,11 @@
         if (!modal._wizardManager) {
           modal._wizardManager = new WizardManager(modal.id);
         }
+        // Auto-show if data-wizard-auto-show attribute is present
+        if (modal.hasAttribute("data-wizard-auto-show")) {
+          var bsModal = new bootstrap.Modal(modal);
+          bsModal.show();
+        }
       });
     });
   }
