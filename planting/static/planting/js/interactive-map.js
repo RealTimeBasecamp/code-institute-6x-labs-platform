@@ -135,10 +135,15 @@
                 },
             });
 
-            // Silently ignore 404s from Mapterhorn terrain tiles (sparse DEM coverage)
+            // Suppress Mapterhorn 404 noise — browser logs these before MapLibre fires its error event
+            const _origWarn  = console.warn.bind(console);
+            const _origError = console.error.bind(console);
+            const _isMapterhorn = (args) => args.some(a => typeof a === 'string' && a.includes('mapterhorn.com'));
+            console.warn  = (...args) => { if (!_isMapterhorn(args)) _origWarn(...args);  };
+            console.error = (...args) => { if (!_isMapterhorn(args)) _origError(...args); };
             this.map.on('error', (e) => {
                 if (e?.error?.url?.includes('mapterhorn.com')) return;
-                console.error(e);
+                _origError(e);
             });
 
             // Add controls
