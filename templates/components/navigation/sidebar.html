@@ -47,8 +47,8 @@
 
 {# Render User settings modal at top-level (not nested inside other modals/offcanvas) #}
 {% include 'account/user_settings_modal.html' with modal_id='UserSettingsModal' %}
-<script src="{% static 'js/components/modals/settings-modal.js' %}" defer></script>
-<script src="{% static 'js/components/theme-preferences.js' %}" defer></script>
+<script src="{% static 'js/components/modals/settings-modal.js' %}"></script>
+<script src="{% static 'js/components/theme-preferences.js' %}"></script>
 <script>
   document.addEventListener('DOMContentLoaded', function() {
     var modalEl = document.getElementById('UserSettingsModal');

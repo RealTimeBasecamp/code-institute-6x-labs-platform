@@ -131,18 +131,6 @@
   });
 </script>
 
-{% if not user.profile_setup_complete %}
-<script>
-  // Auto-open profile wizard on first login
-  document.addEventListener('DOMContentLoaded', function() {
-    var wizardModal = document.getElementById('userProfileWizard');
-    if (wizardModal) {
-      var modal = new bootstrap.Modal(wizardModal);
-      modal.show();
-    }
-  });
-</script>
-{% endif %}
 {% endblock %}
 
 {% block modals %}
@@ -150,11 +138,20 @@
   User Profile Setup Wizard Modal
   Triggered automatically on first login when profile_setup_complete is False.
   {% endcomment %}
-
-  {% include 'components/modals/wizard_modal.html' with
-    modal_id='userProfileWizard'
-    wizard_name='user_profile'
-    modal_title='Complete Your Profile'
-    modal_icon='bi bi-person-circle'
-  %}
+  {% if not user.profile_setup_complete %}
+    {% include 'components/modals/wizard_modal.html' with
+      modal_id='userProfileWizard'
+      wizard_name='user_profile'
+      modal_title='Complete Your Profile'
+      modal_icon='bi bi-person-circle'
+      auto_show=True
+    %}
+  {% else %}
+    {% include 'components/modals/wizard_modal.html' with
+      modal_id='userProfileWizard'
+      wizard_name='user_profile'
+      modal_title='Complete Your Profile'
+      modal_icon='bi bi-person-circle'
+    %}
+  {% endif %}
 {% endblock %}

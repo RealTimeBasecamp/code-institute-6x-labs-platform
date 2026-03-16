@@ -30,22 +30,9 @@
       }
     }
 
-    // Initialize pill nav for mode selector first
-    const modeSelector = document.querySelector('.mode-selector.nav-pills');
-    if (modeSelector && !modeSelector._pillNav && typeof PillNav !== 'undefined') {
-      modeSelector._pillNav = new PillNav(modeSelector);
-    }
-
     // Set active mode tab to reflect saved value
     if (modeSelect) {
       const currentMode = modeSelect.value || 'system';
-      // Support legacy .mode-btn elements
-      const modeBtn = document.querySelector(`.mode-btn[data-mode="${currentMode}"]`);
-      if (modeBtn) {
-        document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active'));
-        modeBtn.classList.add('active');
-      }
-      // Activate the nav-pills tab for current mode (suppress PATCH during init)
       const modeTab = document.getElementById('mode-selector-' + currentMode + '-tab');
       if (modeTab && !modeTab.classList.contains('active')) {
         _initializingMode = true;
@@ -53,33 +40,30 @@
         setTimeout(function() { _initializingMode = false; }, 300);
       }
     }
+
+    // Init PillNav via the global initPillNavs so it gets an IntersectionObserver
+    // that auto-fires updateIndicator when the container becomes visible
+    if (typeof window.initPillNavs === 'function') {
+      window.initPillNavs();
+    }
   }
 
-  // Use MutationObserver to detect when theme preferences step is loaded
+  // Watch for wizard step content being AJAX-injected
   const observer = new MutationObserver(function(mutations) {
     for (const mutation of mutations) {
       if (mutation.type === 'childList' && mutation.addedNodes.length) {
-        // Check if theme selector was added (indicates preferences step loaded)
-        const themeSelector = document.querySelector('.theme-selector');
-        if (themeSelector) {
-          // Defer to next tick to ensure wizard's _populateStepData has run
-          setTimeout(initThemePreferences, 0);
+        if (document.querySelector('.theme-selector')) {
+          requestAnimationFrame(() => requestAnimationFrame(initThemePreferences));
           break;
         }
       }
     }
   });
 
-  // Start observing the wizard content area for changes
   document.addEventListener('DOMContentLoaded', function() {
     const wizardContent = document.querySelector('.wizard-step-content');
     if (wizardContent) {
       observer.observe(wizardContent, { childList: true, subtree: true });
-    }
-
-    // Also init immediately if preferences step is already visible
-    if (document.querySelector('.theme-selector')) {
-      initThemePreferences();
     }
   });
 
