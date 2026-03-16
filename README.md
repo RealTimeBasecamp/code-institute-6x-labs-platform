@@ -200,8 +200,8 @@ These can be hidden/unhidden using the "Show sub-issues" display flag. This kept
 <img alt="Linear sub-issues toggle" src="./assets/SubIssues.png">
 <img alt="Linear kanban board" src="./assets/Linear_005.png">
 
-A copy of the linear issues can be found here on the repo Project page on Github
-[**Linear**](https://github.com/users/RealTimeBasecamp/projects/2)
+A copy of the linear issues can be found here on the repo Project page on 
+[**Github**](https://github.com/users/RealTimeBasecamp/projects/2).
 
 ## Features
 **Dashboard Page**
@@ -291,11 +291,11 @@ The danger zone card at the bottom of the project planner page is only exposed t
 
 **Sidebar**
 
-The sidebar is a custom implementation of the Bootstrap offcanvas component. The sidebar has been extended to allow for custom "nav-item" functionality per user. Currently the user is denied access to navigation items that are not accessible under the default subscription tier (Sapling). This is intentional as only subscribed users can access the premium pages. The navigation items and metadata are stored within a navigation.json file.
+The sidebar is a custom implementation of the Bootstrap offcanvas component. The sidebar has been extended to allow for custom "nav-item" functionality per user. Currently the user is only shown pages that are available on their current "tier" within their user profile. The navigation items and metadata are stored within a navigation.json file.
 
 The sidebar has custom CSS and JS functionality which stores the current sidebar hidden/unhidden preference per user within their user config. This config preference persists between pages to ensure a smoother user experience.
 
-The sidebar also has expandable nav item folders which is designed to make navigation easier. In the future the currently open folders will persist across pages.
+The sidebar also has expandable nav item folders which is designed to make navigation easier. In the future the currently open folders will persist across pages. Here is an example of future pages that will be listed as sidebar items.
 <br>
 <img alt="6x Sidebar" src="./assets/Sidebar_002.png">
 
@@ -339,6 +339,8 @@ The site uses an onboarding form to capture and update the user's information. U
 **Teamspace modal**
 
 The site has a "teamspace" modal that can be opened via the sidebar by clicking on the user button. This shows the currently logged in user, their "subscription tier" or account status (Defaults to "Sapling" due to a lack of payment system integration), their email and display name. The user can log out via this modal.
+
+The settings modal opens and allows users to update themes that were present during onboarding.
 
 <img alt="Teamspace modal" src="./assets/TeamspaceModal.PNG">
 
