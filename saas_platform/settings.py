@@ -253,18 +253,6 @@ else:
 # Expose whether async dispatch is available to application code
 SPECIES_MIXER_ASYNC = _REDIS_UP
 
-# =============================================================================
-# SPECIES MIXER — AI (BLOOM via Hugging Face text-generation-inference)
-# =============================================================================
-# TGI server URL — run locally:
-#   docker run -d --gpus all -p 8080:80 \
-#     ghcr.io/huggingface/text-generation-inference:latest \
-#     --model-id bigscience/bloomz-7b1-mt --max-total-tokens 4096
-TGI_BASE_URL = os.environ.get('TGI_BASE_URL', 'http://localhost:8080')
-
-# Maximum number of species to include in an AI-generated mix
-SPECIES_MIX_MAX_SPECIES = int(os.environ.get('SPECIES_MIX_MAX_SPECIES', '60'))
-
 # Custom user model
 AUTH_USER_MODEL = 'users.User'
 
