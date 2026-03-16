@@ -131,11 +131,14 @@
                 maxPitch: 85,
                 antialias: true,
                 transformRequest: (url) => {
-                    if (url.includes('mapterhorn.com')) {
-                        return { url, referrer: window.location.origin };
-                    }
-                    return { url };
+                    return { url, referrer: window.location.origin };
                 },
+            });
+
+            // Silently ignore 404s from Mapterhorn terrain tiles (sparse DEM coverage)
+            this.map.on('error', (e) => {
+                if (e?.error?.url?.includes('mapterhorn.com')) return;
+                console.error(e);
             });
 
             // Add controls
