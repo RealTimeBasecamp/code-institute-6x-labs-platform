@@ -30,6 +30,9 @@ A responsive site layout enables easy navigation on all devices.
   - [Component inspiration](#component-inspiration)
 - [User Stories](#user-stories)
 - [Features](#features)
+- [Defensive Design](#defensive-design)
+  - [Authentication](#authentication)
+  - [Authorisation and Object-Level Permissions](#authorisation-and-object-level-permissions)
 - [Testing](#testing)
   - [Manual Testing](#manual-testing)
   - [Chrome](#chrome)
@@ -365,6 +368,40 @@ The following database schema ERD was created for the project.
 This is a simplified diagram explaining the core data models and how they relate. Not every table is currently integrated, the data structure has been generated to future-proof the development.
 
 <img alt="Simple ERD diagram" src="./assets/SimpleERD.png">
+
+## Defensive Design
+
+Defensive design has been applied throughout the platform to ensure users cannot access or modify data beyond their permissions, even by directly entering or brute-forcing URLs.
+
+### Authentication
+
+All views across the platform are protected using Django's built-in authentication tools. Class-based views use `LoginRequiredMixin` and function-based views use the `@login_required` decorator. Any unauthenticated user who attempts to access a protected URL directly is automatically redirected to the login page rather than seeing an error or partial data.
+
+The `@require_POST` decorator is also applied to all destructive endpoints (delete, publish) to ensure they cannot be triggered by a simple GET request via the browser address bar.
+
+### Authorisation and Object-Level Permissions
+
+Authentication alone only verifies that a user is logged in. The platform goes further by enforcing **object-level permissions** on all views that can modify or delete data. Every write, update, and delete endpoint checks that the requesting user is either:
+
+- The user who originally created the project (`project.created_by == request.user`), or
+- A staff member or superuser (`request.user.is_staff` / `request.user.is_superuser`)
+
+This check is implemented consistently across all mutating views via a shared `_get_project_and_site` helper that resolves the project and site from the URL and returns a `has_perm` flag. If the user does not pass this check, the view returns an `HttpResponseForbidden (403)` immediately, before any database operation takes place.
+
+All logged-in users can **view** any project, but the following endpoints are fully restricted to the project owner or admin:
+
+| View | URL | Protection |
+|---|---|---|
+| `delete_project` | `/<slug>/delete-project/` | `created_by == user` or staff/superuser |
+| `publish_sites` | `/<slug>/api/publish-sites/` | `created_by == user` or staff/superuser |
+| `delete_site` | `/<slug>/api/delete-site/` | `created_by == user` or staff/superuser |
+| `components_api` POST | `/<slug>/api/sites/<id>/components/` | `created_by == user` or staff/superuser |
+| `components_bulk_api` PUT | `/<slug>/api/sites/<id>/components/bulk/` | `created_by == user` or staff/superuser |
+| `component_detail_api` PATCH/DELETE | `/<slug>/api/components/<id>/` | `created_by == user` or staff/superuser |
+| `folders_api` POST | `/<slug>/api/sites/<id>/folders/` | `created_by == user` or staff/superuser |
+| `folder_detail_api` PATCH/DELETE | `/<slug>/api/folders/<id>/` | `created_by == user` or staff/superuser |
+
+In addition to backend enforcement, the UI hides destructive controls (such as the delete button and "Danger Zone" card) from users who do not own the project. This provides a clean user experience, but the backend checks are the true security layer — the UI alone cannot be relied upon, as any user could manually craft a POST request to a delete URL without ever seeing the button.
 
 ## Testing
 
