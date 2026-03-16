@@ -28,7 +28,8 @@ window.MapStyles = (() => {
   // ── Tile sources ────────────────────────────────────────────────────────────
 
   const TILE_SOURCES = {
-    osm:       'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+    // Carto Voyager: free, no API key, no referer enforcement, OSM-based
+    osm:       'https://basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png',
     // Mapterhorn terrain: ESA Copernicus DEM + EU LiDAR, hosted on Cloudflare R2
     // Free, no API key, terrarium encoding. https://mapterhorn.com
     terrain:   'https://tiles.mapterhorn.com/{z}/{x}/{y}.webp',
@@ -62,7 +63,7 @@ window.MapStyles = (() => {
         type: 'raster',
         tiles: [TILE_SOURCES.osm],
         tileSize: 256,
-        attribution: '&copy; OpenStreetMap contributors',
+        attribution: '&copy; <a href="https://carto.com/attributions">CARTO</a> &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
       },
     };
 
