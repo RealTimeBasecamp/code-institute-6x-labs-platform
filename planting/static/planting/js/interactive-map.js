@@ -24,8 +24,8 @@
     const DEFAULT_CONFIG = {
         project: { name: 'My Project', description: '' },
         location: { center: [-0.9105, 51.4243], zoom: 15, pitch: 45, bearing: -17.6 },
-        layers: { echarts: true, extrusion: true, hillshade: true },
-        terrain: { enabled: true, exaggeration: 3.0 },
+        layers: { echarts: true, extrusion: true, hillshade: false },
+        terrain: { enabled: false, exaggeration: 3.0 },
         demoPolygon: { enabled: false }
     };
 
