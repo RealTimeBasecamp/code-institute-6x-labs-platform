@@ -1,22 +1,7 @@
 <svg
    viewBox="0 0 11460.194 2047.5393"
    version="1.1"
-  xmlns="http://www.w3.org/2000/svg"><defs><path-effect
-    effect="fillet_chamfer"
-    is_visible="true"
-       lpeversion="1"
-       nodesatellites_param="F,0,0,1,0,19.84375,0,1 @ F,0,0,1,0,19.84375,0,1 @ F,0,0,1,0,19.84375,0,1 @ F,0,0,1,0,19.84375,0,1 @ F,0,0,1,0,19.84375,0,1 @ F,0,0,1,0,19.84375,0,1 @ F,0,0,1,0,19.84375,0,1 @ F,0,0,1,0,19.84375,0,1 | F,0,0,1,0,19.84375,0,1 @ F,0,0,1,0,19.84375,0,1 @ F,0,0,1,0,19.84375,0,1 @ F,0,0,1,0,19.84375,0,1 @ F,0,0,1,0,19.84375,0,1 @ F,0,0,1,0,19.84375,0,1 @ F,0,0,1,0,19.84375,0,1 @ F,0,0,1,0,19.84375,0,1 @ F,0,0,1,0,19.84375,0,1 @ F,0,0,1,0,19.84375,0,1 @ F,0,0,1,0,19.84375,0,1 @ F,0,0,1,0,19.84375,0,1 @ F,0,0,1,0,19.84375,0,1 @ F,0,0,1,0,19.84375,0,1 @ F,0,0,1,0,19.84375,0,1 @ F,0,0,1,0,19.84375,0,1"
-       radius="75"
-       unit="px"
-       method="auto"
-       mode="F"
-       chamfer_steps="1"
-       flexible="false"
-       use_knot_distance="true"
-       apply_no_radius="true"
-       apply_with_radius="true"
-       only_selected="false"
-       hide_knots="false" /></defs><g
+  xmlns="http://www.w3.org/2000/svg"><g
      transform="translate(-14306.239,-196.08785)"><path
       
        style="fill:currentColor;fill-opacity:1;fill-rule:evenodd;stroke-width:1.19487"
