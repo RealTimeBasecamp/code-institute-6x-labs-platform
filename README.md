@@ -389,6 +389,12 @@ The site was tested on the following browsers for compatibility:
 |   Register new account	|  Creates the user and opens onboarding 	|  success 	|
 |   Access admin interface	|  Opens the user admin interface 	|  success 	|
 |   Responsivity	|  Mobile/screensizes view responsive 	|  Functional, Mobile needs improvement 	|
+|   CRUD: Create a project after submitting data through project creation wizard modal	|  Project created and redirects user to project sub page 	|  success 	|
+|   CRUD: Read a project page after clicking project item in project list	| Project is read and project data appears in project page 	|  success 	|
+|   CRUD: Edit a project after submitting new project data through edit wizard modal	|  Current project page is refreshed and new data appears 	|  success 	|
+|   CRUD: Delete a Project after submitting delete wizard modal "project name" security check	| User is redirected back to project list page as the project sub page no longer exists. 	|   success	|
+
+
 
 
 ### Edge ###
@@ -408,7 +414,11 @@ The site was tested on the following browsers for compatibility:
 |   Click Edit button within a project field	|  Opens the edit wizard 	|  success 	|
 |   Register new account	|  Creates the user and opens onboarding 	|  success 	|
 |   Access admin interface	|  Opens the user admin interface 	|  success 	|
-|   Responsivity	|  Mobile/screensizes view responsive 	|  Functional, Mobile needs improvement 	|	|
+|   Responsivity	|  Mobile/screensizes view responsive 	|  Functional, Mobile needs improvement 	|
+|   CRUD: Create a project after submitting data through project creation wizard modal	|  Project created and redirects user to project sub page 	|  success 	|
+|   CRUD: Read a project page after clicking project item in project list	| Project is read and project data appears in project page 	|  success 	|
+|   CRUD: Edit a project after submitting new project data through edit wizard modal	|  Current project page is refreshed and new data appears 	|  success 	|
+|   CRUD: Delete a Project after submitting delete wizard modal "project name" security check	| User is redirected back to project list page as the project sub page no longer exists. 	|   success	|
 
 
 ### Lighthouse
