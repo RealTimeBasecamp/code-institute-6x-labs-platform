@@ -426,12 +426,12 @@ Alongside the built-in Bootstrap responsive CSS, Chrome dev tools were used freq
 
 ### HTML
 
-3 errors were returned during the HTML check. After investigation these were triggered due to my custom nav-item logic within my sidebar menu. This is due to the way children are nested within the nav-items. This will be rectified in future updates.
+0 errors were returned after checking the dashboard and project pages source HTML with the [**HTML**](https://validator.w3.org/) checker.
 <img alt="HTML validation results" src="./assets/HTMLCheck.PNG">
 
 
 ### CSS
-1 error was found during the official CSS error check. This is due to newer CSS being used. This will be fixed in future updates as the CSS functions visually currently for the MVP.
+0 CSS errors were found in the css files using the   [**W3C**](https://jigsaw.w3.org/css-validator/#validate_by_uri) CSS validator.
 <img alt="CSS validation results" src="./assets/CSSError.PNG">
 
 ### Python (PEP 8)

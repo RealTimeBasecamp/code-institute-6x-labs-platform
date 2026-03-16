@@ -9,7 +9,7 @@
   /* Shared horizontal inset used by both the offcanvas header and navbar-left */
   --header-inset: 1.25rem;
   --font-sans: "Segoe UI", -apple-system, BlinkMacSystemFont, "Roboto", "Helvetica Neue", Arial, sans-serif;
-  --font-size: var(--font-size);
+  --font-size: 1rem;
 }
 
 /* ===== THEME SYSTEM ===== */
@@ -380,23 +380,6 @@ svg {
   transition: transform 0.3s ease;
 }
 
-/* ===== VIEW TRANSITIONS API ===== */
-/* Smooth page transitions to prevent glitching/popping */
-
-@view-transition {
-  navigation: auto;
-}
-
-/* Smooth cross-fade transition */
-::view-transition-old(root),
-::view-transition-new(root) {
-  animation-duration: 0.2s;
-  animation-timing-function: ease-in-out;
-}
-
-::view-transition-group(root) {
-  animation-duration: 0.2s;
-}
 
 /* Utility: Primary background (used for avatar fallback, badges, etc.) */
 .bg-primary {

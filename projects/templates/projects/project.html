@@ -13,7 +13,7 @@
     transition: border-color 0.2s ease;
   }
   .view-scope-toggle:hover {
-    border-color: color-mix(in srgb, var(--bs-border-color) 60%, var(--primary-color) 40%) !important;
+    border-color: var(--primary-color) !important;
   }
   .view-scope-label {
     font-size: 0.875rem;
@@ -125,7 +125,7 @@
     {% include 'components/nav_pills.html' with tabs=project_tabs id='project-nav' %}
   </div>
   <div class="tab-content mt-4">
-    <div class="tab-pane fade show active" id="tab-project-info" role="tabpanel" aria-labelledby="project-info-tab">
+    <div class="tab-pane fade show active" id="tab-project-info" role="tabpanel" aria-labelledby="project-nav-project-info-tab">
       <div class="d-flex flex-column gap-4">
         {% if project %}
             {% for group in card_groups %}
@@ -144,7 +144,7 @@
       </div>
     </div>
 
-    <div class="tab-pane fade" id="tab-project-breakdown" role="tabpanel" aria-labelledby="project-breakdown-tab">
+    <div class="tab-pane fade" id="tab-project-breakdown" role="tabpanel" aria-labelledby="project-nav-project-breakdown-tab">
       <div class="container-fluid dashboard-container">
         {# Data element for JavaScript #}
         <div id="project-breakdown-data"
@@ -178,7 +178,7 @@
           <div class="col-lg-4 col-md-6 col-12">
             <div class="dash-card">
               <div class="dash-card-header">
-                <h4>CO₂ Sequestered</h4>
+                <h3>CO₂ Sequestered</h3>
                 <span class="dash-card-subtitle">Total carbon captured</span>
               </div>
               <div class="chart-container">
@@ -190,7 +190,7 @@
           <div class="col-lg-4 col-md-6 col-12">
             <div class="dash-card">
               <div class="dash-card-header">
-                <h4>Project Area</h4>
+                <h3>Project Area</h3>
                 <span class="dash-card-subtitle">Total site coverage</span>
               </div>
               <div class="chart-container">
@@ -202,7 +202,7 @@
           <div class="col-lg-4 col-md-6 col-12">
             <div class="dash-card">
               <div class="dash-card-header">
-                <h4>Total Plants</h4>
+                <h3>Total Plants</h3>
                 <span class="dash-card-subtitle">Plants in this project</span>
               </div>
               <div class="chart-container">
